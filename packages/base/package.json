@@ -3,6 +3,7 @@
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
+  "type": "module",
   "files": [
     "dist",
     "src"
@@ -30,8 +31,20 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
+  "dependencies": {
+    "@aws-cdk/core": "^1.91.0",
+    "aws-sdk": "^2.849.0",
+    "class-transformer": "^0.4.0",
+    "class-validator": "^0.13.1",
+    "inversify": "^5.0.5",
+    "serialize-error": "^8.0.1",
+    "source-map-support": "^0.5.19",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@types/uuid": "^8.3.0"
+  },
   "name": "@yac/base",
   "author": "Juan Di Toro",
   "module": "dist/base.esm.js"
 }
-

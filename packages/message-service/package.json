@@ -1,6 +1,7 @@
 {
   "version": "0.1.0",
   "license": "MIT",
+  "type": "module",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "files": [
@@ -19,7 +20,6 @@
     "size": "size-limit",
     "analyze": "size-limit --why"
   },
-  "peerDependencies": {},
   "husky": {
     "hooks": {
       "pre-commit": "tsdx lint"
@@ -31,7 +31,10 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
-  "name": "message-service",
+  "name": "@yac/message-service",
   "author": "Juan Di Toro",
-  "module": "dist/message-service.esm.js"
+  "module": "dist/message-service.esm.js",
+  "dependencies": {
+    "@yac/base": "^0.1.0"
+  }
 }
