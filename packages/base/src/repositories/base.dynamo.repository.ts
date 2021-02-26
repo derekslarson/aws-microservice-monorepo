@@ -1,11 +1,11 @@
-import 'reflect-metadata';
-import { injectable, unmanaged } from 'inversify';
-import { DynamoDB } from 'aws-sdk';
-import { LoggerServiceInterface } from '../services/logger.service';
-import { DocumentClientFactory } from '../factories/documentClient.factory';
-import { IdServiceInterface } from '../services/id.service';
-import { NotFoundError } from '../errors/notFound.error';
-import { RecursivePartial } from '../types/recursivePartial.type';
+import "reflect-metadata";
+import { injectable, unmanaged } from "inversify";
+import { DynamoDB } from "aws-sdk";
+import { LoggerServiceInterface } from "../services/logger.service";
+import { DocumentClientFactory } from "../factories/documentClient.factory";
+import { IdServiceInterface } from "../services/id.service";
+import { NotFoundError } from "../errors/notFound.error";
+import { RecursivePartial } from "../types/recursivePartial.type";
 
 @injectable()
 export abstract class BaseDynamoRepository<T> {
@@ -16,10 +16,10 @@ export abstract class BaseDynamoRepository<T> {
   protected documentClient: DynamoDB.DocumentClient;
 
   constructor(
-    @unmanaged() tableName: string,
+  @unmanaged() tableName: string,
     @unmanaged() documentClientFactory: DocumentClientFactory,
     @unmanaged() protected idService: IdServiceInterface,
-    @unmanaged() protected loggerService: LoggerServiceInterface
+    @unmanaged() protected loggerService: LoggerServiceInterface,
   ) {
     this.tableName = tableName;
     this.documentClient = documentClientFactory();
@@ -28,9 +28,9 @@ export abstract class BaseDynamoRepository<T> {
   protected async getByPrimaryKey(id: string): Promise<T> {
     try {
       this.loggerService.trace(
-        'getByPrimaryKey called',
+        "getByPrimaryKey called",
         { id },
-        this.constructor.name
+        this.constructor.name,
       );
 
       const getItemInput: DynamoDB.DocumentClient.GetItemInput = {
@@ -45,15 +45,15 @@ export abstract class BaseDynamoRepository<T> {
       const item = queryResponse?.Item;
 
       if (!item) {
-        throw new NotFoundError('Item not found.');
+        throw new NotFoundError("Item not found.");
       }
 
       return item as T;
     } catch (error: unknown) {
       this.loggerService.error(
-        'Error in getByPrimaryKey',
+        "Error in getByPrimaryKey",
         { error, id },
-        this.constructor.name
+        this.constructor.name,
       );
 
       throw error;
@@ -62,32 +62,30 @@ export abstract class BaseDynamoRepository<T> {
 
   protected async getAll(): Promise<T[]> {
     try {
-      this.loggerService.trace('getAll called', {}, this.constructor.name);
+      this.loggerService.trace("getAll called", {}, this.constructor.name);
 
-      const scanInput: DynamoDB.DocumentClient.ScanInput = {
-        TableName: this.tableName,
-      };
+      const scanInput: DynamoDB.DocumentClient.ScanInput = { TableName: this.tableName };
 
       const queryResponse = await this.documentClient.scan(scanInput).promise();
 
       return (queryResponse.Items as T[]) || [];
     } catch (error: unknown) {
       this.loggerService.error(
-        'Error in getAll',
+        "Error in getAll",
         { error },
-        this.constructor.name
+        this.constructor.name,
       );
 
       throw error;
     }
   }
 
-  protected async insert(item: Omit<T, 'id'>): Promise<T> {
+  protected async insert(item: Omit<T, "id">): Promise<T> {
     try {
       this.loggerService.trace(
-        'insert called',
+        "insert called",
         { item },
-        this.constructor.name
+        this.constructor.name,
       );
 
       const itemToInsert = ({
@@ -105,9 +103,9 @@ export abstract class BaseDynamoRepository<T> {
       return itemToInsert;
     } catch (error: unknown) {
       this.loggerService.error(
-        'Error in insert',
+        "Error in insert",
         { error, item },
-        this.constructor.name
+        this.constructor.name,
       );
 
       throw error;
@@ -116,13 +114,13 @@ export abstract class BaseDynamoRepository<T> {
 
   protected async partialUpdate(
     id: string,
-    update: RecursivePartial<Omit<T, 'id'>>
+    update: RecursivePartial<Omit<T, "id">>,
   ): Promise<T> {
     try {
       this.loggerService.trace(
-        'partialUpdate called',
+        "partialUpdate called",
         { update },
-        this.constructor.name
+        this.constructor.name,
       );
 
       const updateItemInput = this.generatePartialUpdateItemInput(id, update);
@@ -134,9 +132,9 @@ export abstract class BaseDynamoRepository<T> {
       return updateResponse.Attributes as T;
     } catch (error: unknown) {
       this.loggerService.error(
-        'Error in partialUpdate',
+        "Error in partialUpdate",
         { error, update },
-        this.constructor.name
+        this.constructor.name,
       );
 
       throw error;
@@ -147,38 +145,38 @@ export abstract class BaseDynamoRepository<T> {
     id: string,
     rootLevelOrNestedObject: Record<string, unknown>,
     previousUpdateItemInput?: DynamoDB.DocumentClient.UpdateItemInput,
-    previousExpressionAttributePath?: string
+    previousExpressionAttributePath?: string,
   ): DynamoDB.DocumentClient.UpdateItemInput {
     try {
       this.loggerService.trace(
-        'generatePartialUpdateItemInput called',
+        "generatePartialUpdateItemInput called",
         {
           id,
           rootLevelOrNestedObject,
           previousUpdateItemInput,
           previousExpressionAttributePath,
         },
-        this.constructor.name
+        this.constructor.name,
       );
 
       const baseUpdateItemInput: DynamoDB.DocumentClient.UpdateItemInput = {
         TableName: this.tableName,
         Key: { id },
-        UpdateExpression: 'SET',
+        UpdateExpression: "SET",
         ExpressionAttributeNames: {},
         ExpressionAttributeValues: {},
-        ReturnValues: 'ALL_NEW',
+        ReturnValues: "ALL_NEW",
       };
 
       /* eslint-disable no-param-reassign */
       const generatedUpdateItemInput = Object.entries(
-        rootLevelOrNestedObject
-      ).reduce((updateItemInput, [key, value]) => {
+        rootLevelOrNestedObject,
+      ).reduce((updateItemInput, [ key, value ]) => {
         const expressionAttributeName = `#${key}`;
         const expressionAttributePath = `${
           previousExpressionAttributePath
             ? `${previousExpressionAttributePath}.`
-            : ''
+            : ""
         }${expressionAttributeName}`;
         const expressionAttributeValue = `:${key}`;
 
@@ -188,15 +186,15 @@ export abstract class BaseDynamoRepository<T> {
         };
 
         if (
-          typeof value === 'object' &&
-          !Array.isArray(value) &&
-          value !== null
+          typeof value === "object"
+          && !Array.isArray(value)
+          && value !== null
         ) {
           return this.generatePartialUpdateItemInput(
             id,
             value as Record<string, unknown>,
             updateItemInput,
-            expressionAttributePath
+            expressionAttributePath,
           );
         }
 
@@ -213,18 +211,18 @@ export abstract class BaseDynamoRepository<T> {
       if (
         (generatedUpdateItemInput.UpdateExpression as string)[
           (generatedUpdateItemInput.UpdateExpression as string).length - 1
-        ] === ','
+        ] === ","
       ) {
         generatedUpdateItemInput.UpdateExpression = generatedUpdateItemInput.UpdateExpression?.slice(
           0,
-          -1
+          -1,
         );
       }
 
       return generatedUpdateItemInput;
     } catch (error: unknown) {
       this.loggerService.error(
-        'Error in generatePartialUpdateItemInput',
+        "Error in generatePartialUpdateItemInput",
         {
           error,
           id,
@@ -232,7 +230,7 @@ export abstract class BaseDynamoRepository<T> {
           previousUpdateItemInput,
           previousExpressionAttributePath,
         },
-        this.constructor.name
+        this.constructor.name,
       );
 
       throw error;

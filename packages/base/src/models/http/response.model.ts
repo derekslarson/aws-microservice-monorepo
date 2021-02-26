@@ -8,7 +8,7 @@ export interface Body {
 }
 
 export interface SuccessResponse extends Response {
-  statusCode: StatusCode.OK,
+  statusCode: StatusCode.OK;
 }
 
 export interface CreatedResponse extends Response {
@@ -23,7 +23,7 @@ export interface SeeOtherResponse extends Response {
   statusCode: StatusCode.SeeOther;
   headers: {
     Location: string;
-  }
+  };
 }
 
 export interface BadRequestResponse extends Response {

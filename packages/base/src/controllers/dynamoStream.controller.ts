@@ -4,7 +4,8 @@ import { DynamoDBRecord, DynamoDBStreamEvent } from "aws-lambda";
 import { TYPES } from "../inversion-of-control/types";
 import { LoggerServiceInterface } from "../services/logger.service";
 import { Unmarshall, UnmarshallFactory } from "../factories/unmarshall.factory";
-import { ProcessorServiceInterface, ProcessorServiceRecord } from "../services/interfaces/processor.service.interface";
+import { ProcessorServiceInterface,
+  ProcessorServiceRecord } from "../services/interfaces/processor.service.interface";
 import { EnvConfigInterface } from "../config/envConfig";
 
 @injectable()
@@ -14,10 +15,13 @@ export class DynamoStreamController implements DynamoStreamControllerInterface {
   private tableNames: string[];
 
   constructor(
-  @inject(TYPES.EnvConfigInterface) envConfig: DynamoStreamControllerConfigInterface,
+  @inject(TYPES.EnvConfigInterface)
+    envConfig: DynamoStreamControllerConfigInterface,
     @inject(TYPES.UnmarshallFactory) unmarshallFactory: UnmarshallFactory,
-    @inject(TYPES.ProcessorServicesInterface) private processorServices: ProcessorServiceInterface[],
-    @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.ProcessorServicesInterface)
+    private processorServices: ProcessorServiceInterface[],
+    @inject(TYPES.LoggerServiceInterface)
+    private loggerService: LoggerServiceInterface,
   ) {
     this.tableNames = [ envConfig.groupsTableName ];
     this.unmarshall = unmarshallFactory();
@@ -25,47 +29,87 @@ export class DynamoStreamController implements DynamoStreamControllerInterface {
 
   public async handleStreamEvent(event: DynamoDBStreamEvent): Promise<void> {
     try {
-      this.loggerService.trace("handleStreamEvent called", { event }, this.constructor.name);
+      this.loggerService.trace(
+        "handleStreamEvent called",
+        { event },
+        this.constructor.name,
+      );
 
-      const preparedRecords = event.Records.map((record) => this.prepareRecordsForProcessorServices(record));
+      const preparedRecords = event.Records.map((record) =>
+        this.prepareRecordsForProcessorServices(record));
 
-      await Promise.allSettled(preparedRecords.map((record) => this.callSupportingProcessorServices(record)));
+      await Promise.allSettled(
+        preparedRecords.map((record) =>
+          this.callSupportingProcessorServices(record)),
+      );
     } catch (error: unknown) {
-      this.loggerService.error("Error in handleStreamEvent", { error, event }, this.constructor.name);
+      this.loggerService.error(
+        "Error in handleStreamEvent",
+        { error, event },
+        this.constructor.name,
+      );
 
       throw error;
     }
   }
 
-  private async callSupportingProcessorServices(record: ProcessorServiceRecord): Promise<void> {
+  private async callSupportingProcessorServices(
+    record: ProcessorServiceRecord,
+  ): Promise<void> {
     try {
-      this.loggerService.trace("callSupportingProcessorServices called", { record }, this.constructor.name);
+      this.loggerService.trace(
+        "callSupportingProcessorServices called",
+        { record },
+        this.constructor.name,
+      );
 
-      const supportingProcessorServices = this.processorServices.filter((processorService) => processorService.determineRecordSupport(record));
+      const supportingProcessorServices = this.processorServices.filter(
+        (processorService) => processorService.determineRecordSupport(record),
+      );
 
-      const processRecordResults = await Promise.allSettled(supportingProcessorServices.map((processorService) => processorService.processRecord(record)));
+      const processRecordResults = await Promise.allSettled(
+        supportingProcessorServices.map((processorService) =>
+          processorService.processRecord(record)),
+      );
 
-      const failures = processRecordResults.filter((result) => result.status === "rejected") as PromiseRejectedResult[];
+      const failures = processRecordResults.filter(
+        (result) => result.status === "rejected",
+      ) as PromiseRejectedResult[];
 
       if (failures.length) {
         const errors = failures.map((failure) => failure.reason as unknown);
 
-        this.loggerService.error(`Error calling ${failures.length} of ${this.processorServices.length} processor services.`, { errors, record }, this.constructor.name);
+        this.loggerService.error(
+          `Error calling ${failures.length} of ${this.processorServices.length} processor services.`,
+          { errors, record },
+          this.constructor.name,
+        );
       }
     } catch (error: unknown) {
-      this.loggerService.error("Error in callSupportingProcessorServices", { error, record }, this.constructor.name);
+      this.loggerService.error(
+        "Error in callSupportingProcessorServices",
+        { error, record },
+        this.constructor.name,
+      );
 
       throw error;
     }
   }
 
-  private prepareRecordsForProcessorServices(record: DynamoDBRecord): ProcessorServiceRecord {
+  private prepareRecordsForProcessorServices(
+    record: DynamoDBRecord,
+  ): ProcessorServiceRecord {
     try {
-      this.loggerService.trace("prepareRecordsForProcessorServices called", { record }, this.constructor.name);
+      this.loggerService.trace(
+        "prepareRecordsForProcessorServices called",
+        { record },
+        this.constructor.name,
+      );
 
       const { eventSourceARN, eventName, dynamodb } = record;
 
-      const tableName = this.tableNames.find((name) => eventSourceARN?.includes(`/${name}/`));
+      const tableName = this.tableNames.find((name) =>
+        eventSourceARN?.includes(`/${name}/`));
 
       const newImage = dynamodb?.NewImage && this.unmarshall(dynamodb?.NewImage);
       const oldImage = dynamodb?.OldImage && this.unmarshall(dynamodb?.OldImage);
@@ -77,14 +121,21 @@ export class DynamoStreamController implements DynamoStreamControllerInterface {
         oldImage: oldImage || {},
       };
     } catch (error: unknown) {
-      this.loggerService.error("Error in prepareRecordsForProcessorServices", { error, record }, this.constructor.name);
+      this.loggerService.error(
+        "Error in prepareRecordsForProcessorServices",
+        { error, record },
+        this.constructor.name,
+      );
 
       throw error;
     }
   }
 }
 
-export type DynamoStreamControllerConfigInterface = Pick<EnvConfigInterface, "groupsTableName">;
+export type DynamoStreamControllerConfigInterface = Pick<
+EnvConfigInterface,
+"groupsTableName"
+>;
 
 export interface DynamoStreamControllerInterface {
   handleStreamEvent(event: DynamoDBStreamEvent): Promise<void>;

@@ -3,7 +3,6 @@
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
-  "type": "module",
   "files": [
     "dist",
     "src"
@@ -12,8 +11,8 @@
     "node": ">=10"
   },
   "scripts": {
-    "start": "tsdx watch",
-    "build": "tsdx build",
+    "start": "tsdx watch --format=cjs --noClean",
+    "build": "tsdx build --format=cjs",
     "test": "tsdx test",
     "lint": "tsdx lint",
     "prepare": "tsdx build",
@@ -37,6 +36,7 @@
     "class-transformer": "^0.4.0",
     "class-validator": "^0.13.1",
     "inversify": "^5.0.5",
+    "reflect-metadata": "^0.1.13",
     "serialize-error": "^8.0.1",
     "source-map-support": "^0.5.19",
     "uuid": "^8.3.2"

@@ -1,12 +1,9 @@
-import {container} from "@yac/base";
+import { container } from "./inversion-of-control/container";
 
 export const sum2 = (a: number, b: number) => {
-  if ('development' === process.env.NODE_ENV) {
-    console.log('boop');
-  }
-  const containerDep = container.get;
-  console.log({containerDep})
+  const containerDep = container;
+  console.log({ containerDep });
+  console.log("bipbop");
   return a + b;
 };
-
-sum2(123, 234);
+sum2(1, 2);

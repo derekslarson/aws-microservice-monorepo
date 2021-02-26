@@ -30,7 +30,9 @@ export abstract class BaseController {
     };
   }
 
-  protected generateSeeOtherResponse(redirectLocation: string): SeeOtherResponse {
+  protected generateSeeOtherResponse(
+    redirectLocation: string,
+  ): SeeOtherResponse {
     return {
       statusCode: StatusCode.SeeOther,
       headers: { Location: redirectLocation },
@@ -62,7 +64,10 @@ export abstract class BaseController {
     };
   }
 
-  private generateBadRequestResponse(errorMessage: string, otherErrorData?: Body): BadRequestResponse {
+  private generateBadRequestResponse(
+    errorMessage: string,
+    otherErrorData?: Body,
+  ): BadRequestResponse {
     const body = {
       message: errorMessage,
       ...(otherErrorData || {}),

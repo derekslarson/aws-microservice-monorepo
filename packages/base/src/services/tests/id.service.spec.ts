@@ -24,7 +24,11 @@ describe("IdService", () => {
         idService.generateId();
 
         expect(loggerService.trace).toHaveBeenCalledTimes(1);
-        expect(loggerService.trace).toHaveBeenCalledWith("generateId called", {}, idService.constructor.name);
+        expect(loggerService.trace).toHaveBeenCalledWith(
+          "generateId called",
+          {},
+          idService.constructor.name,
+        );
       });
 
       it("calls uuidV4", () => {
@@ -43,9 +47,9 @@ describe("IdService", () => {
     describe("under error conditions", () => {
       describe("when uuidV4 throws an error", () => {
         beforeEach(() => {
-          uuidV4 = jest.fn().mockImplementation((() => {
-            throw mockError
-          }));
+          uuidV4 = jest.fn().mockImplementation(() => {
+            throw mockError;
+          });
           idService = new IdService(uuidV4Factory, loggerService);
         });
 
@@ -54,9 +58,13 @@ describe("IdService", () => {
             const id = idService.generateId();
 
             fail(`Expected an error, but a value was returned: ${id}`);
-          } catch (error) {
+          } catch (error: unknown) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in generateId", { error: mockError }, idService.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith(
+              "Error in generateId",
+              { error: mockError },
+              idService.constructor.name,
+            );
           }
         });
 
@@ -65,7 +73,7 @@ describe("IdService", () => {
             const id = idService.generateId();
 
             fail(`Expected an error, but a value was returned: ${id}`);
-          } catch (error) {
+          } catch (error: unknown) {
             expect(error).toBe(mockError);
           }
         });

@@ -9,8 +9,9 @@ export class IdService implements IdServiceInterface {
   private uuidV4: UuidV4;
 
   constructor(
-    @inject(TYPES.UuidV4Factory) uuidV4Factory: UuidV4Factory,
-    @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+  @inject(TYPES.UuidV4Factory) uuidV4Factory: UuidV4Factory,
+    @inject(TYPES.LoggerServiceInterface)
+    private loggerService: LoggerServiceInterface,
   ) {
     this.uuidV4 = uuidV4Factory();
   }
@@ -22,8 +23,12 @@ export class IdService implements IdServiceInterface {
       const id = this.uuidV4();
 
       return id;
-    } catch (error) {
-      this.loggerService.error("Error in generateId", { error }, this.constructor.name);
+    } catch (error: unknown) {
+      this.loggerService.error(
+        "Error in generateId",
+        { error },
+        this.constructor.name,
+      );
 
       throw error;
     }

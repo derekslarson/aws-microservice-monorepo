@@ -1,18 +1,15 @@
 const TYPES = {
   EnvConfigInterface: Symbol.for("EnvConfigInterface"),
 
-  DynamoStreamControllerInterface: Symbol.for("DynamoStreamControllerInterface"),
-  GroupControllerInterface: Symbol.for("GroupControllerInterface"),
+  DynamoStreamControllerInterface: Symbol.for(
+    "DynamoStreamControllerInterface",
+  ),
 
-  GroupServiceInterface: Symbol.for("GroupServiceInterface"),
   IdServiceInterface: Symbol.for("IdServiceInterface"),
   LoggerServiceInterface: Symbol.for("LoggerServiceInterface"),
-  GroupUpdatedProcessorService: Symbol.for("GroupUpdatedProcessorService"),
   ValidationServiceInterface: Symbol.for("ValidationServiceInterface"),
 
   ProcessorServicesInterface: Symbol.for("ProcessorServicesInterface"),
-
-  GroupRepositoryInterface: Symbol.for("GroupRepositoryInterface"),
 
   ClassTransformerFactory: Symbol.for("ClassTransformerFactory"),
   ClassValidatorFactory: Symbol.for("ClassValidatorFactory"),

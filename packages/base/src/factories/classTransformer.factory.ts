@@ -4,4 +4,5 @@ export type ClassTransformer = typeof plainToClass;
 
 export type ClassTransformerFactory = () => ClassTransformer;
 
-export const classTransformerFactory: ClassTransformerFactory = (): ClassTransformer => plainToClass;
+export const classTransformerFactory: ClassTransformerFactory = (): ClassTransformer =>
+  plainToClass;

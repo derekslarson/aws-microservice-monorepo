@@ -4,6 +4,7 @@
     "module": "esnext",
     "lib": ["esnext"],
     "target": "ES2018",
+    "rootDir": "./",
     "strict": true,
     "preserveSymlinks": true,
     "noImplicitAny": true,
@@ -14,7 +15,7 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "inlineSourceMap": true,
+    // "inlineSourceMap": true,
     "inlineSources": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
@@ -27,14 +28,11 @@
     "declaration": true,
     // output .js.map sourcemap files for consumers
     "sourceMap": true,
-    // stricter type-checking for stronger correctness. Recommended by TS
     // use Node's module resolution algorithm, instead of the legacy TS one
     "moduleResolution": "node",
     // interop between ESM and CJS modules. Recommended by TS
     "skipLibCheck": true,
     // error out if import and file system have a casing mismatch. Recommended by TS
-    "forceConsistentCasingInFileNames": true,
-    // `tsdx build` ignores this option, but it is commonly used when type-checking separately with `tsc`
-    "noEmit": true,
+    "forceConsistentCasingInFileNames": true
   }
 }
