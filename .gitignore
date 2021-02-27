@@ -1,5 +1,5 @@
-*/lib/*.js
-*/bin/*.js
+**/lib/*.js
+**/bin/*.js
 **/node_modules
 
 # CDK asset staging directory
