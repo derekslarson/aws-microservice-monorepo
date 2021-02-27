@@ -41,6 +41,7 @@
     "array-callback-return": ["error", { "allowImplicit": true }],
     "array-bracket-spacing": ["error", "always"],
     "import/no-unresolved": "off",
+    "import/no-extraneous-dependencies": ["error", {"devDependencies": ["**/infra/**", "**/*.spec.*", "**/test-support/**"]}],
     "no-param-reassign": "warn",
     "no-restricted-syntax": [
       "error",

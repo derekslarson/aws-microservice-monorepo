@@ -1,5 +1,4 @@
 /* eslint-disable */
-
 import "jasmine";
 
 export type Spied<T> = {
