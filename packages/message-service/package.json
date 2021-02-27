@@ -11,10 +11,9 @@
     "node": ">=10"
   },
   "scripts": {
-    "start": "tsdx watch --format=cjs --noClean",
-    "build": "tsdx build --format=cjs",
-    "test": "tsdx test",
-    "prepare": "tsdx build"
+    "start": "tsdx watch --format=cjs --noClean --tsconfig ./tsconfig.json",
+    "build": "tsdx build --format=cjs --tsconfig ./tsconfig.json",
+    "test": "tsdx test"
   },
   "name": "@yac/message-service",
   "author": "Juan Di Toro",

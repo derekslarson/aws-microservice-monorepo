@@ -1,31 +1,19 @@
 {
   // see https://www.typescriptlang.org/tsconfig to better understand tsconfigs
   "compilerOptions": {
-    "module": "esnext",
-    "lib": ["esnext"],
     "target": "ES2018",
+    "module": "esnext",
+    "lib": [
+      "es2018"
+    ],
     "rootDir": "./",
-    "strict": true,
     "preserveSymlinks": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
     // "inlineSourceMap": true,
-    "inlineSources": true,
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "strictPropertyInitialization": false,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "typeRoots": ["./node_modules/@types"],
     "importHelpers": true,
     // output .d.ts declaration files for consumers
-    "declaration": true,
     // output .js.map sourcemap files for consumers
     "sourceMap": true,
     // use Node's module resolution algorithm, instead of the legacy TS one
@@ -33,6 +21,24 @@
     // interop between ESM and CJS modules. Recommended by TS
     "skipLibCheck": true,
     // error out if import and file system have a casing mismatch. Recommended by TS
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    // old config 
+    "declaration": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": false,
+    "inlineSourceMap": true,
+    "inlineSources": true,
+    "experimentalDecorators": true,
+    "strictPropertyInitialization": false,
+    "typeRoots": [
+      "./node_modules/@types"
+    ]
   }
 }

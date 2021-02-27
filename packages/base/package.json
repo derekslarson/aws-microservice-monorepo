@@ -11,24 +11,9 @@
     "node": ">=10"
   },
   "scripts": {
-    "start": "tsdx watch --format=cjs --noClean",
-    "build": "tsdx build --format=cjs",
-    "test": "tsdx test",
-    "lint": "tsdx lint",
-    "prepare": "tsdx build",
-    "size": "size-limit",
-    "analyze": "size-limit --why"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "tsdx lint"
-    }
-  },
-  "prettier": {
-    "printWidth": 80,
-    "semi": true,
-    "singleQuote": true,
-    "trailingComma": "es5"
+    "start": "tsdx watch --format=cjs --noClean --tsconfig ./tsconfig.json",
+    "build": "tsdx build --format=cjs --tsconfig ./tsconfig.json",
+    "test": "tsdx test"
   },
   "dependencies": {
     "@aws-cdk/core": "^1.91.0",
