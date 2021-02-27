@@ -1,14 +1,14 @@
 {
-  "include": ["src", "types"],
-  "exclude": ["dist", "infra"],
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "composite": true,
-    "rootDir": "./src"
-  },
-  "references": [
-    {
-      "path": "../base/tsconfig.json"
-    }
-  ]
+    "include": ["src", "types"],
+    "exclude": ["dist", "infra"],
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "composite": true,
+        "rootDir": "./src"
+    },
+    "references": [
+        {
+            "path": "../base/tsconfig.json"
+        }
+    ]
 }

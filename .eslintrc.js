@@ -35,7 +35,7 @@ module.exports = {
     }],
     "require-await": "off",
     "@typescript-eslint/require-await": "off",
-    "@typescript-eslint/no-unused-var": "warn",
+    "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/explicit-member-accessibility": ["error", { "overrides": { "constructors": "off" } }],
     "@typescript-eslint/no-useless-constructor": "off",
     "@typescript-eslint/unbound-method": "warn",

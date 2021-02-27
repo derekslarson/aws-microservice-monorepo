@@ -24,11 +24,7 @@ describe("IdService", () => {
         idService.generateId();
 
         expect(loggerService.trace).toHaveBeenCalledTimes(1);
-        expect(loggerService.trace).toHaveBeenCalledWith(
-          "generateId called",
-          {},
-          idService.constructor.name,
-        );
+        expect(loggerService.trace).toHaveBeenCalledWith("generateId called", {}, idService.constructor.name);
       });
 
       it("calls uuidV4", () => {
@@ -60,11 +56,7 @@ describe("IdService", () => {
             fail(`Expected an error, but a value was returned: ${id}`);
           } catch (error: unknown) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith(
-              "Error in generateId",
-              { error: mockError },
-              idService.constructor.name,
-            );
+            expect(loggerService.error).toHaveBeenCalledWith("Error in generateId", { error: mockError }, idService.constructor.name);
           }
         });
 
