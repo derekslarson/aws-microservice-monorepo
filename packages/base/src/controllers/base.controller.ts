@@ -62,10 +62,7 @@ export abstract class BaseController {
     };
   }
 
-  private generateBadRequestResponse(
-    errorMessage: string,
-    otherErrorData?: Body,
-  ): BadRequestResponse {
+  private generateBadRequestResponse(errorMessage: string, otherErrorData?: Body): BadRequestResponse {
     const body = {
       message: errorMessage,
       ...(otherErrorData || {}),

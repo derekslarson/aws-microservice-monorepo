@@ -43,7 +43,13 @@ export class DynamoStreamController implements DynamoStreamControllerInterface {
 
       const supportingProcessorServices = this.processorServices.filter((processorService) => processorService.determineRecordSupport(record));
 
+<<<<<<< HEAD
       const processRecordResults = await Promise.allSettled(supportingProcessorServices.map((processorService) => processorService.processRecord(record)));
+=======
+      const processRecordResults = await Promise.allSettled(
+        supportingProcessorServices.map((processorService) => processorService.processRecord(record)),
+      );
+>>>>>>> master
 
       const failures = processRecordResults.filter((result) => result.status === "rejected") as PromiseRejectedResult[];
 
@@ -84,7 +90,11 @@ export class DynamoStreamController implements DynamoStreamControllerInterface {
   }
 }
 
+<<<<<<< HEAD
 export type DynamoStreamControllerConfigInterface = Pick<EnvConfigInterface, "tableNames">;
+=======
+export type DynamoStreamControllerConfigInterface = Pick<EnvConfigInterface, "groupsTableName">;
+>>>>>>> master
 
 export interface DynamoStreamControllerInterface {
   handleStreamEvent(event: DynamoDBStreamEvent): Promise<void>;

@@ -24,11 +24,7 @@ export class IdService implements IdServiceInterface {
 
       return id;
     } catch (error: unknown) {
-      this.loggerService.error(
-        "Error in generateId",
-        { error },
-        this.constructor.name,
-      );
+      this.loggerService.error("Error in generateId", { error }, this.constructor.name);
 
       throw error;
     }

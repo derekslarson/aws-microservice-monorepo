@@ -1,9 +1,7 @@
 const TYPES = {
   EnvConfigInterface: Symbol.for("EnvConfigInterface"),
 
-  DynamoStreamControllerInterface: Symbol.for(
-    "DynamoStreamControllerInterface",
-  ),
+  DynamoStreamControllerInterface: Symbol.for("DynamoStreamControllerInterface"),
 
   IdServiceInterface: Symbol.for("IdServiceInterface"),
   LoggerServiceInterface: Symbol.for("LoggerServiceInterface"),
