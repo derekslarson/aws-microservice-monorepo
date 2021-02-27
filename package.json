@@ -12,22 +12,8 @@
   "scripts": {
     "start": "yarn build && lerna run start --stream --parallel --sort",
     "build": "lerna run build --stream --sort",
-    "test": "lerna run test --stream --parallel",
-    "lint": "eslint packages/** --ignore-path .gitignore --ext \".js,.ts,.tsx\"",
-    "lint:fix": "eslint packages/** --fix --ignore-path .gitignore --ext \".js,.ts,.tsx\"",
     "size": "size-limit",
     "analyze": "size-limit --why"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "yarn lint:fix"
-    }
-  },
-  "prettier": {
-    "printWidth": 80,
-    "semi": true,
-    "singleQuote": true,
-    "trailingComma": "es5"
   },
   "author": "Juan Di Toro",
   "devDependencies": {

@@ -1,5 +1,20 @@
-*.log
-.DS_Store
-node_modules/
-dist/
-.idea/
+*/lib/*.js
+*/bin/*.js
+**/node_modules
+
+# CDK asset staging directory
+**/.cdk.staging
+**/cdk.out
+
+# Parcel default cache directory
+**/.parcel-cache
+
+# Lambda Layer creation file
+**/src/infra/layers/*.js
+
+# Compiled Output #
+###################
+**/dist
+**/coverage
+**/.nyc_output
+**/compiled_tests

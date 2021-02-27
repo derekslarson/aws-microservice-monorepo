@@ -30,9 +30,7 @@ export abstract class BaseController {
     };
   }
 
-  protected generateSeeOtherResponse(
-    redirectLocation: string,
-  ): SeeOtherResponse {
+  protected generateSeeOtherResponse(redirectLocation: string): SeeOtherResponse {
     return {
       statusCode: StatusCode.SeeOther,
       headers: { Location: redirectLocation },

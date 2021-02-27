@@ -1,0 +1,25 @@
+{
+  "cache": false,
+  "reporter": ["text", "lcov"],
+  "check-coverage": true,
+  "branches": 80,
+  "lines": 80,
+  "functions": 80,
+  "extension": [
+    ".ts"
+  ],
+  "exclude": [
+    "*/config/**",
+    "*/coverage/**",
+    "*/dist/**",
+    "*/infra/**",
+    "*/src/config/**",
+    "*/src/enums/**",
+    "*/src/models/**",
+    "*/src/types/**",
+    "*/src/inversion-of-control/**",
+    "*/src/factories",
+    "*/src/test-support/**",
+    "*/src/**/*.spec.ts"
+  ]
+}
