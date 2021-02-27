@@ -13,7 +13,7 @@
     "scripts": {
         "start": "tsdx watch --format=cjs --noClean --tsconfig ./tsconfig.json",
         "build": "tsdx build --format=cjs --tsconfig ./tsconfig.json",
-        "test": "tsdx test"
+        "test": "tsdx test --passWithNoTests"
     },
     "name": "@yac/message-service",
     "author": "Juan Di Toro",
