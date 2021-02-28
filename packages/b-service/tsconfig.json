@@ -1,0 +1,14 @@
+{
+  "include": [
+    "src",
+    "types"
+  ],
+  "exclude": [
+    "dist"
+  ],
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "composite": true
+  }
+}
