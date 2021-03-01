@@ -46,6 +46,7 @@
     "webpack-cli": "^4.5.0"
   },
   "dependencies": {
-    "aws-sdk": "^2.783.0"
+    "aws-sdk": "^2.783.0",
+    "yac-core-service": "0.1.0"
   }
 }

@@ -1,6 +1,6 @@
-import { APIGatewayProxyEvent, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { SNS } from "aws-sdk";
-import { TriggerSnsRequestBody, TriggerSnsResponseBody } from "../../../core-service/src/api-contracts/triggerSns.post";
+import { APIGatewayProxyEvent, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import { TriggerSnsRequestBody, TriggerSnsResponseBody, triggerSnsMethod, triggerSnsPath } from "yac-core-service";
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
@@ -14,7 +14,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     const publishInput: SNS.Types.PublishInput = {
       TopicArn: process.env.MESSAGE_CREATED_TOPIC_ARN,
-      Message: requestBody.message,
+      Message: `Message sent from ${triggerSnsMethod} /${triggerSnsPath} : ${requestBody.message}`,
     };
 
     const snsPublishResponse = await sns.publish(publishInput).promise();
