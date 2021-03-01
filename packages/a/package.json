@@ -1,12 +1,12 @@
 {
-  "name": "yac-b-service",
+  "name": "@yac/a",
   "version": "0.1.0",
   "bin": {
-    "yac-b-service": "bin/yac-b-service.js"
+    "yac-a": "bin/yac-a.js"
   },
   "scripts": {
-    "build": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.release.js --env=package=b-service && npm run build:layer",
-    "build:dev": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.dev.js --env=package=b-service && npm run build:layer",
+    "build": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.release.js --env=package=a-service && npm run build:layer",
+    "build:dev": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.dev.js --env=package=a-service && npm run build:layer",
     "build:layer": "ts-node ../../config/layer/buildLayer.ts && cd ./dist/dependencies/nodejs && npm install",
     "build:unit-tests": "npm run clean:unit-tests && tsc --project ./tsconfig.test.json",
     "clean": "rm -rf ./dist",
@@ -21,16 +21,15 @@
     "test:unit": "npm run clean:unit-tests && npm run build:unit-tests && npm run nyc"
   },
   "devDependencies": {
-    "aws-cdk": "^1.91.0",
+    "@aws-cdk/aws-apigatewayv2": "^1.91.0",
     "@aws-cdk/aws-iam": "^1.91.0",
     "@aws-cdk/aws-lambda": "^1.91.0",
-    "@aws-cdk/aws-lambda-event-sources": "^1.91.0",
     "@aws-cdk/core": "^1.91.0",
-    "@aws-cdk/aws-sns": "^1.91.0",
     "@types/aws-lambda": "^8.10.72",
     "@types/jasmine": "^3.6.4",
     "@types/node": "10.17.27",
     "@typescript-eslint/eslint-plugin": "^4.15.2",
+    "aws-cdk": "^1.91.0",
     "case-sensitive-paths-webpack-plugin": "^2.4.0",
     "eslint": "^7.20.0",
     "eslint-config-airbnb-typescript": "^11.4.0",
@@ -46,5 +45,8 @@
     "webpack": "^5.24.1",
     "webpack-cli": "^4.5.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "aws-sdk": "^2.783.0",
+    "@yac/core": "0.1.0"
+  }
 }

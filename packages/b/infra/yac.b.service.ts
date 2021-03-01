@@ -1,6 +1,6 @@
 import * as CDK from "@aws-cdk/core";
+import { Environment } from "@yac/core";
 import { YacBServiceStack } from "./stacks/yac.b.service.stack";
-import { Environment } from "../../core-service/src/enums/environment.enum";
 
 const app = new CDK.App();
 

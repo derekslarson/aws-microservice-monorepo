@@ -12,12 +12,12 @@ class BaseConfig {
       reasons: true,
     };
 
-    this.entry = "./src/index.ts";
+    this.entry = "./index.ts";
 
     this.output = {
       libraryTarget: "commonjs2",
-      path: path.resolve(__dirname, `../../dist`),
-      filename: "[name].js",
+      path: path.resolve(__dirname, `../../`),
+      filename: "./dist/index.js",
     };
 
     this.resolve = {
@@ -41,7 +41,7 @@ class BaseConfig {
 
     this.plugins = [ 
       new CaseSensitivePathsPlugin(),
-      new NpmDtsPlugin()
+      new NpmDtsPlugin({ output: "./dist/index.d.ts" })
     ];
   };
 }

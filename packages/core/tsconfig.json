@@ -1,7 +1,6 @@
 {
   "include": [
-    "src",
-    "types"
+    "src"
   ],
   "exclude": [
     "dist"
@@ -9,6 +8,5 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./src",
-    "composite": true
   }
 }

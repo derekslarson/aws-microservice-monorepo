@@ -4,9 +4,7 @@ import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as SNS from "@aws-cdk/aws-sns";
 
-import { LogLevel } from "../../../core-service/src/enums/logLevel.enum";
-import { Environment } from "../../../core-service/src/enums/environment.enum";
-import { ExportNames } from "../../../core-service/src/enums/exportNames.enum";
+import { LogLevel, Environment, ExportNames } from "@yac/core";
 
 export class YacBServiceStack extends CDK.Stack {
   constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {

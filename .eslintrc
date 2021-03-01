@@ -12,7 +12,7 @@
     ]
   },
   "plugins": ["promise"],
-  "ignorePatterns": ["*.js"],
+  "ignorePatterns": ["*.js", "*.d.ts"],
   "rules": {
     "quotes": "off",
     "@typescript-eslint/quotes": ["error", "double", { "avoidEscape": true }],

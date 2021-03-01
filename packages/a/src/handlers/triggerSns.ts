@@ -1,6 +1,6 @@
 import { SNS } from "aws-sdk";
 import { APIGatewayProxyEvent, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { TriggerSnsRequestBody, TriggerSnsResponseBody, triggerSnsMethod, triggerSnsPath } from "yac-core-service";
+import { TriggerSnsRequestBody, TriggerSnsResponseBody, triggerSnsMethod, triggerSnsPath } from "@yac/core";
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
