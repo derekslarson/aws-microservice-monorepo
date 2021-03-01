@@ -1,49 +1,33 @@
 {
-  "name": "yac-api-v4",
-  "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "name": "yac-a-service",
   "version": "0.1.0",
-  "license": "MIT",
   "bin": {
-    "yac-api-v4": "bin/yac-api-v4.js"
+    "yac-a-service": "bin/yac-a-service.js"
   },
   "scripts": {
-    "build": "npm run clean && webpack --bail --config config/webpack/webpack.config.release.js && npm run build:layer",
-    "build:dev": "npm run clean && webpack --bail --config config/webpack/webpack.config.dev.js && npm run build:layer",
-    "build:layer": "ts-node ./infra/layer/buildLayer.ts && cd ./dist/dependencies/nodejs && npm install",
+    "build": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.release.js --env=package=a-service && npm run build:layer",
+    "build:dev": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.dev.js --env=package=a-service && npm run build:layer",
+    "build:layer": "ts-node ../../config/layer/buildLayer.ts && cd ./dist/dependencies/nodejs && npm install",
     "build:unit-tests": "npm run clean:unit-tests && tsc --project ./tsconfig.test.json",
     "clean": "rm -rf ./dist",
     "clean:layer": "rm -rf ./infra/layer/dependencies && rm -f ./infra/layer/support/buildLayer.js",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
     "deploy:local": "npm run build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
-    "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
     "deploy:dev": "npm run build:dev && cdk deploy --context environment=dev",
     "deploy:stage": "npm run build && cdk deploy --context environment=stage",
     "deploy:prod": "npm run build && cdk deploy --context environment=prod",
+    "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
     "nyc": "nyc node config/jasmine/jasmine.runner.js",
     "test:unit": "npm run clean:unit-tests && npm run build:unit-tests && npm run nyc"
   },
   "devDependencies": {
     "@aws-cdk/aws-apigatewayv2": "^1.91.0",
-    "@aws-cdk/aws-apigatewayv2-integrations": "^1.91.0",
-    "@aws-cdk/aws-cognito": "^1.91.0",
-    "@aws-cdk/aws-dynamodb": "^1.91.0",
     "@aws-cdk/aws-iam": "^1.91.0",
     "@aws-cdk/aws-lambda": "^1.91.0",
-    "@aws-cdk/aws-lambda-event-sources": "^1.91.0",
-    "@aws-cdk/aws-ssm": "^1.91.0",
     "@aws-cdk/core": "^1.91.0",
-    "@aws-cdk/custom-resources": "^1.91.0",
-    "@aws-cdk/assert": "^1.91.0",
-    "@aws-cdk/aws-sns": "^1.91.0",
     "@types/aws-lambda": "^8.10.72",
-    "@types/elasticsearch": "^5.0.37",
     "@types/jasmine": "^3.6.4",
-    "@types/jsonwebtoken": "^8.5.0",
     "@types/node": "10.17.27",
-    "@types/uuid": "^8.3.0",
     "@typescript-eslint/eslint-plugin": "^4.15.2",
     "aws-cdk": "^1.91.0",
     "case-sensitive-paths-webpack-plugin": "^2.4.0",
@@ -62,15 +46,6 @@
     "webpack-cli": "^4.5.0"
   },
   "dependencies": {
-    "aws-sdk": "^2.783.0",
-    "axios": "^0.21.1",
-    "class-transformer": "^0.3.1",
-    "class-validator": "^0.12.2",
-    "crypto-secure-random-digit": "^1.0.9",
-    "inversify": "^5.0.1",
-    "reflect-metadata": "^0.1.13",
-    "serialize-error": "^7.0.1",
-    "source-map-support": "^0.5.16",
-    "uuid": "^8.3.1"
+    "aws-sdk": "^2.783.0"
   }
 }
