@@ -13,7 +13,7 @@ describe("IdService", () => {
   const mockError = new Error("mock error");
 
   beforeEach(() => {
-    uuidV4 = jest.fn().mockReturnValue(mockId);
+    uuidV4 = jasmine.createSpy("uuidV4").and.returnValue(mockId);
     loggerService = TestSupport.spyOnClass(LoggerService);
     idService = new IdService(uuidV4Factory, loggerService);
   });
@@ -43,9 +43,10 @@ describe("IdService", () => {
     describe("under error conditions", () => {
       describe("when uuidV4 throws an error", () => {
         beforeEach(() => {
-          uuidV4 = jest.fn().mockImplementation(() => {
+          uuidV4 = () => {
             throw mockError;
-          });
+          };
+
           idService = new IdService(uuidV4Factory, loggerService);
         });
 
