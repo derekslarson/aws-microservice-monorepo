@@ -13,7 +13,7 @@ import { errorSerializerFactory, ErrorSerializerFactory } from "../factories/err
 import { logWriterFactory, LogWriterFactory } from "../factories/logWriter.factory";
 import { unmarshallFactory, UnmarshallFactory } from "../factories/unmarshall.factory";
 import { uuidV4Factory, UuidV4Factory } from "../factories/uuidV4.factory";
-import { AxiosFactory } from "../factories/axios.factory";
+import { AxiosFactory, axiosFactory } from "../factories/axios.factory";
 
 const container = new ContainerModule((bind) => {
   try {
