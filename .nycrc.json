@@ -9,17 +9,17 @@
     ".ts"
   ],
   "exclude": [
-    "*/config/**",
-    "*/coverage/**",
-    "*/dist/**",
-    "*/infra/**",
-    "*/src/config/**",
-    "*/src/enums/**",
-    "*/src/models/**",
-    "*/src/types/**",
-    "*/src/inversion-of-control/**",
-    "*/src/factories",
-    "*/src/test-support/**",
-    "*/src/**/*.spec.ts"
+    "**/config/**",
+    "**/coverage/**",
+    "**/dist/**",
+    "**/infra/**",
+    "**/src/config/**",
+    "**/src/enums/**",
+    "**/src/models/**",
+    "**/src/types/**",
+    "**/src/inversion-of-control/**",
+    "**/src/factories",
+    "**/src/test-support/**",
+    "**/src/**/*.spec.ts"
   ]
 }

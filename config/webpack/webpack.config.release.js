@@ -1,9 +1,11 @@
 const BaseConfig = require("./webpack.config.base")
 
 class ReleaseConfig extends BaseConfig {
-  constructor(env) {
-    super(env)
+  constructor() {
+    super()
+
+    this.mode = "production"
   }
 }
 
-module.exports = (env) => new ReleaseConfig(env)
+module.exports = new ReleaseConfig()

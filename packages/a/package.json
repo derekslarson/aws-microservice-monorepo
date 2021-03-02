@@ -5,12 +5,11 @@
     "yac-a": "bin/yac-a.js"
   },
   "scripts": {
-    "build": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.release.js --env=package=a-service && npm run build:layer",
-    "build:dev": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.dev.js --env=package=a-service && npm run build:layer",
-    "build:layer": "ts-node ../../config/layer/buildLayer.ts && cd ./dist/dependencies/nodejs && npm install",
+    "build": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.release.js && npm run build:layer",
+    "build:dev": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.dev.js && npm run build:layer",
+    "build:layer": "ts-node ../../config/layer/buildLayer.ts",
     "build:unit-tests": "npm run clean:unit-tests && tsc --project ./tsconfig.test.json",
     "clean": "rm -rf ./dist",
-    "clean:layer": "rm -rf ./infra/layer/dependencies && rm -f ./infra/layer/support/buildLayer.js",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
     "deploy:local": "npm run build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
     "deploy:dev": "npm run build:dev && cdk deploy --context environment=dev",

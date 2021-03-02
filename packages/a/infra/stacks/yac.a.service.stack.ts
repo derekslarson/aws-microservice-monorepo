@@ -14,13 +14,13 @@ export class YacAServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
+    const messageCreatedTopicArn = CDK.Fn.importValue(ExportNames.MessageCreatedTopicArn);
+
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `${id}DependencyLayer`, {
       compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
       code: Lambda.Code.fromAsset("dist/dependencies"),
     });
-
-    const messageCreatedTopicArn = CDK.Fn.importValue(ExportNames.MessageCreatedTopicArn);
 
     // APIs
     const httpApi = new HttpApi(this, `${id}Api`);

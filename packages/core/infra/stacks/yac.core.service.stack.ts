@@ -1,3 +1,5 @@
+/* eslint-disable no-new */
+
 import * as CDK from "@aws-cdk/core";
 import * as SNS from "@aws-cdk/aws-sns";
 import { ExportNames } from "../../src/enums/exportNames.enum";
@@ -8,7 +10,6 @@ export class YacCoreServiceStack extends CDK.Stack {
 
     const messageCreatedSnsTopic = new SNS.Topic(this, "MessageCreatedSnsTopic", { topicName: "messageCreatedSnsTopic" });
 
-    // eslint-disable-next-line no-new
     new CDK.CfnOutput(this, "MessageCreatedSnsTopicArn", {
       exportName: ExportNames.MessageCreatedTopicArn,
       value: messageCreatedSnsTopic.topicArn,

@@ -1,3 +1,5 @@
+/* eslint-disable no-new */
+
 import * as CDK from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
@@ -36,8 +38,6 @@ export class YacBServiceStack extends CDK.Stack {
     };
 
     // Handlers
-
-    // eslint-disable-next-line no-new
     new Lambda.Function(this, "ConsumeSnsHandler", {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/consumeSns"),

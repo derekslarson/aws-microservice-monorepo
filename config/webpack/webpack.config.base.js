@@ -3,7 +3,7 @@ const fs = require("fs")
 const CaseSensitivePathsPlugin = require("case-sensitive-paths-webpack-plugin");
 
 class BaseConfig {
-  constructor(env) {
+  constructor() {
     this.stats = {
       errorDetails: true,
       colors: true,
@@ -26,7 +26,7 @@ class BaseConfig {
 
     this.output = {
       libraryTarget: "commonjs2",
-      path: path.resolve(__dirname, `../../packages/${env.package}/dist/handlers`),
+      path: path.resolve(process.cwd(), `./dist/handlers`),
       // We need each handler in its own folder so that we can upload it via CDK (it needs a directory)
       filename: "[name]/[name].js",
     };

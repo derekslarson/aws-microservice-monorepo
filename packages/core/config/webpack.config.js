@@ -1,9 +1,7 @@
 const path = require("path")
-const fs = require("fs")
 const CaseSensitivePathsPlugin = require("case-sensitive-paths-webpack-plugin");
-const NpmDtsPlugin = require("npm-dts-webpack-plugin");
 
-class BaseConfig {
+class WebpackConfig {
   constructor() {
     this.stats = {
       errorDetails: true,
@@ -12,38 +10,35 @@ class BaseConfig {
       reasons: true,
     };
 
+    this.mode = "production";
+
+    this.target = "node";
+
     this.entry = "./index.ts";
 
     this.output = {
       libraryTarget: "commonjs2",
-      path: path.resolve(__dirname, `../../`),
-      filename: "./dist/index.js",
+      path: path.resolve(__dirname, "../dist"),
+      filename: "index.js",
     };
 
     this.resolve = {
       extensions: [ ".js", ".ts", ".json" ],
     };
 
-    this.externals = [ /^[^.]/ ];
-
     this.module = {
       rules: [
         {
           test: /\.ts$/,
           use: "ts-loader",
-        },
-        {
-          test: /\.json$/,
-          use: "json-loader",
-        },
+        }
       ],
     };
 
     this.plugins = [ 
-      new CaseSensitivePathsPlugin(),
-      new NpmDtsPlugin({ output: "./dist/index.d.ts" })
+      new CaseSensitivePathsPlugin()
     ];
   };
 }
 
-module.exports = BaseConfig
+module.exports = new WebpackConfig()

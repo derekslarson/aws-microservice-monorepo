@@ -14,7 +14,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     const publishInput: SNS.Types.PublishInput = {
       TopicArn: process.env.MESSAGE_CREATED_TOPIC_ARN,
-      Message: `Message sent from ${triggerSnsMethod} /${triggerSnsPath} : ${requestBody.message}`,
+      Message: `Message sent from ${triggerSnsMethod} ${triggerSnsPath} : ${requestBody.message}`,
     };
 
     const snsPublishResponse = await sns.publish(publishInput).promise();
@@ -33,8 +33,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.log("error:\n", error);
 
     return {
-      statusCode: 200,
-      body: JSON.stringify({ }),
+      statusCode: 500,
+      body: JSON.stringify({ message: error instanceof Error ? error.message : "an unexpected error occurred" }),
     };
   }
 };

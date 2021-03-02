@@ -1,6 +1,7 @@
 export * from "./infra/constructs/http.api";
 
 export * from "./src/api-contracts/triggerSns.post";
+export * from "./src/api-contracts/test.post";
 
 export * from "./src/config/env.config";
 
