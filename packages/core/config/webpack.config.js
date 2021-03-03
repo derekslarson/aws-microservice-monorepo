@@ -1,5 +1,6 @@
 const path = require("path")
 const CaseSensitivePathsPlugin = require("case-sensitive-paths-webpack-plugin");
+const TerserPlugin = require('terser-webpack-plugin');
 
 class WebpackConfig {
   constructor() {
@@ -11,9 +12,9 @@ class WebpackConfig {
     };
 
     this.mode = "production";
-
+    
     this.target = "node";
-
+    
     this.entry = "./index.ts";
 
     this.output = {
@@ -34,6 +35,18 @@ class WebpackConfig {
         }
       ],
     };
+
+    this.optimization = {
+      minimize: true,
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            keep_classnames: true,
+            keep_fnames: true
+          }
+        })
+      ]
+    }
 
     this.plugins = [ 
       new CaseSensitivePathsPlugin()

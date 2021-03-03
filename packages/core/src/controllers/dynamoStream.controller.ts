@@ -8,15 +8,15 @@ import { ProcessorServiceInterface, ProcessorServiceRecord } from "../services/i
 import { EnvConfigInterface } from "../config/env.config";
 
 @injectable()
-export class DynamoStreamController implements DynamoStreamControllerInterface {
+export abstract class DynamoStreamController implements DynamoStreamControllerInterface {
   private unmarshall: Unmarshall;
 
   private tableNames: string[];
 
   constructor(
   @inject(TYPES.EnvConfigInterface) envConfig: DynamoStreamControllerConfigInterface,
-    @inject(TYPES.UnmarshallFactory) unmarshallFactory: UnmarshallFactory,
     @inject(TYPES.ProcessorServicesInterface) private processorServices: ProcessorServiceInterface[],
+    @inject(TYPES.UnmarshallFactory) unmarshallFactory: UnmarshallFactory,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
   ) {
     this.tableNames = envConfig.tableNames;

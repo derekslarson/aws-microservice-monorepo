@@ -24,7 +24,7 @@ export class ValidationService implements ValidationServiceInterface {
 
   public async validate<T>(dtoConstructor: { new (): T }, validationObject?: string | Record<string, unknown>): Promise<T> {
     try {
-      this.loggerService.trace("validate called", { dtoConstructor, validationObject }, this.constructor.name);
+      this.loggerService.trace("validate called", { dtoConstructor: dtoConstructor.name, validationObject }, this.constructor.name);
 
       if (!validationObject) {
         throw new BadRequestError("Request body is required.");
@@ -74,7 +74,7 @@ export class ValidationService implements ValidationServiceInterface {
           constraintMessages.push(...childrenConstraintMessages);
         }
 
-        return constraintMessages.filter((message) => message).join(", ");
+        return constraintMessages.filter((message) => message).join("\n\n");
       }, "");
     } catch (error: unknown) {
       this.loggerService.trace("Error in generateValidationErrorMessage", { error, validationErrors }, this.constructor.name);

@@ -1,5 +1,7 @@
 import { plainToClass } from "class-transformer";
 
+export { Expose } from "class-transformer";
+
 export type ClassTransformer = typeof plainToClass;
 
 export type ClassTransformerFactory = () => ClassTransformer;

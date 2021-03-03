@@ -16,6 +16,10 @@ const greenCheck = "\x1b[32m✓\x1b[0m";
 
 const redX = "\x1b[31m✗\x1b[0m";
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "An unexpected error occured";
+}
+
 function fetchDependencies(): SortedDependencies {
   try {
     const data = readFileSync("./package.json");
@@ -39,7 +43,7 @@ function fetchDependencies(): SortedDependencies {
 
     return sortedDependencies;
   } catch (error: unknown) {
-    const errorMessage = (error as Error).message;
+    const errorMessage = getErrorMessage(error);
 
     console.log(`${redX} Dependencies fetched and parsed from package.json\n`);
 
@@ -57,7 +61,7 @@ function createLayerPackageJson(dependencies: Record<string, string>, update?: b
 
     console.log(`${greenCheck} Layer package.json ${update ? "updated" : "created"}\n`);
   } catch (error: unknown) {
-    const errorMessage = (error as Error).message;
+    const errorMessage = getErrorMessage(error);
 
     console.log(`${redX} Layer package.json ${update ? "updated" : "created"}\n`);
 
@@ -73,7 +77,7 @@ async function installExternalDependencies(dependencies: Record<string, string>)
 
     console.log(`${greenCheck} External dependencies installed\n`);
   } catch (error: unknown) {
-    const errorMessage = (error as Error).message;
+    const errorMessage = getErrorMessage(error);
 
     console.log(`${redX} External dependencies installed\n`);
 
@@ -91,7 +95,7 @@ async function installYacCore(dependencies: Record<string, string>): Promise<voi
 
     console.log(`${greenCheck} @yac/core installed\n`);
   } catch (error: unknown) {
-    const errorMessage = (error as Error).message;
+    const errorMessage = getErrorMessage(error);
 
     console.log(`${redX} @yac/core installed\n`);
 
@@ -109,7 +113,7 @@ async function installYacCore(dependencies: Record<string, string>): Promise<voi
 
     await installYacCore(dependencies.withYac);
   } catch (error: unknown) {
-    const errorMessage = (error as Error).message;
+    const errorMessage = getErrorMessage(error);
 
     console.error(`Failed to prepare layer for deployment:\n\n${errorMessage}`);
   }

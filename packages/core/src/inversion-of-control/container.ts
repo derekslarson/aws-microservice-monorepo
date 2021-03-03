@@ -1,6 +1,5 @@
 import { ContainerModule } from "inversify";
 import { TYPES } from "./types";
-import { envConfig, EnvConfigInterface } from "../config/env.config";
 
 import { IdService, IdServiceInterface } from "../services/id.service";
 import { LoggerService, LoggerServiceInterface } from "../services/logger.service";
@@ -17,8 +16,6 @@ import { AxiosFactory, axiosFactory } from "../factories/axios.factory";
 
 const container = new ContainerModule((bind) => {
   try {
-    bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
-
     bind<IdServiceInterface>(TYPES.IdServiceInterface).to(IdService);
     bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
@@ -31,8 +28,6 @@ const container = new ContainerModule((bind) => {
     bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
     bind<UnmarshallFactory>(TYPES.UnmarshallFactory).toFactory(() => unmarshallFactory);
     bind<UuidV4Factory>(TYPES.UuidV4Factory).toFactory(() => uuidV4Factory);
-
-    // This processor service array needs to be binded at the bottom, so that 'container.get' can resolve all other dependencies
   } catch (error: unknown) {
     // eslint-disable-next-line no-console
     console.log("Error initializing container. Error:\n", error);

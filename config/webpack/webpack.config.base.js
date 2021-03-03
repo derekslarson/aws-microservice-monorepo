@@ -1,6 +1,7 @@
 const path = require("path")
 const fs = require("fs")
 const CaseSensitivePathsPlugin = require("case-sensitive-paths-webpack-plugin");
+const TerserPlugin = require('terser-webpack-plugin');
 
 class BaseConfig {
   constructor() {
@@ -32,7 +33,7 @@ class BaseConfig {
     };
 
     this.resolve = {
-      extensions: [ ".js", ".ts", ".json" ],
+      extensions: [ ".js", ".ts" ],
     };
 
     this.externals = [ /^[^.]/ ];
@@ -42,15 +43,25 @@ class BaseConfig {
         {
           test: /\.ts$/,
           use: "ts-loader",
-        },
-        {
-          test: /\.json$/,
-          use: "json-loader",
-        },
+        }
       ],
     };
 
-    this.plugins = [ new CaseSensitivePathsPlugin() ];
+    this.plugins = [ 
+      new CaseSensitivePathsPlugin(),
+    ];
+
+    this.optimization = {
+      minimize: true,
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            keep_classnames: true,
+            keep_fnames: true
+          }
+        })
+      ]
+    }
   };
 }
 

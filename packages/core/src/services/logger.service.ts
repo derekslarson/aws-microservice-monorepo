@@ -5,6 +5,7 @@ import { LogLevel } from "../enums/logLevel.enum";
 import { ErrorSerializer, ErrorSerializerFactory } from "../factories/errorSerializer.factory";
 import { LogWriter, LogWriterFactory } from "../factories/logWriter.factory";
 import { EnvConfigInterface } from "../config/env.config";
+
 @injectable()
 export class LoggerService implements LoggerServiceInterface {
   private logLevel: LogLevel;
