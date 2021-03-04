@@ -23,7 +23,7 @@
     "arrow-parens": ["error", "always"],
     "import/prefer-default-export": "off",
     "class-methods-use-this": "off",
-    "max-len": ["warn", 200],
+    "max-len": ["warn", 250],
     "no-useless-constructor": "off",
     "object-curly-newline": ["error", {
       "ObjectExpression": { "multiline": true },

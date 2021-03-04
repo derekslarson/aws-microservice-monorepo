@@ -14,6 +14,8 @@ export class UserPool extends Cognito.UserPool {
 
   public userPoolDomainName: string;
 
+  public redirectUri: string;
+
   constructor(scope: CDK.Stack, id: string, props: UserPoolProps) {
     super(scope, id, {
       selfSignUpEnabled: true,
@@ -38,15 +40,20 @@ export class UserPool extends Cognito.UserPool {
 
     const clientScopes = props.scopes.map((scopeItem) => ({ scopeName: `${props.resourceServerIdentifier}/${scopeItem.scopeName}` }));
 
+    const dummyCallbackUrl = "https://example.com";
+
     const userPoolClient = new Cognito.UserPoolClient(this, "UserPoolClient", {
       userPool: this,
       generateSecret: true,
-      authFlows: { custom: true },
+      authFlows: { userPassword: true, custom: true },
       oAuth: {
-        flows: { clientCredentials: true },
+        flows: { authorizationCodeGrant: true },
         scopes: clientScopes,
+        callbackUrls: [ dummyCallbackUrl ],
       },
     });
+
+    this.redirectUri = dummyCallbackUrl;
 
     this.userPoolClientId = userPoolClient.userPoolClientId;
 

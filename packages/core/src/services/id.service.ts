@@ -10,8 +10,7 @@ export class IdService implements IdServiceInterface {
 
   constructor(
   @inject(TYPES.UuidV4Factory) uuidV4Factory: UuidV4Factory,
-    @inject(TYPES.LoggerServiceInterface)
-    private loggerService: LoggerServiceInterface,
+    @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
   ) {
     this.uuidV4 = uuidV4Factory();
   }

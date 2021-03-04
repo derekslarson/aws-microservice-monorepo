@@ -10,6 +10,7 @@ export const envConfig: EnvConfigInterface = {
     id: process.env.USER_POOL_ID || "",
     clientId: process.env.USER_POOL_CLIENT_ID || "",
     clientSecret: process.env.USER_POOL_CLIENT_SECRET || "",
+    clientRedirectUri: process.env.USER_POOL_CLIENT_REDIRECT_URI || "",
     domain: process.env.USER_POOL_DOMAIN || "",
   },
 };
@@ -24,6 +25,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     id: string;
     clientId: string;
     clientSecret: string;
+    clientRedirectUri: string;
     domain: string;
   }
 }

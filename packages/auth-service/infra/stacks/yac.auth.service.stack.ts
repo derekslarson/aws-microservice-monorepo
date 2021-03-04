@@ -68,6 +68,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       USER_POOL_ID: userPool.userPoolId,
       USER_POOL_CLIENT_ID: userPool.userPoolClientId,
       USER_POOL_CLIENT_SECRET: userPool.userPoolClientSecret,
+      USER_POOL_CLIENT_REDIRECT_URI: userPool.redirectUri,
       USER_POOL_DOMAIN: `https://${userPool.userPoolDomainName}.auth.${this.region}.amazoncognito.com`,
       MAIL_SENDER: "derek@yac.com",
     };
