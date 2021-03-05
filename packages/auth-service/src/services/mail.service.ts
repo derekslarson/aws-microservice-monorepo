@@ -17,9 +17,9 @@ export class MailService implements MailServiceInterface {
     this.ses = sesFactory();
   }
 
-  public async sendMagicLink(emailAddress: string, magicLink: string): Promise<void> {
+  public async sendConfirmationCode(emailAddress: string, confirmationCode: string): Promise<void> {
     try {
-      this.loggerService.trace("sendMagicLink called", { emailAddress, magicLink }, this.constructor.name);
+      this.loggerService.trace("sendConfirmationCode called", { emailAddress, confirmationCode }, this.constructor.name);
 
       const sendEmailParams: SES.Types.SendEmailRequest = {
         Source: this.config.mailSender,
@@ -29,8 +29,9 @@ export class MailService implements MailServiceInterface {
           Body: {
             Html: {
               Data: `
-                <a href="${magicLink}" target="_blank">Click here to log into your Yac account.</a>
-                <p>This link expires in 30 minutes.</p>
+                <pUse this code to log into your Yac account.</p>
+                <p><strong>${confirmationCode}</strong></p>
+                <p>This code expires in 30 minutes.</p>
               `,
             },
           },
@@ -39,7 +40,7 @@ export class MailService implements MailServiceInterface {
 
       await this.ses.sendEmail(sendEmailParams).promise();
     } catch (error: unknown) {
-      this.loggerService.error("Error in sendMagicLink", { error, emailAddress, magicLink }, this.constructor.name);
+      this.loggerService.error("Error in sendConfirmationCode", { error, emailAddress, confirmationCode }, this.constructor.name);
 
       throw error;
     }
@@ -49,5 +50,5 @@ export class MailService implements MailServiceInterface {
 export type MailServiceConfigInterface = Pick<EnvConfigInterface, "mailSender">;
 
 export interface MailServiceInterface {
-  sendMagicLink(emailAddress: string, magicLink: string): Promise<void>;
+  sendConfirmationCode(emailAddress: string, confirmationCode: string): Promise<void>;
 }

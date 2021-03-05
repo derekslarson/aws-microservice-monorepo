@@ -6,6 +6,7 @@ export * from "./src/api-contracts/triggerSns.post";
 export * from "./src/api-contracts/signUp.post";
 export * from "./src/api-contracts/login.post";
 export * from "./src/api-contracts/confirm.get";
+export * from "./src/api-contracts/createClient.post";
 
 export * from "./src/decorators/isOptionalIf.validation.decorator";
 
@@ -17,6 +18,11 @@ export * from "./src/enums/exportNames.enum";
 export * from "./src/enums/http.method.enum";
 export * from "./src/enums/logLevel.enum";
 export * from "./src/enums/statusCode.enum";
+
+export * from "./src/errors/badRequest.error";
+export * from "./src/errors/base.error";
+export * from "./src/errors/forbidden.error";
+export * from "./src/errors/notFound.error";
 
 export * from "./src/factories/axios.factory";
 export * from "./src/factories/classTransformer.factory";

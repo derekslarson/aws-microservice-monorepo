@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, SignUpResponseBody } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, SignUpResponseBody, ConfirmationResponseBody, LoginResponseBody } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
 import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
@@ -26,7 +26,7 @@ export class AuthenticationController extends BaseController implements Authenti
 
       await this.authenticationService.signUp(signUpInput);
 
-      const responseBody: SignUpResponseBody = { message: "Check email for magic link" };
+      const responseBody: SignUpResponseBody = { message: "Check email for confirmation code" };
 
       return this.generateCreatedResponse(responseBody);
     } catch (error: unknown) {
@@ -44,7 +44,9 @@ export class AuthenticationController extends BaseController implements Authenti
 
       await this.authenticationService.login(loginInput);
 
-      return this.generateSuccessResponse({ message: "Check email for magic link" });
+      const responseBody: LoginResponseBody = { message: "Check email for confirmation code" };
+
+      return this.generateSuccessResponse(responseBody);
     } catch (error: unknown) {
       this.loggerService.error("Error in login", { error, request }, this.constructor.name);
 
@@ -56,11 +58,13 @@ export class AuthenticationController extends BaseController implements Authenti
     try {
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
 
-      const confirmationInput = await this.validationService.validate(ConfirmationInputDto, request.queryStringParameters);
+      const confirmationInput = await this.validationService.validate(ConfirmationInputDto, request.body);
 
-      const response = await this.authenticationService.confirm(confirmationInput);
+      const { authorizationCode } = await this.authenticationService.confirm(confirmationInput);
 
-      return this.generateSuccessResponse(response);
+      const responseBody: ConfirmationResponseBody = { authorizationCode };
+
+      return this.generateSuccessResponse(responseBody);
     } catch (error: unknown) {
       this.loggerService.error("Error in confirm", { error, request }, this.constructor.name);
 

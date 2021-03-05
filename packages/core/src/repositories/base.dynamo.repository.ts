@@ -70,10 +70,10 @@ export abstract class BaseDynamoRepository<T> {
     try {
       this.loggerService.trace("insert called", { item }, this.constructor.name);
 
-      const itemToInsert = ({
+      const itemToInsert = {
         ...item,
         id: this.idService.generateId(),
-      } as unknown) as T;
+      } as unknown as T;
 
       const putItemInput: DynamoDB.DocumentClient.PutItemInput = {
         TableName: this.tableName,
@@ -85,6 +85,25 @@ export abstract class BaseDynamoRepository<T> {
       return itemToInsert;
     } catch (error: unknown) {
       this.loggerService.error("Error in insert", { error, item }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  protected async insertWithIdIncluded(item: T): Promise<T> {
+    try {
+      this.loggerService.trace("insertWithIdIncluded called", { item }, this.constructor.name);
+
+      const putItemInput: DynamoDB.DocumentClient.PutItemInput = {
+        TableName: this.tableName,
+        Item: item,
+      };
+
+      await this.documentClient.put(putItemInput).promise();
+
+      return item;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in insertWithIdIncluded", { error, item }, this.constructor.name);
 
       throw error;
     }

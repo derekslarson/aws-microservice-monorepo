@@ -74,7 +74,7 @@ export class ValidationService implements ValidationServiceInterface {
           constraintMessages.push(...childrenConstraintMessages);
         }
 
-        return constraintMessages.filter((message) => message).join("\n\n");
+        return constraintMessages.filter((message) => message).join(", ");
       }, "");
     } catch (error: unknown) {
       this.loggerService.trace("Error in generateValidationErrorMessage", { error, validationErrors }, this.constructor.name);

@@ -19,7 +19,7 @@ export abstract class DynamoStreamController implements DynamoStreamControllerIn
     @inject(TYPES.UnmarshallFactory) unmarshallFactory: UnmarshallFactory,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
   ) {
-    this.tableNames = envConfig.tableNames;
+    this.tableNames = Object.values(envConfig.tableNames);
     this.unmarshall = unmarshallFactory();
   }
 

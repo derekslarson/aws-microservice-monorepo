@@ -1,7 +1,7 @@
-import { ConfirmationRequestQueryParameters, Expose } from "@yac/core";
-import { IsEmail, IsString, Length } from "class-validator";
+import { ConfirmationRequestBody, Expose } from "@yac/core";
+import { IsEmail, IsString, IsUrl, Length } from "class-validator";
 
-export class ConfirmationInputDto implements ConfirmationRequestQueryParameters {
+export class ConfirmationInputDto implements ConfirmationRequestBody {
   @Expose()
   @IsEmail()
   public email: string;
@@ -10,4 +10,16 @@ export class ConfirmationInputDto implements ConfirmationRequestQueryParameters 
   @IsString()
   @Length(6, 6)
   public confirmationCode: string;
+
+  @Expose()
+  @IsString()
+  public clientId: string;
+
+  @Expose()
+  @IsUrl()
+  public redirectUri: string;
+
+  @Expose()
+  @IsString()
+  public xsrfToken: string;
 }

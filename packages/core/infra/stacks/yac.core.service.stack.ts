@@ -8,10 +8,10 @@ export class YacCoreServiceStack extends CDK.Stack {
   constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
     super(scope, id, props);
 
-    const messageCreatedSnsTopic = new SNS.Topic(this, "MessageCreatedSnsTopic", { topicName: "messageCreatedSnsTopic" });
+    const messageCreatedSnsTopic = new SNS.Topic(this, `${id}_MessageCreatedSnsTopic`, { topicName: "messageCreatedSnsTopic" });
 
-    new CDK.CfnOutput(this, "MessageCreatedSnsTopicArn", {
-      exportName: ExportNames.MessageCreatedTopicArn,
+    new CDK.CfnOutput(this, `${id}_MessageCreatedSnsTopicArnExport`, {
+      exportName: ExportNames.MessageCreatedSnsTopicArn,
       value: messageCreatedSnsTopic.topicArn,
     });
   }

@@ -1,3 +1,3 @@
 export enum ExportNames {
-  MessageCreatedTopicArn = "messageCreatedTopicArn",
+  MessageCreatedSnsTopicArn = "messageCreatedSnsTopicArn",
 }

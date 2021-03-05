@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { Axios, AxiosFactory, LoggerServiceInterface } from "@yac/core";
+import { Axios, axiosFactory, AxiosFactory, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
@@ -10,6 +10,7 @@ import { Crypto, CryptoFactory } from "../factories/crypto.factory";
 import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
 import { LoginInputDto } from "../models/login/login.input.model";
 import { ConfirmationInputDto } from "../models/confirmation/confirmation.input.model";
+import { ClientServiceInterface } from "./client.service";
 
 @injectable()
 export class AuthenticationService implements AuthenticationServiceInterface {
@@ -23,11 +24,12 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     @inject(TYPES.EnvConfigInterface) private config: AuthenticationServiceConfigInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MailServiceInterface) private mailService: MailServiceInterface,
+    @inject(TYPES.ClientServiceInterface) private clientService: ClientServiceInterface,
     @inject(TYPES.CognitoFactory) cognitoFactory: CognitoFactory,
     @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
-    @inject(TYPES.AxiosFactory) axiosFactory: AxiosFactory,
+    @inject(TYPES.AxiosFactory) axFactory: AxiosFactory,
   ) {
-    this.axios = axiosFactory();
+    this.axios = axFactory();
     this.cognito = cognitoFactory();
     this.crypto = cryptoFactory();
   }
@@ -36,10 +38,12 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("signUp called", { signUpInput }, this.constructor.name);
 
-      const secretHash = this.createUserPoolClientSecretHash(signUpInput.email);
+      const client = await this.clientService.getClient(signUpInput.clientId);
+
+      const secretHash = this.createUserPoolClientSecretHash(signUpInput.email, signUpInput.clientId, client.secret);
 
       const signUpParams: CognitoIdentityServiceProvider.Types.SignUpRequest = {
-        ClientId: this.config.userPool.clientId,
+        ClientId: signUpInput.clientId,
         SecretHash: secretHash,
         Username: signUpInput.email,
         Password: this.config.secret,
@@ -74,9 +78,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       await this.cognito.adminUpdateUserAttributes(updateUserAttributesParams).promise();
 
-      const magicLink = `${this.config.apiDomain}/confirm?email=${loginInput.email}&confirmationCode=${authChallenge}`;
-
-      await this.mailService.sendMagicLink(loginInput.email, magicLink);
+      await this.mailService.sendConfirmationCode(loginInput.email, authChallenge);
     } catch (error: unknown) {
       this.loggerService.error("Error in login", { error, loginInput }, this.constructor.name);
 
@@ -84,14 +86,16 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  public async confirm(confirmationInput: ConfirmationInputDto): Promise<{ accessToken: string }> {
+  public async confirm(confirmationInput: ConfirmationInputDto): Promise<{ authorizationCode: string }> {
     try {
       this.loggerService.trace("confirm called", { confirmationInput }, this.constructor.name);
 
-      const secretHash = this.createUserPoolClientSecretHash(confirmationInput.email);
+      const client = await this.clientService.getClient(confirmationInput.clientId);
+
+      const secretHash = this.createUserPoolClientSecretHash(confirmationInput.email, confirmationInput.clientId, client.secret);
 
       const initiateAuthParams: CognitoIdentityServiceProvider.Types.InitiateAuthRequest = {
-        ClientId: this.config.userPool.clientId,
+        ClientId: confirmationInput.clientId,
         AuthFlow: "CUSTOM_AUTH",
         AuthParameters: {
           USERNAME: confirmationInput.email,
@@ -102,7 +106,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
       const initiateAuthResponse = await this.cognito.initiateAuth(initiateAuthParams).promise();
 
       const respondToAuthChallengeParams: CognitoIdentityServiceProvider.Types.RespondToAuthChallengeRequest = {
-        ClientId: this.config.userPool.clientId,
+        ClientId: confirmationInput.clientId,
         Session: initiateAuthResponse.Session,
         ChallengeName: "CUSTOM_CHALLENGE",
         ChallengeResponses: {
@@ -114,9 +118,9 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       await this.cognito.respondToAuthChallenge(respondToAuthChallengeParams).promise();
 
-      const accessToken = await this.getAccessToken(confirmationInput.email);
+      const authorizationCode = await this.getAuthorizationCode(confirmationInput.email, confirmationInput.clientId, confirmationInput.redirectUri, confirmationInput.xsrfToken);
 
-      return { accessToken };
+      return { authorizationCode };
     } catch (error: unknown) {
       this.loggerService.error("Error in confirm", { error, confirmationInput }, this.constructor.name);
 
@@ -124,45 +128,43 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  private async getXsrfToken(): Promise<string> {
-    try {
-      this.loggerService.trace("getXsrfToken called", {}, this.constructor.name);
+  // private async getXsrfToken(): Promise<string> {
+  //   try {
+  //     this.loggerService.trace("getXsrfToken called", {}, this.constructor.name);
 
-      const authorizeResponse = await this.axios.request({
-        baseURL: this.config.userPool.domain,
-        url: `/oauth2/authorize?response_type=code&client_id=${this.config.userPool.clientId}&redirect_uri=${this.config.userPool.clientRedirectUri}`,
-        method: "GET",
-      });
+  //     const authorizeResponse = await this.axios.request({
+  //       baseURL: this.config.userPool.domain,
+  //       url: `/oauth2/authorize?response_type=code&client_id=${this.config.userPool.clientId}&redirect_uri=${this.config.userPool.clientRedirectUri}`,
+  //       method: "GET",
+  //     });
 
-      const setCookieHeader = (authorizeResponse.headers as Record<string, string[]>)["set-cookie"];
+  //     const setCookieHeader = (authorizeResponse.headers as Record<string, string[]>)["set-cookie"];
 
-      const [ xsrfToken ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
+  //     const [ xsrfToken ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
 
-      return xsrfToken;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getXsrfToken", { error }, this.constructor.name);
+  //     return xsrfToken;
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in getXsrfToken", { error }, this.constructor.name);
 
-      throw error;
-    }
-  }
+  //     throw error;
+  //   }
+  // }
 
-  private async getAuthorizationCode(username: string, xsrfToken: string): Promise<string> {
+  private async getAuthorizationCode(username: string, clientId: string, redirectUri: string, xsrfToken: string): Promise<string> {
     try {
       this.loggerService.trace("getAuthorizationCode called", { username, xsrfToken }, this.constructor.name);
 
-      const csrf = xsrfToken.split(";")[0].split("=")[1];
-
-      const data = `_csrf=${csrf}&username=${username}&password=${this.config.secret}`;
+      const data = `_csrf=${xsrfToken}&username=${username}&password=${this.config.secret}`;
 
       const headers = {
         "Content-Type": "application/x-www-form-urlencoded",
-        Cookie: xsrfToken,
+        Cookie: `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`,
       };
 
       const loginResponse = await this.axios.request({
         headers,
         baseURL: this.config.userPool.domain,
-        url: `/login?response_type=code&client_id=${this.config.userPool.clientId}&redirect_uri=${this.config.userPool.clientRedirectUri}`,
+        url: `/login?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}`,
         data,
         method: "POST",
       });
@@ -179,43 +181,39 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  private async getAccessToken(username: string, scopes: string[] = []): Promise<string> {
-    try {
-      this.loggerService.trace("getAccessToken called", { username }, this.constructor.name);
+  // private async getAccessToken(authorizationCode: string, clientId: string, clientSecret: string, redirectUri: string, username: string, scopes: string[] = []): Promise<string> {
+  //   try {
+  //     this.loggerService.trace("getAccessToken called", { username }, this.constructor.name);
 
-      const xsrfToken = await this.getXsrfToken();
+  //     const data = `grant_type=authorization_code&code=${authorizationCode}&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes.join(" ")}`;
 
-      const authorizationCode = await this.getAuthorizationCode(username, xsrfToken);
+  //     const headers = {
+  //       "Content-Type": "application/x-www-form-urlencoded",
+  //       Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
+  //     };
 
-      const data = `grant_type=authorization_code&code=${authorizationCode}&client_id=${this.config.userPool.clientId}&redirect_uri=${this.config.userPool.clientRedirectUri}&scope=${scopes.join(" ")}`;
+  //     const tokenResponse = await this.axios.request<{ access_token: string }>({
+  //       headers,
+  //       baseURL: this.config.userPool.domain,
+  //       url: "/oauth2/token",
+  //       data,
+  //       method: "POST",
+  //     });
 
-      const headers = {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${Buffer.from(`${this.config.userPool.clientId}:${this.config.userPool.clientSecret}`).toString("base64")}`,
-      };
+  //     return tokenResponse.data.access_token;
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in getAccessToken", { error, username }, this.constructor.name);
 
-      const tokenResponse = await this.axios.request<{ access_token: string }>({
-        headers,
-        baseURL: this.config.userPool.domain,
-        url: "/oauth2/token",
-        data,
-        method: "POST",
-      });
+  //     throw error;
+  //   }
+  // }
 
-      return tokenResponse.data.access_token;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getAccessToken", { error, username }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  private createUserPoolClientSecretHash(username: string): string {
+  private createUserPoolClientSecretHash(username: string, clientId: string, clientSecret: string): string {
     try {
       this.loggerService.trace("createUserPoolClientSecretHash called", { username }, this.constructor.name);
 
-      const secretHash = this.crypto.createHmac("SHA256", this.config.userPool.clientSecret)
-        .update(`${username}${this.config.userPool.clientId}`)
+      const secretHash = this.crypto.createHmac("SHA256", clientSecret)
+        .update(`${username}${clientId}`)
         .digest("base64");
 
       return secretHash;
@@ -232,5 +230,59 @@ export type AuthenticationServiceConfigInterface = Pick<EnvConfigInterface, "use
 export interface AuthenticationServiceInterface {
   signUp(signUpInput: SignUpInputDto): Promise<void>;
   login(loginInput: LoginInputDto): Promise<void>;
-  confirm(confirmationInput: ConfirmationInputDto): Promise<{ accessToken: string }>
+  confirm(confirmationInput: ConfirmationInputDto): Promise<{ authorizationCode: string }>
 }
+
+// async function getXsrfToken(domain: string, clientId: string, clientRedirectUri: string): Promise<string> {
+//   try {
+//     const axios = axiosFactory();
+
+//     const authorizeResponse = await axios.request({
+//       baseURL: domain,
+//       url: `/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${clientRedirectUri}`,
+//       method: "GET",
+//     });
+
+//     const setCookieHeader = (authorizeResponse.headers as Record<string, string[]>)["set-cookie"];
+
+//     const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
+
+//     const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
+
+//     console.log("xsrfToken: ", xsrfToken);
+
+//     return xsrfToken;
+//   } catch (error: unknown) {
+//     console.log("Error:\n", error);
+
+//     throw error;
+//   }
+// }
+
+// async function getAccessToken(authorizationCode: string, clientId: string, clientSecret: string, redirectUri: string, scopes: string[] = []): Promise<string> {
+//   try {
+//     const axios = axiosFactory();
+
+//     const data = `grant_type=authorization_code&code=${authorizationCode}&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes.join(" ")}`;
+
+//     const headers = {
+//       "Content-Type": "application/x-www-form-urlencoded",
+//       Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
+//     };
+
+//     const tokenResponse = await axios.request<{ access_token: string }>({
+//       headers,
+//       baseURL: "https://yac-auth-service.auth.us-east-2.amazoncognito.com",
+//       url: "/oauth2/token",
+//       data,
+//       method: "POST",
+//     });
+
+//     console.log(tokenResponse.data);
+//     return tokenResponse.data.access_token;
+//   } catch (error: unknown) {
+//     console.log("Error:\n", error);
+
+//     throw error;
+//   }
+// }
