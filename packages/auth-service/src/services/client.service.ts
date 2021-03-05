@@ -1,6 +1,6 @@
 import { inject, injectable } from "inversify";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { LoggerServiceInterface } from "@yac/core";
+import { ForbiddenError, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CreateClientInputDto } from "../models/client/client.creation.input.model";
@@ -73,6 +73,24 @@ export class ClientService implements ClientServiceInterface {
       throw error;
     }
   }
+
+  public async deleteClient(id: string, secret: string): Promise<void> {
+    try {
+      this.loggerService.trace("deleteClient called", { id }, this.constructor.name);
+
+      const client = await this.clientRepository.getClient(id);
+
+      if (client.secret !== secret) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      await this.clientRepository.deleteClient(id);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deleteClient", { error, id }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export type ClientServiceConfigInterface = Pick<EnvConfigInterface, "userPool">;
@@ -80,4 +98,5 @@ export type ClientServiceConfigInterface = Pick<EnvConfigInterface, "userPool">;
 export interface ClientServiceInterface {
   createClient(createClientInput: CreateClientInputDto): Promise<Client>;
   getClient(id: string): Promise<Client>;
+  deleteClient(id: string, secret: string): Promise<void>;
 }

@@ -50,6 +50,23 @@ export abstract class BaseDynamoRepository<T> {
     }
   }
 
+  protected async deleteByPrimaryKey(id: string): Promise<void> {
+    try {
+      this.loggerService.trace("deleteByPrimaryKey called", { id }, this.constructor.name);
+
+      const deleteItemInput: DynamoDB.DocumentClient.DeleteItemInput = {
+        TableName: this.tableName,
+        Key: { id },
+      };
+
+      await this.documentClient.delete(deleteItemInput).promise();
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deleteByPrimaryKey", { error, id }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   protected async getAll(): Promise<T[]> {
     try {
       this.loggerService.trace("getAll called", {}, this.constructor.name);

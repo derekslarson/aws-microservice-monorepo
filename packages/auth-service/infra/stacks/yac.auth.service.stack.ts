@@ -15,8 +15,11 @@ import {
   loginPath,
   confirmPath,
   confirmMethod,
+  createClientMethod,
+  createClientPath,
+  deleteClientPath,
+  deleteClientMethod,
 } from "@yac/core";
-import { createClientMethod, createClientPath } from "@yac/core/src/api-contracts/createClient.post";
 
 export class YacAuthServiceStack extends CDK.Stack {
   constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
@@ -146,6 +149,16 @@ export class YacAuthServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(7),
     });
 
+    const deleteClientHandler = new Lambda.Function(this, `DeleteClientHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/deleteClient"),
+      handler: "deleteClient.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsTablePolicyStatement ],
+      timeout: CDK.Duration.seconds(7),
+    });
+
     const preSignUpHandler = new Lambda.Function(this, `PreSignUpHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/preSignUp"),
@@ -210,6 +223,12 @@ export class YacAuthServiceStack extends CDK.Stack {
       path: createClientPath,
       method: createClientMethod,
       handler: createClientHandler,
+    });
+
+    httpApi.addRoute({
+      path: deleteClientPath,
+      method: deleteClientMethod,
+      handler: deleteClientHandler,
     });
   }
 }

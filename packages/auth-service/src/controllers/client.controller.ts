@@ -1,10 +1,11 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, CreateClientResponseBody, RequestPortion } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, CreateClientResponseBody, RequestPortion, DeleteClientResponseBody } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { CreateClientInputDto } from "../models/client/client.creation.input.model";
 import { ClientServiceInterface } from "../services/client.service";
+import { DeleteClientInputDto } from "../models/client/client.deletion.input.model";
 
 @injectable()
 export class ClientController extends BaseController implements ClientControllerInterface {
@@ -36,8 +37,29 @@ export class ClientController extends BaseController implements ClientController
       return this.generateErrorResponse(error);
     }
   }
+
+  public async deleteClient(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("deleteClient called", { request }, this.constructor.name);
+
+      const { id = "" } = request.pathParameters || {};
+
+      const { secret } = await this.validationService.validate(DeleteClientInputDto, RequestPortion.Headers, request.headers);
+
+      await this.clientService.deleteClient(id, secret);
+
+      const response: DeleteClientResponseBody = { message: "Client deleted" };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deleteClient", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
 }
 
 export interface ClientControllerInterface {
   createClient(request: Request): Promise<Response>;
+  deleteClient(request: Request): Promise<Response>;
 }

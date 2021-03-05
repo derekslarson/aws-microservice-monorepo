@@ -34,15 +34,27 @@ export class ClientDynamoRepository extends BaseDynamoRepository<Client> impleme
     try {
       this.loggerService.trace("getClient called", { id }, this.constructor.name);
 
-      const group = await this.getByPrimaryKey(id);
+      const client = await this.getByPrimaryKey(id);
 
-      return group;
+      return client;
     } catch (error: unknown) {
       this.loggerService.error("Error in getClient", { error, id }, this.constructor.name);
 
       if (error instanceof NotFoundError) {
         error.message = `Client with id ${id} not found.`;
       }
+
+      throw error;
+    }
+  }
+
+  public async deleteClient(id: string): Promise<void> {
+    try {
+      this.loggerService.trace("deleteClient called", { id }, this.constructor.name);
+
+      await this.deleteByPrimaryKey(id);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deleteClient", { error, id }, this.constructor.name);
 
       throw error;
     }
@@ -54,4 +66,5 @@ export type ClientRepositoryConfigInterface = Pick<EnvConfigInterface, "tableNam
 export interface ClientRepositoryInterface {
   createClient(client: Client): Promise<Client>;
   getClient(id: string): Promise<Client>;
+  deleteClient(id: string): Promise<void>;
 }
