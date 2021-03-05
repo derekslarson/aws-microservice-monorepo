@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, CreateClientResponseBody } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, CreateClientResponseBody, RequestPortion } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { CreateClientInputDto } from "../models/client/client.creation.input.model";
 import { ClientServiceInterface } from "../services/client.service";
@@ -20,7 +20,7 @@ export class ClientController extends BaseController implements ClientController
     try {
       this.loggerService.trace("createClient called", { request }, this.constructor.name);
 
-      const createClientInput = await this.validationService.validate(CreateClientInputDto, request.body);
+      const createClientInput = await this.validationService.validate(CreateClientInputDto, RequestPortion.Body, request.body);
 
       const { id, secret } = await this.clientService.createClient(createClientInput);
 

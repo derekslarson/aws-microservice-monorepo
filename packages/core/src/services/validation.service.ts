@@ -6,6 +6,8 @@ import { LoggerServiceInterface } from "./logger.service";
 import { ClassTransformer, ClassTransformerFactory } from "../factories/classTransformer.factory";
 import { ClassValidator, ClassValidatorFactory } from "../factories/classValidator.factory";
 import { BadRequestError } from "../errors/badRequest.error";
+import { RequestValidationError } from "../errors/request.validation.error";
+import { RequestPortion } from "../enums/request.portion.enum";
 
 @injectable()
 export class ValidationService implements ValidationServiceInterface {
@@ -22,12 +24,12 @@ export class ValidationService implements ValidationServiceInterface {
     this.classValidator = classValidatorFactory();
   }
 
-  public async validate<T>(dtoConstructor: { new (): T }, validationObject?: string | Record<string, unknown>): Promise<T> {
+  public async validate<T>(dtoConstructor: { new (): T }, requestPortion: RequestPortion, validationObject?: string | Record<string, unknown>): Promise<T> {
     try {
       this.loggerService.trace("validate called", { dtoConstructor: dtoConstructor.name, validationObject }, this.constructor.name);
 
       if (!validationObject) {
-        throw new BadRequestError("Request body is required.");
+        throw new BadRequestError(`${requestPortion} ${requestPortion === RequestPortion.Body ? "is" : "are"} required.`);
       }
 
       let parsedValidationObject: Record<string, unknown>;
@@ -45,14 +47,18 @@ export class ValidationService implements ValidationServiceInterface {
       const validationErrors = await this.classValidator(transformation);
 
       if (validationErrors.length) {
-        const validationErrorMessage = this.generateValidationErrorMessage(validationErrors);
+        const handledValidationErrors = this.handleValidationErrors(validationErrors);
 
-        throw new BadRequestError(validationErrorMessage);
+        throw new RequestValidationError(requestPortion, handledValidationErrors);
       }
 
       return transformation;
     } catch (error: unknown) {
       this.loggerService.error("Error in validate", { error, dtoConstructor, validationObject }, this.constructor.name);
+
+      if (error instanceof RequestValidationError) {
+        throw error;
+      }
 
       const errorMessage = (error as Error).message;
 
@@ -60,24 +66,34 @@ export class ValidationService implements ValidationServiceInterface {
     }
   }
 
-  private generateValidationErrorMessage(validationErrors: ValidationError[]): string {
+  private handleValidationErrors(validationErrors: ValidationError[], parentPath = ""): { property: string, value: unknown, issues: string[]; }[] {
     try {
-      this.loggerService.trace("generateValidationErrorMessage called", { validationErrors }, this.constructor.name);
+      this.loggerService.trace("handleValidationErrors called", { validationErrors }, this.constructor.name);
 
-      return validationErrors.reduce((acc, validationError) => {
-        const constraints = validationError.constraints ? Object.values(validationError.constraints) : [];
-        const constraintMessages = [ acc, ...constraints ];
+      const handledErrors: { property: string, value: unknown, issues: string[]; }[] = [];
+
+      for (const validationError of validationErrors) {
+        const property = parentPath ? `${parentPath}.${validationError.property}` : validationError.property;
+        const issues = validationError.constraints ? Object.values(validationError.constraints) : [];
+
+        const handledError: { property: string, value: unknown, issues: string[]; } = {
+          property,
+          value: validationError.value,
+          issues,
+        };
+
+        handledErrors.push(handledError);
 
         if (validationError.children.length) {
-          const childrenConstraintMessages = this.generateValidationErrorMessage(validationError.children);
+          const handledChildren = this.handleValidationErrors(validationError.children, property);
 
-          constraintMessages.push(...childrenConstraintMessages);
+          handledErrors.push(...handledChildren);
         }
+      }
 
-        return constraintMessages.filter((message) => message).join(", ");
-      }, "");
+      return handledErrors;
     } catch (error: unknown) {
-      this.loggerService.trace("Error in generateValidationErrorMessage", { error, validationErrors }, this.constructor.name);
+      this.loggerService.trace("Error in handleValidationErrors", { error, validationErrors }, this.constructor.name);
 
       throw error;
     }
@@ -85,5 +101,5 @@ export class ValidationService implements ValidationServiceInterface {
 }
 
 export interface ValidationServiceInterface {
-  validate<T>(dtoConstructor: { new (): T }, validationObject?: string | Record<string, unknown>): Promise<T>
+  validate<T>(dtoConstructor: { new (): T }, requestPortion: RequestPortion, validationObject?: string | Record<string, unknown>): Promise<T>
 }

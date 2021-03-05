@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, SignUpResponseBody, ConfirmationResponseBody, LoginResponseBody } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, SignUpResponseBody, ConfirmationResponseBody, LoginResponseBody, RequestPortion } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
 import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
@@ -22,7 +22,7 @@ export class AuthenticationController extends BaseController implements Authenti
     try {
       this.loggerService.trace("signUp called", { request }, this.constructor.name);
 
-      const signUpInput = await this.validationService.validate(SignUpInputDto, request.body);
+      const signUpInput = await this.validationService.validate(SignUpInputDto, RequestPortion.Body, request.body);
 
       await this.authenticationService.signUp(signUpInput);
 
@@ -40,7 +40,7 @@ export class AuthenticationController extends BaseController implements Authenti
     try {
       this.loggerService.trace("login called", { request }, this.constructor.name);
 
-      const loginInput = await this.validationService.validate(LoginInputDto, request.body);
+      const loginInput = await this.validationService.validate(LoginInputDto, RequestPortion.Body, request.body);
 
       await this.authenticationService.login(loginInput);
 
@@ -58,7 +58,7 @@ export class AuthenticationController extends BaseController implements Authenti
     try {
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
 
-      const confirmationInput = await this.validationService.validate(ConfirmationInputDto, request.body);
+      const confirmationInput = await this.validationService.validate(ConfirmationInputDto, RequestPortion.Body, request.body);
 
       const { authorizationCode } = await this.authenticationService.confirm(confirmationInput);
 

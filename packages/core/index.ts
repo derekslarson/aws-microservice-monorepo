@@ -18,6 +18,7 @@ export * from "./src/enums/exportNames.enum";
 export * from "./src/enums/http.method.enum";
 export * from "./src/enums/logLevel.enum";
 export * from "./src/enums/statusCode.enum";
+export * from "./src/enums/request.portion.enum";
 
 export * from "./src/errors/badRequest.error";
 export * from "./src/errors/base.error";

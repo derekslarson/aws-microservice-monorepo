@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { injectable } from "inversify";
-import { Body,
+import {
+  Body,
   SuccessResponse,
   NotFoundResponse,
   InternalServerErrorResponse,
@@ -8,11 +9,13 @@ import { Body,
   ForbiddenResponse,
   Response,
   CreatedResponse,
-  SeeOtherResponse } from "../models/http/response.model";
+  SeeOtherResponse,
+} from "../models/http/response.model";
 import { NotFoundError } from "../errors/notFound.error";
 import { BadRequestError } from "../errors/badRequest.error";
 import { ForbiddenError } from "../errors/forbidden.error";
 import { StatusCode } from "../enums/statusCode.enum";
+import { RequestValidationError } from "../errors/request.validation.error";
 
 @injectable()
 export abstract class BaseController {
@@ -46,6 +49,10 @@ export abstract class BaseController {
       return this.generateForbiddenResponse(error.message);
     }
 
+    if (error instanceof RequestValidationError) {
+      return this.generateBadRequestResponse(error.message, error.validationErrors);
+    }
+
     if (error instanceof BadRequestError) {
       return this.generateBadRequestResponse(error.message);
     }
@@ -62,10 +69,10 @@ export abstract class BaseController {
     };
   }
 
-  private generateBadRequestResponse(errorMessage: string, otherErrorData?: Body): BadRequestResponse {
+  private generateBadRequestResponse(errorMessage: string, validationErrors?: { property: string, value: unknown; issues: string[]; }[]): BadRequestResponse {
     const body = {
       message: errorMessage,
-      ...(otherErrorData || {}),
+      ...(validationErrors && { validationErrors }),
     };
 
     return {

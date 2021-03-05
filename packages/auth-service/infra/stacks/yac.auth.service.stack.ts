@@ -31,12 +31,12 @@ export class YacAuthServiceStack extends CDK.Stack {
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
 
     // Layers
-    const dependencyLayer = new Lambda.LayerVersion(this, `${id}_DependencyLayer`, {
+    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
       compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
       code: Lambda.Code.fromAsset("dist/dependencies"),
     });
 
-    const userPool = new Cognito.UserPool(this, `${id}_UserPool`, {
+    const userPool = new Cognito.UserPool(this, `UserPool_${id}`, {
       selfSignUpEnabled: true,
       autoVerify: { email: true },
       signInAliases: { email: true },
@@ -44,12 +44,12 @@ export class YacAuthServiceStack extends CDK.Stack {
       customAttributes: { authChallenge: new Cognito.StringAttribute({ mutable: true }) },
     });
 
-    const userPoolDomain = new Cognito.UserPoolDomain(this, `${id}_UserPoolDomain`, {
+    const userPoolDomain = new Cognito.UserPoolDomain(this, `UserPoolDomain_${id}`, {
       userPool,
       cognitoDomain: { domainPrefix: "yac-auth-service" },
     });
 
-    new Cognito.UserPoolResourceServer(this, `${id}_ResourceServer`, {
+    new Cognito.UserPoolResourceServer(this, `ResourceServer_${id}`, {
       userPool,
       identifier: "yac",
       scopes: [
@@ -60,10 +60,10 @@ export class YacAuthServiceStack extends CDK.Stack {
     });
 
     // Table Names
-    const clientsTableName = `${id}_clients`;
+    const clientsTableName = `clients_${id}`;
 
     // Tables
-    const clientsTable = new DynamoDB.Table(this, `${id}_ClientsTable`, {
+    const clientsTable = new DynamoDB.Table(this, `ClientsTable_${id}`, {
       tableName: clientsTableName,
       removalPolicy: CDK.RemovalPolicy.DESTROY,
       partitionKey: {
@@ -106,7 +106,7 @@ export class YacAuthServiceStack extends CDK.Stack {
     };
 
     // Handlers
-    const signUpHandler = new Lambda.Function(this, `${id}_SignUpHandler`, {
+    const signUpHandler = new Lambda.Function(this, `SignUpHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/signUp"),
       handler: "signUp.handler",
@@ -116,7 +116,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(7),
     });
 
-    const loginHandler = new Lambda.Function(this, `${id}_LoginHandler`, {
+    const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/login"),
       handler: "login.handler",
@@ -126,7 +126,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(7),
     });
 
-    const confirmHandler = new Lambda.Function(this, `${id}_ConfirmHandler`, {
+    const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/confirm"),
       handler: "confirm.handler",
@@ -136,7 +136,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(7),
     });
 
-    const createClientHandler = new Lambda.Function(this, `${id}_CreateClientHandler`, {
+    const createClientHandler = new Lambda.Function(this, `CreateClientHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/createClient"),
       handler: "createClient.handler",
@@ -146,7 +146,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(7),
     });
 
-    const preSignUpHandler = new Lambda.Function(this, `${id}_PreSignUpHandler`, {
+    const preSignUpHandler = new Lambda.Function(this, `PreSignUpHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/preSignUp"),
       handler: "preSignUp.handler",
@@ -155,7 +155,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(7),
     });
 
-    const defineAuthChallengeHandler = new Lambda.Function(this, `${id}_DefineAuthChallengeHandler`, {
+    const defineAuthChallengeHandler = new Lambda.Function(this, `DefineAuthChallengeHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/defineAuthChallenge"),
       handler: "defineAuthChallenge.handler",
@@ -164,7 +164,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(7),
     });
 
-    const createAuthChallengeHandler = new Lambda.Function(this, `${id}_CreateAuthChallengeHandler`, {
+    const createAuthChallengeHandler = new Lambda.Function(this, `CreateAuthChallengeHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/createAuthChallenge"),
       handler: "createAuthChallenge.handler",
@@ -173,7 +173,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(7),
     });
 
-    const verifyAuthChallengeResponseHandler = new Lambda.Function(this, `${id}_VerifyAuthChallengeResponseHandler`, {
+    const verifyAuthChallengeResponseHandler = new Lambda.Function(this, `VerifyAuthChallengeResponseHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/verifyAuthChallengeResponse"),
       handler: "verifyAuthChallengeResponse.handler",
