@@ -145,8 +145,6 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       const loginResponse = await this.httpRequestService.post(`${this.config.userPool.domain}/login`, data, queryParameters, headers);
 
-      this.loggerService.info("loginResponse.headers", { headers: loginResponse.headers }, this.constructor.name)
-
       const redirectPath = loginResponse.redirect?.path;
 
       if (!redirectPath) {
