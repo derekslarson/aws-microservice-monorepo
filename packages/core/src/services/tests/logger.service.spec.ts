@@ -1,7 +1,6 @@
 import { LogLevel } from "../../enums/logLevel.enum";
 import { ErrorSerializer, ErrorSerializerFactory } from "../../factories/errorSerializer.factory";
 import { LogWriter, LogWriterFactory } from "../../factories/logWriter.factory";
-import { ISO_DATE_REGEX } from "../../test-support/iso.date.regex";
 import { LoggerServiceConfigInterface, LoggerServiceInterface, LoggerService } from "../logger.service";
 
 describe("LoggerService", () => {
@@ -21,7 +20,7 @@ describe("LoggerService", () => {
   const mockError = new Error("Mock Error");
 
   beforeEach(() => {
-    logWriter = jasmine.createSpy("logWriter");
+    logWriter = jasmine.createSpyObj([ "trace", "info", "warn", "error" ]) as LogWriter;
     errorSerializer = {
       serializeError: jasmine.createSpy("serializeError").and.returnValue(mockSerializedError),
       deserializeError: jasmine.createSpy("deserializeError").and.returnValue(mockError),
@@ -39,9 +38,8 @@ describe("LoggerService", () => {
         it("calls logWriter with the correct params", () => {
           loggerService.trace(mockMessage, mockData, mockClassName);
 
-          expect(logWriter).toHaveBeenCalledTimes(1);
-          expect(logWriter).toHaveBeenCalledWith(jasmine.stringMatching(ISO_DATE_REGEX));
-          expect(logWriter).toHaveBeenCalledWith(jasmine.stringMatching(` : TRACE : ${mockClassName} : ${mockMessage}\n${stringifiedMockData}`));
+          expect(logWriter.trace).toHaveBeenCalledTimes(1);
+          expect(logWriter.trace).toHaveBeenCalledWith(jasmine.stringMatching(`: ${mockClassName} : ${mockMessage}\n${stringifiedMockData}`));
         });
 
         it("doesnt call errorSerializer", () => {});
@@ -56,7 +54,7 @@ describe("LoggerService", () => {
         it("doesn't call logWriter", () => {
           loggerService.trace(mockMessage, mockData, mockClassName);
 
-          expect(logWriter).toHaveBeenCalledTimes(0);
+          expect(logWriter.trace).toHaveBeenCalledTimes(0);
         });
       });
     });
@@ -75,9 +73,8 @@ describe("LoggerService", () => {
         it("calls logWriter with the correct params", () => {
           loggerService.info(mockMessage, mockData, mockClassName);
 
-          expect(logWriter).toHaveBeenCalledTimes(1);
-          expect(logWriter).toHaveBeenCalledWith(jasmine.stringMatching(ISO_DATE_REGEX));
-          expect(logWriter).toHaveBeenCalledWith(jasmine.stringMatching(` : INFO : ${mockClassName} : ${mockMessage}\n${stringifiedMockData}`));
+          expect(logWriter.info).toHaveBeenCalledTimes(1);
+          expect(logWriter.info).toHaveBeenCalledWith(jasmine.stringMatching(`: ${mockClassName} : ${mockMessage}\n${stringifiedMockData}`));
         });
       });
 
@@ -90,7 +87,7 @@ describe("LoggerService", () => {
         it("doesn't call logWriter", () => {
           loggerService.info(mockMessage, mockData, mockClassName);
 
-          expect(logWriter).toHaveBeenCalledTimes(0);
+          expect(logWriter.info).toHaveBeenCalledTimes(0);
         });
       });
     });
@@ -109,9 +106,8 @@ describe("LoggerService", () => {
         it("calls logWriter with the correct params", () => {
           loggerService.warn(mockMessage, mockData, mockClassName);
 
-          expect(logWriter).toHaveBeenCalledTimes(1);
-          expect(logWriter).toHaveBeenCalledWith(jasmine.stringMatching(ISO_DATE_REGEX));
-          expect(logWriter).toHaveBeenCalledWith(jasmine.stringMatching(` : WARN : ${mockClassName} : ${mockMessage}\n${stringifiedMockData}`));
+          expect(logWriter.warn).toHaveBeenCalledTimes(1);
+          expect(logWriter.warn).toHaveBeenCalledWith(jasmine.stringMatching(`: ${mockClassName} : ${mockMessage}\n${stringifiedMockData}`));
         });
       });
 
@@ -124,7 +120,7 @@ describe("LoggerService", () => {
         it("doesn't call logWriter", () => {
           loggerService.warn(mockMessage, mockData, mockClassName);
 
-          expect(logWriter).toHaveBeenCalledTimes(0);
+          expect(logWriter.warn).toHaveBeenCalledTimes(0);
         });
       });
     });
@@ -143,9 +139,8 @@ describe("LoggerService", () => {
         it("calls logWriter with the correct params", () => {
           loggerService.error(mockMessage, mockData, mockClassName);
 
-          expect(logWriter).toHaveBeenCalledTimes(1);
-          expect(logWriter).toHaveBeenCalledWith(jasmine.stringMatching(ISO_DATE_REGEX));
-          expect(logWriter).toHaveBeenCalledWith(jasmine.stringMatching(` : ERROR : ${mockClassName} : ${mockMessage}\n${stringifiedMockData}`));
+          expect(logWriter.error).toHaveBeenCalledTimes(1);
+          expect(logWriter.error).toHaveBeenCalledWith(jasmine.stringMatching(`: ${mockClassName} : ${mockMessage}\n${stringifiedMockData}`));
         });
       });
 
@@ -158,7 +153,7 @@ describe("LoggerService", () => {
         it("doesn't call logWriter", () => {
           loggerService.error(mockMessage, mockData, mockClassName);
 
-          expect(logWriter).toHaveBeenCalledTimes(0);
+          expect(logWriter.error).toHaveBeenCalledTimes(0);
         });
       });
     });

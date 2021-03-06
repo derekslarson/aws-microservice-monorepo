@@ -27,33 +27,25 @@ export class LoggerService implements LoggerServiceInterface {
 
   public trace(message: string, data: Record<string, unknown>, className: string): void {
     if (this.logLevel >= LogLevel.Trace) {
-      const currentTime = new Date().toISOString();
-
-      this.logWriter(`${currentTime} : TRACE : ${className} : ${message}\n${this.serialize(data)}`);
+      this.logWriter.trace(`: ${className} : ${message}\n${this.serialize(data)}`);
     }
   }
 
   public info(message: string, data: Record<string, unknown>, className: string): void {
     if (this.logLevel >= LogLevel.Info) {
-      const currentTime = new Date().toISOString();
-
-      this.logWriter(`${currentTime} : INFO : ${className} : ${message}\n${this.serialize(data)}`);
+      this.logWriter.info(`: ${className} : ${message}\n${this.serialize(data)}`);
     }
   }
 
   public warn(message: string, data: Record<string, unknown>, className: string): void {
     if (this.logLevel >= LogLevel.Warn) {
-      const currentTime = new Date().toISOString();
-
-      this.logWriter(`${currentTime} : WARN : ${className} : ${message}\n${this.serialize(data)}`);
+      this.logWriter.warn(`: ${className} : ${message}\n${this.serialize(data)}`);
     }
   }
 
   public error(message: string, data: Record<string, unknown>, className: string): void {
     if (this.logLevel >= LogLevel.Error) {
-      const currentTime = new Date().toISOString();
-
-      this.logWriter(`${currentTime} : ERROR : ${className} : ${message}\n${this.serialize(data)}`);
+      this.logWriter.error(`: ${className} : ${message}\n${this.serialize(data)}`);
     }
   }
 
