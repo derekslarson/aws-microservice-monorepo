@@ -289,4 +289,4 @@ async function getXsrfToken(domain: string, clientId: string, clientRedirectUri:
 //   }
 // }
 
-getXsrfToken("https://yac-auth-service.auth.us-east-2.amazoncognito.com", "2dej3es0t3p2ok7gq9sbapkc4j", "https://example.com")
+// getXsrfToken("https://yac-auth-service.auth.us-east-2.amazoncognito.com", "2dej3es0t3p2ok7gq9sbapkc4j", "https://example.com")
