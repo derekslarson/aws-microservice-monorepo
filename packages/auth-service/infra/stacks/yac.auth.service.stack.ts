@@ -116,7 +116,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement, clientsTablePolicyStatement ],
-      timeout: CDK.Duration.seconds(7),
+      timeout: CDK.Duration.seconds(10),
     });
 
     const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
@@ -126,7 +126,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
-      timeout: CDK.Duration.seconds(7),
+      timeout: CDK.Duration.seconds(10),
     });
 
     const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {
@@ -136,7 +136,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsTablePolicyStatement ],
-      timeout: CDK.Duration.seconds(7),
+      timeout: CDK.Duration.seconds(10),
     });
 
     const createClientHandler = new Lambda.Function(this, `CreateClientHandler_${id}`, {
@@ -146,7 +146,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsTablePolicyStatement ],
-      timeout: CDK.Duration.seconds(7),
+      timeout: CDK.Duration.seconds(10),
     });
 
     const deleteClientHandler = new Lambda.Function(this, `DeleteClientHandler_${id}`, {
@@ -156,7 +156,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsTablePolicyStatement ],
-      timeout: CDK.Duration.seconds(7),
+      timeout: CDK.Duration.seconds(10),
     });
 
     const preSignUpHandler = new Lambda.Function(this, `PreSignUpHandler_${id}`, {
@@ -165,7 +165,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "preSignUp.handler",
       layers: [ dependencyLayer ],
       initialPolicy: basePolicy,
-      timeout: CDK.Duration.seconds(7),
+      timeout: CDK.Duration.seconds(10),
     });
 
     const defineAuthChallengeHandler = new Lambda.Function(this, `DefineAuthChallengeHandler_${id}`, {
@@ -174,7 +174,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "defineAuthChallenge.handler",
       layers: [ dependencyLayer ],
       initialPolicy: basePolicy,
-      timeout: CDK.Duration.seconds(7),
+      timeout: CDK.Duration.seconds(10),
     });
 
     const createAuthChallengeHandler = new Lambda.Function(this, `CreateAuthChallengeHandler_${id}`, {
@@ -183,7 +183,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "createAuthChallenge.handler",
       layers: [ dependencyLayer ],
       initialPolicy: basePolicy,
-      timeout: CDK.Duration.seconds(7),
+      timeout: CDK.Duration.seconds(10),
     });
 
     const verifyAuthChallengeResponseHandler = new Lambda.Function(this, `VerifyAuthChallengeResponseHandler_${id}`, {
@@ -192,7 +192,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "verifyAuthChallengeResponse.handler",
       layers: [ dependencyLayer ],
       initialPolicy: basePolicy,
-      timeout: CDK.Duration.seconds(7),
+      timeout: CDK.Duration.seconds(10),
     });
 
     userPool.addTrigger(Cognito.UserPoolOperation.PRE_SIGN_UP, preSignUpHandler);

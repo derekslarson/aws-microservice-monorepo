@@ -44,6 +44,7 @@ export * from "./src/models/http/response.model";
 export * from "./src/repositories/base.dynamo.repository";
 
 export * from "./src/services/id.service";
+export * from "./src/services/http.request.service";
 export * from "./src/services/logger.service";
 export * from "./src/services/validation.service";
 export * from "./src/services/interfaces/processor.service.interface";

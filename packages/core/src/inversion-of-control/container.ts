@@ -13,9 +13,11 @@ import { logWriterFactory, LogWriterFactory } from "../factories/logWriter.facto
 import { unmarshallFactory, UnmarshallFactory } from "../factories/unmarshall.factory";
 import { uuidV4Factory, UuidV4Factory } from "../factories/uuidV4.factory";
 import { AxiosFactory, axiosFactory } from "../factories/axios.factory";
+import { HttpRequestService, HttpRequestServiceInterface } from "../services/http.request.service";
 
 const container = new ContainerModule((bind) => {
   try {
+    bind<HttpRequestServiceInterface>(TYPES.HttpRequestServiceInterface).to(HttpRequestService);
     bind<IdServiceInterface>(TYPES.IdServiceInterface).to(IdService);
     bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);

@@ -3,6 +3,7 @@ const TYPES = {
 
   DynamoStreamControllerInterface: Symbol.for("DynamoStreamControllerInterface"),
 
+  HttpRequestServiceInterface: Symbol.for("HttpRequestServiceInterface"),
   IdServiceInterface: Symbol.for("IdServiceInterface"),
   LoggerServiceInterface: Symbol.for("LoggerServiceInterface"),
   ValidationServiceInterface: Symbol.for("ValidationServiceInterface"),

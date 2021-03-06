@@ -3,6 +3,17 @@ import { StatusCode } from "../../enums/statusCode.enum";
 
 export type Response = APIGatewayProxyStructuredResultV2;
 
+export interface ResponseWithParsedBody<T> {
+  statusCode: number;
+  headers: Record<string, boolean | number | string | string[]>
+  body: T;
+  isBase64Encoded?: boolean;
+  cookies?: string[];
+  redirect?: {
+    path: string;
+  };
+}
+
 export interface Body {
   [key: string]: any;
 }
