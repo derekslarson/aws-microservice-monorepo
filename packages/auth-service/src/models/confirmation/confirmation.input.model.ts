@@ -13,6 +13,10 @@ export class ConfirmationInputDto implements ConfirmationRequestBody {
 
   @Expose()
   @IsString()
+  public session: string;
+
+  @Expose()
+  @IsString()
   public clientId: string;
 
   @Expose()

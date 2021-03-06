@@ -125,7 +125,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "login.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement, clientsTablePolicyStatement ],
       timeout: CDK.Duration.seconds(10),
     });
 

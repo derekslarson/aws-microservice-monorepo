@@ -10,5 +10,5 @@ export interface SignUpRequestBody {
 }
 
 export interface SignUpResponseBody {
-  message: string;
+  session: string;
 }

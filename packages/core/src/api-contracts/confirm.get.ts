@@ -8,6 +8,7 @@ export interface ConfirmationRequestBody {
   email: string;
   confirmationCode: string;
   clientId: string;
+  session: string;
   redirectUri: string;
   xsrfToken: string;
 }

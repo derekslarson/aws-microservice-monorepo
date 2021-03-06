@@ -26,7 +26,9 @@ export class AuthenticationController extends BaseController implements Authenti
 
       await this.authenticationService.signUp(signUpInput);
 
-      const responseBody: SignUpResponseBody = { message: "Check email for confirmation code" };
+      const { session } = await this.authenticationService.login({ email: signUpInput.email, clientId: signUpInput.clientId });
+
+      const responseBody: SignUpResponseBody = { session };
 
       return this.generateCreatedResponse(responseBody);
     } catch (error: unknown) {
@@ -42,9 +44,9 @@ export class AuthenticationController extends BaseController implements Authenti
 
       const loginInput = await this.validationService.validate(LoginInputDto, RequestPortion.Body, request.body);
 
-      await this.authenticationService.login(loginInput);
+      const { session } = await this.authenticationService.login(loginInput);
 
-      const responseBody: LoginResponseBody = { message: "Check email for confirmation code" };
+      const responseBody: LoginResponseBody = { session };
 
       return this.generateSuccessResponse(responseBody);
     } catch (error: unknown) {

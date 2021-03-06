@@ -2,7 +2,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { axiosFactory, HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
+import { HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
@@ -48,8 +48,6 @@ export class AuthenticationService implements AuthenticationServiceInterface {
       };
 
       await this.cognito.signUp(signUpParams).promise();
-
-      await this.login({ email: signUpInput.email });
     } catch (error: unknown) {
       this.loggerService.error("Error in signUp", { error, signUpInput }, this.constructor.name);
 
@@ -57,7 +55,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  public async login(loginInput: LoginInputDto): Promise<void> {
+  public async login(loginInput: LoginInputDto): Promise<{ session: string; }> {
     try {
       this.loggerService.trace("login called", { loginInput }, this.constructor.name);
 
@@ -74,9 +72,32 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         Username: loginInput.email,
       };
 
-      await this.cognito.adminUpdateUserAttributes(updateUserAttributesParams).promise();
+      const [ client ] = await Promise.all([
+        this.clientService.getClient(loginInput.clientId),
+        this.cognito.adminUpdateUserAttributes(updateUserAttributesParams).promise()
+      ]);
 
-      await this.mailService.sendConfirmationCode(loginInput.email, authChallenge);
+      const secretHash = this.createUserPoolClientSecretHash(loginInput.email, loginInput.clientId, client.secret);
+
+      const initiateAuthParams: CognitoIdentityServiceProvider.Types.AdminInitiateAuthRequest = {
+        UserPoolId: this.config.userPool.id,
+        ClientId: loginInput.clientId,
+        AuthFlow: "CUSTOM_AUTH",
+        AuthParameters: {
+          USERNAME: loginInput.email,
+          SECRET_HASH: secretHash,
+        },
+      };
+
+      const initiateAuthResponse = await this.cognito.adminInitiateAuth(initiateAuthParams).promise()
+
+      if (!initiateAuthResponse.Session) {
+        throw new Error("No session returned from initiateAuth.")
+      }
+
+      await this.mailService.sendConfirmationCode(loginInput.email, authChallenge)
+
+      return { session: initiateAuthResponse.Session }
     } catch (error: unknown) {
       this.loggerService.error("Error in login", { error, loginInput }, this.constructor.name);
 
@@ -92,20 +113,10 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       const secretHash = this.createUserPoolClientSecretHash(confirmationInput.email, confirmationInput.clientId, client.secret);
 
-      const initiateAuthParams: CognitoIdentityServiceProvider.Types.InitiateAuthRequest = {
+      const respondToAuthChallengeParams: CognitoIdentityServiceProvider.Types.AdminRespondToAuthChallengeRequest = {
+        UserPoolId: this.config.userPool.id,
         ClientId: confirmationInput.clientId,
-        AuthFlow: "CUSTOM_AUTH",
-        AuthParameters: {
-          USERNAME: confirmationInput.email,
-          SECRET_HASH: secretHash,
-        },
-      };
-
-      const initiateAuthResponse = await this.cognito.initiateAuth(initiateAuthParams).promise();
-
-      const respondToAuthChallengeParams: CognitoIdentityServiceProvider.Types.RespondToAuthChallengeRequest = {
-        ClientId: confirmationInput.clientId,
-        Session: initiateAuthResponse.Session,
+        Session: confirmationInput.session,
         ChallengeName: "CUSTOM_CHALLENGE",
         ChallengeResponses: {
           USERNAME: confirmationInput.email,
@@ -114,9 +125,10 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         },
       };
 
-      await this.cognito.respondToAuthChallenge(respondToAuthChallengeParams).promise();
-
-      const authorizationCode = await this.getAuthorizationCode(confirmationInput.email, confirmationInput.clientId, confirmationInput.redirectUri, confirmationInput.xsrfToken);
+      const [ authorizationCode ] = await Promise.all([
+        this.getAuthorizationCode(confirmationInput.email, confirmationInput.clientId, confirmationInput.redirectUri, confirmationInput.xsrfToken),
+        this.cognito.adminRespondToAuthChallenge(respondToAuthChallengeParams).promise()
+      ])
 
       return { authorizationCode };
     } catch (error: unknown) {
@@ -231,35 +243,35 @@ export type AuthenticationServiceConfigInterface = Pick<EnvConfigInterface, "use
 
 export interface AuthenticationServiceInterface {
   signUp(signUpInput: SignUpInputDto): Promise<void>;
-  login(loginInput: LoginInputDto): Promise<void>;
+  login(loginInput: LoginInputDto): Promise<{ session: string; }>;
   confirm(confirmationInput: ConfirmationInputDto): Promise<{ authorizationCode: string }>
 }
 
-async function getXsrfToken(domain: string, clientId: string, clientRedirectUri: string): Promise<string> {
-  try {
-    const axios = axiosFactory();
+// async function getXsrfToken(domain: string, clientId: string, clientRedirectUri: string): Promise<string> {
+//   try {
+//     const axios = axiosFactory();
 
-    const authorizeResponse = await axios.request({
-      baseURL: domain,
-      url: `/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${clientRedirectUri}`,
-      method: "GET",
-    });
+//     const authorizeResponse = await axios.request({
+//       baseURL: domain,
+//       url: `/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${clientRedirectUri}`,
+//       method: "GET",
+//     });
 
-    const setCookieHeader = (authorizeResponse.headers as Record<string, string[]>)["set-cookie"];
+//     const setCookieHeader = (authorizeResponse.headers as Record<string, string[]>)["set-cookie"];
 
-    const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
+//     const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
 
-    const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
+//     const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
 
-    console.log("xsrfToken: ", xsrfToken);
+//     console.log("xsrfToken: ", xsrfToken);
 
-    return xsrfToken;
-  } catch (error: unknown) {
-    console.log("Error:\n", error);
+//     return xsrfToken;
+//   } catch (error: unknown) {
+//     console.log("Error:\n", error);
 
-    throw error;
-  }
-}
+//     throw error;
+//   }
+// }
 
 // async function getAccessToken(authorizationCode: string, clientId: string, clientSecret: string, redirectUri: string, scopes: string[] = []): Promise<string> {
 //   try {

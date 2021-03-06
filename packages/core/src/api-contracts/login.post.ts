@@ -6,8 +6,9 @@ export const loginPath = "/login";
 
 export interface LoginRequestBody {
   email: string;
+  clientId: string;
 }
 
 export interface LoginResponseBody {
-  message: string;
+  session: string;
 }
