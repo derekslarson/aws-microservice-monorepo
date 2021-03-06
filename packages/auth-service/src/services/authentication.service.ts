@@ -1,4 +1,3 @@
-/* eslint-disable */
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
@@ -74,7 +73,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       const [ client ] = await Promise.all([
         this.clientService.getClient(loginInput.clientId),
-        this.cognito.adminUpdateUserAttributes(updateUserAttributesParams).promise()
+        this.cognito.adminUpdateUserAttributes(updateUserAttributesParams).promise(),
       ]);
 
       const secretHash = this.createUserPoolClientSecretHash(loginInput.email, loginInput.clientId, client.secret);
@@ -89,15 +88,15 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         },
       };
 
-      const initiateAuthResponse = await this.cognito.adminInitiateAuth(initiateAuthParams).promise()
+      const initiateAuthResponse = await this.cognito.adminInitiateAuth(initiateAuthParams).promise();
 
       if (!initiateAuthResponse.Session) {
-        throw new Error("No session returned from initiateAuth.")
+        throw new Error("No session returned from initiateAuth.");
       }
 
-      await this.mailService.sendConfirmationCode(loginInput.email, authChallenge)
+      await this.mailService.sendConfirmationCode(loginInput.email, authChallenge);
 
-      return { session: initiateAuthResponse.Session }
+      return { session: initiateAuthResponse.Session };
     } catch (error: unknown) {
       this.loggerService.error("Error in login", { error, loginInput }, this.constructor.name);
 
@@ -127,8 +126,8 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       const [ authorizationCode ] = await Promise.all([
         this.getAuthorizationCode(confirmationInput.email, confirmationInput.clientId, confirmationInput.redirectUri, confirmationInput.xsrfToken),
-        this.cognito.adminRespondToAuthChallenge(respondToAuthChallengeParams).promise()
-      ])
+        this.cognito.adminRespondToAuthChallenge(respondToAuthChallengeParams).promise(),
+      ]);
 
       return { authorizationCode };
     } catch (error: unknown) {
