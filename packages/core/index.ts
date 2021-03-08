@@ -8,6 +8,7 @@ export * from "./src/api-contracts/login.post";
 export * from "./src/api-contracts/confirm.get";
 export * from "./src/api-contracts/createClient.post";
 export * from "./src/api-contracts/deleteClient.delete";
+export * from "./src/api-contracts/oauth2.authorize.get";
 
 export * from "./src/decorators/isOptionalIf.validation.decorator";
 

@@ -5,8 +5,9 @@ export const oauth2AuthorizeMethod = ApiGatewayV2.HttpMethod.GET;
 export const oauth2AuthorizePath = "/oauth2/authorize";
 
 export interface Oauth2AuthorizeRequestQueryParameters {
+  responseType: string;
   clientId: string;
   redirectUri: string;
-  state: string;
+  state?: string;
   scope?: string[];
 }

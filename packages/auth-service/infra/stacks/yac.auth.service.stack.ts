@@ -19,7 +19,9 @@ import {
   createClientPath,
   deleteClientPath,
   deleteClientMethod,
+  RouteProps,
 } from "@yac/core";
+import { oauth2AuthorizeMethod, oauth2AuthorizePath } from "@yac/core/src/api-contracts/oauth2.authorize.get";
 
 export class YacAuthServiceStack extends CDK.Stack {
   constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
@@ -159,6 +161,16 @@ export class YacAuthServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(10),
     });
 
+    const oauth2AuthorizeHandler = new Lambda.Function(this, `Oauth2AuthorizeHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/oauth2Authorize"),
+      handler: "oauth2Authorize.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsTablePolicyStatement ],
+      timeout: CDK.Duration.seconds(10),
+    });
+
     const preSignUpHandler = new Lambda.Function(this, `PreSignUpHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/preSignUp"),
@@ -201,34 +213,39 @@ export class YacAuthServiceStack extends CDK.Stack {
     userPool.addTrigger(Cognito.UserPoolOperation.VERIFY_AUTH_CHALLENGE_RESPONSE, verifyAuthChallengeResponseHandler);
 
     // Routes
-    httpApi.addRoute({
-      path: signUpPath,
-      method: signUpMethod,
-      handler: signUpHandler,
-    });
+    const routes: RouteProps[] = [
+      {
+        path: signUpPath,
+        method: signUpMethod,
+        handler: signUpHandler,
+      },
+      {
+        path: loginPath,
+        method: loginMethod,
+        handler: loginHandler,
+      },
+      {
+        path: confirmPath,
+        method: confirmMethod,
+        handler: confirmHandler,
+      },
+      {
+        path: createClientPath,
+        method: createClientMethod,
+        handler: createClientHandler,
+      },
+      {
+        path: deleteClientPath,
+        method: deleteClientMethod,
+        handler: deleteClientHandler,
+      },
+      {
+        path: oauth2AuthorizePath,
+        method: oauth2AuthorizeMethod,
+        handler: oauth2AuthorizeHandler,
+      },
+    ];
 
-    httpApi.addRoute({
-      path: loginPath,
-      method: loginMethod,
-      handler: loginHandler,
-    });
-
-    httpApi.addRoute({
-      path: confirmPath,
-      method: confirmMethod,
-      handler: confirmHandler,
-    });
-
-    httpApi.addRoute({
-      path: createClientPath,
-      method: createClientMethod,
-      handler: createClientHandler,
-    });
-
-    httpApi.addRoute({
-      path: deleteClientPath,
-      method: deleteClientMethod,
-      handler: deleteClientHandler,
-    });
+    routes.forEach((route) => httpApi.addRoute(route));
   }
 }

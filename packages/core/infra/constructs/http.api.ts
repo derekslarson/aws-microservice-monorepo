@@ -3,7 +3,7 @@ import * as Lambda from "@aws-cdk/aws-lambda";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
 
-interface RouteProps {
+export interface RouteProps {
   path: string;
   method: ApiGatewayV2.HttpMethod;
   handler: Lambda.IFunction;

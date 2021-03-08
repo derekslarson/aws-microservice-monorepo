@@ -10,7 +10,10 @@ export interface ConfirmationRequestBody {
   clientId: string;
   session: string;
   redirectUri: string;
-  xsrfToken: string;
+}
+
+export interface ConfirmationRequestHeaders {
+  "XSRF-TOKEN": string;
 }
 
 export interface ConfirmationResponseBody {

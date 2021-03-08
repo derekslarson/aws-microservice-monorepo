@@ -9,7 +9,7 @@ import { MailServiceInterface } from "./mail.service";
 import { Crypto, CryptoFactory } from "../factories/crypto.factory";
 import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
 import { LoginInputDto } from "../models/login/login.input.model";
-import { ConfirmationInputDto } from "../models/confirmation/confirmation.input.model";
+import { ConfirmationInput } from "../models/confirmation/confirmation.input.model";
 import { ClientServiceInterface } from "./client.service";
 
 @injectable()
@@ -104,7 +104,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  public async confirm(confirmationInput: ConfirmationInputDto): Promise<{ authorizationCode: string }> {
+  public async confirm(confirmationInput: ConfirmationInput): Promise<{ authorizationCode: string }> {
     try {
       this.loggerService.trace("confirm called", { confirmationInput }, this.constructor.name);
 
@@ -186,35 +186,35 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  // private async getXsrfToken(clientId: string, redirectUri: string): Promise<string> {
-  //   try {
-  //     this.loggerService.trace("getXsrfToken called", { clientId, redirectUri }, this.constructor.name);
+  public async getXsrfToken(clientId: string, redirectUri: string): Promise<{ xsrfToken: string }> {
+    try {
+      this.loggerService.trace("getXsrfToken called", { clientId, redirectUri }, this.constructor.name);
 
-  //     const queryParameters = {
-  //       response_type: "code",
-  //       client_id: clientId,
-  //       redirect_uri: redirectUri,
-  //     };
+      const queryParameters = {
+        response_type: "code",
+        client_id: clientId,
+        redirect_uri: redirectUri,
+      };
 
-  //     const authorizeResponse = await this.httpRequestService.get(`${this.config.userPool.domain}/oauth2/authorize`, queryParameters);
+      const authorizeResponse = await this.httpRequestService.get(`${this.config.userPool.domain}/oauth2/authorize`, queryParameters);
 
-  //     const setCookieHeader = authorizeResponse.headers["set-cookie"];
+      const setCookieHeader = authorizeResponse.headers["set-cookie"];
 
-  //     if (!Array.isArray(setCookieHeader)) {
-  //       throw new Error("Malformed 'set-cookie' header in response.");
-  //     }
+      if (!Array.isArray(setCookieHeader)) {
+        throw new Error("Malformed 'set-cookie' header in response.");
+      }
 
-  //     const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
+      const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
 
-  //     const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
+      const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
 
-  //     return xsrfToken;
-  //   } catch (error: unknown) {
-  //     this.loggerService.error("Error in getXsrfToken", { error, clientId, redirectUri }, this.constructor.name);
+      return { xsrfToken };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getXsrfToken", { error, clientId, redirectUri }, this.constructor.name);
 
-  //     throw error;
-  //   }
-  // }
+      throw error;
+    }
+  }
 
   // private async getAccessToken(authorizationCode: string, clientId: string, clientSecret: string, redirectUri: string, username: string, scopes: string[] = []): Promise<string> {
   //   try {
@@ -243,7 +243,8 @@ export type AuthenticationServiceConfigInterface = Pick<EnvConfigInterface, "use
 export interface AuthenticationServiceInterface {
   signUp(signUpInput: SignUpInputDto): Promise<void>;
   login(loginInput: LoginInputDto): Promise<{ session: string; }>;
-  confirm(confirmationInput: ConfirmationInputDto): Promise<{ authorizationCode: string }>
+  confirm(confirmationInput: ConfirmationInput): Promise<{ authorizationCode: string }>;
+  getXsrfToken(clientId: string, redirectUri: string): Promise<{ xsrfToken: string }>;
 }
 
 // async function getXsrfToken(domain: string, clientId: string, clientRedirectUri: string): Promise<string> {
@@ -255,6 +256,8 @@ export interface AuthenticationServiceInterface {
 //       url: `/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${clientRedirectUri}`,
 //       method: "GET",
 //     });
+
+//     console.log(authorizeResponse);
 
 //     const setCookieHeader = (authorizeResponse.headers as Record<string, string[]>)["set-cookie"];
 
@@ -300,4 +303,5 @@ export interface AuthenticationServiceInterface {
 //   }
 // }
 
-// getXsrfToken("https://yac-auth-service.auth.us-east-2.amazoncognito.com", "2dej3es0t3p2ok7gq9sbapkc4j", "https://example.com")
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+// getXsrfToken("https://yac-auth-service.auth.us-east-2.amazoncognito.com", "2dej3es0t3p2ok7gq9sbapkc4j", "https://example.com");
