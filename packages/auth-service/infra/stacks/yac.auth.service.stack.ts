@@ -4,7 +4,7 @@ import * as Lambda from "@aws-cdk/aws-lambda";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Cognito from "@aws-cdk/aws-cognito";
 import * as SSM from "@aws-cdk/aws-ssm";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
+import * as CustomResources from "@aws-cdk/custom-resources";
 import {
   Environment,
   HttpApi,
@@ -20,6 +20,7 @@ import {
   deleteClientPath,
   deleteClientMethod,
   RouteProps,
+  ExportNames,
 } from "@yac/core";
 import { oauth2AuthorizeMethod, oauth2AuthorizePath } from "@yac/core/src/api-contracts/oauth2.authorize.get";
 
@@ -41,6 +42,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       code: Lambda.Code.fromAsset("dist/dependencies"),
     });
 
+    // User Pool and Yac Client
     const userPool = new Cognito.UserPool(this, `UserPool_${id}`, {
       selfSignUpEnabled: true,
       autoVerify: { email: true },
@@ -54,28 +56,49 @@ export class YacAuthServiceStack extends CDK.Stack {
       cognitoDomain: { domainPrefix: "yac-auth-service" },
     });
 
+    const resourceServerIdentifier = "yac";
+
+    const resourceServerScopes: Cognito.ResourceServerScope[] = [
+      { scopeName: "message.read", scopeDescription: "Read messages" },
+      { scopeName: "message.write", scopeDescription: "Write messages" },
+      { scopeName: "message.delete", scopeDescription: "Delete messages" },
+    ];
+
     new Cognito.UserPoolResourceServer(this, `ResourceServer_${id}`, {
       userPool,
-      identifier: "yac",
-      scopes: [
-        { scopeName: "message.read", scopeDescription: "Read messages" },
-        { scopeName: "message.write", scopeDescription: "Write messages" },
-        { scopeName: "message.delete", scopeDescription: "Delete messages" },
-      ],
+      identifier: resourceServerIdentifier,
+      scopes: resourceServerScopes,
     });
 
-    // Table Names
-    const clientsTableName = `clients_${id}`;
+    const clientScopes = resourceServerScopes.map((scopeItem) => ({ scopeName: `${resourceServerIdentifier}/${scopeItem.scopeName}` }));
 
-    // Tables
-    const clientsTable = new DynamoDB.Table(this, `ClientsTable_${id}`, {
-      tableName: clientsTableName,
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
-      partitionKey: {
-        name: "id",
-        type: DynamoDB.AttributeType.STRING,
+    const yacUserPoolClient = new Cognito.UserPoolClient(this, `YacUserPoolClient_${id}`, {
+      userPool,
+      generateSecret: true,
+      authFlows: { custom: true, userPassword: true },
+      oAuth: {
+        flows: { authorizationCodeGrant: true },
+        callbackUrls: [ "https://example.com" ],
+        scopes: clientScopes,
       },
     });
+
+    const describeCognitoUserPoolClient = new CustomResources.AwsCustomResource(this, "DescribeCognitoUserPoolClient", {
+      resourceType: "Custom::DescribeCognitoUserPoolClient",
+      onCreate: {
+        region: this.region,
+        service: "CognitoIdentityServiceProvider",
+        action: "describeUserPoolClient",
+        parameters: {
+          UserPoolId: userPool.userPoolId,
+          ClientId: yacUserPoolClient.userPoolClientId,
+        },
+        physicalResourceId: CustomResources.PhysicalResourceId.of(yacUserPoolClient.userPoolClientId),
+      },
+      policy: CustomResources.AwsCustomResourcePolicy.fromSdkCalls({ resources: CustomResources.AwsCustomResourcePolicy.ANY_RESOURCE }),
+    });
+
+    const yacUserPoolClientSecret = describeCognitoUserPoolClient.getResponseField("UserPoolClient.ClientSecret");
 
     // APIs
     const httpApi = new HttpApi(this, `${id}_Api`);
@@ -91,11 +114,6 @@ export class YacAuthServiceStack extends CDK.Stack {
       resources: [ "*" ],
     });
 
-    const clientsTablePolicyStatement = new IAM.PolicyStatement({
-      actions: [ "dynamodb:*" ],
-      resources: [ clientsTable.tableArn ],
-    });
-
     const basePolicy: IAM.PolicyStatement[] = [];
 
     // Environment Variables
@@ -106,8 +124,9 @@ export class YacAuthServiceStack extends CDK.Stack {
       API_DOMAIN: `https://${httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`,
       USER_POOL_ID: userPool.userPoolId,
       USER_POOL_DOMAIN: `https://${userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`,
+      YAC_USER_POOL_CLIENT_ID: yacUserPoolClient.userPoolClientId,
+      YAC_USER_POOL_CLIENT_SECRET: yacUserPoolClientSecret,
       MAIL_SENDER: "derek@yac.com",
-      CLIENTS_TABLE_NAME: clientsTableName,
     };
 
     // Handlers
@@ -117,7 +136,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "signUp.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement, clientsTablePolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
       timeout: CDK.Duration.seconds(10),
     });
 
@@ -127,7 +146,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "login.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement, clientsTablePolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
       timeout: CDK.Duration.seconds(10),
     });
 
@@ -137,7 +156,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "confirm.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsTablePolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(10),
     });
 
@@ -147,7 +166,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "createClient.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsTablePolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(10),
     });
 
@@ -157,7 +176,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "deleteClient.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsTablePolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(10),
     });
 
@@ -167,7 +186,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "oauth2Authorize.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsTablePolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(10),
     });
 
@@ -247,5 +266,15 @@ export class YacAuthServiceStack extends CDK.Stack {
     ];
 
     routes.forEach((route) => httpApi.addRoute(route));
+
+    new CDK.CfnOutput(this, `YacUserPoolClientId_${id}`, {
+      exportName: ExportNames.YacUserPoolClientId,
+      value: yacUserPoolClient.userPoolClientId,
+    });
+
+    new CDK.CfnOutput(this, `YacUserPoolClientSecret_${id}`, {
+      exportName: ExportNames.YacUserPoolClientSecret,
+      value: yacUserPoolClientSecret,
+    });
   }
 }

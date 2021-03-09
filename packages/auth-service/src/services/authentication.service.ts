@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
+import { ForbiddenError, HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
@@ -10,7 +10,6 @@ import { Crypto, CryptoFactory } from "../factories/crypto.factory";
 import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
 import { LoginInputDto } from "../models/login/login.input.model";
 import { ConfirmationInput } from "../models/confirmation/confirmation.input.model";
-import { ClientServiceInterface } from "./client.service";
 
 @injectable()
 export class AuthenticationService implements AuthenticationServiceInterface {
@@ -22,7 +21,6 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     @inject(TYPES.EnvConfigInterface) private config: AuthenticationServiceConfigInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MailServiceInterface) private mailService: MailServiceInterface,
-    @inject(TYPES.ClientServiceInterface) private clientService: ClientServiceInterface,
     @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestServiceInterface,
     @inject(TYPES.CognitoFactory) cognitoFactory: CognitoFactory,
     @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
@@ -35,12 +33,14 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("signUp called", { signUpInput }, this.constructor.name);
 
-      const client = await this.clientService.getClient(signUpInput.clientId);
+      if (signUpInput.clientId !== this.config.userPool.yacClientId) {
+        throw new ForbiddenError("Forbidden");
+      }
 
-      const secretHash = this.createUserPoolClientSecretHash(signUpInput.email, signUpInput.clientId, client.secret);
+      const secretHash = this.createUserPoolClientSecretHash(signUpInput.email);
 
       const signUpParams: CognitoIdentityServiceProvider.Types.SignUpRequest = {
-        ClientId: signUpInput.clientId,
+        ClientId: this.config.userPool.yacClientId,
         SecretHash: secretHash,
         Username: signUpInput.email,
         Password: this.config.secret,
@@ -58,6 +58,10 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("login called", { loginInput }, this.constructor.name);
 
+      if (loginInput.clientId !== this.config.userPool.yacClientId) {
+        throw new ForbiddenError("Forbidden");
+      }
+
       const authChallenge = this.crypto.randomDigits(6).join("");
 
       const updateUserAttributesParams: CognitoIdentityServiceProvider.Types.AdminUpdateUserAttributesRequest = {
@@ -71,16 +75,13 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         Username: loginInput.email,
       };
 
-      const [ client ] = await Promise.all([
-        this.clientService.getClient(loginInput.clientId),
-        this.cognito.adminUpdateUserAttributes(updateUserAttributesParams).promise(),
-      ]);
+      await this.cognito.adminUpdateUserAttributes(updateUserAttributesParams).promise();
 
-      const secretHash = this.createUserPoolClientSecretHash(loginInput.email, loginInput.clientId, client.secret);
+      const secretHash = this.createUserPoolClientSecretHash(loginInput.email);
 
       const initiateAuthParams: CognitoIdentityServiceProvider.Types.AdminInitiateAuthRequest = {
         UserPoolId: this.config.userPool.id,
-        ClientId: loginInput.clientId,
+        ClientId: this.config.userPool.yacClientId,
         AuthFlow: "CUSTOM_AUTH",
         AuthParameters: {
           USERNAME: loginInput.email,
@@ -108,13 +109,11 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("confirm called", { confirmationInput }, this.constructor.name);
 
-      const client = await this.clientService.getClient(confirmationInput.clientId);
-
-      const secretHash = this.createUserPoolClientSecretHash(confirmationInput.email, confirmationInput.clientId, client.secret);
+      const secretHash = this.createUserPoolClientSecretHash(confirmationInput.email);
 
       const respondToAuthChallengeParams: CognitoIdentityServiceProvider.Types.AdminRespondToAuthChallengeRequest = {
         UserPoolId: this.config.userPool.id,
-        ClientId: confirmationInput.clientId,
+        ClientId: this.config.userPool.yacClientId,
         Session: confirmationInput.session,
         ChallengeName: "CUSTOM_CHALLENGE",
         ChallengeResponses: {
@@ -172,15 +171,15 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  private createUserPoolClientSecretHash(username: string, clientId: string, clientSecret: string): string {
+  private createUserPoolClientSecretHash(username: string): string {
     try {
-      this.loggerService.trace("createUserPoolClientSecretHash called", { username, clientId, clientSecret }, this.constructor.name);
+      this.loggerService.trace("createUserPoolClientSecretHash called", { username }, this.constructor.name);
 
-      const secretHash = this.crypto.createHmac("SHA256", clientSecret).update(`${username}${clientId}`).digest("base64");
+      const secretHash = this.crypto.createHmac("SHA256", this.config.userPool.yacClientSecret).update(`${username}${this.config.userPool.yacClientId}`).digest("base64");
 
       return secretHash;
     } catch (error: unknown) {
-      this.loggerService.error("Error in createUserPoolClientSecretHash", { error, username, clientId, clientSecret }, this.constructor.name);
+      this.loggerService.error("Error in createUserPoolClientSecretHash", { error, username }, this.constructor.name);
 
       throw error;
     }
@@ -257,8 +256,6 @@ export interface AuthenticationServiceInterface {
 //       method: "GET",
 //     });
 
-//     console.log(authorizeResponse);
-
 //     const setCookieHeader = (authorizeResponse.headers as Record<string, string[]>)["set-cookie"];
 
 //     const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
@@ -303,5 +300,37 @@ export interface AuthenticationServiceInterface {
 //   }
 // }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-// getXsrfToken("https://yac-auth-service.auth.us-east-2.amazoncognito.com", "2dej3es0t3p2ok7gq9sbapkc4j", "https://example.com");
+// async function getAuthorizationCode(username: string, clientId: string, redirectUri: string, xsrfToken: string): Promise<string> {
+//   try {
+//     const data = `_csrf=${xsrfToken}&username=${username}&password=425cf4d1-f680-49cc-A4fd-69769c5b7356!`;
+
+//     const queryParameters = {
+//       response_type: "code",
+//       client_id: clientId,
+//       redirect_uri: redirectUri,
+//     };
+
+//     const headers = {
+//       "Content-Type": "application/x-www-form-urlencoded",
+//       Cookie: `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`,
+//     };
+
+//     const { request } = await axios.post("https://yac-auth-service.auth.us-east-2.amazoncognito.com/login", data, { headers, params: queryParameters });
+
+//     console.log(request)
+
+//     const redirectPath = request.path;
+
+//     if (!redirectPath) {
+//       throw new Error("redirect path missing in response");
+//     }
+
+//     const [ , authorizationCode ] = redirectPath.split("=");
+
+//     return authorizationCode;
+//   } catch (error: unknown) {
+//     console.log("Error:\n", error)
+
+//     throw error;
+//   }
+// }

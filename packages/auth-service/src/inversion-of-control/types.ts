@@ -11,8 +11,6 @@ const TYPES = {
   ClientServiceInterface: Symbol.for("ClientServiceInterface"),
   MailServiceInterface: Symbol.for("MailServiceInterface"),
 
-  ClientRepositoryInterface: Symbol.for("ClientRepositoryInterface"),
-
   CognitoFactory: Symbol.for("CognitoFactory"),
   CryptoFactory: Symbol.for("CryptoFactory"),
   SesFactory: Symbol.for("SesFactory"),

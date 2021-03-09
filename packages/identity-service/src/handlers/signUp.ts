@@ -9,7 +9,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
 
     return {
       statusCode: StatusCode.OK,
-      body: JSON.stringify({ clientId: process.env.CLIENT_ID, clientSecret: process.env.CLIENT_SECRET }),
+      body: JSON.stringify({ clientId: process.env.USER_POOL_CLIENT_ID, clientSecret: process.env.USER_POOL_CLIENT_SECRET }),
     };
   } catch (error: unknown) {
     console.log("Error in signUp handler:\n", error);

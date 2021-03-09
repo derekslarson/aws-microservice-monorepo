@@ -13,7 +13,7 @@ export interface ConfirmationRequestBody {
 }
 
 export interface ConfirmationRequestHeaders {
-  "XSRF-TOKEN": string;
+  "xsrf-token": string;
 }
 
 export interface ConfirmationResponseBody {

@@ -28,9 +28,9 @@ export class ConfirmationRequestBodyDto implements ConfirmationRequestBody {
 export class ConfirmationRequestHeadersDto implements ConfirmationRequestHeaders {
   @Expose()
   @IsString()
-  public "XSRF-TOKEN": string;
+  public "xsrf-token": string;
 }
 
 export interface ConfirmationInput extends ConfirmationRequestBodyDto {
-  xsrfToken: ConfirmationRequestHeadersDto["XSRF-TOKEN"]
+  xsrfToken: ConfirmationRequestHeadersDto["xsrf-token"]
 }

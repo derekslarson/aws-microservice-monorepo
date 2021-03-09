@@ -23,11 +23,11 @@ export class ClientController extends BaseController implements ClientController
 
       const createClientInput = await this.validationService.validate(CreateClientInputDto, RequestPortion.Body, request.body);
 
-      const { id, secret } = await this.clientService.createClient(createClientInput);
+      const { clientId, clientSecret } = await this.clientService.createClient(createClientInput);
 
       const response: CreateClientResponseBody = {
-        clientId: id,
-        clientSecret: secret,
+        clientId,
+        clientSecret,
       };
 
       return this.generateSuccessResponse(response);

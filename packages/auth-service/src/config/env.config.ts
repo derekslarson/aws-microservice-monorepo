@@ -9,6 +9,9 @@ export const envConfig: EnvConfigInterface = {
   userPool: {
     id: process.env.USER_POOL_ID || "",
     domain: process.env.USER_POOL_DOMAIN || "",
+    yacClientId: process.env.YAC_USER_POOL_CLIENT_ID || "",
+    yacClientSecret: process.env.YAC_USER_POOL_CLIENT_SECRET || "",
+
   },
 };
 
@@ -21,5 +24,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   userPool: {
     id: string;
     domain: string;
+    yacClientId: string;
+    yacClientSecret: string;
   };
 }

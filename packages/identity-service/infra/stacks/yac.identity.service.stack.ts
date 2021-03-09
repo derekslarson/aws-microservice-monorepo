@@ -6,6 +6,7 @@ import * as SSM from "@aws-cdk/aws-ssm";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import {
   Environment,
+  ExportNames,
   HttpApi,
   LogLevel,
 } from "@yac/core";
@@ -20,6 +21,8 @@ export class YacIdentityServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
+    const yacUserPoolClientId = CDK.Fn.importValue(ExportNames.YacUserPoolClientId);
+    const yacUserPoolClientSecret = CDK.Fn.importValue(ExportNames.YacUserPoolClientSecret);
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
 
     // Layers
@@ -29,14 +32,9 @@ export class YacIdentityServiceStack extends CDK.Stack {
     });
 
     // APIs
-    const httpApi = new HttpApi(this, `${id}_Api`);
+    const httpApi = new HttpApi(this, `$Api_${id}`);
 
     // Policies
-
-    const ssmPolicyStatement: IAM.PolicyStatement = new IAM.PolicyStatement({
-      actions: [ "ssm:PutParameter", "ssm:GetParameter", "ssm:DeleteParameter" ],
-      resources: [ `arn:aws:ssm:${this.region}:${this.account}:parameter/yac/${id}/*` ],
-    });
 
     const basePolicy: IAM.PolicyStatement[] = [];
 
@@ -46,24 +44,11 @@ export class YacIdentityServiceStack extends CDK.Stack {
       SECRET: secret,
       ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
+      USER_POOL_CLIENT_ID: yacUserPoolClientId,
+      USER_POOL_CLIENT_SECRET: yacUserPoolClientSecret,
     };
 
     // Handlers
-    const registerClientHandler = new Lambda.Function(this, `RegisterClientHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/registerClient"),
-      handler: "registerClient.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, ssmPolicyStatement ],
-      timeout: CDK.Duration.seconds(7),
-    });
-
-    const registerClientCustomResource = new CDK.CustomResource(this, `RegisterClientCustomResource_${id}`, { serviceToken: registerClientHandler.functionArn });
-
-    environmentVariables.CLIENT_ID = registerClientCustomResource.getAttString("clientId");
-    environmentVariables.CLIENT_SECRET = registerClientCustomResource.getAttString("clientSecret");
-
     const signUpHandler = new Lambda.Function(this, `SignUpHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/signUp"),
@@ -96,7 +81,7 @@ export class YacIdentityServiceStack extends CDK.Stack {
 
     // // Routes
     httpApi.addRoute({
-      path: "/yac/sign-up",
+      path: "/sign-up",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: signUpHandler,
     });

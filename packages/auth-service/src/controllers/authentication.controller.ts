@@ -61,12 +61,12 @@ export class AuthenticationController extends BaseController implements Authenti
     try {
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
 
-      const confirmationRequestHeaders = await this.validationService.validate(ConfirmationRequestHeadersDto, RequestPortion.Headers, request.body);
+      const confirmationRequestHeaders = await this.validationService.validate(ConfirmationRequestHeadersDto, RequestPortion.Headers, request.headers);
       const confirmationRequestBody = await this.validationService.validate(ConfirmationRequestBodyDto, RequestPortion.Body, request.body);
 
       const confirmationRequestInput: ConfirmationInput = {
         ...confirmationRequestBody,
-        xsrfToken: confirmationRequestHeaders["XSRF-TOKEN"],
+        xsrfToken: confirmationRequestHeaders["xsrf-token"],
       };
 
       const { authorizationCode } = await this.authenticationService.confirm(confirmationRequestInput);
