@@ -2,7 +2,8 @@
   "name": "yac-api-v4",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "micro-services/*",
+    "assets/*"
   ],
   "version": "0.1.0",
   "license": "MIT",

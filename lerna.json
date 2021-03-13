@@ -1,6 +1,7 @@
 {
   "packages": [
-    "packages/*"
+    "micro-services/*",
+    "assets/*"
   ],
   "version": "independent",
   "npmClient": "yarn",

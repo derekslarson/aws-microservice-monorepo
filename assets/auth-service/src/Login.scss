@@ -1,0 +1,138 @@
+@import "variables";
+
+.login {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 5em auto 1em;
+
+  &__toaster {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+
+    color: transparentize($white, .3);
+    max-width: calc(500px - 10px);
+    width: calc(80% - 10px);
+    margin-top: -10px;
+    padding: 20px 5px 10px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    z-index: 1;
+    svg {
+      margin-right: 10px;
+      color: transparentize($white, .6);
+    }
+
+    &--error {
+      background-color: $red-bg;
+    }
+
+    &--success{
+      background-color: $green-bg;
+    }
+  }
+
+  &__form {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: $just-gray;
+    width: calc(80% - 30px);
+    max-width: calc(500px - 30px);
+    padding: 30px 20px;
+    border-radius: 5px;
+    overflow: hidden;
+
+    @media(min-width: 426px) {
+      padding: 30px 40px;
+      width: calc(80% - 80px);
+      max-width: calc(500px - 80px);
+    }
+  }
+
+  &__nav {
+    width: 80%;
+    max-width: 500px;
+    margin-bottom: 10px;
+
+    div {
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      color: $white;
+      cursor: pointer;
+      transition: all 125ms ease-in-out;
+      padding: 10px;
+
+      svg {
+        margin-right: 10px;
+        transition: all 150ms ease-in-out;
+      }
+
+      &:hover {
+        border-radius: 1000px;
+        background-color: $light-gray;
+        svg {
+          margin-right: 20px;
+        }
+      }
+    }
+  }
+
+
+  &__wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    object-fit: contain;
+    width: 100%;
+  }
+
+  h2 {
+    color: $white;
+    font-weight: bold;
+    font-size: 2.3em;
+    margin-top: 0;
+  }
+
+  span {
+    color: $white;
+    text-align: center;
+    width: 100%;
+    margin-top: 20px;
+
+    i {
+      text-decoration: underline;
+      cursor: pointer;
+      font-style: normal;
+    }
+  }
+
+  a{
+    color: white;
+    margin-left: 5px;
+  }
+
+  &__form-description {
+    font-size: 1.1em;
+    margin-bottom: 20px;
+
+    @media(min-width: 426px) {
+      font-size: 1.3em;
+    }
+  }
+
+  &__button {
+    margin-top: 20px;
+  }
+
+}

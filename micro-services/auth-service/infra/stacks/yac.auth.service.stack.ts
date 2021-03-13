@@ -5,6 +5,10 @@ import * as IAM from "@aws-cdk/aws-iam";
 import * as Cognito from "@aws-cdk/aws-cognito";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as DynamoDB from "@aws-cdk/aws-dynamodb";
+import * as S3 from "@aws-cdk/aws-s3";
+import * as CloudFront from "@aws-cdk/aws-cloudfront";
+import * as CFOrigins from "@aws-cdk/aws-cloudfront-origins";
+
 import {
   Environment,
   HttpApi,
@@ -21,8 +25,13 @@ import {
   deleteClientMethod,
 } from "@yac/core";
 
+
+
+export interface IYacAuthServiceStackProps extends CDK.StackProps {}
+
 export class YacAuthServiceStack extends CDK.Stack {
-  constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
+  public readonly websiteBucket: S3.IBucket;
+  constructor(scope: CDK.Construct, id: string, props?: IYacAuthServiceStackProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -96,6 +105,23 @@ export class YacAuthServiceStack extends CDK.Stack {
 
     const basePolicy: IAM.PolicyStatement[] = [];
 
+    // Declare bucket for AUTH_UI page
+    const envString = environment === Environment.Local ? `${this.node.tryGetContext("developer") as string}-stage` : environment;
+    const websiteBucket = new S3.Bucket(this, `${envString}-idYacCom`, {
+      websiteIndexDocument: 'index.html',
+      publicReadAccess: true
+    });
+    
+    const websiteDistribution = new CloudFront.Distribution(this, `${envString}-idYacComDistribution`, {
+      defaultBehavior: { origin: new CFOrigins.S3Origin(websiteBucket) },
+    });
+    
+    this.websiteBucket = websiteBucket;
+    
+    new CDK.CfnOutput(this, "idYacCom", {
+      value: websiteDistribution.distributionDomainName
+    })
+    
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       SECRET: secret,
@@ -106,6 +132,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       USER_POOL_DOMAIN: `https://${userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`,
       MAIL_SENDER: "derek@yac.com",
       CLIENTS_TABLE_NAME: clientsTableName,
+      AUTH_UI: websiteDistribution.distributionDomainName
     };
 
     // Handlers
@@ -226,9 +253,15 @@ export class YacAuthServiceStack extends CDK.Stack {
     });
 
     httpApi.addRoute({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       path: deleteClientPath,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       method: deleteClientMethod,
       handler: deleteClientHandler,
     });
+
+    new CDK.CfnOutput(this, "AuthServiceBaseUrl", {
+      value: httpApi.apiEndpoint
+    })
   }
 }
