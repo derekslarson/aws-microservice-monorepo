@@ -55,8 +55,8 @@ export async function buildAssets(serviceName: string, options: {env?: TEnvVars,
     // process.cwd = originalCwd;
     // console.log(`${envString} yarn workspace @yac-assets/${serviceName} build`);
     console.log("======================================================\nBuilding asset for deployments\n");
-    console.log("ℹ️ Asset Type: ", options.type); 
-    console.log("ℹ️ Enviroment Variables: ", options.env); 
+    console.log("ℹ️   Asset Type: ", options.type); 
+    console.log("ℹ️   Enviroment Variables: ", options.env); 
     console.log("\n\n");
     await createEnvFile(envString, assetsPath);
     await exec(`yarn workspace @yac-assets/${serviceName} build`);

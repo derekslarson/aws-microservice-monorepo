@@ -27,18 +27,18 @@
     "test:unit": "npm run clean:unit-tests && npm run build:unit-tests && npm run nyc"
   },
   "devDependencies": {
-    "@aws-cdk/assert": "^1.91.0",
-    "@aws-cdk/aws-apigatewayv2": "^1.91.0",
-    "@aws-cdk/aws-apigatewayv2-integrations": "^1.91.0",
-    "@aws-cdk/aws-cognito": "^1.91.0",
-    "@aws-cdk/aws-dynamodb": "^1.91.0",
-    "@aws-cdk/aws-iam": "^1.91.0",
-    "@aws-cdk/aws-lambda": "^1.91.0",
-    "@aws-cdk/aws-lambda-event-sources": "^1.91.0",
-    "@aws-cdk/aws-sns": "^1.91.0",
-    "@aws-cdk/aws-ssm": "^1.91.0",
-    "@aws-cdk/core": "^1.91.0",
-    "@aws-cdk/custom-resources": "^1.91.0",
+    "@aws-cdk/assert": "^1.94.0",
+    "@aws-cdk/aws-apigatewayv2": "^1.94.0",
+    "@aws-cdk/aws-apigatewayv2-integrations": "^1.94.0",
+    "@aws-cdk/aws-cognito": "^1.94.0",
+    "@aws-cdk/aws-dynamodb": "^1.94.0",
+    "@aws-cdk/aws-iam": "^1.94.0",
+    "@aws-cdk/aws-lambda": "^1.94.0",
+    "@aws-cdk/aws-lambda-event-sources": "^1.94.0",
+    "@aws-cdk/aws-sns": "^1.94.0",
+    "@aws-cdk/aws-ssm": "^1.94.0",
+    "@aws-cdk/core": "^1.94.0",
+    "@aws-cdk/custom-resources": "^1.94.0",
     "@types/aws-lambda": "^8.10.72",
     "@types/elasticsearch": "^5.0.37",
     "@types/jasmine": "^3.6.4",
@@ -46,7 +46,7 @@
     "@types/node": "10.17.27",
     "@types/uuid": "^8.3.0",
     "@typescript-eslint/eslint-plugin": "^4.15.2",
-    "aws-cdk": "^1.91.0",
+    "aws-cdk": "^1.94.0",
     "case-sensitive-paths-webpack-plugin": "^2.4.0",
     "eslint": "^7.20.0",
     "eslint-config-airbnb-typescript": "^11.4.0",
@@ -75,5 +75,9 @@
     "serialize-error": "^7.0.1",
     "source-map-support": "^0.5.16",
     "uuid": "^8.3.1"
+  },
+  "volta": {
+    "node": "15.11.0",
+    "yarn": "1.19.2"
   }
 }
