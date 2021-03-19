@@ -1,8 +1,8 @@
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import { HttpMethod } from "@aws-cdk/aws-apigatewayv2";
 
-export const createClientMethod = ApiGatewayV2.HttpMethod.POST;
+export type CreateClientMethod = HttpMethod.POST;
 
-export const createClientPath = "/clients";
+export type CreateClientPath = "/clients";
 
 export interface CreateClientRequestBody {
   name: string;

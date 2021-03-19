@@ -55,6 +55,7 @@
     "webpack-cli": "^4.5.0"
   },
   "dependencies": {
+    "@aws-cdk/aws-apigatewayv2": "^1.94.1",
     "@yac/core": "0.1.0",
     "aws-sdk": "^2.783.0",
     "axios": "^0.21.1",

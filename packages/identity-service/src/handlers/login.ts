@@ -10,14 +10,14 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
   try {
-    loggerService.trace("signUp called", { event }, "signUp handler");
+    loggerService.trace("login called", { event }, "login handler");
 
-    const response = await authController.signUp(event);
+    const response = await authController.login(event);
 
     return response;
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
-    loggerService.error("Catastrophic error in signUp handler", { error, event }, "signUp handler");
+    loggerService.error("Catastrophic error in login handler", { error, event }, "login handler");
 
     return generateInternalServerErrorResponse(error);
   }

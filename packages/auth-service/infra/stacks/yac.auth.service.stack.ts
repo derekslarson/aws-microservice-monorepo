@@ -5,24 +5,21 @@ import * as IAM from "@aws-cdk/aws-iam";
 import * as Cognito from "@aws-cdk/aws-cognito";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as CustomResources from "@aws-cdk/custom-resources";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import {
   Environment,
   HttpApi,
   LogLevel,
-  signUpMethod,
-  signUpPath,
-  loginMethod,
-  loginPath,
-  confirmPath,
-  confirmMethod,
-  createClientMethod,
-  createClientPath,
-  deleteClientPath,
-  deleteClientMethod,
   RouteProps,
   ExportNames,
+  ProxyRouteProps,
 } from "@yac/core";
-import { oauth2AuthorizeMethod, oauth2AuthorizePath } from "@yac/core/src/api-contracts/oauth2.authorize.get";
+import { SignUpMethod, SignUpPath } from "../../src/api-contracts/signUp.post";
+import { LoginMethod, LoginPath } from "../../src/api-contracts/login.post";
+import { ConfirmMethod, ConfirmPath } from "../../src/api-contracts/confirm.get";
+import { CreateClientMethod, CreateClientPath } from "../../src/api-contracts/createClient.post";
+import { DeleteClientMethod, DeleteClientPath } from "../../src/api-contracts/deleteClient.delete";
+import { Oauth2AuthorizeMethod, Oauth2AuthorizePath } from "../../src/api-contracts/oauth2.authorize.get";
 
 export class YacAuthServiceStack extends CDK.Stack {
   constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
@@ -56,6 +53,8 @@ export class YacAuthServiceStack extends CDK.Stack {
       cognitoDomain: { domainPrefix: "yac-auth-service" },
     });
 
+    const userPoolDomainUrl = `https://${userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`;
+
     const resourceServerIdentifier = "yac";
 
     const resourceServerScopes: Cognito.ResourceServerScope[] = [
@@ -72,13 +71,15 @@ export class YacAuthServiceStack extends CDK.Stack {
 
     const clientScopes = resourceServerScopes.map((scopeItem) => ({ scopeName: `${resourceServerIdentifier}/${scopeItem.scopeName}` }));
 
+    const yacUserPoolClientRedirectUri = "https://example.com";
+
     const yacUserPoolClient = new Cognito.UserPoolClient(this, `YacUserPoolClient_${id}`, {
       userPool,
       generateSecret: true,
       authFlows: { custom: true, userPassword: true },
       oAuth: {
         flows: { authorizationCodeGrant: true },
-        callbackUrls: [ "https://example.com" ],
+        callbackUrls: [ yacUserPoolClientRedirectUri ],
         scopes: clientScopes,
       },
     });
@@ -123,7 +124,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       API_DOMAIN: `https://${httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`,
       USER_POOL_ID: userPool.userPoolId,
-      USER_POOL_DOMAIN: `https://${userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`,
+      USER_POOL_DOMAIN: userPoolDomainUrl,
       YAC_USER_POOL_CLIENT_ID: yacUserPoolClient.userPoolClientId,
       YAC_USER_POOL_CLIENT_SECRET: yacUserPoolClientSecret,
       MAIL_SENDER: "derek@yac.com",
@@ -137,7 +138,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
-      timeout: CDK.Duration.seconds(10),
+      timeout: CDK.Duration.seconds(15),
     });
 
     const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
@@ -147,7 +148,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
-      timeout: CDK.Duration.seconds(10),
+      timeout: CDK.Duration.seconds(15),
     });
 
     const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {
@@ -157,7 +158,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
-      timeout: CDK.Duration.seconds(10),
+      timeout: CDK.Duration.seconds(15),
     });
 
     const createClientHandler = new Lambda.Function(this, `CreateClientHandler_${id}`, {
@@ -167,7 +168,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
-      timeout: CDK.Duration.seconds(10),
+      timeout: CDK.Duration.seconds(15),
     });
 
     const deleteClientHandler = new Lambda.Function(this, `DeleteClientHandler_${id}`, {
@@ -177,7 +178,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
-      timeout: CDK.Duration.seconds(10),
+      timeout: CDK.Duration.seconds(15),
     });
 
     const oauth2AuthorizeHandler = new Lambda.Function(this, `Oauth2AuthorizeHandler_${id}`, {
@@ -187,7 +188,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
-      timeout: CDK.Duration.seconds(10),
+      timeout: CDK.Duration.seconds(15),
     });
 
     const preSignUpHandler = new Lambda.Function(this, `PreSignUpHandler_${id}`, {
@@ -196,7 +197,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "preSignUp.handler",
       layers: [ dependencyLayer ],
       initialPolicy: basePolicy,
-      timeout: CDK.Duration.seconds(10),
+      timeout: CDK.Duration.seconds(15),
     });
 
     const defineAuthChallengeHandler = new Lambda.Function(this, `DefineAuthChallengeHandler_${id}`, {
@@ -205,7 +206,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "defineAuthChallenge.handler",
       layers: [ dependencyLayer ],
       initialPolicy: basePolicy,
-      timeout: CDK.Duration.seconds(10),
+      timeout: CDK.Duration.seconds(15),
     });
 
     const createAuthChallengeHandler = new Lambda.Function(this, `CreateAuthChallengeHandler_${id}`, {
@@ -214,7 +215,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "createAuthChallenge.handler",
       layers: [ dependencyLayer ],
       initialPolicy: basePolicy,
-      timeout: CDK.Duration.seconds(10),
+      timeout: CDK.Duration.seconds(15),
     });
 
     const verifyAuthChallengeResponseHandler = new Lambda.Function(this, `VerifyAuthChallengeResponseHandler_${id}`, {
@@ -223,7 +224,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: "verifyAuthChallengeResponse.handler",
       layers: [ dependencyLayer ],
       initialPolicy: basePolicy,
-      timeout: CDK.Duration.seconds(10),
+      timeout: CDK.Duration.seconds(15),
     });
 
     userPool.addTrigger(Cognito.UserPoolOperation.PRE_SIGN_UP, preSignUpHandler);
@@ -231,41 +232,63 @@ export class YacAuthServiceStack extends CDK.Stack {
     userPool.addTrigger(Cognito.UserPoolOperation.CREATE_AUTH_CHALLENGE, createAuthChallengeHandler);
     userPool.addTrigger(Cognito.UserPoolOperation.VERIFY_AUTH_CHALLENGE_RESPONSE, verifyAuthChallengeResponseHandler);
 
-    // Routes
-    const routes: RouteProps[] = [
+    // Lambda Routes
+    const signUpRoute: RouteProps<SignUpPath, SignUpMethod> = {
+      path: "/sign-up",
+      method: ApiGatewayV2.HttpMethod.POST,
+      handler: signUpHandler,
+    };
+
+    const loginRoute: RouteProps<LoginPath, LoginMethod> = {
+      path: "/login",
+      method: ApiGatewayV2.HttpMethod.POST,
+      handler: loginHandler,
+    };
+
+    const confirmRoute: RouteProps<ConfirmPath, ConfirmMethod> = {
+      path: "/confirm",
+      method: ApiGatewayV2.HttpMethod.POST,
+      handler: confirmHandler,
+    };
+
+    const createClientRoute: RouteProps<CreateClientPath, CreateClientMethod> = {
+      path: "/clients",
+      method: ApiGatewayV2.HttpMethod.POST,
+      handler: createClientHandler,
+    };
+
+    const deleteClientRoute: RouteProps<DeleteClientPath, DeleteClientMethod> = {
+      path: "/clients/{id}",
+      method: ApiGatewayV2.HttpMethod.DELETE,
+      handler: createClientHandler,
+    };
+
+    const oauth2AuthorizeRoute: RouteProps<Oauth2AuthorizePath, Oauth2AuthorizeMethod> = {
+      path: "/oauth2/authorize",
+      method: ApiGatewayV2.HttpMethod.GET,
+      handler: createClientHandler,
+    };
+
+    const routes: RouteProps<string, ApiGatewayV2.HttpMethod>[] = [
+      signUpRoute,
+      loginRoute,
+      confirmRoute,
+      createClientRoute,
+      deleteClientRoute,
+      oauth2AuthorizeRoute,
+    ];
+
+    // Proxy Routes
+    const proxyRoutes: ProxyRouteProps[] = [
       {
-        path: signUpPath,
-        method: signUpMethod,
-        handler: signUpHandler,
-      },
-      {
-        path: loginPath,
-        method: loginMethod,
-        handler: loginHandler,
-      },
-      {
-        path: confirmPath,
-        method: confirmMethod,
-        handler: confirmHandler,
-      },
-      {
-        path: createClientPath,
-        method: createClientMethod,
-        handler: createClientHandler,
-      },
-      {
-        path: deleteClientPath,
-        method: deleteClientMethod,
-        handler: deleteClientHandler,
-      },
-      {
-        path: oauth2AuthorizePath,
-        method: oauth2AuthorizeMethod,
-        handler: oauth2AuthorizeHandler,
+        proxyUrl: `${userPoolDomainUrl}/oauth2/token`,
+        path: "/oauth2/token",
+        method: ApiGatewayV2.HttpMethod.POST,
       },
     ];
 
     routes.forEach((route) => httpApi.addRoute(route));
+    proxyRoutes.forEach((route) => httpApi.addProxyRoute(route));
 
     new CDK.CfnOutput(this, `YacUserPoolClientId_${id}`, {
       exportName: ExportNames.YacUserPoolClientId,
@@ -275,6 +298,11 @@ export class YacAuthServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `YacUserPoolClientSecret_${id}`, {
       exportName: ExportNames.YacUserPoolClientSecret,
       value: yacUserPoolClientSecret,
+    });
+
+    new CDK.CfnOutput(this, `YacUserPoolClientRedirectUri_${id}`, {
+      exportName: ExportNames.YacUserPoolClientRedirectUri,
+      value: yacUserPoolClientRedirectUri,
     });
   }
 }
