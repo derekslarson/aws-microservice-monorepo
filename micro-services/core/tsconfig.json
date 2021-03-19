@@ -1,6 +1,7 @@
 {
   "include": [
-    "src"
+    "src",
+    "index.ts"
   ],
   "exclude": [
     "dist"
@@ -8,7 +9,9 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./",
+    "skipLibCheck": true,
     "declaration": true,
+    "outDir": "./dist",
     "declarationDir": "./dist"
   }
 }

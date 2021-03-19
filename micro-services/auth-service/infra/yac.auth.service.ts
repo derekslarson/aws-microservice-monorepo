@@ -8,7 +8,6 @@ import {
 } from "@yac/core";
 import { buildAssets, EAssetsType } from "@yac-assets/build";
 import * as S3Deployment from "@aws-cdk/aws-s3-deployment";
-import { Fn } from "@aws-cdk/core";
 import { YacAuthServiceStack } from "./stacks/yac.auth.service.stack";
 
 const app = new CDK.App();
@@ -30,7 +29,7 @@ const stackPrefix = environment === Environment.Local ? `${environment}-${develo
   const stack = new YacAuthServiceStack(app, `YacAuthService-${stackPrefix}`);
   const idYacComAssetPath = await buildAssets("auth-service", {
     env: {
-      base_url: Fn.importValue("AuthServiceBaseUrl"),
+      base_url: stack.api.apiURL,
       sign_in_path: loginPath,
       sign_up_path: signUpPath,
       authenticate_path: confirmPath,

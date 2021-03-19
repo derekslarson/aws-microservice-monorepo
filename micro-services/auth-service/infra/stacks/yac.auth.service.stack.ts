@@ -8,7 +8,6 @@ import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import * as S3 from "@aws-cdk/aws-s3";
 import * as CloudFront from "@aws-cdk/aws-cloudfront";
 import * as CFOrigins from "@aws-cdk/aws-cloudfront-origins";
-
 import {
   Environment,
   HttpApi,
@@ -24,11 +23,15 @@ import {
   deleteClientPath,
   deleteClientMethod,
 } from "@yac/core";
+import { HttpMethod } from "@aws-cdk/aws-apigatewayv2";
+import { Duration } from "@aws-cdk/core";
 
 export type IYacAuthServiceStackProps = CDK.StackProps;
 
 export class YacAuthServiceStack extends CDK.Stack {
   public readonly websiteBucket: S3.IBucket;
+
+  public readonly api: HttpApi;
 
   constructor(scope: CDK.Construct, id: string, props?: IYacAuthServiceStackProps) {
     super(scope, id, props);
@@ -84,7 +87,16 @@ export class YacAuthServiceStack extends CDK.Stack {
     });
 
     // APIs
-    const httpApi = new HttpApi(this, `${id}_Api`);
+    const httpApi = new HttpApi(this, `${id}_Api`, {
+      serviceName: "auth-service",
+      corsPreflight: {
+        allowOrigins: [ "https://cloudfront.com", "https://yacchat.com", "https://yac.com"],
+        allowMethods: [ HttpMethod.GET, HttpMethod.OPTIONS ],
+        // just dev purposes
+        maxAge: Duration.minutes(0),
+      },
+    });
+    this.api = httpApi;
 
     // Policies
     const userPoolPolicyStatement = new IAM.PolicyStatement({
@@ -255,6 +267,6 @@ export class YacAuthServiceStack extends CDK.Stack {
       handler: deleteClientHandler,
     });
 
-    new CDK.CfnOutput(this, "AuthServiceBaseUrl", { value: httpApi.apiEndpoint });
+    new CDK.CfnOutput(this, "AuthServiceBaseUrl", { value: httpApi.apiURL });
   }
 }

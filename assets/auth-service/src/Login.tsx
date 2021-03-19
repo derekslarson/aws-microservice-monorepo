@@ -32,7 +32,7 @@ const variants = {
 }
 
 const CONFIG: IEnvConfig = {
-  BASE_URL: process.env.REACT_APP_BASE_URL as string,
+  BASE_URL: new URL(process.env.REACT_APP_BASE_URL as string),
   SIGN_IN_PATH: process.env.REACT_APP_SIGN_IN_PATH as string,
   SIGN_UP_PATH: process.env.REACT_APP_SIGN_UP_PATH as string,
   AUTHENTICATE_PATH: process.env.REACT_APP_AUTHENTICATE_PATH as string,
@@ -82,7 +82,7 @@ const Login: React.FC<ILoginProps> = ({}) => {
       if (isPhoneNumber) {
         phone = /\+\d/.test(email) ? email : `+1${email}`
       }
-      const url = new URL(CONFIG.SIGN_IN_PATH as string, CONFIG.BASE_URL);
+      const url = new URL([CONFIG.BASE_URL.pathname, CONFIG.SIGN_IN_PATH].join("/"), CONFIG.BASE_URL.origin);
       const res = await axios
         .post(
           url.toString(),
@@ -120,6 +120,7 @@ const Login: React.FC<ILoginProps> = ({}) => {
         })
       }
     } catch (e) {
+      console.error(e)
       setStep(0)
       setRequest({
         status: 'ERROR',
@@ -133,7 +134,7 @@ const Login: React.FC<ILoginProps> = ({}) => {
   ) => {
     setRequest((state) => ({ ...state, status: 'LOADING' }))
     try {
-      const url = new URL(CONFIG.AUTHENTICATE_PATH as string, CONFIG.BASE_URL);
+      const url = new URL([CONFIG.BASE_URL.pathname, CONFIG.AUTHENTICATE_PATH].join("/"), CONFIG.BASE_URL.origin);
       const res: AxiosResponse<IAuthenticateResponse> = await axios
         .post<IAuthenticateResponse>(
           url.toString() + `?client_id=${query.client_id}&redirect_id=${query.redirect_uri}`,
@@ -401,7 +402,7 @@ interface ILoader {
 }
 
 interface IEnvConfig {
-  BASE_URL: string,
+  BASE_URL: URL,
   SIGN_IN_PATH: string,
   SIGN_UP_PATH: string,
   AUTHENTICATE_PATH: string,
