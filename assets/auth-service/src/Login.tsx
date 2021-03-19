@@ -82,7 +82,7 @@ const Login: React.FC<ILoginProps> = ({}) => {
       if (isPhoneNumber) {
         phone = /\+\d/.test(email) ? email : `+1${email}`
       }
-      const url = new URL([CONFIG.BASE_URL.pathname, CONFIG.SIGN_IN_PATH].join("/"), CONFIG.BASE_URL.origin);
+      const url = new URL([CONFIG.BASE_URL.pathname, CONFIG.SIGN_IN_PATH].join(""), CONFIG.BASE_URL.origin);
       const res = await axios
         .post(
           url.toString(),
