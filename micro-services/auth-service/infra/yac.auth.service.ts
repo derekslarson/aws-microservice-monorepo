@@ -6,8 +6,8 @@ import {
   confirmPath,
   Environment,
 } from "@yac/core";
-import { buildAssets, EAssetsType } from "@yac-assets/build";
 import * as S3Deployment from "@aws-cdk/aws-s3-deployment";
+import { buildAssets, EAssetsType } from "@yac-assets/build";
 import { YacAuthServiceStack } from "./stacks/yac.auth.service.stack";
 
 const app = new CDK.App();
@@ -40,7 +40,6 @@ const stackPrefix = environment === Environment.Local ? `${environment}-${develo
   // eslint-disable-next-line no-new
   new S3Deployment.BucketDeployment(stack, `${stackPrefix}-idYacComDeployment`, {
     sources: [ S3Deployment.Source.asset(idYacComAssetPath.distPath) ],
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     destinationBucket: stack.websiteBucket,
   });
 })();

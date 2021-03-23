@@ -9,7 +9,6 @@
   "scripts": {
     "build": "yarn clean && webpack --bail --config ./config/webpack.config.js && cp ./package.json ./dist/package.json",
     "build:unit-tests": "npm run clean:unit-tests && tsc --project ./tsconfig.test.json",
-    "compile:lib": "yarn tsc --project ./tsconfig.json",
     "clean": "rm -rf ./dist",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
     "deploy:local": "npm run build && cdk deploy --context environment=local --context developer=$(whoami)",

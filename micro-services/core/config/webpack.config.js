@@ -36,6 +36,8 @@ class WebpackConfig {
       ],
     };
 
+    this.externals = [/\/tmp\/.+/]
+
     this.optimization = {
       minimize: true,
       minimizer: [
