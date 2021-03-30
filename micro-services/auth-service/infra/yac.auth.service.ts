@@ -29,7 +29,7 @@ const stackPrefix = environment === Environment.Local ? `${environment}-${develo
   const stack = new YacAuthServiceStack(app, `YacAuthService-${stackPrefix}`, { serviceName: "auth-service" });
   const idYacComAssetPath = await buildAssets("auth-service", {
     env: {
-      base_url: stack.api.apiURL,
+      base_url: stack.httpApi.apiURL,
       sign_in_path: loginPath,
       sign_up_path: signUpPath,
       authenticate_path: confirmPath,
