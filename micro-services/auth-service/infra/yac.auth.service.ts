@@ -26,7 +26,7 @@ const stackPrefix = environment === Environment.Local ? `${environment}-${develo
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {
   // eslint-disable-next-line no-new
-  const stack = new YacAuthServiceStack(app, `YacAuthService-${stackPrefix}`);
+  const stack = new YacAuthServiceStack(app, `YacAuthService-${stackPrefix}`, { serviceName: "auth-service" });
   const idYacComAssetPath = await buildAssets("auth-service", {
     env: {
       base_url: stack.api.apiURL,

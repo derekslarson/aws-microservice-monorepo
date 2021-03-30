@@ -8,6 +8,7 @@ import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import * as S3 from "@aws-cdk/aws-s3";
 import * as CloudFront from "@aws-cdk/aws-cloudfront";
 import * as CFOrigins from "@aws-cdk/aws-cloudfront-origins";
+import * as Route53 from "@aws-cdk/aws-route53";
 import {
   Environment,
   HttpApi,
@@ -23,17 +24,16 @@ import {
   deleteClientPath,
   deleteClientMethod,
 } from "@yac/core";
-import { HttpMethod } from "@aws-cdk/aws-apigatewayv2";
-import { Duration } from "@aws-cdk/core";
+import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stacks/yac.http.service.stack";
 
-export type IYacAuthServiceStackProps = CDK.StackProps;
+export type IYacAuthServiceStackProps = IYacHttpServiceProps;
 
-export class YacAuthServiceStack extends CDK.Stack {
+export class YacAuthServiceStack extends YacHttpServiceStack {
   public readonly websiteBucket: S3.IBucket;
 
   public readonly api: HttpApi;
 
-  constructor(scope: CDK.Construct, id: string, props?: IYacAuthServiceStackProps) {
+  constructor(scope: CDK.Construct, id: string, props: IYacAuthServiceStackProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -60,7 +60,7 @@ export class YacAuthServiceStack extends CDK.Stack {
 
     const userPoolDomain = new Cognito.UserPoolDomain(this, `UserPoolDomain_${id}`, {
       userPool,
-      cognitoDomain: { domainPrefix: "yac-auth-service" },
+      cognitoDomain: { domainPrefix: `${this.recordName}-yac-auth-service` },
     });
 
     new Cognito.UserPoolResourceServer(this, `ResourceServer_${id}`, {
@@ -86,17 +86,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       },
     });
 
-    // APIs
-    const httpApi = new HttpApi(this, `${id}_Api`, {
-      serviceName: "auth-service",
-      corsPreflight: {
-        allowOrigins: [ "https://cloudfront.com", "https://yacchat.com", "https://yac.com"],
-        allowMethods: [ HttpMethod.GET, HttpMethod.OPTIONS ],
-        // just dev purposes
-        maxAge: Duration.minutes(0),
-      },
-    });
-    this.api = httpApi;
+    this.api = this.httpApi;
 
     // Policies
     const userPoolPolicyStatement = new IAM.PolicyStatement({
@@ -123,9 +113,19 @@ export class YacAuthServiceStack extends CDK.Stack {
       publicReadAccess: true,
     });
 
-    const websiteDistribution = new CloudFront.Distribution(this, `${envString}-idYacComDistribution`, { defaultBehavior: { origin: new CFOrigins.S3Origin(websiteBucket) } });
+    const websiteDistribution = new CloudFront.Distribution(this, `${envString}-idYacComDistribution`, {
+      defaultBehavior: { origin: new CFOrigins.S3Origin(websiteBucket) },
+      certificate: this.certificate,
+      domainNames: [ `${this.recordName}-assets.${this.zoneName}` ],
+    });
 
     this.websiteBucket = websiteBucket;
+
+    new Route53.CnameRecord(this, `${id}-CnameRecord`, {
+      domainName: websiteDistribution.distributionDomainName,
+      zone: this.hostedZone,
+      recordName: `${this.recordName}-assets`,
+    });
 
     new CDK.CfnOutput(this, "idYacCom", { value: websiteDistribution.distributionDomainName });
 
@@ -134,7 +134,7 @@ export class YacAuthServiceStack extends CDK.Stack {
       SECRET: secret,
       ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
-      API_DOMAIN: `https://${httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`,
+      API_DOMAIN: `https://${this.api.httpApiId}.execute-api.${this.region}.amazonaws.com`,
       USER_POOL_ID: userPool.userPoolId,
       USER_POOL_DOMAIN: `https://${userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`,
       MAIL_SENDER: "derek@yac.com",
@@ -235,38 +235,36 @@ export class YacAuthServiceStack extends CDK.Stack {
     userPool.addTrigger(Cognito.UserPoolOperation.VERIFY_AUTH_CHALLENGE_RESPONSE, verifyAuthChallengeResponseHandler);
 
     // Routes
-    httpApi.addRoute({
+    this.api.addRoute({
       path: signUpPath,
       method: signUpMethod,
       handler: signUpHandler,
     });
 
-    httpApi.addRoute({
+    this.api.addRoute({
       path: loginPath,
       method: loginMethod,
       handler: loginHandler,
     });
 
-    httpApi.addRoute({
+    this.api.addRoute({
       path: confirmPath,
       method: confirmMethod,
       handler: confirmHandler,
     });
 
-    httpApi.addRoute({
+    this.api.addRoute({
       path: createClientPath,
       method: createClientMethod,
       handler: createClientHandler,
     });
 
-    httpApi.addRoute({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    this.api.addRoute({
       path: deleteClientPath,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       method: deleteClientMethod,
       handler: deleteClientHandler,
     });
 
-    new CDK.CfnOutput(this, "AuthServiceBaseUrl", { value: httpApi.apiURL });
+    new CDK.CfnOutput(this, "AuthServiceBaseUrl", { value: this.api.apiURL });
   }
 }
