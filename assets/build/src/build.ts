@@ -34,7 +34,7 @@ function parseEnvVars(env: TEnvVars, prefix: string): string {
 
 async function createEnvFile(str: string, destination: string): Promise<void> {
   return fs.writeFileSync(`${destination}/.env`, str,{ 
-    flag: "r+", encoding: "utf8"
+    flag: "w+", encoding: "utf8"
   });
 }
 
