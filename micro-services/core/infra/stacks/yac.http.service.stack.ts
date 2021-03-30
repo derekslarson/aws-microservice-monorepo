@@ -47,7 +47,7 @@ export class YacHttpServiceStack extends CDK.Stack {
     });
     this.domainName = domainNameResource;
 
-    const origins = environment !== Environment.Prod ? [ "*" ] : [ "https://yac.com", "https://id.yac.com/" ];
+    const origins = environment !== Environment.Prod ? [ "*" ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ];
     const corsCacheMaxAge = environment !== Environment.Prod ? CDK.Duration.minutes(1000000) : CDK.Duration.minutes(60 * 12);
     this.httpApi = new HttpApi(this, `${id}_Api`, {
       serviceName: props.serviceName,

@@ -86,8 +86,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       },
     });
 
-    this.api = this.httpApi;
-
     // Policies
     const userPoolPolicyStatement = new IAM.PolicyStatement({
       actions: [ "cognito-idp:*" ],
@@ -134,7 +132,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       SECRET: secret,
       ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
-      API_DOMAIN: `https://${this.api.httpApiId}.execute-api.${this.region}.amazonaws.com`,
+      API_DOMAIN: `https://${this.httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`,
       USER_POOL_ID: userPool.userPoolId,
       USER_POOL_DOMAIN: `https://${userPoolDomain.domainName}.auth.${this.region}.amazoncognito.com`,
       MAIL_SENDER: "derek@yac.com",
@@ -235,36 +233,36 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     userPool.addTrigger(Cognito.UserPoolOperation.VERIFY_AUTH_CHALLENGE_RESPONSE, verifyAuthChallengeResponseHandler);
 
     // Routes
-    this.api.addRoute({
+    this.httpApi.addRoute({
       path: signUpPath,
       method: signUpMethod,
       handler: signUpHandler,
     });
 
-    this.api.addRoute({
+    this.httpApi.addRoute({
       path: loginPath,
       method: loginMethod,
       handler: loginHandler,
     });
 
-    this.api.addRoute({
+    this.httpApi.addRoute({
       path: confirmPath,
       method: confirmMethod,
       handler: confirmHandler,
     });
 
-    this.api.addRoute({
+    this.httpApi.addRoute({
       path: createClientPath,
       method: createClientMethod,
       handler: createClientHandler,
     });
 
-    this.api.addRoute({
+    this.httpApi.addRoute({
       path: deleteClientPath,
       method: deleteClientMethod,
       handler: deleteClientHandler,
     });
 
-    new CDK.CfnOutput(this, "AuthServiceBaseUrl", { value: this.api.apiURL });
+    new CDK.CfnOutput(this, "AuthServiceBaseUrl", { value: this.httpApi.apiURL });
   }
 }
