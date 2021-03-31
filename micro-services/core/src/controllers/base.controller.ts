@@ -10,6 +10,7 @@ import {
   Response,
   CreatedResponse,
   SeeOtherResponse,
+  FoundResponse,
 } from "../models/http/response.model";
 import { NotFoundError } from "../errors/notFound.error";
 import { BadRequestError } from "../errors/badRequest.error";
@@ -19,24 +20,37 @@ import { RequestValidationError } from "../errors/request.validation.error";
 
 @injectable()
 export abstract class BaseController {
-  protected generateSuccessResponse(body: Body | string): SuccessResponse {
+  protected generateSuccessResponse(body: Body | string, headers: Record<string, string> = {}, cookies: string[] = []): SuccessResponse {
     return {
       statusCode: StatusCode.OK,
+      headers,
+      cookies,
       body: JSON.stringify(body),
     };
   }
 
-  protected generateCreatedResponse(body: Body): CreatedResponse {
+  protected generateCreatedResponse(body: Body, headers: Record<string, string> = {}, cookies: string[] = []): CreatedResponse {
     return {
       statusCode: StatusCode.Created,
+      headers,
+      cookies,
       body: JSON.stringify(body),
     };
   }
 
-  protected generateSeeOtherResponse(redirectLocation: string): SeeOtherResponse {
+  protected generateFoundResponse(redirectLocation: string, otherHeaders: Record<string, string> = {}, cookies: string[] = []): FoundResponse {
+    return {
+      statusCode: StatusCode.Found,
+      headers: { Location: redirectLocation, ...otherHeaders },
+      cookies,
+    };
+  }
+
+  protected generateSeeOtherResponse(redirectLocation: string, otherHeaders: Record<string, string> = {}, cookies: string[] = []): SeeOtherResponse {
     return {
       statusCode: StatusCode.SeeOther,
-      headers: { Location: redirectLocation },
+      headers: { Location: redirectLocation, ...otherHeaders },
+      cookies,
     };
   }
 
@@ -69,7 +83,7 @@ export abstract class BaseController {
     };
   }
 
-  private generateBadRequestResponse(errorMessage: string, validationErrors?: { property: string, value: unknown; issues: string[]; }[]): BadRequestResponse {
+  private generateBadRequestResponse(errorMessage: string, validationErrors?: Array<{ property: string, value: unknown; issues: string[]; }>): BadRequestResponse {
     const body = {
       message: errorMessage,
       ...(validationErrors && { validationErrors }),

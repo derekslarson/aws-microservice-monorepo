@@ -1,8 +1,8 @@
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import { HttpMethod } from "@aws-cdk/aws-apigatewayv2";
 
-export const deleteClientMethod = ApiGatewayV2.HttpMethod.DELETE;
+export type DeleteClientMethod = HttpMethod.DELETE;
 
-export const deleteClientPath = "/clients/{id}";
+export type DeleteClientPath = `/clients/${string}`;
 
 export type DeleteClientIdPathParameter = string;
 

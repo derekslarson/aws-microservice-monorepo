@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
+import { ForbiddenError, HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
@@ -9,8 +9,7 @@ import { MailServiceInterface } from "./mail.service";
 import { Crypto, CryptoFactory } from "../factories/crypto.factory";
 import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
 import { LoginInputDto } from "../models/login/login.input.model";
-import { ConfirmationInputDto } from "../models/confirmation/confirmation.input.model";
-import { ClientServiceInterface } from "./client.service";
+import { ConfirmationInput } from "../models/confirmation/confirmation.input.model";
 
 @injectable()
 export class AuthenticationService implements AuthenticationServiceInterface {
@@ -22,7 +21,6 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     @inject(TYPES.EnvConfigInterface) private config: AuthenticationServiceConfigInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MailServiceInterface) private mailService: MailServiceInterface,
-    @inject(TYPES.ClientServiceInterface) private clientService: ClientServiceInterface,
     @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestServiceInterface,
     @inject(TYPES.CognitoFactory) cognitoFactory: CognitoFactory,
     @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
@@ -35,12 +33,14 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("signUp called", { signUpInput }, this.constructor.name);
 
-      const client = await this.clientService.getClient(signUpInput.clientId);
+      if (signUpInput.clientId !== this.config.userPool.yacClientId) {
+        throw new ForbiddenError("Forbidden");
+      }
 
-      const secretHash = this.createUserPoolClientSecretHash(signUpInput.email, signUpInput.clientId, client.secret);
+      const secretHash = this.createUserPoolClientSecretHash(signUpInput.email);
 
       const signUpParams: CognitoIdentityServiceProvider.Types.SignUpRequest = {
-        ClientId: signUpInput.clientId,
+        ClientId: this.config.userPool.yacClientId,
         SecretHash: secretHash,
         Username: signUpInput.email,
         Password: this.config.secret,
@@ -58,6 +58,10 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("login called", { loginInput }, this.constructor.name);
 
+      if (loginInput.clientId !== this.config.userPool.yacClientId) {
+        throw new ForbiddenError("Forbidden");
+      }
+
       const authChallenge = this.crypto.randomDigits(6).join("");
 
       const updateUserAttributesParams: CognitoIdentityServiceProvider.Types.AdminUpdateUserAttributesRequest = {
@@ -71,16 +75,13 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         Username: loginInput.email,
       };
 
-      const [ client ] = await Promise.all([
-        this.clientService.getClient(loginInput.clientId),
-        this.cognito.adminUpdateUserAttributes(updateUserAttributesParams).promise(),
-      ]);
+      await this.cognito.adminUpdateUserAttributes(updateUserAttributesParams).promise();
 
-      const secretHash = this.createUserPoolClientSecretHash(loginInput.email, loginInput.clientId, client.secret);
+      const secretHash = this.createUserPoolClientSecretHash(loginInput.email);
 
       const initiateAuthParams: CognitoIdentityServiceProvider.Types.AdminInitiateAuthRequest = {
         UserPoolId: this.config.userPool.id,
-        ClientId: loginInput.clientId,
+        ClientId: this.config.userPool.yacClientId,
         AuthFlow: "CUSTOM_AUTH",
         AuthParameters: {
           USERNAME: loginInput.email,
@@ -104,17 +105,15 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  public async confirm(confirmationInput: ConfirmationInputDto): Promise<{ authorizationCode: string }> {
+  public async confirm(confirmationInput: ConfirmationInput): Promise<{ authorizationCode: string }> {
     try {
       this.loggerService.trace("confirm called", { confirmationInput }, this.constructor.name);
 
-      const client = await this.clientService.getClient(confirmationInput.clientId);
-
-      const secretHash = this.createUserPoolClientSecretHash(confirmationInput.email, confirmationInput.clientId, client.secret);
+      const secretHash = this.createUserPoolClientSecretHash(confirmationInput.email);
 
       const respondToAuthChallengeParams: CognitoIdentityServiceProvider.Types.AdminRespondToAuthChallengeRequest = {
         UserPoolId: this.config.userPool.id,
-        ClientId: confirmationInput.clientId,
+        ClientId: this.config.userPool.yacClientId,
         Session: confirmationInput.session,
         ChallengeName: "CUSTOM_CHALLENGE",
         ChallengeResponses: {
@@ -172,49 +171,49 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  private createUserPoolClientSecretHash(username: string, clientId: string, clientSecret: string): string {
+  private createUserPoolClientSecretHash(username: string): string {
     try {
-      this.loggerService.trace("createUserPoolClientSecretHash called", { username, clientId, clientSecret }, this.constructor.name);
+      this.loggerService.trace("createUserPoolClientSecretHash called", { username }, this.constructor.name);
 
-      const secretHash = this.crypto.createHmac("SHA256", clientSecret).update(`${username}${clientId}`).digest("base64");
+      const secretHash = this.crypto.createHmac("SHA256", this.config.userPool.yacClientSecret).update(`${username}${this.config.userPool.yacClientId}`).digest("base64");
 
       return secretHash;
     } catch (error: unknown) {
-      this.loggerService.error("Error in createUserPoolClientSecretHash", { error, username, clientId, clientSecret }, this.constructor.name);
+      this.loggerService.error("Error in createUserPoolClientSecretHash", { error, username }, this.constructor.name);
 
       throw error;
     }
   }
 
-  // private async getXsrfToken(clientId: string, redirectUri: string): Promise<string> {
-  //   try {
-  //     this.loggerService.trace("getXsrfToken called", { clientId, redirectUri }, this.constructor.name);
+  public async getXsrfToken(clientId: string, redirectUri: string): Promise<{ xsrfToken: string }> {
+    try {
+      this.loggerService.trace("getXsrfToken called", { clientId, redirectUri }, this.constructor.name);
 
-  //     const queryParameters = {
-  //       response_type: "code",
-  //       client_id: clientId,
-  //       redirect_uri: redirectUri,
-  //     };
+      const queryParameters = {
+        response_type: "code",
+        client_id: clientId,
+        redirect_uri: redirectUri,
+      };
 
-  //     const authorizeResponse = await this.httpRequestService.get(`${this.config.userPool.domain}/oauth2/authorize`, queryParameters);
+      const authorizeResponse = await this.httpRequestService.get(`${this.config.userPool.domain}/oauth2/authorize`, queryParameters);
 
-  //     const setCookieHeader = authorizeResponse.headers["set-cookie"];
+      const setCookieHeader = authorizeResponse.headers["set-cookie"];
 
-  //     if (!Array.isArray(setCookieHeader)) {
-  //       throw new Error("Malformed 'set-cookie' header in response.");
-  //     }
+      if (!Array.isArray(setCookieHeader)) {
+        throw new Error("Malformed 'set-cookie' header in response.");
+      }
 
-  //     const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
+      const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
 
-  //     const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
+      const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
 
-  //     return xsrfToken;
-  //   } catch (error: unknown) {
-  //     this.loggerService.error("Error in getXsrfToken", { error, clientId, redirectUri }, this.constructor.name);
+      return { xsrfToken };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getXsrfToken", { error, clientId, redirectUri }, this.constructor.name);
 
-  //     throw error;
-  //   }
-  // }
+      throw error;
+    }
+  }
 
   // private async getAccessToken(authorizationCode: string, clientId: string, clientSecret: string, redirectUri: string, username: string, scopes: string[] = []): Promise<string> {
   //   try {
@@ -243,7 +242,8 @@ export type AuthenticationServiceConfigInterface = Pick<EnvConfigInterface, "use
 export interface AuthenticationServiceInterface {
   signUp(signUpInput: SignUpInputDto): Promise<void>;
   login(loginInput: LoginInputDto): Promise<{ session: string; }>;
-  confirm(confirmationInput: ConfirmationInputDto): Promise<{ authorizationCode: string }>
+  confirm(confirmationInput: ConfirmationInput): Promise<{ authorizationCode: string }>;
+  getXsrfToken(clientId: string, redirectUri: string): Promise<{ xsrfToken: string }>;
 }
 
 // async function getXsrfToken(domain: string, clientId: string, clientRedirectUri: string): Promise<string> {
@@ -300,4 +300,37 @@ export interface AuthenticationServiceInterface {
 //   }
 // }
 
-// getXsrfToken("https://yac-auth-service.auth.us-east-2.amazoncognito.com", "2dej3es0t3p2ok7gq9sbapkc4j", "https://example.com")
+// async function getAuthorizationCode(username: string, clientId: string, redirectUri: string, xsrfToken: string): Promise<string> {
+//   try {
+//     const data = `_csrf=${xsrfToken}&username=${username}&password=425cf4d1-f680-49cc-A4fd-69769c5b7356!`;
+
+//     const queryParameters = {
+//       response_type: "code",
+//       client_id: clientId,
+//       redirect_uri: redirectUri,
+//     };
+
+//     const headers = {
+//       "Content-Type": "application/x-www-form-urlencoded",
+//       Cookie: `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`,
+//     };
+
+//     const { request } = await axios.post("https://yac-auth-service.auth.us-east-2.amazoncognito.com/login", data, { headers, params: queryParameters });
+
+//     console.log(request)
+
+//     const redirectPath = request.path;
+
+//     if (!redirectPath) {
+//       throw new Error("redirect path missing in response");
+//     }
+
+//     const [ , authorizationCode ] = redirectPath.split("=");
+
+//     return authorizationCode;
+//   } catch (error: unknown) {
+//     console.log("Error:\n", error)
+
+//     throw error;
+//   }
+// }

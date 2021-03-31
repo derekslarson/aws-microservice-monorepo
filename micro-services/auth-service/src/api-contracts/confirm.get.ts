@@ -1,8 +1,8 @@
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import { HttpMethod } from "@aws-cdk/aws-apigatewayv2";
 
-export const confirmMethod = ApiGatewayV2.HttpMethod.POST;
+export type ConfirmMethod = HttpMethod.POST;
 
-export const confirmPath = "/confirm";
+export type ConfirmPath = "/confirm";
 
 export interface ConfirmationRequestBody {
   email: string;
@@ -10,7 +10,10 @@ export interface ConfirmationRequestBody {
   clientId: string;
   session: string;
   redirectUri: string;
-  xsrfToken: string;
+}
+
+export interface ConfirmationRequestHeaders {
+  "xsrf-token": string;
 }
 
 export interface ConfirmationResponseBody {

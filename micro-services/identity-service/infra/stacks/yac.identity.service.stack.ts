@@ -6,8 +6,10 @@ import * as SSM from "@aws-cdk/aws-ssm";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import {
   Environment,
+  ExportNames,
   HttpApi,
   LogLevel,
+  RouteProps,
 } from "@yac/core";
 
 export class YacIdentityServiceStack extends CDK.Stack {
@@ -20,6 +22,9 @@ export class YacIdentityServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
+    const yacUserPoolClientId = CDK.Fn.importValue(ExportNames.YacUserPoolClientId);
+    const yacUserPoolClientSecret = CDK.Fn.importValue(ExportNames.YacUserPoolClientSecret);
+    const yacUserPoolClientRedirectUri = CDK.Fn.importValue(ExportNames.YacUserPoolClientRedirectUri);
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
 
     // Layers
@@ -29,14 +34,9 @@ export class YacIdentityServiceStack extends CDK.Stack {
     });
 
     // APIs
-    const httpApi = new HttpApi(this, `${id}_Api`);
+    const httpApi = new HttpApi(this, `Api_${id}`);
 
     // Policies
-
-    const ssmPolicyStatement: IAM.PolicyStatement = new IAM.PolicyStatement({
-      actions: [ "ssm:PutParameter", "ssm:GetParameter", "ssm:DeleteParameter" ],
-      resources: [ `arn:aws:ssm:${this.region}:${this.account}:parameter/yac/${id}/*` ],
-    });
 
     const basePolicy: IAM.PolicyStatement[] = [];
 
@@ -46,24 +46,13 @@ export class YacIdentityServiceStack extends CDK.Stack {
       SECRET: secret,
       ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
+      USER_POOL_CLIENT_ID: yacUserPoolClientId,
+      USER_POOL_CLIENT_SECRET: yacUserPoolClientSecret,
+      USER_POOL_CLIENT_REDIRECT_URI: yacUserPoolClientRedirectUri,
+      AUTH_SERVICE_DOMAIN: "https://4rqv6luxyf.execute-api.us-east-2.amazonaws.com",
     };
 
     // Handlers
-    const registerClientHandler = new Lambda.Function(this, `RegisterClientHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/registerClient"),
-      handler: "registerClient.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, ssmPolicyStatement ],
-      timeout: CDK.Duration.seconds(7),
-    });
-
-    const registerClientCustomResource = new CDK.CustomResource(this, `RegisterClientCustomResource_${id}`, { serviceToken: registerClientHandler.functionArn });
-
-    environmentVariables.CLIENT_ID = registerClientCustomResource.getAttString("clientId");
-    environmentVariables.CLIENT_SECRET = registerClientCustomResource.getAttString("clientSecret");
-
     const signUpHandler = new Lambda.Function(this, `SignUpHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/signUp"),
@@ -71,46 +60,48 @@ export class YacIdentityServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy ],
-      timeout: CDK.Duration.seconds(7),
+      timeout: CDK.Duration.seconds(15),
     });
 
-    // const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
-    //   runtime: Lambda.Runtime.NODEJS_12_X,
-    //   code: Lambda.Code.fromAsset("dist/handlers/login"),
-    //   handler: "login.handler",
-    //   layers: [ dependencyLayer ],
-    //   environment: environmentVariables,
-    //   initialPolicy: [ ...basePolicy ],
-    //   timeout: CDK.Duration.seconds(7),
-    // });
-
-    // const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {
-    //   runtime: Lambda.Runtime.NODEJS_12_X,
-    //   code: Lambda.Code.fromAsset("dist/handlers/confirm"),
-    //   handler: "confirm.handler",
-    //   layers: [ dependencyLayer ],
-    //   environment: environmentVariables,
-    //   initialPolicy: [ ...basePolicy ],
-    //   timeout: CDK.Duration.seconds(7),
-    // });
-
-    // // Routes
-    httpApi.addRoute({
-      path: "/yac/sign-up",
-      method: ApiGatewayV2.HttpMethod.POST,
-      handler: signUpHandler,
+    const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/login"),
+      handler: "login.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy ],
+      timeout: CDK.Duration.seconds(15),
     });
 
-    // httpApi.addRoute({
-    //   path: loginPath,
-    //   method: loginMethod,
-    //   handler: loginHandler,
-    // });
+    const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/confirm"),
+      handler: "confirm.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy ],
+      timeout: CDK.Duration.seconds(15),
+    });
 
-    // httpApi.addRoute({
-    //   path: confirmPath,
-    //   method: confirmMethod,
-    //   handler: confirmHandler,
-    // });
+    // Lambda Routes
+    const routes: RouteProps[] = [
+      {
+        path: "/sign-up",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: signUpHandler,
+      },
+      {
+        path: "/login",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: loginHandler,
+      },
+      {
+        path: "/confirm",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: confirmHandler,
+      },
+    ];
+
+    routes.forEach((route) => httpApi.addRoute(route));
   }
 }
