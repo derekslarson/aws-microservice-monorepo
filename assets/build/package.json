@@ -22,7 +22,7 @@
     "url": "git+https://github.com/Yac-Team/yac-api-v4.git"
   },
   "scripts": {
-    "start": "tsc --watch --project tsconfig.json",
+    "dev": "tsc --watch --project tsconfig.json",
     "build": "rm -rf ./dist && tsc --project tsconfig.json"
   },
   "bugs": {

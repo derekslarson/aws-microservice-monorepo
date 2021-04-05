@@ -1,5 +1,7 @@
-import { Expose, CreateClientRequestBody } from "@yac/core";
+import { Expose } from "@yac/core";
 import { IsUrl, IsString, IsArray } from "class-validator";
+
+import { CreateClientRequestBody } from "../../api-contracts/createClient.post";
 
 export class CreateClientInputDto implements CreateClientRequestBody {
   @Expose()

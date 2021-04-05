@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import axios, { AxiosResponse } from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaArrowLeft, FaTimes, FaCheck } from 'react-icons/fa'
 
@@ -10,7 +9,7 @@ import Loader from './components/Loader'
 import './Login.scss'
 import useCookieSession from './hooks/useCookieSession'
 
-interface ILoginProps {}
+interface ILoginProps { }
 
 const variants = {
   entrance: (step: number) => {
@@ -46,7 +45,7 @@ function useQuery() {
   }
 }
 
-const Login: React.FC<ILoginProps> = ({}) => {
+const Login: React.FC<ILoginProps> = ({ }) => {
   const query = useQuery()
   const [otp, setOtp] = useState<string>('')
   const [email, setEmail] = useState<string>('')
@@ -83,21 +82,24 @@ const Login: React.FC<ILoginProps> = ({}) => {
         phone = /\+\d/.test(email) ? email : `+1${email}`
       }
       const url = new URL([CONFIG.BASE_URL.pathname, CONFIG.SIGN_IN_PATH].join(""), CONFIG.BASE_URL.origin);
-      const res = await axios
-        .post(
-          url.toString(),
-          phone
-            ? { phone }
+      const res: Response = await fetch(
+        url.toString(),
+        {
+          method: "POST",
+          body: JSON.stringify(phone
+            ? { 
+              phone
+            }
             : {
-                email
-              }
-        )
-        .catch((e) => e.response)
-
-      if (res.data.status) {
+              email
+            })
+        }
+      ).catch((e) => e.response)
+        const json = await res.json();
+      if (res.ok) {
         setRequest({
           status: 'DONE',
-          data: res.data.data
+          data: json
         })
         if (notifyOnDone) {
           setToaster({
@@ -113,9 +115,9 @@ const Login: React.FC<ILoginProps> = ({}) => {
           status: 'ERROR',
           data: {
             message:
-              res.data.statusCode === 400
+              res.status === 400
                 ? 'Invalid email format'
-                : res.data.message
+                : res.statusText
           }
         })
       }
@@ -135,25 +137,33 @@ const Login: React.FC<ILoginProps> = ({}) => {
     setRequest((state) => ({ ...state, status: 'LOADING' }))
     try {
       const url = new URL([CONFIG.BASE_URL.pathname, CONFIG.AUTHENTICATE_PATH].join("/"), CONFIG.BASE_URL.origin);
-      const res: AxiosResponse<IAuthenticateResponse> = await axios
-        .post<IAuthenticateResponse>(
-          url.toString() + `?client_id=${query.client_id}&redirect_id=${query.redirect_uri}`,
-          (data as IManualAuthenticate).email ?  {
-            confirmationCode: otp,
-            email: (data as IManualAuthenticate).email,
-            phone: (data as IManualAuthenticate).phone
-          } : {
-            session: (data as ITokenAuthenticate).token
+      const res: Response = await fetch(
+          url.toString() + `?client_id=${query.client_id}&redirect_uri=${query.redirect_uri}`,
+          {
+            method: "POST",
+            credentials: "include",
+            body: JSON.stringify((data as IManualAuthenticate).email ? {
+              confirmationCode: otp,
+              email: (data as IManualAuthenticate).email,
+              phone: (data as IManualAuthenticate).phone,
+              clientId: query.client_id,
+              redirectUri: query.redirect_uri,
+              session: request.data.session
+            } : {
+              session: (data as ITokenAuthenticate).token,
+              clientId: query.client_id,
+              redirectUri: query.redirect_uri,
+            })
           }
         )
         .catch((err) => {
           throw err.response
         })
-
-      if (res.data.success) {
+        const json: IAuthenticateResponse = await res.json();
+      if (res.ok) {
         setRequest({
           status: 'DONE',
-          data: res.data.data
+          data: json
         })
         setLoader({
           show: true,
@@ -169,7 +179,7 @@ const Login: React.FC<ILoginProps> = ({}) => {
         const redirect_uri = query.redirect_uri.replace(/\/$/, '')
         setTimeout(() =>
           window.location.replace(
-            `${redirect_uri}?code=${res.data.data.code}&state=${query.state}`
+            `${redirect_uri}?code=${json.authorizationCode}&state=${query.state}`
           )
         )
       }
@@ -345,9 +355,8 @@ const Login: React.FC<ILoginProps> = ({}) => {
       <AnimatePresence>
         {toaster.show && (
           <motion.div
-            className={`login__toaster ${
-              toaster.type === 'ERROR' ? 'login__toaster--error' : ''
-            } ${toaster.type === 'SUCCESS' ? 'login__toaster--success' : ''}`}
+            className={`login__toaster ${toaster.type === 'ERROR' ? 'login__toaster--error' : ''
+              } ${toaster.type === 'SUCCESS' ? 'login__toaster--success' : ''}`}
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             exit={{ y: -100 }}
@@ -381,8 +390,7 @@ const Login: React.FC<ILoginProps> = ({}) => {
 interface IManualAuthenticate { phone?: string; email?: string; otp: string };
 interface ITokenAuthenticate { token: string };
 interface IAuthenticateResponse {
-  success: boolean
-  data: { code: string }
+  authorizationCode: string
 }
 
 interface IRequest {

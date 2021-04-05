@@ -1,11 +1,13 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, CreateClientResponseBody, RequestPortion, DeleteClientResponseBody } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { CreateClientInputDto } from "../models/client/client.creation.input.model";
 import { ClientServiceInterface } from "../services/client.service";
 import { DeleteClientInputDto } from "../models/client/client.deletion.input.model";
+import { CreateClientResponseBody } from "../api-contracts/createClient.post";
+import { DeleteClientResponseBody } from "../api-contracts/deleteClient.delete";
 
 @injectable()
 export class ClientController extends BaseController implements ClientControllerInterface {

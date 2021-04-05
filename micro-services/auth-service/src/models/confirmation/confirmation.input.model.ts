@@ -1,6 +1,8 @@
 // eslint-disable-next-line max-classes-per-file
-import { ConfirmationRequestBody, ConfirmationRequestHeaders, Expose } from "@yac/core";
+import { Expose } from "@yac/core";
 import { IsEmail, IsString, IsUrl, Length } from "class-validator";
+
+import { ConfirmationRequestBody, ConfirmationRequestCookies } from "../../api-contracts/confirm.get";
 
 export class ConfirmationRequestBodyDto implements ConfirmationRequestBody {
   @Expose()
@@ -25,12 +27,12 @@ export class ConfirmationRequestBodyDto implements ConfirmationRequestBody {
   public redirectUri: string;
 }
 
-export class ConfirmationRequestHeadersDto implements ConfirmationRequestHeaders {
+export class ConfirmationRequestCookiesDto implements ConfirmationRequestCookies {
   @Expose()
   @IsString()
-  public "xsrf-token": string;
+  public "XSRF-TOKEN": string;
 }
 
 export interface ConfirmationInput extends ConfirmationRequestBodyDto {
-  xsrfToken: ConfirmationRequestHeadersDto["xsrf-token"]
+  xsrfToken: ConfirmationRequestCookiesDto["XSRF-TOKEN"]
 }

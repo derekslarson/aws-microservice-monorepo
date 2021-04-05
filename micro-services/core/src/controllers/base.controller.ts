@@ -4,6 +4,7 @@ import {
   Body,
   SuccessResponse,
   NotFoundResponse,
+  UnauthorizedResponse,
   InternalServerErrorResponse,
   BadRequestResponse,
   ForbiddenResponse,
@@ -17,6 +18,7 @@ import { BadRequestError } from "../errors/badRequest.error";
 import { ForbiddenError } from "../errors/forbidden.error";
 import { StatusCode } from "../enums/statusCode.enum";
 import { RequestValidationError } from "../errors/request.validation.error";
+import { UnauthorizedError } from "../errors/unauthorized.error";
 
 @injectable()
 export abstract class BaseController {
@@ -71,6 +73,10 @@ export abstract class BaseController {
       return this.generateBadRequestResponse(error.message);
     }
 
+    if (error instanceof UnauthorizedError) {
+      return this.generateUnauthorizedResponse(error.message);
+    }
+
     return this.generateInternalServerErrorResponse();
   }
 
@@ -79,6 +85,15 @@ export abstract class BaseController {
 
     return {
       statusCode: StatusCode.NotFound,
+      body: JSON.stringify(body),
+    };
+  }
+
+  private generateUnauthorizedResponse(errorMessage: string): UnauthorizedResponse {
+    const body = { message: errorMessage };
+
+    return {
+      statusCode: StatusCode.Unauthorized,
       body: JSON.stringify(body),
     };
   }

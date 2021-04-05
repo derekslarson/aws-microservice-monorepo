@@ -1,12 +1,10 @@
-import { Expose, LoginRequestBody } from "@yac/core";
-import { IsEmail, IsString } from "class-validator";
+import { Expose } from "@yac/core";
+import { IsEmail } from "class-validator";
+
+import { LoginRequestBody } from "../../api-contracts/login.post";
 
 export class LoginInputDto implements LoginRequestBody {
   @Expose()
   @IsEmail()
   public email: string;
-
-  @Expose()
-  @IsString()
-  public clientId: string;
 }

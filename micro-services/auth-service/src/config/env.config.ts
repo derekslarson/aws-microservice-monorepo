@@ -6,12 +6,13 @@ export const envConfig: EnvConfigInterface = {
   apiDomain: process.env.API_DOMAIN || "",
   tableNames: { clientsTableName: process.env.CLIENTS_TABLE_NAME || "" },
   mailSender: process.env.MAIL_SENDER || "",
+  authUI: process.env.YAC_AUTH_UI || "",
   userPool: {
     id: process.env.USER_POOL_ID || "",
     domain: process.env.USER_POOL_DOMAIN || "",
     yacClientId: process.env.YAC_USER_POOL_CLIENT_ID || "",
     yacClientSecret: process.env.YAC_USER_POOL_CLIENT_SECRET || "",
-
+    fakeClientCallbackURL: process.env.FAKED_ENDPOINT_COGNITO_CALLBACK || "",
   },
 };
 
@@ -21,10 +22,12 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   tableNames: {
     clientsTableName: string;
   };
+  authUI: string;
   userPool: {
     id: string;
     domain: string;
     yacClientId: string;
     yacClientSecret: string;
+    fakeClientCallbackURL: string;
   };
 }

@@ -8,7 +8,7 @@ import { Environment } from "../../src/enums/environment.enum";
 
 export interface IYacHttpServiceProps extends CDK.StackProps {
   serviceName: string
-  allowMethods?: ApiGatewayV2.HttpMethod[]
+  allowMethods?: ApiGatewayV2.CorsHttpMethod[]
 }
 
 const hostedZoneId = "Z2PLDO748H3Z0U";
@@ -26,6 +26,7 @@ export class YacHttpServiceStack extends CDK.Stack {
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
     const environment = this.node.tryGetContext("environment") as string;
+    const developer = this.node.tryGetContext("developer") as string;
 
     if (!environment) {
       throw new Error("'environment' context param required.");
@@ -47,8 +48,8 @@ export class YacHttpServiceStack extends CDK.Stack {
     });
     this.domainName = domainNameResource;
 
-    const origins = environment !== Environment.Prod ? [ "*" ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ];
-    const corsCacheMaxAge = environment !== Environment.Prod ? CDK.Duration.minutes(1000000) : CDK.Duration.minutes(60 * 12);
+    const origins = environment !== Environment.Prod ? [ `https://${developer}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ];
+    const corsCacheMaxAge = environment !== Environment.Prod ? CDK.Duration.minutes(300) : CDK.Duration.minutes(60 * 12);
     this.httpApi = new HttpApi(this, `${id}_Api`, {
       serviceName: props.serviceName,
       domainName: this.domainName,
@@ -56,9 +57,17 @@ export class YacHttpServiceStack extends CDK.Stack {
       recordName: this.recordName,
       corsPreflight: {
         allowOrigins: origins,
-        allowMethods: props.allowMethods || [ ApiGatewayV2.HttpMethod.GET, ApiGatewayV2.HttpMethod.POST, ApiGatewayV2.HttpMethod.OPTIONS, ApiGatewayV2.HttpMethod.PATCH, ApiGatewayV2.HttpMethod.PUT ],
+        allowMethods: props.allowMethods || [
+          ApiGatewayV2.CorsHttpMethod.GET,
+          ApiGatewayV2.CorsHttpMethod.POST,
+          ApiGatewayV2.CorsHttpMethod.PATCH,
+          ApiGatewayV2.CorsHttpMethod.DELETE,
+          ApiGatewayV2.CorsHttpMethod.HEAD,
+          ApiGatewayV2.CorsHttpMethod.OPTIONS,
+        ],
         // just dev purposes
         maxAge: corsCacheMaxAge,
+        allowCredentials: true,
       },
     });
   }

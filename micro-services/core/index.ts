@@ -18,6 +18,7 @@ export * from "./src/errors/badRequest.error";
 export * from "./src/errors/base.error";
 export * from "./src/errors/forbidden.error";
 export * from "./src/errors/notFound.error";
+export * from "./src/errors/unauthorized.error";
 
 export * from "./src/factories/axios.factory";
 export * from "./src/factories/classTransformer.factory";

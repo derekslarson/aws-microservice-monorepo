@@ -33,17 +33,13 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("signUp called", { signUpInput }, this.constructor.name);
 
-      if (signUpInput.clientId !== this.config.userPool.yacClientId) {
-        throw new ForbiddenError("Forbidden");
-      }
-
       const secretHash = this.createUserPoolClientSecretHash(signUpInput.email);
 
       const signUpParams: CognitoIdentityServiceProvider.Types.SignUpRequest = {
         ClientId: this.config.userPool.yacClientId,
         SecretHash: secretHash,
         Username: signUpInput.email,
-        Password: this.config.secret,
+        Password: `YAC-${this.config.secret}`,
       };
 
       await this.cognito.signUp(signUpParams).promise();
@@ -57,10 +53,6 @@ export class AuthenticationService implements AuthenticationServiceInterface {
   public async login(loginInput: LoginInputDto): Promise<{ session: string; }> {
     try {
       this.loggerService.trace("login called", { loginInput }, this.constructor.name);
-
-      if (loginInput.clientId !== this.config.userPool.yacClientId) {
-        throw new ForbiddenError("Forbidden");
-      }
 
       const authChallenge = this.crypto.randomDigits(6).join("");
 
@@ -109,6 +101,10 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("confirm called", { confirmationInput }, this.constructor.name);
 
+      if (confirmationInput.redirectUri === this.config.userPool.fakeClientCallbackURL) {
+        throw new ForbiddenError("Forbidden");
+      }
+
       const secretHash = this.createUserPoolClientSecretHash(confirmationInput.email);
 
       const respondToAuthChallengeParams: CognitoIdentityServiceProvider.Types.AdminRespondToAuthChallengeRequest = {
@@ -140,12 +136,16 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("getAuthorizationCode called", { username, clientId, redirectUri, xsrfToken }, this.constructor.name);
 
-      const data = `_csrf=${xsrfToken}&username=${username}&password=${this.config.secret}`;
+      if (redirectUri === this.config.userPool.fakeClientCallbackURL) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const data = `_csrf=${xsrfToken}&username=${username}&password=YAC-${this.config.secret}`;
 
       const queryParameters = {
         response_type: "code",
         client_id: clientId,
-        redirect_uri: redirectUri,
+        redirect_uri: this.config.userPool.fakeClientCallbackURL,
       };
 
       const headers = {
@@ -153,9 +153,15 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         Cookie: `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`,
       };
 
-      const loginResponse = await this.httpRequestService.post(`${this.config.userPool.domain}/login`, data, queryParameters, headers);
+      const loginResponse = await this.httpRequestService.post(`${this.config.userPool.domain}/login`, data, queryParameters, headers, {
+        validateStatus(status: number) {
+          return status >= 200 && status < 600;
+        }
+      });
 
       const redirectPath = loginResponse.redirect?.path;
+
+      console.log({ redirectPath, login: loginResponse });
 
       if (!redirectPath) {
         throw new Error("redirect path missing in response");

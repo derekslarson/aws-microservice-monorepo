@@ -41,7 +41,7 @@ export interface SeeOtherResponse extends Response {
   statusCode: StatusCode.SeeOther;
   headers: {
     Location: string;
-  }
+  } & Record<string, string>
 }
 
 export interface BadRequestResponse extends Response {
@@ -54,6 +54,10 @@ export interface ForbiddenResponse extends Response {
 
 export interface NotFoundResponse extends Response {
   statusCode: StatusCode.NotFound;
+}
+
+export interface UnauthorizedResponse extends Response {
+  statusCode: StatusCode.Unauthorized;
 }
 
 export interface InternalServerErrorResponse extends Response {

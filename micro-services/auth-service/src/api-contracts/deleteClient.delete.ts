@@ -2,7 +2,7 @@ import { HttpMethod } from "@aws-cdk/aws-apigatewayv2";
 
 export type DeleteClientMethod = HttpMethod.DELETE;
 
-export type DeleteClientPath = `/clients/${string}`;
+export type DeleteClientPath = `/oauth2/clients/${string}`;
 
 export type DeleteClientIdPathParameter = string;
 

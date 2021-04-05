@@ -1,14 +1,18 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, SignUpResponseBody, ConfirmationResponseBody, LoginResponseBody, RequestPortion } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, UnauthorizedError } from "@yac/core";
+
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
 import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
 import { LoginInputDto } from "../models/login/login.input.model";
 import { Oauth2AuthorizeInputDto } from "../models/oauth2-authorize/oauth2.authorize.input.model";
-import { ConfirmationInput, ConfirmationRequestBodyDto, ConfirmationRequestHeadersDto } from "../models/confirmation/confirmation.input.model";
+import { ConfirmationInput, ConfirmationRequestBodyDto, ConfirmationRequestCookiesDto } from "../models/confirmation/confirmation.input.model";
 import { EnvConfigInterface } from "../config/env.config";
+import { SignUpResponseBody } from "../api-contracts/signUp.post";
+import { ConfirmationResponseBody, ConfirmationRequestCookies } from "../api-contracts/confirm.get";
+import { LoginResponseBody } from "../api-contracts/login.post";
 
 @injectable()
 export class AuthenticationController extends BaseController implements AuthenticationControllerInterface {
@@ -29,7 +33,7 @@ export class AuthenticationController extends BaseController implements Authenti
 
       await this.authenticationService.signUp(signUpInput);
 
-      const { session } = await this.authenticationService.login({ email: signUpInput.email, clientId: signUpInput.clientId });
+      const { session } = await this.authenticationService.login({ email: signUpInput.email });
 
       const responseBody: SignUpResponseBody = { session };
 
@@ -62,13 +66,22 @@ export class AuthenticationController extends BaseController implements Authenti
   public async confirm(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
-
-      const confirmationRequestHeaders = await this.validationService.validate(ConfirmationRequestHeadersDto, RequestPortion.Headers, request.headers);
+      if (request.cookies == null) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        throw new UnauthorizedError("Unauthorized request");
+      }
+      const cookies: ConfirmationRequestCookies = request.cookies?.reduce((acc, str: string) => {
+        const [ key, value ] = str.split("=");
+        if (acc[key] != null) return acc;
+        return { ...acc, [key]: value };
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      }, {} as {[key: string]: any}) as unknown as {"XSRF-TOKEN": string};
+      const confirmationRequestHeaders = await this.validationService.validate(ConfirmationRequestCookiesDto, RequestPortion.Cookies, cookies as unknown as Record<string, unknown>);
       const confirmationRequestBody = await this.validationService.validate(ConfirmationRequestBodyDto, RequestPortion.Body, request.body);
 
       const confirmationRequestInput: ConfirmationInput = {
         ...confirmationRequestBody,
-        xsrfToken: confirmationRequestHeaders["xsrf-token"],
+        xsrfToken: confirmationRequestHeaders["XSRF-TOKEN"],
       };
 
       const { authorizationCode } = await this.authenticationService.confirm(confirmationRequestInput);
@@ -86,16 +99,15 @@ export class AuthenticationController extends BaseController implements Authenti
   public async oauth2Authorize(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("oauth2Authorize called", { request }, this.constructor.name);
-
       const oauth2AuthorizeInput = await this.validationService.validate(Oauth2AuthorizeInputDto, RequestPortion.QueryParameters, request.queryStringParameters);
-
       const { xsrfToken } = await this.authenticationService.getXsrfToken(oauth2AuthorizeInput.clientId, oauth2AuthorizeInput.redirectUri);
 
       if (oauth2AuthorizeInput.clientId === this.config.userPool.yacClientId) {
         return this.generateSuccessResponse({ xsrfToken });
       }
-
-      return this.generateSeeOtherResponse("https://example.com", {}, [ `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax` ]);
+      return this.generateSeeOtherResponse(`${this.config.authUI}?client_id=${oauth2AuthorizeInput.clientId}&redirect_uri=${oauth2AuthorizeInput.redirectUri}`,
+        {},
+        [ `XSRF-TOKEN=${xsrfToken}; Path=/; Domain=${request.headers.host as string}; Secure; HttpOnly; SameSite=Lax` ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in oauth2Authorize", { error, request }, this.constructor.name);
 
@@ -103,7 +115,7 @@ export class AuthenticationController extends BaseController implements Authenti
     }
   }
 }
-export type AuthenticationControllerConfigInterface = Pick<EnvConfigInterface, "userPool">;
+export type AuthenticationControllerConfigInterface = Pick<EnvConfigInterface, "userPool" | "authUI">;
 
 export interface AuthenticationControllerInterface {
   signUp(request: Request): Promise<Response>;

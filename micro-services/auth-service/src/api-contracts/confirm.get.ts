@@ -7,13 +7,13 @@ export type ConfirmPath = "/confirm";
 export interface ConfirmationRequestBody {
   email: string;
   confirmationCode: string;
-  clientId: string;
   session: string;
+  clientId: string;
   redirectUri: string;
 }
 
-export interface ConfirmationRequestHeaders {
-  "xsrf-token": string;
+export interface ConfirmationRequestCookies {
+  "XSRF-TOKEN": string;
 }
 
 export interface ConfirmationResponseBody {

@@ -6,7 +6,6 @@ import * as Cognito from "@aws-cdk/aws-cognito";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as CustomResources from "@aws-cdk/custom-resources";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import * as S3 from "@aws-cdk/aws-s3";
 import * as CloudFront from "@aws-cdk/aws-cloudfront";
 import * as CFOrigins from "@aws-cdk/aws-cloudfront-origins";
@@ -19,13 +18,13 @@ import {
   ExportNames,
   ProxyRouteProps,
 } from "@yac/core";
+import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stacks/yac.http.service.stack";
 import { SignUpMethod, SignUpPath } from "../../src/api-contracts/signUp.post";
 import { LoginMethod, LoginPath } from "../../src/api-contracts/login.post";
 import { ConfirmMethod, ConfirmPath } from "../../src/api-contracts/confirm.get";
 import { CreateClientMethod, CreateClientPath } from "../../src/api-contracts/createClient.post";
 import { DeleteClientMethod, DeleteClientPath } from "../../src/api-contracts/deleteClient.delete";
 import { Oauth2AuthorizeMethod, Oauth2AuthorizePath } from "../../src/api-contracts/oauth2.authorize.get";
-import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stacks/yac.http.service.stack";
 
 export type IYacAuthServiceStackProps = IYacHttpServiceProps;
 
@@ -49,6 +48,38 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
       compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
       code: Lambda.Code.fromAsset("dist/dependencies"),
+    });
+
+    // Declare bucket for AUTH_UI page
+    const envString = environment === Environment.Local ? `${this.node.tryGetContext("developer") as string}-stage` : environment;
+    const websiteBucket = new S3.Bucket(this, `${envString}-idYacCom`, {
+      websiteIndexDocument: "index.html",
+      publicReadAccess: true,
+    });
+
+    const distributionOriginRequestPolicy = new CloudFront.OriginRequestPolicy(this, `${envString}-idYacComDistributionOriginRequestPolicy`, {
+      originRequestPolicyName: `${envString}-idYacComDistributionOriginRequestPolicy`,
+      cookieBehavior: {
+        behavior: "whitelist",
+        cookies: [ "XSRF-TOKEN" ],
+      },
+    });
+
+    const websiteDistribution = new CloudFront.Distribution(this, `${envString}-idYacComDistribution`, {
+      defaultBehavior: {
+        origin: new CFOrigins.S3Origin(websiteBucket),
+        originRequestPolicy: { originRequestPolicyId: distributionOriginRequestPolicy.originRequestPolicyId },
+      },
+      certificate: this.certificate,
+      domainNames: [ `${this.recordName}-assets.${this.zoneName}` ],
+    });
+
+    this.websiteBucket = websiteBucket;
+
+    const cnameRecord = new Route53.CnameRecord(this, `${id}-CnameRecord`, {
+      domainName: websiteDistribution.distributionDomainName,
+      zone: this.hostedZone,
+      recordName: `${this.recordName}-assets`,
     });
 
     // User Pool and Yac Client
@@ -83,7 +114,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const clientScopes = resourceServerScopes.map((scopeItem) => ({ scopeName: `${resourceServerIdentifier}/${scopeItem.scopeName}` }));
 
-    const yacUserPoolClientRedirectUri = "https://example.com";
+    const yacUserPoolClientRedirectUri = `https://${cnameRecord.domainName}`;
 
     const yacUserPoolClient = new Cognito.UserPoolClient(this, `YacUserPoolClient_${id}`, {
       userPool,
@@ -126,41 +157,19 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const basePolicy: IAM.PolicyStatement[] = [];
 
-    // Declare bucket for AUTH_UI page
-    const envString = environment === Environment.Local ? `${this.node.tryGetContext("developer") as string}-stage` : environment;
-    const websiteBucket = new S3.Bucket(this, `${envString}-idYacCom`, {
-      websiteIndexDocument: "index.html",
-      publicReadAccess: true,
-    });
-
-    const websiteDistribution = new CloudFront.Distribution(this, `${envString}-idYacComDistribution`, {
-      defaultBehavior: { origin: new CFOrigins.S3Origin(websiteBucket) },
-      certificate: this.certificate,
-      domainNames: [ `${this.recordName}-assets.${this.zoneName}` ],
-    });
-
-    this.websiteBucket = websiteBucket;
-
-    new Route53.CnameRecord(this, `${id}-CnameRecord`, {
-      domainName: websiteDistribution.distributionDomainName,
-      zone: this.hostedZone,
-      recordName: `${this.recordName}-assets`,
-    });
-
-    new CDK.CfnOutput(this, "idYacCom", { value: websiteDistribution.distributionDomainName });
-
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       SECRET: secret,
       ENVIRONMENT: environment,
+      FAKED_ENDPOINT_COGNITO_CALLBACK: `https://${this.recordName}.yacchat.com/this-will-fail/its-intended-tho/callback/${Date.now()}`,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       API_DOMAIN: `https://${this.httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`,
       USER_POOL_ID: userPool.userPoolId,
       USER_POOL_DOMAIN: userPoolDomainUrl,
       YAC_USER_POOL_CLIENT_ID: yacUserPoolClient.userPoolClientId,
       YAC_USER_POOL_CLIENT_SECRET: yacUserPoolClientSecret,
-      MAIL_SENDER: "derek@yac.com",
-      AUTH_UI: websiteDistribution.distributionDomainName,
+      MAIL_SENDER: "no-reply@yac.com",
+      YAC_AUTH_UI: yacUserPoolClientRedirectUri,
     };
 
     // Handlers
@@ -285,7 +294,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     };
 
     const createClientRoute: RouteProps<CreateClientPath, CreateClientMethod> = {
-      path: "/oauht2/clients",
+      path: "/oauth2/clients",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: createClientHandler,
     };
@@ -293,13 +302,13 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const deleteClientRoute: RouteProps<DeleteClientPath, DeleteClientMethod> = {
       path: "/oauth2/clients/{id}",
       method: ApiGatewayV2.HttpMethod.DELETE,
-      handler: createClientHandler,
+      handler: deleteClientHandler,
     };
 
     const oauth2AuthorizeRoute: RouteProps<Oauth2AuthorizePath, Oauth2AuthorizeMethod> = {
       path: "/oauth2/authorize",
       method: ApiGatewayV2.HttpMethod.GET,
-      handler: createClientHandler,
+      handler: oauth2AuthorizeHandler,
     };
 
     const routes: RouteProps<string, ApiGatewayV2.HttpMethod>[] = [

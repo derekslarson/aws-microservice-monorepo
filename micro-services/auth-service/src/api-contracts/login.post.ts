@@ -6,7 +6,6 @@ export type LoginPath = "/login";
 
 export interface LoginRequestBody {
   email: string;
-  clientId: string;
 }
 
 export interface LoginResponseBody {

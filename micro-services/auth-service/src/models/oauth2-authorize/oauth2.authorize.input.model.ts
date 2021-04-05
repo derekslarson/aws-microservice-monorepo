@@ -1,5 +1,7 @@
-import { Expose, Oauth2AuthorizeRequestQueryParameters } from "@yac/core";
+import { Expose } from "@yac/core";
 import { IsArray, IsOptional, IsString, IsUrl } from "class-validator";
+
+import { Oauth2AuthorizeRequestQueryParameters } from "../../api-contracts/oauth2.authorize.get";
 
 export class Oauth2AuthorizeInputDto implements Oauth2AuthorizeRequestQueryParameters {
   @Expose()

@@ -1,6 +1,6 @@
 import { inject, injectable } from "inversify";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { ForbiddenError, LoggerServiceInterface, NotFoundError } from "@yac/core";
+import { BadRequestError, ForbiddenError, LoggerServiceInterface, NotFoundError } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CreateClientInputDto } from "../models/client/client.creation.input.model";
@@ -22,11 +22,15 @@ export class ClientService implements ClientServiceInterface {
     try {
       this.loggerService.trace("createClient called", { createClientInput }, this.constructor.name);
 
+      if (createClientInput.redirectUri === this.config.userPool.fakeClientCallbackURL) {
+        throw new BadRequestError("Given `redirectUri` is reserved.");
+      }
+
       const createClientParams: CognitoIdentityServiceProvider.Types.CreateUserPoolClientRequest = {
         UserPoolId: this.config.userPool.id,
         ClientName: createClientInput.name,
         GenerateSecret: true,
-        CallbackURLs: [ createClientInput.redirectUri ],
+        CallbackURLs: [ createClientInput.redirectUri, this.config.userPool.fakeClientCallbackURL ],
         SupportedIdentityProviders: [ "COGNITO" ],
         ExplicitAuthFlows: [ "ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH" ],
         AllowedOAuthFlows: [ "code" ],
