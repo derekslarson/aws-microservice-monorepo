@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { ForbiddenError, HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
+import { HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
@@ -101,10 +101,6 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("confirm called", { confirmationInput }, this.constructor.name);
 
-      if (confirmationInput.redirectUri === this.config.userPool.fakeClientCallbackURL) {
-        throw new ForbiddenError("Forbidden");
-      }
-
       const secretHash = this.createUserPoolClientSecretHash(confirmationInput.email);
 
       const respondToAuthChallengeParams: CognitoIdentityServiceProvider.Types.AdminRespondToAuthChallengeRequest = {
@@ -136,16 +132,12 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("getAuthorizationCode called", { username, clientId, redirectUri, xsrfToken }, this.constructor.name);
 
-      if (redirectUri === this.config.userPool.fakeClientCallbackURL) {
-        throw new ForbiddenError("Forbidden");
-      }
-
       const data = `_csrf=${xsrfToken}&username=${username}&password=YAC-${this.config.secret}`;
 
       const queryParameters = {
         response_type: "code",
         client_id: clientId,
-        redirect_uri: this.config.userPool.fakeClientCallbackURL,
+        redirect_uri: redirectUri,
       };
 
       const headers = {
@@ -156,12 +148,11 @@ export class AuthenticationService implements AuthenticationServiceInterface {
       const loginResponse = await this.httpRequestService.post(`${this.config.userPool.domain}/login`, data, queryParameters, headers, {
         validateStatus(status: number) {
           return status >= 200 && status < 600;
-        }
+        },
+        maxRedirects: 0,
       });
 
       const redirectPath = loginResponse.redirect?.path;
-
-      console.log({ redirectPath, login: loginResponse });
 
       if (!redirectPath) {
         throw new Error("redirect path missing in response");
@@ -220,27 +211,6 @@ export class AuthenticationService implements AuthenticationServiceInterface {
       throw error;
     }
   }
-
-  // private async getAccessToken(authorizationCode: string, clientId: string, clientSecret: string, redirectUri: string, username: string, scopes: string[] = []): Promise<string> {
-  //   try {
-  //     this.loggerService.trace("getAccessToken called", { username }, this.constructor.name);
-
-  //     const data = `grant_type=authorization_code&code=${authorizationCode}&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes.join(" ")}`;
-
-  //     const headers = {
-  //       "Content-Type": "application/x-www-form-urlencoded",
-  //       Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
-  //     };
-
-  //     const tokenResponse = await this.httpRequestService.post<{ access_token: string }>(`${this.config.userPool.domain}/oauth2/token`, data, {}, headers);
-
-  //     return tokenResponse.body.access_token;
-  //   } catch (error: unknown) {
-  //     this.loggerService.error("Error in getAccessToken", { error, username }, this.constructor.name);
-
-  //     throw error;
-  //   }
-  // }
 }
 
 export type AuthenticationServiceConfigInterface = Pick<EnvConfigInterface, "userPool" | "apiDomain" | "secret">;
@@ -251,92 +221,3 @@ export interface AuthenticationServiceInterface {
   confirm(confirmationInput: ConfirmationInput): Promise<{ authorizationCode: string }>;
   getXsrfToken(clientId: string, redirectUri: string): Promise<{ xsrfToken: string }>;
 }
-
-// async function getXsrfToken(domain: string, clientId: string, clientRedirectUri: string): Promise<string> {
-//   try {
-//     const axios = axiosFactory();
-
-//     const authorizeResponse = await axios.request({
-//       baseURL: domain,
-//       url: `/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${clientRedirectUri}`,
-//       method: "GET",
-//     });
-
-//     const setCookieHeader = (authorizeResponse.headers as Record<string, string[]>)["set-cookie"];
-
-//     const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
-
-//     const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
-
-//     console.log("xsrfToken: ", xsrfToken);
-
-//     return xsrfToken;
-//   } catch (error: unknown) {
-//     console.log("Error:\n", error);
-
-//     throw error;
-//   }
-// }
-
-// async function getAccessToken(authorizationCode: string, clientId: string, clientSecret: string, redirectUri: string, scopes: string[] = []): Promise<string> {
-//   try {
-//     const axios = axiosFactory();
-
-//     const data = `grant_type=authorization_code&code=${authorizationCode}&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes.join(" ")}`;
-
-//     const headers = {
-//       "Content-Type": "application/x-www-form-urlencoded",
-//       Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
-//     };
-
-//     const tokenResponse = await axios.request<{ access_token: string }>({
-//       headers,
-//       baseURL: "https://yac-auth-service.auth.us-east-2.amazoncognito.com",
-//       url: "/oauth2/token",
-//       data,
-//       method: "POST",
-//     });
-
-//     console.log(tokenResponse.data);
-//     return tokenResponse.data.access_token;
-//   } catch (error: unknown) {
-//     console.log("Error:\n", error);
-
-//     throw error;
-//   }
-// }
-
-// async function getAuthorizationCode(username: string, clientId: string, redirectUri: string, xsrfToken: string): Promise<string> {
-//   try {
-//     const data = `_csrf=${xsrfToken}&username=${username}&password=425cf4d1-f680-49cc-A4fd-69769c5b7356!`;
-
-//     const queryParameters = {
-//       response_type: "code",
-//       client_id: clientId,
-//       redirect_uri: redirectUri,
-//     };
-
-//     const headers = {
-//       "Content-Type": "application/x-www-form-urlencoded",
-//       Cookie: `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`,
-//     };
-
-//     const { request } = await axios.post("https://yac-auth-service.auth.us-east-2.amazoncognito.com/login", data, { headers, params: queryParameters });
-
-//     console.log(request)
-
-//     const redirectPath = request.path;
-
-//     if (!redirectPath) {
-//       throw new Error("redirect path missing in response");
-//     }
-
-//     const [ , authorizationCode ] = redirectPath.split("=");
-
-//     return authorizationCode;
-//   } catch (error: unknown) {
-//     console.log("Error:\n", error)
-
-//     throw error;
-//   }
-// }

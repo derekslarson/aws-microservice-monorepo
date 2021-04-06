@@ -107,7 +107,7 @@ export class HttpRequestService implements HttpRequestServiceInterface {
       this.loggerService.trace("convertAxiosResponseToStandardResponse called", {}, this.constructor.name);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const { data, status, headers = {}, request } = axiosResponse;
+      const { data, status, headers = {} } = axiosResponse;
 
       const response: ResponseWithParsedBody<T> = {
         statusCode: status,
@@ -115,7 +115,7 @@ export class HttpRequestService implements HttpRequestServiceInterface {
         headers: headers as ResponseWithParsedBody<T>["headers"],
       };
 
-      const potentialRedirectPath = (request as Record<string, unknown>)?.path;
+      const potentialRedirectPath = response.statusCode >= 300 && response.statusCode < 400 && response.headers.location;
       const redirectPath = typeof potentialRedirectPath === "string" && potentialRedirectPath;
 
       if (redirectPath) {

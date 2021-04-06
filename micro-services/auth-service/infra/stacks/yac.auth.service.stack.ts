@@ -161,7 +161,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const environmentVariables: Record<string, string> = {
       SECRET: secret,
       ENVIRONMENT: environment,
-      FAKED_ENDPOINT_COGNITO_CALLBACK: `https://${this.recordName}.yacchat.com/this-will-fail/its-intended-tho/callback/${Date.now()}`,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       API_DOMAIN: `https://${this.httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`,
       USER_POOL_ID: userPool.userPoolId,

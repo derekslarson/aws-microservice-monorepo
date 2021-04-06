@@ -11,8 +11,7 @@ export const envConfig: EnvConfigInterface = {
     id: process.env.USER_POOL_ID || "",
     domain: process.env.USER_POOL_DOMAIN || "",
     yacClientId: process.env.YAC_USER_POOL_CLIENT_ID || "",
-    yacClientSecret: process.env.YAC_USER_POOL_CLIENT_SECRET || "",
-    fakeClientCallbackURL: process.env.FAKED_ENDPOINT_COGNITO_CALLBACK || "",
+    yacClientSecret: process.env.YAC_USER_POOL_CLIENT_SECRET || ""
   },
 };
 
@@ -28,6 +27,5 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     domain: string;
     yacClientId: string;
     yacClientSecret: string;
-    fakeClientCallbackURL: string;
   };
 }
