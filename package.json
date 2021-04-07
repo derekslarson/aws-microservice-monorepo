@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": [
     "micro-services/*",
-    "assets/*"
+    "assets/build"
   ],
   "version": "0.1.0",
   "license": "MIT",
@@ -44,6 +44,9 @@
     "@types/jasmine": "^3.6.4",
     "@types/jsonwebtoken": "^8.5.0",
     "@types/node": "10.17.27",
+    "@types/react": "^17.0.3",
+    "@types/react-dom": "^17.0.3",
+    "@types/testing-library__dom": "^7.5.0",
     "@types/uuid": "^8.3.0",
     "@typescript-eslint/eslint-plugin": "^4.15.2",
     "aws-cdk": "^1.94.0",
@@ -75,6 +78,9 @@
     "serialize-error": "^7.0.1",
     "source-map-support": "^0.5.16",
     "uuid": "^8.3.1"
+  },
+  "resolutions": {
+    "@types/jasmine": "^3.6.4"
   },
   "volta": {
     "node": "15.11.0",

@@ -1,7 +1,7 @@
 {
   "packages": [
     "micro-services/*",
-    "assets/*"
+    "assets/build"
   ],
   "version": "independent",
   "npmClient": "yarn",

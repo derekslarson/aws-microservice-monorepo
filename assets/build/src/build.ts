@@ -47,21 +47,12 @@ export async function buildAssets(serviceName: string, options: {env?: TEnvVars,
       envString = parseEnvVars(options.env, options.type);
     }
 
-    // dangerous as fuck, but works so...
-    // const originalCwd = process.cwd;
-    // process.cwd = () => assetsPath;
-    // const config = require(CONFIGS[options.type](assetsPath));
-    // console.log({...config()})
-    // process.cwd = originalCwd;
-    // console.log(`${envString} yarn workspace @yac-assets/${serviceName} build`);
     console.log("======================================================\nBuilding asset for deployments\n");
     console.log("ℹ️   Asset Type: ", options.type); 
     console.log("ℹ️   Enviroment Variables: ", options.env); 
     console.log("\n\n");
     await createEnvFile(envString, assetsPath);
-    await exec(`yarn workspace @yac-assets/${serviceName} build`);
-    // console.log({...config("production")})
-    // webpack(config());
+    await exec(`yarn --cwd ${assetsPath} build`);
 
     distPath = path.join(assetsPath, options.type === EAssetsType.REACT ? "/build" : "/dist");
     console.log(`${greenCheck} Asset built successfully: `, distPath);
