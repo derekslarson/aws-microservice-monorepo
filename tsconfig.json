@@ -28,7 +28,7 @@
     "baseUrl": "/",
     "paths": {
       "@yac-assets/*": [
-        "assets/*"
+        "assets/build/"
       ],
       "@yac/*": [
         "micro-services/*"
