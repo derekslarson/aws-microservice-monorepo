@@ -50,10 +50,21 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     };
 
     // Handlers
-    const imageResolverHandler = new Lambda.Function(this, `ImageResolver_${id}`, {
+    const imageHandler = new Lambda.Function(this, `Image_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/imageResolver"),
-      handler: "imageResolver.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/image"),
+      handler: "image.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    // Handlers
+    const callbackHandler = new Lambda.Function(this, `Callback_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/callback"),
+      handler: "callback.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy ],
@@ -61,14 +72,19 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     });
 
     // permissions for the handler
-    table.grantReadWriteData(imageResolverHandler);
+    table.grantReadWriteData(imageHandler);
+    table.grantReadWriteData(callbackHandler);
 
     // Lambda Routes
     const routes: RouteProps[] = [
       {
         path: "/{folder}/{messageId}/thumbnail.gif",
         method: ApiGatewayV2.HttpMethod.GET,
-        handler: imageResolverHandler,
+        handler: imageHandler,
+      }, {
+        path: "/bannerbear/callback",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: callbackHandler,
       },
     ];
 
