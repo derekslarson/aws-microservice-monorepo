@@ -11,7 +11,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   try {
     loggerService.trace("imageResolver called", { event }, "imageResolver handler");
 
-    return {};
+    return { statusCode: 302, headers: { Location: "https://yac-resources.s3.amazonaws.com/mediaplayer_thumb.png" } };
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
     loggerService.error("Catastrophic error in imageResolver handler", { error, event }, "imageResolver handler");

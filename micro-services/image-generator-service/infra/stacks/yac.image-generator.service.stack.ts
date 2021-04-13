@@ -43,9 +43,9 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     const environmentVariables: Record<string, string> = {
       STACK_NAME: id,
       ENVIRONMENT: environment,
-      IMAGE_DYNAMO_TABLE: table.tableName,
-      DYNAMO_REGION: table.env.region,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
+      IMAGES_DYNAMO_TABLE_NAME: table.tableName,
+      DYNAMO_REGION: table.env.region,
       YAC_API_URL: "https://api-v3.yacchat.com/api",
     };
 
@@ -66,8 +66,8 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     // Lambda Routes
     const routes: RouteProps[] = [
       {
-        path: "/image/{messageId}",
-        method: ApiGatewayV2.HttpMethod.POST,
+        path: "/{folder}/{messageId}/thumbnail.gif",
+        method: ApiGatewayV2.HttpMethod.GET,
         handler: imageResolverHandler,
       },
     ];

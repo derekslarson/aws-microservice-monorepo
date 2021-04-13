@@ -3,16 +3,15 @@ import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/core";
 export const envConfig: EnvConfigInterface = {
   secret: process.env.SECRET || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
-  tableNames: {},
-  userPoolClientId: process.env.USER_POOL_CLIENT_ID || "",
-  userPoolClientSecret: process.env.USER_POOL_CLIENT_SECRET || "",
-  userPoolClientRedirectUri: process.env.USER_POOL_CLIENT_REDIRECT_URI || "",
-  authServiceDomain: process.env.AUTH_SERVICE_DOMAIN || "",
+  tableNames: { IMAGES: process.env.IMAGES_DYNAMO_TABLE_NAME || "" },
+  yacApiUrl: process.env.YAC_API_URL || "",
+  dynamoRegion: process.env.DYNAMO_REGION || "",
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
-  userPoolClientId: string;
-  userPoolClientSecret: string;
-  userPoolClientRedirectUri: string;
-  authServiceDomain: string;
+  dynamoRegion: string,
+  tableNames: {
+    IMAGES: string
+  }
+  yacApiUrl: string,
 }
