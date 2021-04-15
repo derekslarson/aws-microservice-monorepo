@@ -9,12 +9,12 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
   try {
-    loggerService.trace("imageResolver called", { event }, "imageResolver handler");
+    loggerService.trace("imageRetrieve called", { event }, "imageRetrieve handler");
 
     return {};
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
-    loggerService.error("Catastrophic error in imageResolver handler", { error, event }, "imageResolver handler");
+    loggerService.error("Catastrophic error in imageRetrieve handler", { error, event }, "imageRetrieve handler");
 
     return generateInternalServerErrorResponse(error);
   }

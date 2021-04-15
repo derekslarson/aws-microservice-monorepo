@@ -50,17 +50,26 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     };
 
     // Handlers
-    const imageHandler = new Lambda.Function(this, `Image_${id}`, {
+    const imageHandler = new Lambda.Function(this, `ImageRetrieve_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/image"),
-      handler: "image.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/imageRetrieve"),
+      handler: "imageRetrieve.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy ],
       timeout: CDK.Duration.seconds(15),
     });
 
-    // Handlers
+    const imageTaskHandler = new Lambda.Function(this, `ImagePush_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/imagePush"),
+      handler: "imagePush.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const callbackHandler = new Lambda.Function(this, `Callback_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/callback"),
@@ -72,8 +81,9 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     });
 
     // permissions for the handler
-    table.grantReadWriteData(imageHandler);
-    table.grantReadWriteData(callbackHandler);
+    table.grantReadData(imageHandler);
+    table.grantWriteData(callbackHandler);
+    table.grantReadWriteData(imageTaskHandler);
 
     // Lambda Routes
     const routes: RouteProps[] = [
@@ -82,6 +92,11 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
         method: ApiGatewayV2.HttpMethod.GET,
         handler: imageHandler,
       }, {
+        path: "/{folder}/{messageId}/thumbnail",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: imageHandler,
+      },
+      {
         path: "/bannerbear/callback",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: callbackHandler,
