@@ -50,7 +50,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     };
 
     // Handlers
-    const imageHandler = new Lambda.Function(this, `ImageRetrieve_${id}`, {
+    const imageRetrieveHandler = new Lambda.Function(this, `ImageRetrieve_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/imageRetrieve"),
       handler: "imageRetrieve.handler",
@@ -81,7 +81,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     });
 
     // permissions for the handler
-    table.grantReadData(imageHandler);
+    table.grantReadData(imageRetrieveHandler);
     table.grantWriteData(callbackHandler);
     table.grantReadWriteData(imageTaskHandler);
 
@@ -90,11 +90,11 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       {
         path: "/{folder}/{messageId}/thumbnail.gif",
         method: ApiGatewayV2.HttpMethod.GET,
-        handler: imageHandler,
+        handler: imageRetrieveHandler,
       }, {
         path: "/{folder}/{messageId}/thumbnail",
         method: ApiGatewayV2.HttpMethod.POST,
-        handler: imageHandler,
+        handler: imageTaskHandler,
       },
       {
         path: "/bannerbear/callback",
