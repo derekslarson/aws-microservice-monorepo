@@ -4,20 +4,20 @@ import { BaseDynamoRepository, IdServiceInterface, DocumentClientFactory, Logger
 
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { ImageInterface } from "../models/image.model";
+import { MediaInterface } from "../models/media.model";
 
 @injectable()
-export class ImageDynamoRepository extends BaseDynamoRepository<ImageInterface> implements ImageDynamoRepositoryInterface {
+export class MediaDynamoRepository extends BaseDynamoRepository<MediaInterface> implements MediaDynamoRepositoryInterface {
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
     @inject(TYPES.IdServiceInterface) idService: IdServiceInterface,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: ImageRepositoryConfigType,
+    @inject(TYPES.EnvConfigInterface) envConfig: MediaRepositoryConfigType,
   ) {
     super(envConfig.tableNames.IMAGES, documentClientFactory, idService, loggerService);
   }
 
-  public async get(id: ImageInterface["id"]): Promise<ImageInterface> {
+  public async get(id: MediaInterface["id"]): Promise<MediaInterface> {
     try {
       this.loggerService.trace("getImage called", { id }, this.constructor.name);
 
@@ -35,11 +35,12 @@ export class ImageDynamoRepository extends BaseDynamoRepository<ImageInterface> 
     }
   }
 
-  public async create(id: ImageInterface["id"], bannerbear_id: string, bannerbear_url?: string): Promise<ImageInterface> {
+  public async create(id: MediaInterface["id"], checksum: string, bannerbear_id: string, bannerbear_url?: string): Promise<MediaInterface> {
     try {
       this.loggerService.trace("createImage called", { id, bannerbear_id, bannerbear_url }, this.constructor.name);
       const image = await this.insertWithIdIncluded({
         id,
+        checksum,
         bannerbear_id,
         bannerbear_url,
         createdAt: String(Date.now()),
@@ -54,9 +55,9 @@ export class ImageDynamoRepository extends BaseDynamoRepository<ImageInterface> 
     }
   }
 
-  public async update(id: ImageInterface["id"], bannerbear_url: string): Promise<ImageInterface> {
+  public async update(id: MediaInterface["id"], bannerbear_url: string): Promise<MediaInterface> {
     try {
-      this.loggerService.trace("createImage called", { id, bannerbear_url }, this.constructor.name););
+      this.loggerService.trace("createImage called", { id, bannerbear_url }, this.constructor.name);
       const image = await this.partialUpdate(id, { bannerbear_url });
 
       return image;
@@ -68,10 +69,10 @@ export class ImageDynamoRepository extends BaseDynamoRepository<ImageInterface> 
   }
 }
 
-interface ImageDynamoRepositoryInterface {
-  get(id: ImageInterface["id"]): Promise<ImageInterface>,
-  create(id: ImageInterface["id"], bannerbear_id: string, bannerbear_url?: string): Promise<ImageInterface>
-  update(id: ImageInterface["id"], bannerbear_url: string): Promise<ImageInterface>
+export interface MediaDynamoRepositoryInterface {
+  get(id: MediaInterface["id"]): Promise<MediaInterface>,
+  create(id: MediaInterface["id"], checksum:string, bannerbear_id: string, bannerbear_url?: string): Promise<MediaInterface>
+  update(id: MediaInterface["id"], bannerbear_url: string): Promise<MediaInterface>
 }
 
-type ImageRepositoryConfigType = Pick<EnvConfigInterface, "tableNames">;
+type MediaRepositoryConfigType = Pick<EnvConfigInterface, "tableNames">;

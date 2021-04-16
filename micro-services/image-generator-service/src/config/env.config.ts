@@ -6,10 +6,14 @@ export const envConfig: EnvConfigInterface = {
   tableNames: { IMAGES: process.env.IMAGES_DYNAMO_TABLE_NAME || "" },
   yacApiUrl: process.env.YAC_API_URL || "",
   dynamoRegion: process.env.DYNAMO_REGION || "",
+  origin: process.env.ORIGIN || "",
+  bannerbear_key: "NZ94Ck1QiPrqtbUIItWUQQtt",
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
   dynamoRegion: string,
+  origin: string,
+  bannerbear_key: string,
   tableNames: {
     IMAGES: string
   }

@@ -2,7 +2,9 @@ import { Container } from "inversify";
 import { container as baseContainer, ProcessorServiceInterface } from "@yac/core";
 import { TYPES } from "./types";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
-import { ImageDynamoRepository } from "../repositories/image.dynamo.repository";
+import { MediaDynamoRepository, MediaDynamoRepositoryInterface } from "../repositories/media.dynamo.repository";
+import { MediaService, MediaServiceInterface } from "../services/media.service";
+import { BannerbearService, BannerbearServiceInterface } from "../services/bannerbear.service";
 
 const container = new Container();
 
@@ -10,7 +12,11 @@ try {
   container.load(baseContainer);
 
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
-  container.bind<ImageDynamoRepository>(TYPES.ImageDynamoRepository).to(ImageDynamoRepository);
+  container.bind<MediaDynamoRepositoryInterface>(TYPES.MediaDynamoRepositoryInterface).to(MediaDynamoRepository);
+
+  container.bind<MediaServiceInterface>(TYPES.MediaServiceInterface).to(MediaService);
+  container.bind<BannerbearServiceInterface>(TYPES.BannerbearServiceInterface).to(BannerbearService);
+
   // This processor service array needs to be binded at the bottom, so that 'container.get' can resolve all other dependencies
   container.bind<ProcessorServiceInterface[]>(TYPES.ProcessorServicesInterface).toConstantValue([]);
 } catch (error: unknown) {

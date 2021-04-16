@@ -17,6 +17,8 @@ const certArn = "arn:aws:acm:us-east-1:644653163171:certificate/77491685-9b9c-4d
 export class YacHttpServiceStack extends CDK.Stack {
   public httpApi: HttpApi;
 
+  public origin: string;
+
   public domainName: ApiGatewayV2.DomainName;
 
   public hostedZone: Route53.IHostedZone;
@@ -34,6 +36,8 @@ export class YacHttpServiceStack extends CDK.Stack {
 
     const { zoneName } = this;
     const domainName = this.domainNameString;
+
+    this.origin = `${this.domainNameString}/${props.serviceName}`;
 
     this.hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `${id}-HostedZone`, {
       zoneName,
