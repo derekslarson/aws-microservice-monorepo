@@ -11,14 +11,14 @@ export class YacLegacyApiService implements YacLegacyApiServiceInterface {
     @inject(TYPES.EnvConfigInterface) private envConfig: EnvConfigInterface,
     @inject(TYPES.HttpRequestServiceInterface) private httpService: HttpRequestServiceInterface) {}
 
-  public async getMessage(messageId: string, isGroup: string, token: string): Promise<YacMessage> {
+  public async getMessage(messageId: string, isGroup: boolean, token: string): Promise<YacMessage> {
     try {
       this.loggerService.trace("getMessage called", { isGroup, messageId, token }, this.constructor.name);
-      const request = await this.httpService.get<YacMessage>(`${this.envConfig.yacApiUrl}/api/v2/messages/${messageId}`, { isGroupMessage: isGroup }, { Authorization: token });
+      const request = await this.httpService.get<YacMessage>(`${this.envConfig.yacApiUrl}/api/v2/messages/${messageId}`, { isGroupMessage: Boolean(isGroup).toString() }, { Authorization: token });
 
       return request.body;
     } catch (error: unknown) {
-      this.loggerService.error("getMessage failed to execute", { isGroup, messageId, token, error }, this.constructor.name);
+      this.loggerService.error("getMessage failed to execute", { error, isGroup, messageId, token }, this.constructor.name);
       throw error;
     }
   }
@@ -32,7 +32,7 @@ interface YacMessage {
   fileName: string;
   type: string;
   seenAt?: string;
-  sendAt: Date;
+  sendAt: string;
   isDefault: number;
   transcript: string;
   isContinue: number;
@@ -67,5 +67,5 @@ interface YacMessage {
 }
 
 export interface YacLegacyApiServiceInterface {
-  getMessage(messageId: string, isGroup: string, token:string): Promise<YacMessage>
+  getMessage(messageId: string, isGroup: boolean, token:string): Promise<YacMessage>
 }

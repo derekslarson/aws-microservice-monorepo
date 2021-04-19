@@ -20,10 +20,10 @@ export class BannerbearService implements BannerbearServiceInterface {
       modifications: [ {
         name: "username",
         text: options.templateParameters.username,
-      }, {
+      }, options.templateParameters.channel ? {
         name: "channel",
         text: options.templateParameters.channel,
-      }, {
+      } : {}, {
         name: "subject",
         text: options.templateParameters.subject,
       } ],
@@ -67,7 +67,7 @@ type BannerbearServiceConfigType = Pick<EnvConfigInterface, "origin" | "bannerbe
 
 interface BannerbearTemplateVideoParameters {
   username: `@${string}`,
-  channel: `#${string}`,
+  channel?: `#${string}`,
   subject: string
 }
 
