@@ -51,20 +51,20 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     };
 
     // Handlers
-    const imageRetrieveHandler = new Lambda.Function(this, `ImageRetrieve_${id}`, {
+    const mediaRetrieveHandler = new Lambda.Function(this, `MediaRetrieve_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/imageRetrieve"),
-      handler: "imageRetrieve.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/mediaRetrieve"),
+      handler: "mediaRetrieve.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy ],
       timeout: CDK.Duration.seconds(15),
     });
 
-    const imageTaskHandler = new Lambda.Function(this, `ImagePush_${id}`, {
+    const mediaPushTaskHandler = new Lambda.Function(this, `MediaPush_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/imagePush"),
-      handler: "imagePush.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/mediaPush"),
+      handler: "mediaPush.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy ],
@@ -82,20 +82,20 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     });
 
     // permissions for the handler
-    table.grantReadData(imageRetrieveHandler);
+    table.grantReadData(mediaRetrieveHandler);
     table.grantWriteData(callbackHandler);
-    table.grantReadWriteData(imageTaskHandler);
+    table.grantReadWriteData(mediaPushTaskHandler);
 
     // Lambda Routes
     const routes: RouteProps[] = [
       {
         path: "/{folder}/{messageId}/thumbnail.gif",
         method: ApiGatewayV2.HttpMethod.GET,
-        handler: imageRetrieveHandler,
+        handler: mediaRetrieveHandler,
       }, {
         path: "/{folder}/{messageId}/thumbnail",
         method: ApiGatewayV2.HttpMethod.POST,
-        handler: imageTaskHandler,
+        handler: mediaPushTaskHandler,
       },
       {
         path: "/bannerbear/callback",
