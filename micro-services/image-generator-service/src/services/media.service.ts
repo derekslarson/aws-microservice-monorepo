@@ -14,9 +14,7 @@ export class MediaService implements MediaServiceInterface {
   constructor(@inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MediaDynamoRepositoryInterface) private mediaRepository: MediaDynamoRepositoryInterface,
     @inject(TYPES.YacLegacyApiServiceInterface) private yacApiService: YacLegacyApiServiceInterface,
-    @inject(TYPES.BannerbearServiceInterface) private bannerbearService: BannerbearServiceInterface) {
-
-  }
+    @inject(TYPES.BannerbearServiceInterface) private bannerbearService: BannerbearServiceInterface) {}
 
   public async createMedia(messageId: string, isGroup: boolean, token: string): Promise<{id: string}> {
     try {
@@ -41,7 +39,33 @@ export class MediaService implements MediaServiceInterface {
       return { id: databaseEntry.id };
     } catch (error: unknown) {
       this.loggerService.error("createMedia failed to execute", { error, messageId, isGroup, token }, this.constructor.name);
-      throw new Error("Something went wrong.");
+      throw error;
+    }
+  }
+
+  public async getMedia(messageId: string, isGroup: boolean, token: string): Promise<{url: string}> {
+    try {
+      this.loggerService.trace("getMedia called", { messageId, isGroup, token }, this.constructor.name);
+      const databaseEntry = await this.mediaRepository.get(this.derivePrimaryKey(messageId, isGroup));
+      if (!databaseEntry.bannerbear_url) {
+        // media is not ready yet. return the placeholder then
+        return { url: "https://yac-resources.s3.amazonaws.com/mediaplayer_thumb.png" };
+      }
+
+      return { url: databaseEntry.bannerbear_url };
+    } catch (error: unknown) {
+      this.loggerService.error("getMedia failed to execute", { messageId, isGroup, token, error }, this.constructor.name);
+      throw error;
+    }
+  }
+
+  public async updateMedia(messageId: string, isGroup: boolean, bannerbear_url: string): Promise<void> {
+    try {
+      this.loggerService.trace("updateMedia called", { messageId, isGroup }, this.constructor.name);
+      await this.mediaRepository.update(this.derivePrimaryKey(messageId, isGroup), bannerbear_url);
+    } catch (error: unknown) {
+      this.loggerService.error("updateMedia failed to execute", { messageId, isGroup, error }, this.constructor.name);
+      throw error;
     }
   }
 
@@ -76,5 +100,5 @@ export interface MediaServiceInterface {
   // use the bannerbear webhooks api
   // just call the MediaDynamoRepository update function
   // returns void
-  updateMedia(messageId: string, isGroup: boolean): Promise<void>
+  updateMedia(messageId: string, isGroup: boolean, bannerbear_url: string): Promise<void>
 }

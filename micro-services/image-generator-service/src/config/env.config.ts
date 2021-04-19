@@ -8,12 +8,14 @@ export const envConfig: EnvConfigInterface = {
   dynamoRegion: process.env.DYNAMO_REGION || "",
   origin: process.env.ORIGIN || "",
   bannerbear_key: "NZ94Ck1QiPrqtbUIItWUQQtt",
+  bannerbear_webhook_key: "xma6dUGorbiriFkQQ3orugtt",
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
   dynamoRegion: string,
   origin: string,
   bannerbear_key: string,
+  bannerbear_webhook_key: string,
   tableNames: {
     IMAGES: string
   }
