@@ -8,6 +8,9 @@ const TYPES = {
   BannerbearServiceInterface: Symbol.for("BannerbearServiceInterface"),
   MediaServiceInterface: Symbol.for("MediaServiceInterface"),
   YacLegacyApiServiceInterface: Symbol.for("YacLegacyApiServiceInterface"),
+
+  BannerbearControllerInterface: Symbol.for("BannerbearControllerInterface"),
+  MediaControllerInterface: Symbol.for("MediaControllerInterface"),
 };
 
 export { TYPES };

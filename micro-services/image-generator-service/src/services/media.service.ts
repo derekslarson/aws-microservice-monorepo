@@ -20,11 +20,11 @@ export class MediaService implements MediaServiceInterface {
     try {
       this.loggerService.trace("createMedia called", { messageId, isGroup, token }, this.constructor.name);
       const yacMessage = await this.yacApiService.getMessage(messageId, isGroup, token);
-      const bannerbearRequest = await this.bannerbearService.pushTask({
+      const bannerbearRequest = await this.bannerbearService.pushTask(this.derivePrimaryKey(messageId, isGroup), {
         source: yacMessage.fileName,
         templateParameters: {
-          username: `@${yacMessage.usernameFrom}`,
-          channel: isGroup ? `#${yacMessage.profileNameTo}` : undefined,
+          username: `@${yacMessage.usernameFrom}` as `@${string}`,
+          channel: isGroup ? `#${yacMessage.profileNameTo}` as `#${string}` : undefined,
           subject: yacMessage.subject || "New Yac Message",
         },
       });
@@ -59,12 +59,12 @@ export class MediaService implements MediaServiceInterface {
     }
   }
 
-  public async updateMedia(messageId: string, isGroup: boolean, bannerbear_url: string): Promise<void> {
+  public async updateMedia(id: MediaInterface["id"], bannerbear_url: string): Promise<void> {
     try {
-      this.loggerService.trace("updateMedia called", { messageId, isGroup }, this.constructor.name);
-      await this.mediaRepository.update(this.derivePrimaryKey(messageId, isGroup), bannerbear_url);
+      this.loggerService.trace("updateMedia called", { id, bannerbear_url }, this.constructor.name);
+      await this.mediaRepository.update(id, bannerbear_url);
     } catch (error: unknown) {
-      this.loggerService.error("updateMedia failed to execute", { messageId, isGroup, error }, this.constructor.name);
+      this.loggerService.error("updateMedia failed to execute", { id, bannerbear_url, error }, this.constructor.name);
       throw error;
     }
   }
@@ -78,7 +78,7 @@ export class MediaService implements MediaServiceInterface {
 
   private derivePrimaryKey(messageId: string, isGroup: boolean): MediaInterface["id"] {
     const accessor = isGroup ? "GROUP" : "USER";
-    return `${accessor}-${messageId}`;
+    return `${accessor}-${messageId}` as MediaInterface["id"];
   }
 }
 // all the data thats prone to change is part of the MediaChecksum
@@ -100,5 +100,5 @@ export interface MediaServiceInterface {
   // use the bannerbear webhooks api
   // just call the MediaDynamoRepository update function
   // returns void
-  updateMedia(messageId: string, isGroup: boolean, bannerbear_url: string): Promise<void>
+  updateMedia(id: MediaInterface["id"], bannerbear_url: string): Promise<void>
 }

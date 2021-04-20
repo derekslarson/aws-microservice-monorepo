@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { LoggerServiceInterface, HttpRequestServiceInterface, NotFoundError } from "@yac/core";
+import { LoggerServiceInterface, HttpRequestServiceInterface } from "@yac/core";
 import { injectable, inject } from "inversify";
 
 import { TYPES } from "../inversion-of-control/types";
@@ -14,7 +14,7 @@ export class YacLegacyApiService implements YacLegacyApiServiceInterface {
   public async getMessage(messageId: string, isGroup: boolean, token: string): Promise<YacMessage> {
     try {
       this.loggerService.trace("getMessage called", { isGroup, messageId, token }, this.constructor.name);
-      const request = await this.httpService.get<YacMessage>(`${this.envConfig.yacApiUrl}/api/v2/messages/${messageId}`, { isGroupMessage: Boolean(isGroup).toString() }, { Authorization: token });
+      const request = await this.httpService.get<YacMessage>(`${this.envConfig.yacApiUrl}/v2/messages/${messageId}`, { isGroupMessage: Boolean(isGroup).toString() }, { Authorization: token });
 
       return request.body;
     } catch (error: unknown) {
@@ -40,7 +40,7 @@ interface YacMessage {
   snoozeAt?: string;
   isBroadCast: number;
   unHeardMailed: number;
-  unHeardMailSentAt?: any;
+  unHeardMailSentAt?: string;
   mediaFileName: string;
   mediaType: string;
   isForwarded: number;

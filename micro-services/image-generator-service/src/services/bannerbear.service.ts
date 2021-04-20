@@ -4,6 +4,7 @@ import { HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
 
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
+import { MediaInterface } from "../models/media.model";
 
 @injectable()
 export class BannerbearService implements BannerbearServiceInterface {
@@ -13,22 +14,25 @@ export class BannerbearService implements BannerbearServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
   ) {}
 
-  public async pushTask(options: BannerbearVideoToGifTaskOptions): Promise<BannerbearTask> {
+  public async pushTask(id: MediaInterface["id"], options: BannerbearVideoToGifTaskOptions): Promise<BannerbearTask> {
     this.loggerService.trace("pushTask called", { options }, this.constructor.name);
+    const modifications = [ {
+      name: "username",
+      text: options.templateParameters.username,
+    }, options.templateParameters.channel ? {
+      name: "channel",
+      text: options.templateParameters.channel,
+    } : undefined, {
+      name: "subject",
+      text: options.templateParameters.subject,
+    } ].filter(Boolean);
     const data = {
       template: "wXmzGBDajKNbLN7gjn",
-      modifications: [ {
-        name: "username",
-        text: options.templateParameters.username,
-      }, options.templateParameters.channel ? {
-        name: "channel",
-        text: options.templateParameters.channel,
-      } : {}, {
-        name: "subject",
-        text: options.templateParameters.subject,
-      } ],
+      input_media_url: options.source,
+      frames: Array.from([ [], [], [] ]).map(() => modifications),
       fps: 1,
-      webhook_url: `${this.envConfig.origin}/bannerbear/webhook`,
+      webhook_url: `${this.envConfig.origin}/bannerbear/callback`,
+      metadata: JSON.stringify({ id }),
     };
     try {
       const request = await this.httpService.post<BannerbearTask>("https://api.bannerbear.com/v2/animated_gifs", data, undefined, { Authorization: `Bearer ${this.envConfig.bannerbear_key}` });
@@ -86,6 +90,6 @@ interface BannerbearTask {
 }
 
 export interface BannerbearServiceInterface {
-  pushTask(options: BannerbearVideoToGifTaskOptions): Promise<Omit<BannerbearTask, "image_url">>,
+  pushTask(id: MediaInterface["id"], options: BannerbearVideoToGifTaskOptions): Promise<Omit<BannerbearTask, "image_url">>,
   getTask(id: string): Promise<BannerbearTask>
 }

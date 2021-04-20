@@ -8,7 +8,7 @@ import { MediaPushPathParametersDto, MediaPushQueryParametersDto } from "../mode
 import { MediaRetrievePathParametersDto, MediaRetrieveQueryParametersDto } from "../models/media.retrieve.input.model";
 
 @injectable()
-class MediaController extends BaseController implements MediaControllerInterface {
+export class MediaController extends BaseController implements MediaControllerInterface {
   constructor(
     @inject(TYPES.MediaServiceInterface) private mediaService: MediaServiceInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,

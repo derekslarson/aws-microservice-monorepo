@@ -6,7 +6,7 @@ export const envConfig: EnvConfigInterface = {
   tableNames: { IMAGES: process.env.IMAGES_DYNAMO_TABLE_NAME || "" },
   yacApiUrl: process.env.YAC_API_URL || "",
   dynamoRegion: process.env.DYNAMO_REGION || "",
-  origin: process.env.ORIGIN || "",
+  origin: `https://${process.env.ORIGIN || ""}`,
   bannerbear_key: "NZ94Ck1QiPrqtbUIItWUQQtt",
   bannerbear_webhook_key: "xma6dUGorbiriFkQQ3orugtt",
 };
