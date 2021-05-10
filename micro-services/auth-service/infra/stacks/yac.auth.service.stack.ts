@@ -328,6 +328,8 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       },
     ];
 
+    // token comment
+
     routes.forEach((route) => this.httpApi.addRoute(route));
     proxyRoutes.forEach((route) => this.httpApi.addProxyRoute(route));
 
