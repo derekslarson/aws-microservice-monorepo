@@ -19,8 +19,6 @@ if (!environment) {
   throw new Error("'developer' context param required when 'environment' === 'local'.");
 }
 
-// token comment
-
 const stackPrefix = environment === Environment.Local ? `${environment}-${developer}` : environment;
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises

@@ -14,8 +14,6 @@ export const handler = async (event: PreSignUpTriggerEvent): Promise<PreSignUpTr
 
     event.response.autoConfirmUser = true;
 
-    // token change
-
     return event;
   } catch (error: unknown) {
     loggerService.error("Catastrophic error in preSignUp handler", { error, event }, "preSignUp handler");
