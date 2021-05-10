@@ -14,8 +14,6 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
 
     const response = await clientController.createClient(event);
 
-    // token change
-
     return response;
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
