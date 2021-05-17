@@ -24,7 +24,7 @@ export class YacLegacyApiService implements YacLegacyApiServiceInterface {
   }
 }
 
-interface YacMessage {
+export interface YacMessage {
   id: number;
   to: number;
   from: number;
