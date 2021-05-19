@@ -13,6 +13,7 @@
     "clean": "rm -rf ./dist",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
     "deploy:local": "yarn run build && cdk deploy --context environment=local --context developer=$(whoami)",
+    "synth:dev": "yarn run build && cdk synth --context environment=dev",
     "deploy:dev": "yarn run build && cdk deploy --context environment=dev",
     "deploy:stage": "yarn run build && cdk deploy --context environment=stage",
     "deploy:prod": "yarn run build && cdk deploy --context environment=prod",
