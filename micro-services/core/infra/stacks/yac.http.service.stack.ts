@@ -41,8 +41,8 @@ export class YacHttpServiceStack extends CDK.Stack {
 
     const domainName = CDK.Fn.importValue(ExportNames.DomainName);
 
-    this.recordName = domainName.slice(0, domainName.indexOf("."));
-    this.zoneName = domainName.slice(domainName.indexOf(".") + 1);
+    this.recordName = this.getRecordName();
+    this.zoneName = "yacchat.com";
 
     this.hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `${id}-HostedZone`, {
       zoneName: this.zoneName,
@@ -59,7 +59,7 @@ export class YacHttpServiceStack extends CDK.Stack {
 
     this.domainName = domainNameResource;
 
-    const origins = environment !== Environment.Prod ? [ `https://${developer}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ];
+    const origins = environment !== Environment.Prod ? [ `https://${this.recordName}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ];
     const corsCacheMaxAge = environment !== Environment.Prod ? CDK.Duration.minutes(300) : CDK.Duration.minutes(60 * 12);
     this.httpApi = new HttpApi(this, `${id}_Api`, {
       serviceName: props.serviceName,
@@ -81,5 +81,30 @@ export class YacHttpServiceStack extends CDK.Stack {
         allowCredentials: true,
       },
     });
+  }
+
+  private getRecordName(): string {
+    try {
+      const environment = this.node.tryGetContext("environment") as string;
+      const developer = this.node.tryGetContext("developer") as string;
+
+      if (environment === Environment.Prod) {
+        return "api";
+      }
+
+      if (environment === Environment.Dev) {
+        return "develop";
+      }
+
+      if (environment === Environment.Local) {
+        return developer;
+      }
+
+      return environment;
+    } catch (error) {
+      console.log(`${new Date().toISOString()} : Error in YacCoreServiceStack.getRecordName:\n`, error);
+
+      throw error;
+    }
   }
 }
