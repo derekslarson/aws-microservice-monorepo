@@ -21,6 +21,7 @@ export class ClientController extends BaseController implements ClientController
 
   public async createClient(request: Request): Promise<Response> {
     try {
+      // token comment
       this.loggerService.trace("createClient called", { request }, this.constructor.name);
 
       const createClientInput = await this.validationService.validate(CreateClientInputDto, RequestPortion.Body, request.body);
