@@ -41,6 +41,10 @@ export class YacCoreServiceStack extends CDK.Stack {
         return "api";
       }
 
+      if (environment === Environment.Dev) {
+        return "develop";
+      }
+
       if (environment === Environment.Local) {
         return developer;
       }
