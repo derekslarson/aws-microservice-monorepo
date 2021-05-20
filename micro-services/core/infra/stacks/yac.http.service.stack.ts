@@ -24,24 +24,28 @@ export class YacHttpServiceStack extends CDK.Stack {
 
   public certificate: ACM.ICertificate;
 
+  public recordName: string;
+
+  public zoneName: string;
+
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
     const environment = this.node.tryGetContext("environment") as string;
     const developer = this.node.tryGetContext("developer") as string;
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-
-    const ExportNames = generateExportNames(stackPrefix);
-
-    const domainName = CDK.Fn.importValue(ExportNames.DomainName);
 
     if (!environment) {
       throw new Error("'environment' context param required.");
     }
 
-    const { zoneName } = this;
+    const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
+
+    const domainName = CDK.Fn.importValue(ExportNames.DomainName);
+
+    this.recordName = domainName.slice(0, domainName.indexOf("."));
+    this.zoneName = domainName.slice(domainName.indexOf(".") + 1);
 
     this.hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `${id}-HostedZone`, {
-      zoneName,
+      zoneName: this.zoneName,
       hostedZoneId,
     });
 
@@ -77,51 +81,5 @@ export class YacHttpServiceStack extends CDK.Stack {
         allowCredentials: true,
       },
     });
-  }
-
-  public get domainNameString(): string {
-    return `${this.recordName}.${this.zoneName}`;
-  }
-
-  public get recordName(): string {
-    return this.getRecordName(this.node.tryGetContext("environment") as string);
-  }
-
-  public get zoneName(): string {
-    return this.getZoneName(this.node.tryGetContext("environment") as string);
-  }
-
-  private getRecordName(environment: string): string {
-    try {
-      if (environment === Environment.Prod) {
-        return "api";
-      }
-
-      if (environment === Environment.Local) {
-        const developer: string = this.node.tryGetContext("developer") as string;
-
-        return developer;
-      }
-
-      return environment;
-    } catch (error) {
-      console.log(`${new Date().toISOString()} : Error in HttpApi.getRecordName:\n`, error);
-
-      throw error;
-    }
-  }
-
-  private getZoneName(environment: string): string {
-    try {
-      if (environment === Environment.Prod) {
-        return "yac.com";
-      }
-
-      return "yacchat.com";
-    } catch (error) {
-      console.log(`${new Date().toISOString()} : Error in HttpApi.getZoneName:\n`, error);
-
-      throw error;
-    }
   }
 }
