@@ -6,7 +6,7 @@ import * as SSM from "@aws-cdk/aws-ssm";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import {
   Environment,
-  ExportNames,
+  generateExportNames,
   HttpApi,
   LogLevel,
   RouteProps,
@@ -22,9 +22,11 @@ export class YacIdentityServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
-    const yacUserPoolClientId = CDK.Fn.importValue(`${ExportNames.YacUserPoolClientId}-${id}`);
-    const yacUserPoolClientSecret = CDK.Fn.importValue(`${ExportNames.YacUserPoolClientSecret}-${id}`);
-    const yacUserPoolClientRedirectUri = CDK.Fn.importValue(`${ExportNames.YacUserPoolClientRedirectUri}-${id}`);
+    const ExportNames = generateExportNames(id);
+
+    const yacUserPoolClientId = CDK.Fn.importValue(ExportNames.YacUserPoolClientId);
+    const yacUserPoolClientSecret = CDK.Fn.importValue(ExportNames.YacUserPoolClientSecret);
+    const yacUserPoolClientRedirectUri = CDK.Fn.importValue(ExportNames.YacUserPoolClientRedirectUri);
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
 
     // Layers

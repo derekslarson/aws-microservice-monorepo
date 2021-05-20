@@ -5,6 +5,7 @@ import * as ACM from "@aws-cdk/aws-certificatemanager";
 
 import { HttpApi } from "../constructs/http.api";
 import { Environment } from "../../src/enums/environment.enum";
+import { generateExportNames } from "../..";
 
 export interface IYacHttpServiceProps extends CDK.StackProps {
   serviceName: string
@@ -27,13 +28,15 @@ export class YacHttpServiceStack extends CDK.Stack {
     super(scope, id, props);
     const environment = this.node.tryGetContext("environment") as string;
     const developer = this.node.tryGetContext("developer") as string;
+    const ExportNames = generateExportNames(id);
+
+    const domainName = CDK.Fn.importValue(ExportNames.DomainName);
 
     if (!environment) {
       throw new Error("'environment' context param required.");
     }
 
     const { zoneName } = this;
-    const domainName = this.domainNameString;
 
     this.hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `${id}-HostedZone`, {
       zoneName,
@@ -42,10 +45,12 @@ export class YacHttpServiceStack extends CDK.Stack {
 
     this.certificate = ACM.Certificate.fromCertificateArn(this, `${id}-cert`, certArn);
 
-    const domainNameResource = new ApiGatewayV2.DomainName(this, `${id}-DN`, {
-      domainName,
-      certificate: this.certificate,
-    });
+    const domainNameResource = ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `${id}-DomainName`, {
+      name: domainName,
+      regionalDomainName: domainName,
+      regionalHostedZoneId: hostedZoneId,
+    }) as ApiGatewayV2.DomainName;
+
     this.domainName = domainNameResource;
 
     const origins = environment !== Environment.Prod ? [ `https://${developer}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ];
