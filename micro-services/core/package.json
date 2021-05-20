@@ -19,7 +19,7 @@
     "deploy:prod": "yarn run build && cdk deploy --context environment=prod",
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
     "nyc": "nyc node ../../config/jasmine/jasmine.runner.js",
-    "test:unit": "yarn run clean:unit-tests && yarn run build:unit-tests && yarn run nyc"
+    "test:unit": "yarn run build:unit-tests && yarn run nyc"
   },
   "devDependencies": {
     "@aws-cdk/aws-apigatewayv2": "^1.94.1",
