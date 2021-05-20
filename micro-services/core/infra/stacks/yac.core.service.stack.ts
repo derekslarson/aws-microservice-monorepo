@@ -10,7 +10,12 @@ export class YacCoreServiceStack extends CDK.Stack {
   constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
     super(scope, id, props);
 
-    const ExportNames = generateExportNames(id);
+    const environment = this.node.tryGetContext("environment") as string;
+    const developer = this.node.tryGetContext("developer") as string;
+
+    const stackPrefix = environment === Environment.Local ? developer : environment;
+
+    const ExportNames = generateExportNames(stackPrefix);
 
     const zoneName = "yacchat.com";
     const recordName = this.getRecordName();

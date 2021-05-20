@@ -28,7 +28,9 @@ export class YacHttpServiceStack extends CDK.Stack {
     super(scope, id, props);
     const environment = this.node.tryGetContext("environment") as string;
     const developer = this.node.tryGetContext("developer") as string;
-    const ExportNames = generateExportNames(id);
+    const stackPrefix = environment === Environment.Local ? developer : environment;
+
+    const ExportNames = generateExportNames(stackPrefix);
 
     const domainName = CDK.Fn.importValue(ExportNames.DomainName);
 

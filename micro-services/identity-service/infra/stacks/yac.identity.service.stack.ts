@@ -17,12 +17,15 @@ export class YacIdentityServiceStack extends CDK.Stack {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
+    const developer = this.node.tryGetContext("developer") as string;
+
+    const stackPrefix = environment === Environment.Local ? developer : environment;
 
     if (!environment) {
       throw new Error("'environment' context param required.");
     }
 
-    const ExportNames = generateExportNames(id);
+    const ExportNames = generateExportNames(stackPrefix);
 
     const yacUserPoolClientId = CDK.Fn.importValue(ExportNames.YacUserPoolClientId);
     const yacUserPoolClientSecret = CDK.Fn.importValue(ExportNames.YacUserPoolClientSecret);

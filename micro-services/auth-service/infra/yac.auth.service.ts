@@ -21,7 +21,7 @@ if (!environment) {
 
 // token comment
 
-const stackPrefix = environment === Environment.Local ? `${environment}-${developer}` : environment;
+const stackPrefix = environment === Environment.Local ? developer : environment;
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {
