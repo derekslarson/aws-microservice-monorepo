@@ -332,17 +332,17 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     proxyRoutes.forEach((route) => this.httpApi.addProxyRoute(route));
 
     new CDK.CfnOutput(this, `YacUserPoolClientId_${id}`, {
-      exportName: ExportNames.YacUserPoolClientId,
+      exportName: `${ExportNames.YacUserPoolClientId}_${id}`,
       value: yacUserPoolClient.userPoolClientId,
     });
 
     new CDK.CfnOutput(this, `YacUserPoolClientSecret_${id}`, {
-      exportName: ExportNames.YacUserPoolClientSecret,
+      exportName: `${ExportNames.YacUserPoolClientSecret}_${id}`,
       value: yacUserPoolClientSecret,
     });
 
     new CDK.CfnOutput(this, `YacUserPoolClientRedirectUri_${id}`, {
-      exportName: ExportNames.YacUserPoolClientRedirectUri,
+      exportName: `${ExportNames.YacUserPoolClientRedirectUri}_${id}`,
       value: yacUserPoolClientRedirectUri,
     });
 

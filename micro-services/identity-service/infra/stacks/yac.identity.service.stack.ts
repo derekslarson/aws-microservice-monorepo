@@ -22,9 +22,9 @@ export class YacIdentityServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
-    const yacUserPoolClientId = CDK.Fn.importValue(ExportNames.YacUserPoolClientId);
-    const yacUserPoolClientSecret = CDK.Fn.importValue(ExportNames.YacUserPoolClientSecret);
-    const yacUserPoolClientRedirectUri = CDK.Fn.importValue(ExportNames.YacUserPoolClientRedirectUri);
+    const yacUserPoolClientId = CDK.Fn.importValue(`${ExportNames.YacUserPoolClientId}_${id}`);
+    const yacUserPoolClientSecret = CDK.Fn.importValue(`${ExportNames.YacUserPoolClientSecret}_${id}`);
+    const yacUserPoolClientRedirectUri = CDK.Fn.importValue(`${ExportNames.YacUserPoolClientRedirectUri}_${id}`);
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
 
     // Layers
