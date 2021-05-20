@@ -6,6 +6,7 @@ import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as Route53Targets from "@aws-cdk/aws-route53-targets";
+import { Environment } from "../../src/enums/environment.enum";
 
 interface HttpApiProps extends ApiGatewayV2.HttpApiProps {
   serviceName: string
@@ -41,7 +42,7 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
     const environment: string = this.node.tryGetContext("environment") as string;
 
     this.addStage(`environment-stage-${environment}`, {
-      stageName: environment,
+      stageName: environment === Environment.Dev ? "develop" : environment,
       autoDeploy: true,
       domainMapping: { domainName: props.domainName, mappingKey: props.serviceName },
     });

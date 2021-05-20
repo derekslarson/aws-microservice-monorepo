@@ -6,7 +6,7 @@ import * as SSM from "@aws-cdk/aws-ssm";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import {
   Environment,
-  ExportNames,
+  generateExportNames,
   HttpApi,
   LogLevel,
   RouteProps,
@@ -21,6 +21,8 @@ export class YacIdentityServiceStack extends CDK.Stack {
     if (!environment) {
       throw new Error("'environment' context param required.");
     }
+
+    const ExportNames = generateExportNames(id);
 
     const yacUserPoolClientId = CDK.Fn.importValue(ExportNames.YacUserPoolClientId);
     const yacUserPoolClientSecret = CDK.Fn.importValue(ExportNames.YacUserPoolClientSecret);

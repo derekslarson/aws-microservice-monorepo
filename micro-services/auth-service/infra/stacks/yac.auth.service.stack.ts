@@ -15,7 +15,7 @@ import {
   HttpApi,
   LogLevel,
   RouteProps,
-  ExportNames,
+  generateExportNames,
   ProxyRouteProps,
 } from "@yac/core";
 import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stacks/yac.http.service.stack";
@@ -41,6 +41,8 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     if (!environment) {
       throw new Error("'environment' context param required.");
     }
+
+    const ExportNames = generateExportNames(id);
 
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
 
