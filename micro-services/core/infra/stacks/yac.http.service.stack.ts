@@ -43,6 +43,7 @@ export class YacHttpServiceStack extends CDK.Stack {
 
     const customDomainName = CDK.Fn.importValue(ExportNames.CustomDomainName);
     const regionalDomainName = CDK.Fn.importValue(ExportNames.RegionalDomainName);
+    const regionalHostedZoneId = CDK.Fn.importValue(ExportNames.RegionalHostedZoneId);
 
     this.recordName = this.getRecordName();
     this.zoneName = hostedZoneName;
@@ -57,7 +58,7 @@ export class YacHttpServiceStack extends CDK.Stack {
     this.domainName = ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `${id}-DomainName`, {
       name: customDomainName,
       regionalDomainName,
-      regionalHostedZoneId: hostedZoneId,
+      regionalHostedZoneId,
     });
 
     const origins = environment !== Environment.Prod ? [ `https://${this.recordName}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ];

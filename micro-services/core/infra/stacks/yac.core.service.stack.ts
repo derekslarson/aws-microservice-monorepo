@@ -21,9 +21,7 @@ export class YacCoreServiceStack extends CDK.Stack {
     const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
     const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
 
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-
-    const ExportNames = generateExportNames(stackPrefix);
+    const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
     const recordName = this.getRecordName();
 
@@ -39,6 +37,11 @@ export class YacCoreServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `${id}-RegionalDomainNameExport`, {
       exportName: ExportNames.RegionalDomainName,
       value: domainName.regionalDomainName,
+    });
+
+    new CDK.CfnOutput(this, `${id}-RegionalHostedZoneIdExport`, {
+      exportName: ExportNames.RegionalHostedZoneId,
+      value: domainName.regionalHostedZoneId,
     });
   }
 
