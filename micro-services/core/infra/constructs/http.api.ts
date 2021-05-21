@@ -4,11 +4,12 @@ import * as CDK from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
-// import { Environment } from "../../src/enums/environment.enum";
+import { Environment } from "../../src/enums/environment.enum";
 
 interface HttpApiProps extends ApiGatewayV2.HttpApiProps {
   serviceName: string
   domainName: ApiGatewayV2.IDomainName,
+  corsAllowedOrigins?: string[];
 }
 
 export interface RouteProps<T extends string = string, U extends ApiGatewayV2.HttpMethod = ApiGatewayV2.HttpMethod> {
@@ -33,11 +34,26 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
   public readonly apiURL: string;
 
   constructor(scope: CDK.Construct, id: string, props: HttpApiProps) {
+    const environment = scope.node.tryGetContext("environment") as string;
+
     super(scope, id, {
       ...props,
       defaultDomainMapping: {
         domainName: props.domainName,
         mappingKey: props.serviceName,
+      },
+      corsPreflight: {
+        allowOrigins: props.corsAllowedOrigins || [ "*" ],
+        allowMethods: [
+          ApiGatewayV2.CorsHttpMethod.GET,
+          ApiGatewayV2.CorsHttpMethod.POST,
+          ApiGatewayV2.CorsHttpMethod.PATCH,
+          ApiGatewayV2.CorsHttpMethod.DELETE,
+          ApiGatewayV2.CorsHttpMethod.HEAD,
+          ApiGatewayV2.CorsHttpMethod.OPTIONS,
+        ],
+        maxAge: environment !== Environment.Prod ? CDK.Duration.minutes(300) : CDK.Duration.minutes(60 * 12),
+        allowCredentials: true,
       },
     });
 

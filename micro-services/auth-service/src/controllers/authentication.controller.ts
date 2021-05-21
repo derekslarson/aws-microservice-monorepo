@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, UnauthorizedError } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, UnauthorizedError, AuthServiceSignUpResponseBody, AuthServiceConfirmationResponseBody, AuthServiceConfirmationRequestCookies, AuthServiceLoginResponseBody } from "@yac/core";
 
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
@@ -10,9 +10,6 @@ import { LoginInputDto } from "../models/login/login.input.model";
 import { Oauth2AuthorizeInputDto } from "../models/oauth2-authorize/oauth2.authorize.input.model";
 import { ConfirmationInput, ConfirmationRequestBodyDto, ConfirmationRequestCookiesDto } from "../models/confirmation/confirmation.input.model";
 import { EnvConfigInterface } from "../config/env.config";
-import { SignUpResponseBody } from "../api-contracts/signUp.post";
-import { ConfirmationResponseBody, ConfirmationRequestCookies } from "../api-contracts/confirm.get";
-import { LoginResponseBody } from "../api-contracts/login.post";
 
 @injectable()
 export class AuthenticationController extends BaseController implements AuthenticationControllerInterface {
@@ -35,7 +32,7 @@ export class AuthenticationController extends BaseController implements Authenti
 
       const { session } = await this.authenticationService.login({ email: signUpInput.email });
 
-      const responseBody: SignUpResponseBody = { session };
+      const responseBody: AuthServiceSignUpResponseBody = { session };
 
       return this.generateCreatedResponse(responseBody);
     } catch (error: unknown) {
@@ -53,7 +50,7 @@ export class AuthenticationController extends BaseController implements Authenti
 
       const { session } = await this.authenticationService.login(loginInput);
 
-      const responseBody: LoginResponseBody = { session };
+      const responseBody: AuthServiceLoginResponseBody = { session };
 
       return this.generateSuccessResponse(responseBody);
     } catch (error: unknown) {
@@ -67,10 +64,10 @@ export class AuthenticationController extends BaseController implements Authenti
     try {
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
       if (request.cookies == null) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         throw new UnauthorizedError("Unauthorized request");
       }
-      const cookies: ConfirmationRequestCookies = request.cookies?.reduce((acc, str: string) => {
+
+      const cookies: AuthServiceConfirmationRequestCookies = request.cookies?.reduce((acc, str: string) => {
         const [ key, value ] = str.split("=");
         if (acc[key] != null) return acc;
         return { ...acc, [key]: value };
@@ -86,7 +83,7 @@ export class AuthenticationController extends BaseController implements Authenti
 
       const { authorizationCode } = await this.authenticationService.confirm(confirmationRequestInput);
 
-      const responseBody: ConfirmationResponseBody = { authorizationCode };
+      const responseBody: AuthServiceConfirmationResponseBody = { authorizationCode };
 
       return this.generateSuccessResponse(responseBody);
     } catch (error: unknown) {

@@ -39,6 +39,7 @@
     "**/cdk.out",
     "**/api-tests",
     "**/compiled_tests",
-    "**/dist"
+    "**/dist",
+    "assets/auth-service/**"
   ]
 }

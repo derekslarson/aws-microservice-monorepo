@@ -17,4 +17,4 @@ if (!environment) {
 const stackPrefix = environment === Environment.Local ? developer : environment;
 
 // eslint-disable-next-line no-new
-new YacIdentityServiceStack(app, `${stackPrefix}-YacIdentityService`, { });
+new YacIdentityServiceStack(app, `${stackPrefix}-YacIdentityService`, { serviceName: "identity-service" });

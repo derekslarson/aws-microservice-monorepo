@@ -1,9 +1,7 @@
-import { Expose } from "@yac/core";
+import { Expose, AuthServiceSignUpRequestBody } from "@yac/core";
 import { IsEmail } from "class-validator";
 
-import { SignUpRequestBody } from "../../api-contracts/signUp.post";
-
-export class SignUpInputDto implements SignUpRequestBody {
+export class SignUpInputDto implements AuthServiceSignUpRequestBody {
   @Expose()
   @IsEmail()
   public email: string;

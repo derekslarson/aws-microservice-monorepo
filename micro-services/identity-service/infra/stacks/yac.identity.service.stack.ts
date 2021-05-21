@@ -7,13 +7,13 @@ import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import {
   Environment,
   generateExportNames,
-  HttpApi,
   LogLevel,
   RouteProps,
 } from "@yac/core";
+import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stacks/yac.http.service.stack";
 
-export class YacIdentityServiceStack extends CDK.Stack {
-  constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
+export class YacIdentityServiceStack extends YacHttpServiceStack {
+  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -38,11 +38,7 @@ export class YacIdentityServiceStack extends CDK.Stack {
       code: Lambda.Code.fromAsset("dist/dependencies"),
     });
 
-    // APIs
-    const httpApi = new HttpApi(this, `Api_${id}`);
-
     // Policies
-
     const basePolicy: IAM.PolicyStatement[] = [];
 
     // Environment Variables
@@ -107,6 +103,6 @@ export class YacIdentityServiceStack extends CDK.Stack {
       },
     ];
 
-    routes.forEach((route) => httpApi.addRoute(route));
+    routes.forEach((route) => this.httpApi.addRoute(route));
   }
 }

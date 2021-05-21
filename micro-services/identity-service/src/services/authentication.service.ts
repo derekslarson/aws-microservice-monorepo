@@ -4,6 +4,12 @@ import { injectable, inject } from "inversify";
 import {
   LoggerServiceInterface,
   HttpRequestService,
+  AuthServiceSignUpResponseBody,
+  AuthServiceSignUpRequestBody,
+  AuthServiceLoginResponseBody,
+  AuthServiceLoginRequestBody,
+  AuthServiceConfirmationResponseBody,
+  AuthServiceConfirmationRequestBody,
 } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
@@ -19,16 +25,13 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     @inject(TYPES.EnvConfigInterface) private config: EnvConfigInterface,
   ) {}
 
-  public async signUp(signUpInput: SignUpInputDto): Promise<SignUpResponseBody> {
+  public async signUp(signUpInput: SignUpInputDto): Promise<AuthServiceSignUpResponseBody> {
     try {
       this.loggerService.trace("signUp called", { signUpInput }, this.constructor.name);
 
-      const body: SignUpRequestBody = {
-        email: signUpInput.email,
-        clientId: this.config.userPoolClientId,
-      };
+      const body: AuthServiceSignUpRequestBody = { email: signUpInput.email };
 
-      const response = await this.httpRequestService.post<SignUpResponseBody>(`${this.config.authServiceDomain}/sign-up`, body);
+      const response = await this.httpRequestService.post<AuthServiceSignUpResponseBody>(`${this.config.authServiceDomain}/sign-up`, body);
 
       return response.body;
     } catch (error: unknown) {
@@ -38,16 +41,13 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  public async login(loginInput: LoginInputDto): Promise<LoginResponseBody> {
+  public async login(loginInput: LoginInputDto): Promise<AuthServiceLoginResponseBody> {
     try {
       this.loggerService.trace("login called", { loginInput }, this.constructor.name);
 
-      const body: LoginRequestBody = {
-        email: loginInput.email,
-        clientId: this.config.userPoolClientId,
-      };
+      const body: AuthServiceLoginRequestBody = { email: loginInput.email };
 
-      const response = await this.httpRequestService.post<LoginResponseBody>(`${this.config.authServiceDomain}/login`, body);
+      const response = await this.httpRequestService.post<AuthServiceLoginResponseBody>(`${this.config.authServiceDomain}/login`, body);
 
       return response.body;
     } catch (error: unknown) {
@@ -57,19 +57,11 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  public async confirm(confirmInput: ConfirmationInputDto): Promise<ConfirmationResponseBody> {
+  public async confirm(confirmInput: ConfirmationInputDto): Promise<AuthServiceConfirmationResponseBody> {
     try {
       this.loggerService.trace("confirm called", { confirmInput }, this.constructor.name);
 
-      const authorizeQueryParams: Oauth2AuthorizeRequestQueryParameters = {
-        responseType: "code",
-        clientId: this.config.userPoolClientId,
-        redirectUri: this.config.userPoolClientRedirectUri,
-      };
-
-      const authorizeResponse = await this.httpRequestService.get<{ xsrfToken: string }>(`${this.config.authServiceDomain}/oauth2/authorize`, authorizeQueryParams as unknown as Record<string, string>);
-
-      const confirmBody: ConfirmationRequestBody = {
+      const confirmBody: AuthServiceConfirmationRequestBody = {
         email: confirmInput.email,
         confirmationCode: confirmInput.confirmationCode,
         session: confirmInput.session,
@@ -77,9 +69,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         redirectUri: this.config.userPoolClientRedirectUri,
       };
 
-      const confirmHeaders: ConfirmationRequestHeaders = { "xsrf-token": authorizeResponse.body.xsrfToken };
-
-      const confirmResponse = await this.httpRequestService.post<ConfirmationResponseBody>(`${this.config.authServiceDomain}/confirm`, confirmBody, {}, confirmHeaders as unknown as Record<string, string>);
+      const confirmResponse = await this.httpRequestService.post<AuthServiceConfirmationResponseBody>(`${this.config.authServiceDomain}/confirm`, confirmBody, {});
 
       return confirmResponse.body;
     } catch (error: unknown) {
@@ -91,7 +81,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 }
 
 export interface AuthenticationServiceInterface {
-  signUp(signUpInput: SignUpInputDto): Promise<SignUpResponseBody>
-  login(loginInput: LoginInputDto): Promise<LoginResponseBody>;
-  confirm(confirmInput: ConfirmationInputDto): Promise<ConfirmationResponseBody>;
+  signUp(signUpInput: SignUpInputDto): Promise<AuthServiceSignUpResponseBody>
+  login(loginInput: LoginInputDto): Promise<AuthServiceLoginResponseBody>;
+  confirm(confirmInput: ConfirmationInputDto): Promise<AuthServiceConfirmationResponseBody>;
 }

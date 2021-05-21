@@ -17,14 +17,20 @@ import {
   RouteProps,
   generateExportNames,
   ProxyRouteProps,
+  AuthServiceSignUpPath,
+  AuthServiceSignUpMethod,
+  AuthServiceLoginPath,
+  AuthServiceLoginMethod,
+  AuthServiceConfirmPath,
+  AuthServiceConfirmMethod,
+  AuthServiceCreateClientPath,
+  AuthServiceCreateClientMethod,
+  AuthServiceDeleteClientPath,
+  AuthServiceDeleteClientMethod,
+  AuthServiceOauth2AuthorizePath,
+  AuthServiceOauth2AuthorizeMethod,
 } from "@yac/core";
 import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stacks/yac.http.service.stack";
-import { SignUpMethod, SignUpPath } from "../../src/api-contracts/signUp.post";
-import { LoginMethod, LoginPath } from "../../src/api-contracts/login.post";
-import { ConfirmMethod, ConfirmPath } from "../../src/api-contracts/confirm.get";
-import { CreateClientMethod, CreateClientPath } from "../../src/api-contracts/createClient.post";
-import { DeleteClientMethod, DeleteClientPath } from "../../src/api-contracts/deleteClient.delete";
-import { Oauth2AuthorizeMethod, Oauth2AuthorizePath } from "../../src/api-contracts/oauth2.authorize.get";
 
 export type IYacAuthServiceStackProps = IYacHttpServiceProps;
 
@@ -57,6 +63,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const websiteBucket = new S3.Bucket(this, `${envString}-idYacCom`, {
       websiteIndexDocument: "index.html",
       publicReadAccess: true,
+      removalPolicy: CDK.RemovalPolicy.DESTROY,
     });
 
     const distributionOriginRequestPolicy = new CloudFront.OriginRequestPolicy(this, `${envString}-idYacComDistributionOriginRequestPolicy`, {
@@ -276,37 +283,37 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     userPool.addTrigger(Cognito.UserPoolOperation.VERIFY_AUTH_CHALLENGE_RESPONSE, verifyAuthChallengeResponseHandler);
 
     // Lambda Routes
-    const signUpRoute: RouteProps<SignUpPath, SignUpMethod> = {
+    const signUpRoute: RouteProps<AuthServiceSignUpPath, AuthServiceSignUpMethod> = {
       path: "/sign-up",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: signUpHandler,
     };
 
-    const loginRoute: RouteProps<LoginPath, LoginMethod> = {
+    const loginRoute: RouteProps<AuthServiceLoginPath, AuthServiceLoginMethod> = {
       path: "/login",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: loginHandler,
     };
 
-    const confirmRoute: RouteProps<ConfirmPath, ConfirmMethod> = {
+    const confirmRoute: RouteProps<AuthServiceConfirmPath, AuthServiceConfirmMethod> = {
       path: "/confirm",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: confirmHandler,
     };
 
-    const createClientRoute: RouteProps<CreateClientPath, CreateClientMethod> = {
+    const createClientRoute: RouteProps<AuthServiceCreateClientPath, AuthServiceCreateClientMethod> = {
       path: "/oauth2/clients",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: createClientHandler,
     };
 
-    const deleteClientRoute: RouteProps<DeleteClientPath, DeleteClientMethod> = {
+    const deleteClientRoute: RouteProps<AuthServiceDeleteClientPath, AuthServiceDeleteClientMethod> = {
       path: "/oauth2/clients/{id}",
       method: ApiGatewayV2.HttpMethod.DELETE,
       handler: deleteClientHandler,
     };
 
-    const oauth2AuthorizeRoute: RouteProps<Oauth2AuthorizePath, Oauth2AuthorizeMethod> = {
+    const oauth2AuthorizeRoute: RouteProps<AuthServiceOauth2AuthorizePath, AuthServiceOauth2AuthorizeMethod> = {
       path: "/oauth2/authorize",
       method: ApiGatewayV2.HttpMethod.GET,
       handler: oauth2AuthorizeHandler,

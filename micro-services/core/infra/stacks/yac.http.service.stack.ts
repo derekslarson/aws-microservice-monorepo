@@ -21,8 +21,6 @@ export class YacHttpServiceStack extends CDK.Stack {
 
   public certificate: ACM.ICertificate;
 
-  public recordName: string;
-
   public zoneName: string;
 
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
@@ -34,21 +32,18 @@ export class YacHttpServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
-    const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
-    const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
-    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
-
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
     const customDomainName = CDK.Fn.importValue(ExportNames.CustomDomainName);
     const regionalDomainName = CDK.Fn.importValue(ExportNames.RegionalDomainName);
     const regionalHostedZoneId = CDK.Fn.importValue(ExportNames.RegionalHostedZoneId);
 
-    this.recordName = this.getRecordName();
-    this.zoneName = hostedZoneName;
+    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
+    const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
+    this.zoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
 
     this.hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `${id}-HostedZone`, {
-      zoneName: hostedZoneName,
+      zoneName: this.zoneName,
       hostedZoneId,
     });
 
@@ -60,29 +55,14 @@ export class YacHttpServiceStack extends CDK.Stack {
       regionalHostedZoneId,
     });
 
-    const origins = environment !== Environment.Prod ? [ `https://${this.recordName}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ];
-
     this.httpApi = new HttpApi(this, `${id}-Api`, {
       serviceName: props.serviceName,
       domainName: this.domainName,
-      corsPreflight: {
-        allowOrigins: origins,
-        allowMethods: [
-          ApiGatewayV2.CorsHttpMethod.GET,
-          ApiGatewayV2.CorsHttpMethod.POST,
-          ApiGatewayV2.CorsHttpMethod.PATCH,
-          ApiGatewayV2.CorsHttpMethod.DELETE,
-          ApiGatewayV2.CorsHttpMethod.HEAD,
-          ApiGatewayV2.CorsHttpMethod.OPTIONS,
-        ],
-        // just dev purposes
-        maxAge: environment !== Environment.Prod ? CDK.Duration.minutes(300) : CDK.Duration.minutes(60 * 12),
-        allowCredentials: true,
-      },
+      corsAllowedOrigins: environment !== Environment.Prod ? [ `https://${this.recordName}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ],
     });
   }
 
-  private getRecordName(): string {
+  public get recordName(): string {
     try {
       const environment = this.node.tryGetContext("environment") as string;
       const developer = this.node.tryGetContext("developer") as string;
@@ -101,7 +81,7 @@ export class YacHttpServiceStack extends CDK.Stack {
 
       return environment;
     } catch (error) {
-      console.log(`${new Date().toISOString()} : Error in YacCoreServiceStack.getRecordName:\n`, error);
+      console.log(`${new Date().toISOString()} : Error in YacCoreServiceStackg recordName getter:\n`, error);
 
       throw error;
     }
