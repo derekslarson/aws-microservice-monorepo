@@ -4,15 +4,11 @@ import * as CDK from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
-import * as Route53 from "@aws-cdk/aws-route53";
-import * as Route53Targets from "@aws-cdk/aws-route53-targets";
 // import { Environment } from "../../src/enums/environment.enum";
 
 interface HttpApiProps extends ApiGatewayV2.HttpApiProps {
   serviceName: string
-  domainName: ApiGatewayV2.IDomainName
-  hostedZone: Route53.IHostedZone
-  recordName: string
+  domainName: ApiGatewayV2.IDomainName,
 }
 
 export interface RouteProps<T extends string = string, U extends ApiGatewayV2.HttpMethod = ApiGatewayV2.HttpMethod> {
@@ -45,13 +41,7 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
       },
     });
 
-    new Route53.ARecord(this, "ApiRecord", {
-      zone: props.hostedZone,
-      recordName: props.recordName,
-      target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2Domain(props.domainName)),
-    });
-
-    this.apiURL = `https://${props.recordName}.${props.hostedZone.zoneName}/${props.serviceName}`;
+    this.apiURL = `https://${props.domainName.name}/${props.serviceName}`;
   }
 
   public addRoute(props: RouteProps): void {

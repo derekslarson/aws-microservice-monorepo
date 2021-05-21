@@ -9,8 +9,7 @@ import { Environment } from "../../src/enums/environment.enum";
 import { generateExportNames } from "../..";
 
 export interface IYacHttpServiceProps extends CDK.StackProps {
-  serviceName: string
-  allowMethods?: ApiGatewayV2.CorsHttpMethod[]
+  serviceName: string;
 }
 
 export class YacHttpServiceStack extends CDK.Stack {
@@ -49,7 +48,7 @@ export class YacHttpServiceStack extends CDK.Stack {
     this.zoneName = hostedZoneName;
 
     this.hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `${id}-HostedZone`, {
-      zoneName: this.zoneName,
+      zoneName: hostedZoneName,
       hostedZoneId,
     });
 
@@ -62,15 +61,13 @@ export class YacHttpServiceStack extends CDK.Stack {
     });
 
     const origins = environment !== Environment.Prod ? [ `https://${this.recordName}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ];
-    const corsCacheMaxAge = environment !== Environment.Prod ? CDK.Duration.minutes(300) : CDK.Duration.minutes(60 * 12);
+
     this.httpApi = new HttpApi(this, `${id}-Api`, {
       serviceName: props.serviceName,
       domainName: this.domainName,
-      hostedZone: this.hostedZone,
-      recordName: this.recordName,
       corsPreflight: {
         allowOrigins: origins,
-        allowMethods: props.allowMethods || [
+        allowMethods: [
           ApiGatewayV2.CorsHttpMethod.GET,
           ApiGatewayV2.CorsHttpMethod.POST,
           ApiGatewayV2.CorsHttpMethod.PATCH,
@@ -79,7 +76,7 @@ export class YacHttpServiceStack extends CDK.Stack {
           ApiGatewayV2.CorsHttpMethod.OPTIONS,
         ],
         // just dev purposes
-        maxAge: corsCacheMaxAge,
+        maxAge: environment !== Environment.Prod ? CDK.Duration.minutes(300) : CDK.Duration.minutes(60 * 12),
         allowCredentials: true,
       },
     });
