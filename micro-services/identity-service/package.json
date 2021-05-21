@@ -13,7 +13,7 @@
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
     "deploy:local": "npm run build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
     "synth:dev": "cdk synth --context environment=dev",
-    "deploy:dev": "npm run build:dev && cdk deploy --context environment=dev",
+    "deploy:dev": "yarn build:dev && cdk deploy --context environment=dev",
     "deploy:stage": "npm run build && cdk deploy --context environment=stage",
     "deploy:prod": "npm run build && cdk deploy --context environment=prod",
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
