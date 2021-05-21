@@ -5,20 +5,20 @@
     "yac-auth-service": "bin/yac-auth-service.js"
   },
   "scripts": {
-    "build": "NODE_ENV=\"production\" yarn clean && yarn workspace @yac/core build && yarn workspace @yac-assets/build build && webpack --bail --config ../../config/webpack/webpack.config.release.js && yarn build:layer",
-    "build:dev": "NODE_ENV=\"development\" yarn clean && yarn workspace @yac/core build && yarn workspace @yac-assets/build build && webpack --bail --config ../../config/webpack/webpack.config.dev.js && yarn build:layer",
+    "build": "yarn clean && yarn workspace @yac/core build && yarn workspace @yac-assets/build build && webpack --bail --config ../../config/webpack/webpack.config.release.js && yarn build:layer",
+    "build:dev": "yarn clean && yarn workspace @yac/core build && yarn workspace @yac-assets/build build && webpack --bail --config ../../config/webpack/webpack.config.dev.js && yarn build:layer",
     "build:layer": "ts-node ../../config/layer/buildLayer.ts",
     "build:unit-tests": "yarn clean:unit-tests && tsc --project ./tsconfig.test.json",
     "clean": "rm -rf ./dist",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
-    "deploy:local": "yarn build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
     "synth:dev": "cdk synth --context environment=dev",
+    "deploy:local": "yarn build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
     "deploy:dev": "yarn build:dev && cdk deploy --context environment=dev",
     "deploy:stage": "yarn build && cdk deploy --context environment=stage",
     "deploy:prod": "yarn build && cdk deploy --context environment=prod",
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
     "nyc": "nyc node config/jasmine/jasmine.runner.js",
-    "test:unit": "yarn build:unit-tests && npm run nyc"
+    "test:unit": "yarn build:unit-tests && yarn nyc"
   },
   "devDependencies": {
     "@aws-cdk/assert": "^1.94.0",
