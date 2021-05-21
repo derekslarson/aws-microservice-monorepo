@@ -30,6 +30,7 @@ export class YacIdentityServiceStack extends YacHttpServiceStack {
     const yacUserPoolClientId = CDK.Fn.importValue(ExportNames.YacUserPoolClientId);
     const yacUserPoolClientSecret = CDK.Fn.importValue(ExportNames.YacUserPoolClientSecret);
     const yacUserPoolClientRedirectUri = CDK.Fn.importValue(ExportNames.YacUserPoolClientRedirectUri);
+    const customDomainName = CDK.Fn.importValue(ExportNames.CustomDomainName);
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
 
     // Layers
@@ -50,7 +51,7 @@ export class YacIdentityServiceStack extends YacHttpServiceStack {
       USER_POOL_CLIENT_ID: yacUserPoolClientId,
       USER_POOL_CLIENT_SECRET: yacUserPoolClientSecret,
       USER_POOL_CLIENT_REDIRECT_URI: yacUserPoolClientRedirectUri,
-      AUTH_SERVICE_DOMAIN: "https://4rqv6luxyf.execute-api.us-east-2.amazonaws.com",
+      AUTH_SERVICE_DOMAIN: `https://${customDomainName}/auth-service`,
     };
 
     // Handlers

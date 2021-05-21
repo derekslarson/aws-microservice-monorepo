@@ -31,10 +31,10 @@ const variants = {
 }
 
 const CONFIG: IEnvConfig = {
-  BASE_URL: new URL(process.env.REACT_APP_BASE_URL as string),
-  SIGN_IN_PATH: process.env.REACT_APP_SIGN_IN_PATH as string,
-  SIGN_UP_PATH: process.env.REACT_APP_SIGN_UP_PATH as string,
-  AUTHENTICATE_PATH: process.env.REACT_APP_AUTHENTICATE_PATH as string,
+  BASE_URL: new URL(`https://${process.env.ENVIRONMENT}.yacchat.com/auth-service`),
+  SIGN_IN_PATH: "/login",
+  SIGN_UP_PATH: "sign-up",
+  AUTHENTICATE_PATH: "/confirm",
 }
 function useQuery() {
   const params = new URLSearchParams(window.location.search) as any

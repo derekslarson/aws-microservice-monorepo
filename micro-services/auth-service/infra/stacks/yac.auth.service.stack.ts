@@ -10,6 +10,7 @@ import * as S3 from "@aws-cdk/aws-s3";
 import * as CloudFront from "@aws-cdk/aws-cloudfront";
 import * as CFOrigins from "@aws-cdk/aws-cloudfront-origins";
 import * as Route53 from "@aws-cdk/aws-route53";
+import * as S3Deployment from "@aws-cdk/aws-s3-deployment";
 import {
   Environment,
   HttpApi,
@@ -35,8 +36,6 @@ import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stack
 export type IYacAuthServiceStackProps = IYacHttpServiceProps;
 
 export class YacAuthServiceStack extends YacHttpServiceStack {
-  public readonly websiteBucket: S3.IBucket;
-
   public readonly api: HttpApi;
 
   constructor(scope: CDK.Construct, id: string, props: IYacAuthServiceStackProps) {
@@ -59,23 +58,21 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       code: Lambda.Code.fromAsset("dist/dependencies"),
     });
 
-    // Declare bucket for AUTH_UI page
-    const envString = environment === Environment.Local ? `${this.node.tryGetContext("developer") as string}-stage` : environment;
-    const websiteBucket = new S3.Bucket(this, `${envString}-idYacCom`, {
+    const websiteBucket = new S3.Bucket(this, `${id}-idYacCom`, {
       websiteIndexDocument: "index.html",
       publicReadAccess: true,
       removalPolicy: CDK.RemovalPolicy.DESTROY,
     });
 
-    const distributionOriginRequestPolicy = new CloudFront.OriginRequestPolicy(this, `${envString}-idYacComDistributionOriginRequestPolicy`, {
-      originRequestPolicyName: `${envString}-idYacComDistributionOriginRequestPolicy`,
+    const distributionOriginRequestPolicy = new CloudFront.OriginRequestPolicy(this, `${id}-idYacComDistributionOriginRequestPolicy`, {
+      originRequestPolicyName: `${id}-idYacComDistributionOriginRequestPolicy`,
       cookieBehavior: {
         behavior: "whitelist",
         cookies: [ "XSRF-TOKEN" ],
       },
     });
 
-    const websiteDistribution = new CloudFront.Distribution(this, `${envString}-idYacComDistribution`, {
+    const websiteDistribution = new CloudFront.Distribution(this, `${id}-idYacComDistribution`, {
       defaultBehavior: {
         origin: new CFOrigins.S3Origin(websiteBucket),
         originRequestPolicy: { originRequestPolicyId: distributionOriginRequestPolicy.originRequestPolicyId },
@@ -84,12 +81,15 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       domainNames: [ `${this.recordName}-assets.${this.zoneName}` ],
     });
 
-    this.websiteBucket = websiteBucket;
-
     const cnameRecord = new Route53.CnameRecord(this, `${id}-CnameRecord`, {
       domainName: websiteDistribution.distributionDomainName,
       zone: this.hostedZone,
       recordName: `${this.recordName}-assets`,
+    });
+
+    new S3Deployment.BucketDeployment(this, `${id}-idYacComDeployment`, {
+      sources: [ S3Deployment.Source.asset("ui/build") ],
+      destinationBucket: websiteBucket,
     });
 
     // User Pool and Yac Client

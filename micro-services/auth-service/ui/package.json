@@ -1,5 +1,5 @@
 {
-  "name": "@yac-assets/auth-service",
+  "name": "@yac/auth-service-ui",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -23,7 +23,10 @@
   },
   "scripts": {
     "start": "SKIP_PREFLIGHT_CHECK=true react-scripts start",
-    "build": "rm -rf ./build && SKIP_PREFLIGHT_CHECK=true react-scripts build",
+    "build:local": "rm -rf ./build && echo REACT_APP_ENVIRONMENT=$(whoami) > .env && SKIP_PREFLIGHT_CHECK=true react-scripts build",
+    "build:dev": "rm -rf ./build && echo REACT_APP_ENVIRONMENT=develop > .env && SKIP_PREFLIGHT_CHECK=true react-scripts build",
+    "build:stage": "rm -rf ./build && echo REACT_APP_ENVIRONMENT=stage > .env && SKIP_PREFLIGHT_CHECK=true react-scripts build",
+    "build:prod": "rm -rf ./build && echo REACT_APP_ENVIRONMENT=api > .env && SKIP_PREFLIGHT_CHECK=true react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

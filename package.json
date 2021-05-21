@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": [
     "micro-services/*",
-    "assets/build"
+    "micro-services/auth-service/ui"
   ],
   "version": "0.1.0",
   "license": "MIT",
