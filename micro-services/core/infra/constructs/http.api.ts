@@ -6,11 +6,11 @@ import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as Route53Targets from "@aws-cdk/aws-route53-targets";
-import { Environment } from "../../src/enums/environment.enum";
+// import { Environment } from "../../src/enums/environment.enum";
 
 interface HttpApiProps extends ApiGatewayV2.HttpApiProps {
   serviceName: string
-  domainName: ApiGatewayV2.DomainName
+  domainName: ApiGatewayV2.IDomainName
   hostedZone: Route53.IHostedZone
   recordName: string
 }
@@ -37,14 +37,12 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
   public readonly apiURL: string;
 
   constructor(scope: CDK.Construct, id: string, props: HttpApiProps) {
-    super(scope, id, props);
-
-    const environment: string = this.node.tryGetContext("environment") as string;
-
-    this.addStage(`environment-stage-${environment}`, {
-      stageName: environment === Environment.Dev ? "develop" : environment,
-      autoDeploy: true,
-      domainMapping: { domainName: props.domainName, mappingKey: props.serviceName },
+    super(scope, id, {
+      ...props,
+      defaultDomainMapping: {
+        domainName: props.domainName,
+        mappingKey: props.serviceName,
+      },
     });
 
     new Route53.ARecord(this, "ApiRecord", {

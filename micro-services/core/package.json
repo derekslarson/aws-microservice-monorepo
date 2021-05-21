@@ -29,6 +29,7 @@
     "@aws-cdk/aws-route53": "^1.94.1",
     "@aws-cdk/aws-route53-targets": "^1.94.1",
     "@aws-cdk/aws-sns": "^1.94.1",
+    "@aws-cdk/aws-ssm": "^1.105.0",
     "@aws-cdk/core": "^1.94.1",
     "@types/aws-lambda": "^8.10.72",
     "@types/elasticsearch": "^5.0.37",

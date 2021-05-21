@@ -3,7 +3,9 @@ const ExportNames = {
   YacUserPoolClientId: "yacUserPoolClientId",
   YacUserPoolClientSecret: "yacUserPoolClientSecret",
   YacUserPoolClientRedirectUri: "yacUserPoolClientRedirectUri",
-  DomainName: "domainName",
+  CustomDomainName: "customDomainName",
+  RegionalDomainName: "regionalDomainName",
+  RegionalHostedZoneId: "regionalHostedZoneId",
 };
 
 export function generateExportNames(id: string): Readonly<typeof ExportNames> {

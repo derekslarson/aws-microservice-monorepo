@@ -2,6 +2,7 @@ import * as CDK from "@aws-cdk/core";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as ACM from "@aws-cdk/aws-certificatemanager";
+import * as SSM from "@aws-cdk/aws-ssm";
 
 import { HttpApi } from "../constructs/http.api";
 import { Environment } from "../../src/enums/environment.enum";
@@ -12,13 +13,10 @@ export interface IYacHttpServiceProps extends CDK.StackProps {
   allowMethods?: ApiGatewayV2.CorsHttpMethod[]
 }
 
-const hostedZoneId = "Z2PLDO748H3Z0U";
-const certArn = "arn:aws:acm:us-east-1:644653163171:certificate/77491685-9b9c-4d4a-9443-ac6463a67bbf";
-
 export class YacHttpServiceStack extends CDK.Stack {
   public httpApi: HttpApi;
 
-  public domainName: ApiGatewayV2.DomainName;
+  public domainName: ApiGatewayV2.IDomainName;
 
   public hostedZone: Route53.IHostedZone;
 
@@ -37,31 +35,34 @@ export class YacHttpServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
+    const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
+    const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
+    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
+
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
-    const domainName = CDK.Fn.importValue(ExportNames.DomainName);
+    const customDomainName = CDK.Fn.importValue(ExportNames.CustomDomainName);
+    const regionalDomainName = CDK.Fn.importValue(ExportNames.RegionalDomainName);
 
     this.recordName = this.getRecordName();
-    this.zoneName = "yacchat.com";
+    this.zoneName = hostedZoneName;
 
     this.hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `${id}-HostedZone`, {
       zoneName: this.zoneName,
       hostedZoneId,
     });
 
-    this.certificate = ACM.Certificate.fromCertificateArn(this, `${id}-cert`, certArn);
+    this.certificate = ACM.Certificate.fromCertificateArn(this, `${id}-cert`, certificateArn);
 
-    const domainNameResource = ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `${id}-DomainName`, {
-      name: domainName,
-      regionalDomainName: domainName,
+    this.domainName = ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `${id}-DomainName`, {
+      name: customDomainName,
+      regionalDomainName,
       regionalHostedZoneId: hostedZoneId,
-    }) as ApiGatewayV2.DomainName;
-
-    this.domainName = domainNameResource;
+    });
 
     const origins = environment !== Environment.Prod ? [ `https://${this.recordName}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ];
     const corsCacheMaxAge = environment !== Environment.Prod ? CDK.Duration.minutes(300) : CDK.Duration.minutes(60 * 12);
-    this.httpApi = new HttpApi(this, `${id}_Api`, {
+    this.httpApi = new HttpApi(this, `${id}-Api`, {
       serviceName: props.serviceName,
       domainName: this.domainName,
       hostedZone: this.hostedZone,

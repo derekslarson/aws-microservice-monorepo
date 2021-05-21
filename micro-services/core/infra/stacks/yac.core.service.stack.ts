@@ -3,6 +3,7 @@
 import * as CDK from "@aws-cdk/core";
 import * as ACM from "@aws-cdk/aws-certificatemanager";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import * as SSM from "@aws-cdk/aws-ssm";
 import { generateExportNames } from "../../src/enums/exportNames.enum";
 import { Environment } from "../../src/enums/environment.enum";
 
@@ -13,22 +14,31 @@ export class YacCoreServiceStack extends CDK.Stack {
     const environment = this.node.tryGetContext("environment") as string;
     const developer = this.node.tryGetContext("developer") as string;
 
+    if (!environment) {
+      throw new Error("'environment' context param required.");
+    }
+
+    const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
+    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
+
     const stackPrefix = environment === Environment.Local ? developer : environment;
 
     const ExportNames = generateExportNames(stackPrefix);
 
-    const zoneName = "yacchat.com";
     const recordName = this.getRecordName();
 
-    const certificate = ACM.Certificate.fromCertificateArn(this, `${id}-cert`, "arn:aws:acm:us-east-1:644653163171:certificate/77491685-9b9c-4d4a-9443-ac6463a67bbf");
+    const certificate = ACM.Certificate.fromCertificateArn(this, `${id}-cert`, certificateArn);
 
-    const domainName = `${recordName}.${zoneName}`;
+    const domainName = new ApiGatewayV2.DomainName(this, `${id}-DN`, { domainName: `${recordName}.${hostedZoneName}`, certificate });
 
-    new ApiGatewayV2.DomainName(this, `${id}-DN`, { domainName, certificate });
+    new CDK.CfnOutput(this, `${id}-CustomDomainNameExport`, {
+      exportName: ExportNames.CustomDomainName,
+      value: domainName.name,
+    });
 
-    new CDK.CfnOutput(this, `${id}-DomainNameExport`, {
-      exportName: ExportNames.DomainName,
-      value: domainName,
+    new CDK.CfnOutput(this, `${id}-RegionalDomainNameExport`, {
+      exportName: ExportNames.RegionalDomainName,
+      value: domainName.regionalDomainName,
     });
   }
 
