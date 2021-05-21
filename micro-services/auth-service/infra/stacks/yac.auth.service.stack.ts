@@ -43,12 +43,13 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
+    const developer = this.node.tryGetContext("developer") as string;
 
     if (!environment) {
       throw new Error("'environment' context param required.");
     }
 
-    const ExportNames = generateExportNames(id);
+    const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
 
