@@ -6,7 +6,7 @@
   },
   "scripts": {
     "build": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.release.js && npm run build:layer",
-    "build:dev": "npm run clean && webpack --bail --config ../../config/webpack/webpack.config.dev.js && npm run build:layer",
+    "build:dev": "yarn clean && yarn workspace @yac/core build && webpack --bail --config ../../config/webpack/webpack.config.dev.js && yarn build:layer",
     "build:layer": "ts-node ../../config/layer/buildLayer.ts",
     "build:unit-tests": "npm run clean:unit-tests && tsc --project ./tsconfig.test.json",
     "clean": "rm -rf ./dist",
