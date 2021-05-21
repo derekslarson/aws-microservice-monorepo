@@ -40,6 +40,5 @@
     "**/api-tests",
     "**/compiled_tests",
     "**/dist",
-    "assets/auth-service/**"
   ]
 }
