@@ -61,7 +61,7 @@ export class BannerbearService implements BannerbearServiceInterface {
         const taskAux: Task<"GIF2VIDEO"> = task as Task<"GIF2VIDEO">;
         return {
           template: BannerbearTemplates.GIF2VIDEO,
-          image_input_url: taskAux.options.source,
+          input_media_url: taskAux.options.source,
           frames: Array.from([ [], [], [] ]).map(() => modifications),
           fps: 1,
           webhook_url: `${this.envConfig.origin}/bannerbear/callback`,
@@ -186,7 +186,7 @@ interface BannerbearImageRequestData extends BannerbearRequestDataMeta {
   modifications: BannerbearModification[]
 }
 interface BannerbearVideoToGifRequestData extends BannerbearRequestDataMeta {
-  image_input_url: string
+  input_media_url: string
   frames: Array<BannerbearModification[]>
   fps: 1
 }

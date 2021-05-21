@@ -21,7 +21,7 @@ export class MediaService implements MediaServiceInterface {
       this.loggerService.trace("createMedia called", { messageId, isGroup, token }, this.constructor.name);
       const yacMessage = await this.yacApiService.getMessage(messageId, isGroup, token);
 
-      const task = yacMessage.type === "AUDIO" ? this.generateTask<"IMAGE">("IMAGE", yacMessage, isGroup) : this.generateTask<"GIF2VIDEO">("GIF2VIDEO", yacMessage, isGroup);
+      const task = yacMessage.type === "AUDIO" ? await this.generateTask<"IMAGE">("IMAGE", yacMessage, isGroup) : await this.generateTask<"GIF2VIDEO">("GIF2VIDEO", yacMessage, isGroup);
       const bannerbearRequest = await this.bannerbearService.pushTask(this.derivePrimaryKey(messageId, isGroup), task);
 
       const messageChecksumData: MediaChecksumInterface = {
@@ -76,7 +76,7 @@ export class MediaService implements MediaServiceInterface {
     return `${accessor}-${messageId}` as MediaInterface["id"];
   }
 
-  private generateTask<T extends TaskTypes>(type: T, yacMessage: YacMessage, isGroup: boolean): Task<TaskTypes> {
+  private async generateTask<T extends TaskTypes>(type: T, yacMessage: YacMessage, isGroup: boolean): Promise<Task<TaskTypes>> {
     switch (type) {
       case "GIF2VIDEO": {
         const options: Task<"GIF2VIDEO">["options"] = {
@@ -95,12 +95,14 @@ export class MediaService implements MediaServiceInterface {
       }
 
       case "IMAGE": {
+        const actualSenderInfo = yacMessage.isForwarded ? await this.yacApiService.getUserImageAndNameWithId(yacMessage.actualMessageSenderId as number) : null;
+        const senderName = yacMessage.isForwarded && actualSenderInfo ? actualSenderInfo.username : yacMessage.usernameFrom;
         const options: Task<"IMAGE">["options"] = {
           templateParameters: {
-            username: `@${yacMessage.usernameFrom}` as `@${string}`,
+            username: `@${senderName}` as `@${string}`,
             channel: isGroup ? `#${yacMessage.profileNameTo}` as `#${string}` : undefined,
-            subject: yacMessage.subject && yacMessage.subject.length >= 30 ? `${yacMessage.subject.slice(0, 30)}...` : yacMessage.subject || undefined,
-            user_image: yacMessage.profileImageFrom,
+            subject: yacMessage.subject && yacMessage.subject.length >= 32 ? `${yacMessage.subject.slice(0, 32)}...` : yacMessage.subject || undefined,
+            user_image: yacMessage.isForwarded && actualSenderInfo ? actualSenderInfo.image : yacMessage.profileImageFrom,
           },
         };
 

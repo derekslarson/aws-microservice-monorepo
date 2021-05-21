@@ -22,6 +22,18 @@ export class YacLegacyApiService implements YacLegacyApiServiceInterface {
       throw error;
     }
   }
+
+  public async getUserImageAndNameWithId(userId: number): Promise<YacUserMetadata> {
+    try {
+      this.loggerService.trace("getUserImageAndNameWithId called", { userId }, this.constructor.name);
+      const request = await this.httpService.get<YacUserMetadata>(`${this.envConfig.yacApiUrl}/v2/users/undefined/image-and-name`, { userId: String(userId) });
+
+      return request.body;
+    } catch (error: unknown) {
+      this.loggerService.error("getUserImageAndNameWithId failed to execute", { error, userId }, this.constructor.name);
+      throw error;
+    }
+  }
 }
 
 export interface YacMessage {
@@ -50,7 +62,7 @@ export interface YacMessage {
   reactions: Record<string, number>;
   hyperlink?: string;
   subject?: string;
-  actualMessageSenderId?: string;
+  actualMessageSenderId?: number;
   replyTo?: string;
   hasReplies: number;
   isGroup: boolean;
@@ -66,6 +78,17 @@ export interface YacMessage {
   sender: boolean;
 }
 
+export interface YacUserMetadata {
+  id: number;
+  username: string;
+  image: string;
+  name: string;
+  email: string;
+  bio: string;
+  phone: string;
+}
+
 export interface YacLegacyApiServiceInterface {
   getMessage(messageId: string, isGroup: boolean, token:string): Promise<YacMessage>
+  getUserImageAndNameWithId(userId: number): Promise<YacUserMetadata>
 }
