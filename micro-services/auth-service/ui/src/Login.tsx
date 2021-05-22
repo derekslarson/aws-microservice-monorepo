@@ -31,7 +31,7 @@ const variants = {
 }
 
 const CONFIG: IEnvConfig = {
-  BASE_URL: new URL(`https://${process.env.ENVIRONMENT}.yacchat.com/auth-service`),
+  BASE_URL: new URL(`https://${process.env.REACT_APP_ENVIRONMENT}.yacchat.com/auth-service`),
   SIGN_IN_PATH: "/login",
   SIGN_UP_PATH: "sign-up",
   AUTHENTICATE_PATH: "/confirm",
