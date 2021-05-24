@@ -171,7 +171,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const environmentVariables: Record<string, string> = {
       SECRET: secret,
       ENVIRONMENT: environment,
-      LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
+      LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Info}`,
       API_DOMAIN: `https://${this.httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`,
       USER_POOL_ID: userPool.userPoolId,
       USER_POOL_DOMAIN: userPoolDomainUrl,

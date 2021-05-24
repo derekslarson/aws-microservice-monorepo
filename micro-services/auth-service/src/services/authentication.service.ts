@@ -115,10 +115,14 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         },
       };
 
-      const [ authorizationCode ] = await Promise.all([
+      this.loggerService.info("respondToAuthChallengeParams", { respondToAuthChallengeParams }, this.constructor.name);
+
+      const [ authorizationCode, respondToAuthChallengeResponse ] = await Promise.all([
         this.getAuthorizationCode(confirmationInput.email, confirmationInput.clientId, confirmationInput.redirectUri, confirmationInput.xsrfToken),
         this.cognito.adminRespondToAuthChallenge(respondToAuthChallengeParams).promise(),
       ]);
+
+      this.loggerService.info("respondToAuthChallengeResponse", { respondToAuthChallengeResponse }, this.constructor.name);
 
       return { authorizationCode };
     } catch (error: unknown) {
