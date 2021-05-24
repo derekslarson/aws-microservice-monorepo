@@ -17,10 +17,10 @@
     "synth:dev": "cdk synth --context environment=dev",
     "synth:stage": "cdk synth --context environment=stage",
     "synth:prod": "cdk synth --context environment=prod",
-    "deploy:local": "yarn build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
+    "deploy:local": "yarn build:local && cdk deploy --context environment=local --context developer=$(whoami)",
     "deploy:dev": "yarn build:dev && cdk deploy --context environment=dev",
-    "deploy:stage": "yarn build && cdk deploy --context environment=stage",
-    "deploy:prod": "yarn build && cdk deploy --context environment=prod",
+    "deploy:stage": "yarn build:stage && cdk deploy --context environment=stage",
+    "deploy:prod": "yarn build:prod && cdk deploy --context environment=prod",
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
     "nyc": "nyc node ../../config/jasmine/jasmine.runner.js",
     "test:unit": "yarn build:unit-tests && yarn nyc"
