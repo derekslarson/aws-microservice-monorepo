@@ -17,8 +17,6 @@ export const handler = async (event: VerifyAuthChallengeResponseTriggerEvent): P
     // Get challenge and timestamp from user attributes
     const [ authChallenge, timestamp ] = (event.request.privateChallengeParameters.challenge || "").split(",");
 
-    loggerService.info("params", { answer: event.request.challengeAnswer, authChallenge }, "verifyAuthChallengeResponse handler");
-
     // 1. Check if code is equal to what we expect...
     if (event.request.challengeAnswer === authChallenge) {
       // 2. And whether the link hasn't timed out...

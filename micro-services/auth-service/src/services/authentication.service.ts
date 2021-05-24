@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
+import { ForbiddenError, HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
@@ -115,14 +115,14 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         },
       };
 
-      this.loggerService.info("respondToAuthChallengeParams", { respondToAuthChallengeParams }, this.constructor.name);
-
       const [ authorizationCode, respondToAuthChallengeResponse ] = await Promise.all([
         this.getAuthorizationCode(confirmationInput.email, confirmationInput.clientId, confirmationInput.redirectUri, confirmationInput.xsrfToken),
         this.cognito.adminRespondToAuthChallenge(respondToAuthChallengeParams).promise(),
       ]);
 
-      this.loggerService.info("respondToAuthChallengeResponse", { respondToAuthChallengeResponse }, this.constructor.name);
+      if (!respondToAuthChallengeResponse.AuthenticationResult) {
+        throw new ForbiddenError("Forbidden");
+      }
 
       return { authorizationCode };
     } catch (error: unknown) {
