@@ -64,14 +64,12 @@ export class AuthenticationController extends BaseController implements Authenti
     try {
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
 
-      const cookies = this.convertCookiesToObject(request.cookies);
-
-      const confirmationRequestHeaders = await this.validationService.validate(ConfirmationRequestCookiesDto, RequestPortion.Cookies, cookies);
+      const confirmationRequestCookies = await this.validationService.validate(ConfirmationRequestCookiesDto, RequestPortion.Cookies, this.convertCookiesToObject(request.cookies));
       const confirmationRequestBody = await this.validationService.validate(ConfirmationRequestBodyDto, RequestPortion.Body, request.body);
 
       const confirmationRequestInput: ConfirmationInput = {
         ...confirmationRequestBody,
-        xsrfToken: confirmationRequestHeaders["XSRF-TOKEN"],
+        xsrfToken: confirmationRequestCookies["XSRF-TOKEN"],
       };
 
       const confirmResponse = await this.authenticationService.confirm(confirmationRequestInput);
@@ -97,9 +95,10 @@ export class AuthenticationController extends BaseController implements Authenti
         return this.generateSuccessResponse({ xsrfToken });
       }
 
-      return this.generateSeeOtherResponse(`${this.config.authUI}?client_id=${oauth2AuthorizeInput.clientId}&redirect_uri=${oauth2AuthorizeInput.redirectUri}`,
-        {},
-        [ `XSRF-TOKEN=${xsrfToken}; Path=/; Domain=${request.headers.host as string}; Secure; HttpOnly; SameSite=Lax` ]);
+      const redirectLocation = `${this.config.authUI}?client_id=${oauth2AuthorizeInput.clientId}&redirect_uri=${oauth2AuthorizeInput.redirectUri}`;
+      const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Domain=${request.headers.host as string}; Secure; HttpOnly; SameSite=Lax`;
+
+      return this.generateSeeOtherResponse(redirectLocation, {}, [ xsrfTokenCookie ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in oauth2Authorize", { error, request }, this.constructor.name);
 
