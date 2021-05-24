@@ -84,6 +84,8 @@ export class AuthenticationController extends BaseController implements Authenti
 
       const confirmResponse = await this.authenticationService.confirm(confirmationRequestInput);
 
+      this.loggerService.info("confirmResponse", { confirmResponse }, this.constructor.name);
+
       return this.generateSuccessResponse(confirmResponse);
     } catch (error: unknown) {
       this.loggerService.error("Error in confirm", { error, request }, this.constructor.name);

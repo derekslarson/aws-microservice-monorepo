@@ -82,6 +82,8 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       const confirmResponse = await this.httpRequestService.post<AuthServiceConfirmationResponseBody>(`${this.config.authServiceDomain}/confirm`, confirmBody, {}, confirmHeaders);
 
+      this.loggerService.info("confirmResponse", { confirmResponse }, this.constructor.name);
+
       return confirmResponse.body;
     } catch (error: unknown) {
       this.loggerService.error("Error in confirm", { error, confirmInput }, this.constructor.name);
