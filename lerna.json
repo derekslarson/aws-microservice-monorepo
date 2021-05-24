@@ -1,7 +1,7 @@
 {
   "packages": [
     "micro-services/*",
-    "assets/build"
+    "micro-services/auth-service/ui"
   ],
   "version": "independent",
   "npmClient": "yarn",

@@ -1,9 +1,7 @@
-import { Expose } from "@yac/core";
+import { AuthServiceDeleteClientRequestHeaders, Expose } from "@yac/core";
 import { IsString } from "class-validator";
 
-import { DeleteClientRequestHeaders } from "../../api-contracts/deleteClient.delete";
-
-export class DeleteClientInputDto implements DeleteClientRequestHeaders {
+export class DeleteClientInputDto implements AuthServiceDeleteClientRequestHeaders {
   @Expose()
   @IsString()
   public secret: string;

@@ -49,3 +49,5 @@ export * from "./src/types/recursivePartial.type";
 export * from "./src/types/timestamp.type";
 
 export * from "./src/util/internalServerError.response.generator";
+
+export * from "./src/api-contracts/auth.service";

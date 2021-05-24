@@ -14,7 +14,7 @@ if (!environment) {
   throw new Error("'developer' context param required when 'environment' === 'local'.");
 }
 
-const stackPrefix = environment === Environment.Local ? `${environment}-${developer}` : environment;
+const stackPrefix = environment === Environment.Local ? developer : environment;
 
 // eslint-disable-next-line no-new
-new YacIdentityServiceStack(app, `${stackPrefix}-YacIdentityService`, { });
+new YacIdentityServiceStack(app, `${stackPrefix}-YacIdentityService`, { serviceName: "identity-service" });

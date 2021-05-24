@@ -10,37 +10,45 @@ import * as S3 from "@aws-cdk/aws-s3";
 import * as CloudFront from "@aws-cdk/aws-cloudfront";
 import * as CFOrigins from "@aws-cdk/aws-cloudfront-origins";
 import * as Route53 from "@aws-cdk/aws-route53";
+import * as S3Deployment from "@aws-cdk/aws-s3-deployment";
 import {
   Environment,
   HttpApi,
   LogLevel,
   RouteProps,
-  ExportNames,
+  generateExportNames,
   ProxyRouteProps,
+  AuthServiceSignUpPath,
+  AuthServiceSignUpMethod,
+  AuthServiceLoginPath,
+  AuthServiceLoginMethod,
+  AuthServiceConfirmPath,
+  AuthServiceConfirmMethod,
+  AuthServiceCreateClientPath,
+  AuthServiceCreateClientMethod,
+  AuthServiceDeleteClientPath,
+  AuthServiceDeleteClientMethod,
+  AuthServiceOauth2AuthorizePath,
+  AuthServiceOauth2AuthorizeMethod,
 } from "@yac/core";
 import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stacks/yac.http.service.stack";
-import { SignUpMethod, SignUpPath } from "../../src/api-contracts/signUp.post";
-import { LoginMethod, LoginPath } from "../../src/api-contracts/login.post";
-import { ConfirmMethod, ConfirmPath } from "../../src/api-contracts/confirm.get";
-import { CreateClientMethod, CreateClientPath } from "../../src/api-contracts/createClient.post";
-import { DeleteClientMethod, DeleteClientPath } from "../../src/api-contracts/deleteClient.delete";
-import { Oauth2AuthorizeMethod, Oauth2AuthorizePath } from "../../src/api-contracts/oauth2.authorize.get";
 
 export type IYacAuthServiceStackProps = IYacHttpServiceProps;
 
 export class YacAuthServiceStack extends YacHttpServiceStack {
-  public readonly websiteBucket: S3.IBucket;
-
   public readonly api: HttpApi;
 
   constructor(scope: CDK.Construct, id: string, props: IYacAuthServiceStackProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
+    const developer = this.node.tryGetContext("developer") as string;
 
     if (!environment) {
       throw new Error("'environment' context param required.");
     }
+
+    const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
 
@@ -50,22 +58,21 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       code: Lambda.Code.fromAsset("dist/dependencies"),
     });
 
-    // Declare bucket for AUTH_UI page
-    const envString = environment === Environment.Local ? `${this.node.tryGetContext("developer") as string}-stage` : environment;
-    const websiteBucket = new S3.Bucket(this, `${envString}-idYacCom`, {
+    const websiteBucket = new S3.Bucket(this, `${id}-idYacCom`, {
       websiteIndexDocument: "index.html",
       publicReadAccess: true,
+      removalPolicy: CDK.RemovalPolicy.DESTROY,
     });
 
-    const distributionOriginRequestPolicy = new CloudFront.OriginRequestPolicy(this, `${envString}-idYacComDistributionOriginRequestPolicy`, {
-      originRequestPolicyName: `${envString}-idYacComDistributionOriginRequestPolicy`,
+    const distributionOriginRequestPolicy = new CloudFront.OriginRequestPolicy(this, `${id}-idYacComDistributionOriginRequestPolicy`, {
+      originRequestPolicyName: `${id}-idYacComDistributionOriginRequestPolicy`,
       cookieBehavior: {
         behavior: "whitelist",
         cookies: [ "XSRF-TOKEN" ],
       },
     });
 
-    const websiteDistribution = new CloudFront.Distribution(this, `${envString}-idYacComDistribution`, {
+    const websiteDistribution = new CloudFront.Distribution(this, `${id}-idYacComDistribution`, {
       defaultBehavior: {
         origin: new CFOrigins.S3Origin(websiteBucket),
         originRequestPolicy: { originRequestPolicyId: distributionOriginRequestPolicy.originRequestPolicyId },
@@ -74,12 +81,15 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       domainNames: [ `${this.recordName}-assets.${this.zoneName}` ],
     });
 
-    this.websiteBucket = websiteBucket;
-
     const cnameRecord = new Route53.CnameRecord(this, `${id}-CnameRecord`, {
       domainName: websiteDistribution.distributionDomainName,
       zone: this.hostedZone,
       recordName: `${this.recordName}-assets`,
+    });
+
+    new S3Deployment.BucketDeployment(this, `${id}-idYacComDeployment`, {
+      sources: [ S3Deployment.Source.asset("ui/build") ],
+      destinationBucket: websiteBucket,
     });
 
     // User Pool and Yac Client
@@ -161,7 +171,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const environmentVariables: Record<string, string> = {
       SECRET: secret,
       ENVIRONMENT: environment,
-      LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
+      LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Info}`,
       API_DOMAIN: `https://${this.httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`,
       USER_POOL_ID: userPool.userPoolId,
       USER_POOL_DOMAIN: userPoolDomainUrl,
@@ -274,37 +284,37 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     userPool.addTrigger(Cognito.UserPoolOperation.VERIFY_AUTH_CHALLENGE_RESPONSE, verifyAuthChallengeResponseHandler);
 
     // Lambda Routes
-    const signUpRoute: RouteProps<SignUpPath, SignUpMethod> = {
+    const signUpRoute: RouteProps<AuthServiceSignUpPath, AuthServiceSignUpMethod> = {
       path: "/sign-up",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: signUpHandler,
     };
 
-    const loginRoute: RouteProps<LoginPath, LoginMethod> = {
+    const loginRoute: RouteProps<AuthServiceLoginPath, AuthServiceLoginMethod> = {
       path: "/login",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: loginHandler,
     };
 
-    const confirmRoute: RouteProps<ConfirmPath, ConfirmMethod> = {
+    const confirmRoute: RouteProps<AuthServiceConfirmPath, AuthServiceConfirmMethod> = {
       path: "/confirm",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: confirmHandler,
     };
 
-    const createClientRoute: RouteProps<CreateClientPath, CreateClientMethod> = {
+    const createClientRoute: RouteProps<AuthServiceCreateClientPath, AuthServiceCreateClientMethod> = {
       path: "/oauth2/clients",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: createClientHandler,
     };
 
-    const deleteClientRoute: RouteProps<DeleteClientPath, DeleteClientMethod> = {
+    const deleteClientRoute: RouteProps<AuthServiceDeleteClientPath, AuthServiceDeleteClientMethod> = {
       path: "/oauth2/clients/{id}",
       method: ApiGatewayV2.HttpMethod.DELETE,
       handler: deleteClientHandler,
     };
 
-    const oauth2AuthorizeRoute: RouteProps<Oauth2AuthorizePath, Oauth2AuthorizeMethod> = {
+    const oauth2AuthorizeRoute: RouteProps<AuthServiceOauth2AuthorizePath, AuthServiceOauth2AuthorizeMethod> = {
       path: "/oauth2/authorize",
       method: ApiGatewayV2.HttpMethod.GET,
       handler: oauth2AuthorizeHandler,
@@ -331,17 +341,17 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     routes.forEach((route) => this.httpApi.addRoute(route));
     proxyRoutes.forEach((route) => this.httpApi.addProxyRoute(route));
 
-    new CDK.CfnOutput(this, `YacUserPoolClientId_${id}`, {
+    new CDK.CfnOutput(this, `YacUserPoolClientId-${id}`, {
       exportName: ExportNames.YacUserPoolClientId,
       value: yacUserPoolClient.userPoolClientId,
     });
 
-    new CDK.CfnOutput(this, `YacUserPoolClientSecret_${id}`, {
+    new CDK.CfnOutput(this, `YacUserPoolClientSecret-${id}`, {
       exportName: ExportNames.YacUserPoolClientSecret,
       value: yacUserPoolClientSecret,
     });
 
-    new CDK.CfnOutput(this, `YacUserPoolClientRedirectUri_${id}`, {
+    new CDK.CfnOutput(this, `YacUserPoolClientRedirectUri-${id}`, {
       exportName: ExportNames.YacUserPoolClientRedirectUri,
       value: yacUserPoolClientRedirectUri,
     });

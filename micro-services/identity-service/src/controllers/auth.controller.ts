@@ -58,11 +58,15 @@ export class AuthController extends BaseController implements AuthControllerInte
 
       const confirmInput = await this.validationService.validate(ConfirmationInputDto, RequestPortion.Body, request.body);
 
-      const { authorizationCode } = await this.authenticationService.confirm(confirmInput);
+      const { confirmed, session, authorizationCode } = await this.authenticationService.confirm(confirmInput);
 
-      const responseBody = await this.authorizationService.getTokens(authorizationCode);
+      if (confirmed && authorizationCode) {
+        const tokens = await this.authorizationService.getTokens(authorizationCode);
 
-      return this.generateSuccessResponse(responseBody);
+        return this.generateSuccessResponse({ confirmed, ...tokens });
+      }
+
+      return this.generateSuccessResponse({ confirmed, session });
     } catch (error: unknown) {
       this.loggerService.error("Error in confirm", { error, request }, this.constructor.name);
 

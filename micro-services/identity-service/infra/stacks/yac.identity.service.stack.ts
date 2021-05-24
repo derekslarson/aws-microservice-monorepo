@@ -6,25 +6,31 @@ import * as SSM from "@aws-cdk/aws-ssm";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import {
   Environment,
-  ExportNames,
-  HttpApi,
+  generateExportNames,
   LogLevel,
   RouteProps,
 } from "@yac/core";
+import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stacks/yac.http.service.stack";
 
-export class YacIdentityServiceStack extends CDK.Stack {
-  constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
+export class YacIdentityServiceStack extends YacHttpServiceStack {
+  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
+    const developer = this.node.tryGetContext("developer") as string;
+
+    const stackPrefix = environment === Environment.Local ? developer : environment;
 
     if (!environment) {
       throw new Error("'environment' context param required.");
     }
 
+    const ExportNames = generateExportNames(stackPrefix);
+
     const yacUserPoolClientId = CDK.Fn.importValue(ExportNames.YacUserPoolClientId);
     const yacUserPoolClientSecret = CDK.Fn.importValue(ExportNames.YacUserPoolClientSecret);
     const yacUserPoolClientRedirectUri = CDK.Fn.importValue(ExportNames.YacUserPoolClientRedirectUri);
+    const customDomainName = CDK.Fn.importValue(ExportNames.CustomDomainName);
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
 
     // Layers
@@ -33,11 +39,7 @@ export class YacIdentityServiceStack extends CDK.Stack {
       code: Lambda.Code.fromAsset("dist/dependencies"),
     });
 
-    // APIs
-    const httpApi = new HttpApi(this, `Api_${id}`);
-
     // Policies
-
     const basePolicy: IAM.PolicyStatement[] = [];
 
     // Environment Variables
@@ -49,7 +51,7 @@ export class YacIdentityServiceStack extends CDK.Stack {
       USER_POOL_CLIENT_ID: yacUserPoolClientId,
       USER_POOL_CLIENT_SECRET: yacUserPoolClientSecret,
       USER_POOL_CLIENT_REDIRECT_URI: yacUserPoolClientRedirectUri,
-      AUTH_SERVICE_DOMAIN: "https://4rqv6luxyf.execute-api.us-east-2.amazonaws.com",
+      AUTH_SERVICE_DOMAIN: `https://${customDomainName}/auth-service`,
     };
 
     // Handlers
@@ -102,6 +104,6 @@ export class YacIdentityServiceStack extends CDK.Stack {
       },
     ];
 
-    routes.forEach((route) => httpApi.addRoute(route));
+    routes.forEach((route) => this.httpApi.addRoute(route));
   }
 }

@@ -2,28 +2,26 @@ import * as CDK from "@aws-cdk/core";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as ACM from "@aws-cdk/aws-certificatemanager";
+import * as SSM from "@aws-cdk/aws-ssm";
 
 import { HttpApi } from "../constructs/http.api";
 import { Environment } from "../../src/enums/environment.enum";
+import { generateExportNames } from "../..";
 
 export interface IYacHttpServiceProps extends CDK.StackProps {
-  serviceName: string
-  allowMethods?: ApiGatewayV2.CorsHttpMethod[]
+  serviceName: string;
 }
-
-const hostedZoneId = "Z2PLDO748H3Z0U";
-const certArn = "arn:aws:acm:us-east-1:644653163171:certificate/77491685-9b9c-4d4a-9443-ac6463a67bbf";
 
 export class YacHttpServiceStack extends CDK.Stack {
   public httpApi: HttpApi;
 
-  public origin: string;
-
-  public domainName: ApiGatewayV2.DomainName;
+  public domainName: ApiGatewayV2.IDomainName;
 
   public hostedZone: Route53.IHostedZone;
 
   public certificate: ACM.ICertificate;
+
+  public zoneName: string;
 
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
@@ -34,89 +32,56 @@ export class YacHttpServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
-    const { zoneName } = this;
-    const domainName = this.domainNameString;
+    const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
-    this.origin = `${this.domainNameString}/${props.serviceName}`;
+    const customDomainName = CDK.Fn.importValue(ExportNames.CustomDomainName);
+    const regionalDomainName = CDK.Fn.importValue(ExportNames.RegionalDomainName);
+    const regionalHostedZoneId = CDK.Fn.importValue(ExportNames.RegionalHostedZoneId);
+
+    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
+    const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
+    this.zoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
 
     this.hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `${id}-HostedZone`, {
-      zoneName,
+      zoneName: this.zoneName,
       hostedZoneId,
     });
 
-    this.certificate = ACM.Certificate.fromCertificateArn(this, `${id}-cert`, certArn);
+    this.certificate = ACM.Certificate.fromCertificateArn(this, `${id}-cert`, certificateArn);
 
-    const domainNameResource = new ApiGatewayV2.DomainName(this, `${id}-DN`, {
-      domainName,
-      certificate: this.certificate,
+    this.domainName = ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `${id}-DomainName`, {
+      name: customDomainName,
+      regionalDomainName,
+      regionalHostedZoneId,
     });
-    this.domainName = domainNameResource;
 
-    const origins = environment !== Environment.Prod ? [ `https://${developer}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ];
-    const corsCacheMaxAge = environment !== Environment.Prod ? CDK.Duration.minutes(300) : CDK.Duration.minutes(60 * 12);
-    this.httpApi = new HttpApi(this, `${id}_Api`, {
+    this.httpApi = new HttpApi(this, `${id}-Api`, {
       serviceName: props.serviceName,
       domainName: this.domainName,
-      hostedZone: this.hostedZone,
-      recordName: this.recordName,
-      corsPreflight: {
-        allowOrigins: origins,
-        allowMethods: props.allowMethods || [
-          ApiGatewayV2.CorsHttpMethod.GET,
-          ApiGatewayV2.CorsHttpMethod.POST,
-          ApiGatewayV2.CorsHttpMethod.PATCH,
-          ApiGatewayV2.CorsHttpMethod.DELETE,
-          ApiGatewayV2.CorsHttpMethod.HEAD,
-          ApiGatewayV2.CorsHttpMethod.OPTIONS,
-        ],
-        // just dev purposes
-        maxAge: corsCacheMaxAge,
-        allowCredentials: true,
-      },
+      corsAllowedOrigins: environment !== Environment.Prod ? [ `https://${this.recordName}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ],
     });
-  }
-
-  public get domainNameString(): string {
-    return `${this.recordName}.${this.zoneName}`;
   }
 
   public get recordName(): string {
-    return this.getRecordName(this.node.tryGetContext("environment") as string);
-  }
-
-  public get zoneName(): string {
-    return this.getZoneName(this.node.tryGetContext("environment") as string);
-  }
-
-  private getRecordName(environment: string): string {
     try {
+      const environment = this.node.tryGetContext("environment") as string;
+      const developer = this.node.tryGetContext("developer") as string;
+
       if (environment === Environment.Prod) {
         return "api";
       }
 
-      if (environment === Environment.Local) {
-        const developer: string = this.node.tryGetContext("developer") as string;
+      if (environment === Environment.Dev) {
+        return "develop";
+      }
 
+      if (environment === Environment.Local) {
         return developer;
       }
 
       return environment;
     } catch (error) {
-      console.log(`${new Date().toISOString()} : Error in HttpApi.getRecordName:\n`, error);
-
-      throw error;
-    }
-  }
-
-  private getZoneName(environment: string): string {
-    try {
-      if (environment === Environment.Prod) {
-        return "yac.com";
-      }
-
-      return "yacchat.com";
-    } catch (error) {
-      console.log(`${new Date().toISOString()} : Error in HttpApi.getZoneName:\n`, error);
+      console.log(`${new Date().toISOString()} : Error in YacCoreServiceStackg recordName getter:\n`, error);
 
       throw error;
     }

@@ -1,13 +1,11 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, AuthServiceCreateClientResponseBody, AuthServiceDeleteClientResponseBody } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { CreateClientInputDto } from "../models/client/client.creation.input.model";
 import { ClientServiceInterface } from "../services/client.service";
 import { DeleteClientInputDto } from "../models/client/client.deletion.input.model";
-import { CreateClientResponseBody } from "../api-contracts/createClient.post";
-import { DeleteClientResponseBody } from "../api-contracts/deleteClient.delete";
 
 @injectable()
 export class ClientController extends BaseController implements ClientControllerInterface {
@@ -21,13 +19,14 @@ export class ClientController extends BaseController implements ClientController
 
   public async createClient(request: Request): Promise<Response> {
     try {
+      // token comment
       this.loggerService.trace("createClient called", { request }, this.constructor.name);
 
       const createClientInput = await this.validationService.validate(CreateClientInputDto, RequestPortion.Body, request.body);
 
       const { clientId, clientSecret } = await this.clientService.createClient(createClientInput);
 
-      const response: CreateClientResponseBody = {
+      const response: AuthServiceCreateClientResponseBody = {
         clientId,
         clientSecret,
       };
@@ -50,7 +49,7 @@ export class ClientController extends BaseController implements ClientController
 
       await this.clientService.deleteClient(id, secret);
 
-      const response: DeleteClientResponseBody = { message: "Client deleted" };
+      const response: AuthServiceDeleteClientResponseBody = { message: "Client deleted" };
 
       return this.generateSuccessResponse(response);
     } catch (error: unknown) {

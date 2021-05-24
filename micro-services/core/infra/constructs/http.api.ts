@@ -4,14 +4,12 @@ import * as CDK from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
-import * as Route53 from "@aws-cdk/aws-route53";
-import * as Route53Targets from "@aws-cdk/aws-route53-targets";
+import { Environment } from "../../src/enums/environment.enum";
 
 interface HttpApiProps extends ApiGatewayV2.HttpApiProps {
   serviceName: string
-  domainName: ApiGatewayV2.DomainName
-  hostedZone: Route53.IHostedZone
-  recordName: string
+  domainName: ApiGatewayV2.IDomainName,
+  corsAllowedOrigins?: string[];
 }
 
 export interface RouteProps<T extends string = string, U extends ApiGatewayV2.HttpMethod = ApiGatewayV2.HttpMethod> {
@@ -36,23 +34,30 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
   public readonly apiURL: string;
 
   constructor(scope: CDK.Construct, id: string, props: HttpApiProps) {
-    super(scope, id, props);
+    const environment = scope.node.tryGetContext("environment") as string;
 
-    const environment: string = this.node.tryGetContext("environment") as string;
-
-    this.addStage(`environment-stage-${environment}`, {
-      stageName: environment,
-      autoDeploy: true,
-      domainMapping: { domainName: props.domainName, mappingKey: props.serviceName },
+    super(scope, id, {
+      ...props,
+      defaultDomainMapping: {
+        domainName: props.domainName,
+        mappingKey: props.serviceName,
+      },
+      corsPreflight: {
+        allowOrigins: props.corsAllowedOrigins || [ "*" ],
+        allowMethods: [
+          ApiGatewayV2.CorsHttpMethod.GET,
+          ApiGatewayV2.CorsHttpMethod.POST,
+          ApiGatewayV2.CorsHttpMethod.PATCH,
+          ApiGatewayV2.CorsHttpMethod.DELETE,
+          ApiGatewayV2.CorsHttpMethod.HEAD,
+          ApiGatewayV2.CorsHttpMethod.OPTIONS,
+        ],
+        maxAge: environment !== Environment.Prod ? CDK.Duration.minutes(300) : CDK.Duration.minutes(60 * 12),
+        allowCredentials: true,
+      },
     });
 
-    new Route53.ARecord(this, "ApiRecord", {
-      zone: props.hostedZone,
-      recordName: props.recordName,
-      target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2Domain(props.domainName)),
-    });
-
-    this.apiURL = `https://${props.recordName}.${props.hostedZone.zoneName}/${props.serviceName}`;
+    this.apiURL = `https://${props.domainName.name}/${props.serviceName}`;
   }
 
   public addRoute(props: RouteProps): void {
