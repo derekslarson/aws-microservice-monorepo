@@ -115,14 +115,13 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         },
       };
 
-      const [ authorizationCode, respondToAuthChallengeResponse ] = await Promise.all([
-        this.getAuthorizationCode(confirmationInput.email, confirmationInput.clientId, confirmationInput.redirectUri, confirmationInput.xsrfToken),
-        this.cognito.adminRespondToAuthChallenge(respondToAuthChallengeParams).promise(),
-      ]);
+      const respondToAuthChallengeResponse = await this.cognito.adminRespondToAuthChallenge(respondToAuthChallengeParams).promise();
 
       if (!respondToAuthChallengeResponse.AuthenticationResult) {
         throw new ForbiddenError("Forbidden");
       }
+
+      const authorizationCode = await this.getAuthorizationCode(confirmationInput.email, confirmationInput.clientId, confirmationInput.redirectUri, confirmationInput.xsrfToken);
 
       return { authorizationCode };
     } catch (error: unknown) {
