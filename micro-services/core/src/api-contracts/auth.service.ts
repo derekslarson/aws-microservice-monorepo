@@ -17,7 +17,9 @@ export interface AuthServiceConfirmationRequestCookies {
 }
 
 export interface AuthServiceConfirmationResponseBody {
-  authorizationCode: string;
+  confirmed: boolean;
+  session?: string;
+  authorizationCode?: string;
 }
 
 export type AuthServiceCreateClientMethod = HttpMethod.POST;

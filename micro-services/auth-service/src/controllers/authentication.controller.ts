@@ -82,11 +82,9 @@ export class AuthenticationController extends BaseController implements Authenti
         xsrfToken: confirmationRequestHeaders["XSRF-TOKEN"],
       };
 
-      const { authorizationCode } = await this.authenticationService.confirm(confirmationRequestInput);
+      const confirmResponse = await this.authenticationService.confirm(confirmationRequestInput);
 
-      const responseBody: AuthServiceConfirmationResponseBody = { authorizationCode };
-
-      return this.generateSuccessResponse(responseBody);
+      return this.generateSuccessResponse(confirmResponse);
     } catch (error: unknown) {
       this.loggerService.error("Error in confirm", { error, request }, this.constructor.name);
 

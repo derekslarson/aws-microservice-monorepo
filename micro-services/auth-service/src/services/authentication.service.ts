@@ -97,7 +97,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  public async confirm(confirmationInput: ConfirmationInput): Promise<{ authorizationCode: string }> {
+  public async confirm(confirmationInput: ConfirmationInput): Promise<{ confirmed: boolean; session?: string; authorizationCode?: string }> {
     try {
       this.loggerService.trace("confirm called", { confirmationInput }, this.constructor.name);
 
@@ -123,10 +123,10 @@ export class AuthenticationService implements AuthenticationServiceInterface {
       this.loggerService.info("respondToAuthChallengeResponse", { respondToAuthChallengeResponse }, this.constructor.name);
 
       if (!respondToAuthChallengeResponse.AuthenticationResult) {
-        throw new ForbiddenError("Forbidden");
+        return { confirmed: false, session: respondToAuthChallengeResponse.Session || "" };
       }
 
-      return { authorizationCode };
+      return { confirmed: true, authorizationCode };
     } catch (error: unknown) {
       this.loggerService.error("Error in confirm", { error, confirmationInput }, this.constructor.name);
 
@@ -224,6 +224,6 @@ export type AuthenticationServiceConfigInterface = Pick<EnvConfigInterface, "use
 export interface AuthenticationServiceInterface {
   signUp(signUpInput: SignUpInputDto): Promise<void>;
   login(loginInput: LoginInputDto): Promise<{ session: string; }>;
-  confirm(confirmationInput: ConfirmationInput): Promise<{ authorizationCode: string }>;
+  confirm(confirmationInput: ConfirmationInput): Promise<{ confirmed: boolean; session?: string; authorizationCode?: string }>;
   getXsrfToken(clientId: string, redirectUri: string): Promise<{ xsrfToken: string }>;
 }
