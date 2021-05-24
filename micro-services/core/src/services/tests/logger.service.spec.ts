@@ -58,8 +58,6 @@ describe("LoggerService", () => {
         });
       });
     });
-
-    describe("under error conditions", () => {});
   });
 
   describe("info", () => {
@@ -91,8 +89,6 @@ describe("LoggerService", () => {
         });
       });
     });
-
-    describe("under error conditions", () => {});
   });
 
   describe("warn", () => {
@@ -124,8 +120,6 @@ describe("LoggerService", () => {
         });
       });
     });
-
-    describe("under error conditions", () => {});
   });
 
   describe("error", () => {
@@ -157,7 +151,44 @@ describe("LoggerService", () => {
         });
       });
     });
+  });
 
-    describe("under error conditions", () => {});
+  describe("serialize", () => {
+    const mockDataWithErrorValue = { test: new Error("test") };
+
+    describe("under normal conditions", () => {
+      describe("when passed a value that is an instance of Error", () => {
+        beforeEach(() => {
+          envConfig.logLevel = LogLevel.Error;
+          loggerService = new LoggerService(envConfig, logWriterFactory, errorSerializerFactory);
+        });
+
+        it("calls errorSerializer with the correct params", () => {
+          loggerService.error(mockMessage, mockDataWithErrorValue, mockClassName);
+
+          expect(errorSerializer.serializeError).toHaveBeenCalledTimes(1);
+          expect(errorSerializer.serializeError).toHaveBeenCalledWith(mockDataWithErrorValue.test);
+        });
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when errorSerializer.serialize throws an error", () => {
+        const mockSerializationError = new Error("test");
+
+        beforeEach(() => {
+          envConfig.logLevel = LogLevel.Error;
+          errorSerializer.serializeError = jasmine.createSpy("serializeError").and.throwError(mockSerializationError);
+          loggerService = new LoggerService(envConfig, logWriterFactory, errorSerializerFactory);
+        });
+
+        it("returns '{ \"error\": \"Error serializing data object\" }'", () => {
+          loggerService.error(mockMessage, mockDataWithErrorValue, mockClassName);
+
+          expect(logWriter.error).toHaveBeenCalledTimes(1);
+          expect(logWriter.error).toHaveBeenCalledWith(jasmine.stringMatching(`: ${mockClassName} : ${mockMessage}\n{ "error": "Error serializing data object" }`));
+        });
+      });
+    });
   });
 });
