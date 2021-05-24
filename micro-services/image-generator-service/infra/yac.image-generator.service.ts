@@ -14,7 +14,7 @@ if (!environment) {
   throw new Error("'developer' context param required when 'environment' === 'local'.");
 }
 
-const stackPrefix = environment === Environment.Local ? `${environment}-${developer}` : environment;
+const stackPrefix = environment === Environment.Local ? developer : environment;
 
 // eslint-disable-next-line no-new
 new YacImageGeneratorStack(app, `${stackPrefix}-YacImageGeneratorService`, { serviceName: "image-generator" });

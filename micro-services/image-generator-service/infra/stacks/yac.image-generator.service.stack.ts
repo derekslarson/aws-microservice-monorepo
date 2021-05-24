@@ -41,7 +41,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
-      ORIGIN: this.origin,
+      ORIGIN: this.httpApi.apiURL,
       STACK_NAME: id,
       ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
