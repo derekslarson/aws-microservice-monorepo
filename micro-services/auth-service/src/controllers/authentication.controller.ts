@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, UnauthorizedError, AuthServiceSignUpResponseBody, AuthServiceConfirmationResponseBody, AuthServiceConfirmationRequestCookies, AuthServiceLoginResponseBody } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, AuthServiceSignUpResponseBody, AuthServiceLoginResponseBody } from "@yac/core";
 
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
@@ -63,18 +63,10 @@ export class AuthenticationController extends BaseController implements Authenti
   public async confirm(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
-      if (request.cookies == null) {
-        throw new UnauthorizedError("Unauthorized request");
-      }
 
-      const cookies: AuthServiceConfirmationRequestCookies = request.cookies?.reduce((acc, str: string) => {
-        const [ key, value ] = str.split("=");
-        if (acc[key] != null) return acc;
-        return { ...acc, [key]: value };
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      }, {} as {[key: string]: any}) as unknown as {"XSRF-TOKEN": string};
+      const cookies = this.convertCookiesToObject(request.cookies);
 
-      const confirmationRequestHeaders = await this.validationService.validate(ConfirmationRequestCookiesDto, RequestPortion.Cookies, cookies as unknown as Record<string, unknown>);
+      const confirmationRequestHeaders = await this.validationService.validate(ConfirmationRequestCookiesDto, RequestPortion.Cookies, cookies);
       const confirmationRequestBody = await this.validationService.validate(ConfirmationRequestBodyDto, RequestPortion.Body, request.body);
 
       const confirmationRequestInput: ConfirmationInput = {
@@ -97,6 +89,7 @@ export class AuthenticationController extends BaseController implements Authenti
   public async oauth2Authorize(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("oauth2Authorize called", { request }, this.constructor.name);
+
       const oauth2AuthorizeInput = await this.validationService.validate(Oauth2AuthorizeInputDto, RequestPortion.QueryParameters, request.queryStringParameters);
       const { xsrfToken } = await this.authenticationService.getXsrfToken(oauth2AuthorizeInput.clientId, oauth2AuthorizeInput.redirectUri);
 
@@ -111,6 +104,25 @@ export class AuthenticationController extends BaseController implements Authenti
       this.loggerService.error("Error in oauth2Authorize", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
+    }
+  }
+
+  private convertCookiesToObject(cookies: string[] = []): Record<string, string> {
+    try {
+      this.loggerService.trace("convertCookiesToObject called", { cookies }, this.constructor.name);
+
+      const cookieObject = cookies.reduce((acc: Record<string, string>, cookie: string) => {
+        const [ key, value ] = cookie.split("=");
+        acc[key] = value;
+
+        return acc;
+      }, {});
+
+      return cookieObject;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in convertCookiesToObject", { error, cookies }, this.constructor.name);
+
+      throw error;
     }
   }
 }
