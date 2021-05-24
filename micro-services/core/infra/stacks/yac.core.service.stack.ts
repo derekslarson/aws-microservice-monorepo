@@ -26,8 +26,6 @@ export class YacCoreServiceStack extends CDK.Stack {
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
-    const recordName = this.getRecordName();
-
     const certificate = ACM.Certificate.fromCertificateArn(this, `${id}-cert`, certificateArn);
 
     const hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `${id}-HostedZone`, {
@@ -35,11 +33,11 @@ export class YacCoreServiceStack extends CDK.Stack {
       hostedZoneId,
     });
 
-    const domainName = new ApiGatewayV2.DomainName(this, `${id}-DN`, { domainName: `${recordName}.${hostedZoneName}`, certificate });
+    const domainName = new ApiGatewayV2.DomainName(this, `${id}-DN`, { domainName: `${this.recordName}.${hostedZoneName}`, certificate });
 
     new Route53.ARecord(this, "ApiRecord", {
       zone: hostedZone,
-      recordName,
+      recordName: this.recordName,
       target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2Domain(domainName)),
     });
 
@@ -59,17 +57,13 @@ export class YacCoreServiceStack extends CDK.Stack {
     });
   }
 
-  private getRecordName(): string {
+  public get recordName(): string {
     try {
       const environment = this.node.tryGetContext("environment") as string;
       const developer = this.node.tryGetContext("developer") as string;
 
       if (environment === Environment.Prod) {
-        return "api";
-      }
-
-      if (environment === Environment.Dev) {
-        return "develop";
+        return "api-v4";
       }
 
       if (environment === Environment.Local) {
@@ -78,7 +72,7 @@ export class YacCoreServiceStack extends CDK.Stack {
 
       return environment;
     } catch (error) {
-      console.log(`${new Date().toISOString()} : Error in YacCoreServiceStack.getRecordName:\n`, error);
+      console.log(`${new Date().toISOString()} : Error in YacCoreServiceStackg recordName getter:\n`, error);
 
       throw error;
     }

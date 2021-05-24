@@ -68,11 +68,7 @@ export class YacHttpServiceStack extends CDK.Stack {
       const developer = this.node.tryGetContext("developer") as string;
 
       if (environment === Environment.Prod) {
-        return "api";
-      }
-
-      if (environment === Environment.Dev) {
-        return "develop";
+        return "api-v4";
       }
 
       if (environment === Environment.Local) {
