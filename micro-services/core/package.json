@@ -12,7 +12,7 @@
     "build:dev": "yarn build",
     "build:stage": "yarn build",
     "build:prod": "yarn build",
-    "build:unit-tests": "yarn run clean:unit-tests && tsc --project ../../tsconfig.test.json",
+    "build:unit-tests": "yarn clean:unit-tests && tsc --project ../../tsconfig.test.json",
     "clean": "rm -rf ./dist",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
     "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",

@@ -10,7 +10,7 @@
     "build:stage": "yarn clean && yarn workspace @yac/core build:stage && yarn workspace @yac/auth-service-ui build:stage && webpack --bail --config ../../config/webpack/webpack.config.release.js && yarn build:layer",
     "build:prod": "yarn clean && yarn workspace @yac/core build:prod && yarn workspace @yac/auth-service-ui build:prod && webpack --bail --config ../../config/webpack/webpack.config.release.js && yarn build:layer",
     "build:layer": "ts-node ../../config/layer/buildLayer.ts",
-    "build:unit-tests": "yarn clean:unit-tests && tsc --project ./tsconfig.test.json",
+    "build:unit-tests": "yarn clean:unit-tests && tsc --project ../../tsconfig.test.json",
     "clean": "rm -rf ./dist",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
     "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",
@@ -22,7 +22,7 @@
     "deploy:stage": "yarn build:stage && cdk deploy --context environment=stage",
     "deploy:prod": "yarn build:prod && cdk deploy --context environment=prod",
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
-    "nyc": "nyc node config/jasmine/jasmine.runner.js",
+    "nyc": "nyc node ../../config/jasmine/jasmine.runner.js",
     "test:unit": "yarn build:unit-tests && yarn nyc"
   },
   "devDependencies": {
