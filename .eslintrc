@@ -35,6 +35,8 @@
     "@typescript-eslint/no-useless-constructor": "off",
     "@typescript-eslint/unbound-method": "warn",
     "@typescript-eslint/consistent-type-assertions": ["error", { "assertionStyle": "as", "objectLiteralTypeAssertions": "never" }],
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars-experimental": "warn",
     "no-underscore-dangle": ["error", { "allow": ["_embedded"] }],
     "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
     "prefer-rest-params": "off",

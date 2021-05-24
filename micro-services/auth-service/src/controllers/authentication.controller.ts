@@ -73,6 +73,7 @@ export class AuthenticationController extends BaseController implements Authenti
         return { ...acc, [key]: value };
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       }, {} as {[key: string]: any}) as unknown as {"XSRF-TOKEN": string};
+
       const confirmationRequestHeaders = await this.validationService.validate(ConfirmationRequestCookiesDto, RequestPortion.Cookies, cookies as unknown as Record<string, unknown>);
       const confirmationRequestBody = await this.validationService.validate(ConfirmationRequestBodyDto, RequestPortion.Body, request.body);
 
@@ -102,6 +103,7 @@ export class AuthenticationController extends BaseController implements Authenti
       if (oauth2AuthorizeInput.clientId === this.config.userPool.yacClientId) {
         return this.generateSuccessResponse({ xsrfToken });
       }
+
       return this.generateSeeOtherResponse(`${this.config.authUI}?client_id=${oauth2AuthorizeInput.clientId}&redirect_uri=${oauth2AuthorizeInput.redirectUri}`,
         {},
         [ `XSRF-TOKEN=${xsrfToken}; Path=/; Domain=${request.headers.host as string}; Secure; HttpOnly; SameSite=Lax` ]);

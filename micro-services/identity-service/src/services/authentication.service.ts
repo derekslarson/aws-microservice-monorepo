@@ -10,6 +10,7 @@ import {
   AuthServiceLoginRequestBody,
   AuthServiceConfirmationResponseBody,
   AuthServiceConfirmationRequestBody,
+  AuthServiceOauth2AuthorizeRequestQueryParameters,
 } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
@@ -61,6 +62,16 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("confirm called", { confirmInput }, this.constructor.name);
 
+      const authorizeQueryParams: AuthServiceOauth2AuthorizeRequestQueryParameters = {
+        responseType: "code",
+        clientId: this.config.userPoolClientId,
+        redirectUri: this.config.userPoolClientRedirectUri,
+      };
+
+      const authorizeResponse = await this.httpRequestService.get<{ xsrfToken: string }>(`${this.config.authServiceDomain}/oauth2/authorize`, authorizeQueryParams as unknown as Record<string, string>);
+
+      const confirmHeaders = { Cookie: `XSRF-TOKEN=${authorizeResponse.body.xsrfToken}` };
+
       const confirmBody: AuthServiceConfirmationRequestBody = {
         email: confirmInput.email,
         confirmationCode: confirmInput.confirmationCode,
@@ -69,7 +80,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         redirectUri: this.config.userPoolClientRedirectUri,
       };
 
-      const confirmResponse = await this.httpRequestService.post<AuthServiceConfirmationResponseBody>(`${this.config.authServiceDomain}/confirm`, confirmBody, {});
+      const confirmResponse = await this.httpRequestService.post<AuthServiceConfirmationResponseBody>(`${this.config.authServiceDomain}/confirm`, confirmBody, {}, confirmHeaders);
 
       return confirmResponse.body;
     } catch (error: unknown) {
