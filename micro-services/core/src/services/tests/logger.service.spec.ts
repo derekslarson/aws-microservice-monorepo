@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { LogLevel } from "../../enums/logLevel.enum";
 import { ErrorSerializer, ErrorSerializerFactory } from "../../factories/errorSerializer.factory";
 import { LogWriter, LogWriterFactory } from "../../factories/logWriter.factory";
