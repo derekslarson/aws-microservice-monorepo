@@ -16,7 +16,8 @@ const envConfig: Pick<EnvConfigInterface, "origin" | "bannerbear_key" | "bannerb
 };
 const mockBannerbearResourceId = "bannerbear-ID-123123";
 const mockUserResourceId = "USER-1234";
-// const mockGroupResourceId = "GROUP-1234";
+const mockImageSourceUrl = "yac.com/image";
+
 const mockBannerbearResponseWithoutImage = {
   created_at: "123",
   uid: mockBannerbearResourceId,
@@ -42,7 +43,7 @@ const mockImageTask: () => Task<"IMAGE"> = () => ({
 const mockGif2VideoTask: () => Task<"GIF2VIDEO"> = () => ({
   type: "GIF2VIDEO",
   options: {
-    source: "yac.com/image",
+    source: mockImageSourceUrl,
     templateParameters: {
       username: "@atest",
       channel: "#channel-name",
@@ -51,7 +52,7 @@ const mockGif2VideoTask: () => Task<"GIF2VIDEO"> = () => ({
   },
 });
 
-const mockModifications = [ {
+const mockImageModifications = [ {
   name: "username",
   text: "@atest",
 }, {
@@ -65,7 +66,18 @@ const mockModifications = [ {
   image_url: "image.com",
 } ];
 
-const mockIncompleteRequestModifications = [ {
+const mockGif2VideoModifications = [ {
+  name: "username",
+  text: "@atest",
+}, {
+  name: "channel",
+  text: "#channel-name",
+}, {
+  name: "subject",
+  text: "Test subject",
+} ];
+
+const mockIncompleteImageRequestModifications = [ {
   name: "username",
   text: "@atest",
 }, {
@@ -73,12 +85,24 @@ const mockIncompleteRequestModifications = [ {
   image_url: "image.com",
 } ];
 
-const mockImageRequestDataFactory = (type: "IMAGE" | "GIF2VIDEO", modifications: Array<unknown>) => ({
-  template: envConfig.bannerbear_templates[type],
+const mockIncompleteGif2VideoRequestModifications = [ {
+  name: "username",
+  text: "@atest",
+} ];
+
+const mockImageRequestDataFactory = (type: "IMAGE" | "GIF2VIDEO", modifications: Array<unknown>) => (type === "IMAGE" ? ({
+  template: envConfig.bannerbear_templates.IMAGE,
   modifications,
   webhook_url: `${envConfig.origin}/bannerbear/callback`,
   metadata: JSON.stringify({ id: mockUserResourceId }),
-});
+}) : ({
+  input_media_url: mockImageSourceUrl,
+  template: envConfig.bannerbear_templates.GIF2VIDEO,
+  frames: Array.from([ [], [], [] ]).map(() => modifications),
+  fps: 1,
+  webhook_url: `${envConfig.origin}/bannerbear/callback`,
+  metadata: JSON.stringify({ id: mockUserResourceId }),
+}));
 
 describe("BannerbearService", () => {
   beforeEach(() => {
@@ -96,7 +120,7 @@ describe("BannerbearService", () => {
           await bannerbearService.pushTask(mockUserResourceId, mockImageTask());
           fail("Should have not gone thru");
         } catch (error: unknown) {
-          expect(httpService.post).toHaveBeenCalledWith("https://api.bannerbear.com/v2/images", mockImageRequestDataFactory("IMAGE", mockModifications), undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
+          expect(httpService.post).toHaveBeenCalledWith("https://api.bannerbear.com/v2/images", mockImageRequestDataFactory("IMAGE", mockImageModifications), undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
         }
       });
     });
@@ -107,7 +131,7 @@ describe("BannerbearService", () => {
         try {
           const response = await bannerbearService.pushTask(mockUserResourceId, mockImageTask());
 
-          expect(httpService.post).toHaveBeenCalledWith("https://api.bannerbear.com/v2/images", mockImageRequestDataFactory("IMAGE", mockModifications), undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
+          expect(httpService.post).toHaveBeenCalledWith("https://api.bannerbear.com/v2/images", mockImageRequestDataFactory("IMAGE", mockImageModifications), undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
           expect(response).toBeDefined();
           expect(response).toEqual(mockBannerbearResponseWithoutImage);
         } catch (error: unknown) {
@@ -120,7 +144,7 @@ describe("BannerbearService", () => {
         try {
           const response = await bannerbearService.pushTask(mockUserResourceId, mockGif2VideoTask());
 
-          expect(httpService.post).toHaveBeenCalledWith("https://api.bannerbear.com/v2/animated_gifs", mockImageRequestDataFactory("GIF2VIDEO", mockModifications), undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
+          expect(httpService.post).toHaveBeenCalledWith("https://api.bannerbear.com/v2/animated_gifs", mockImageRequestDataFactory("GIF2VIDEO", mockGif2VideoModifications), undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
           expect(response).toBeDefined();
           expect(response).toEqual(mockBannerbearResponseWithoutImage);
         } catch (error: unknown) {
@@ -130,14 +154,14 @@ describe("BannerbearService", () => {
 
       it("creates an imcomplete IMAGE resource task correctly", async () => {
         httpService.post.and.returnValue({ body: mockBannerbearResponseWithoutImage });
-        const incompleteMockTask = { ...mockGif2VideoTask() };
+        const incompleteMockTask = { ...mockImageTask() };
         delete incompleteMockTask.options.templateParameters.channel;
         delete incompleteMockTask.options.templateParameters.subject;
 
         try {
           const response = await bannerbearService.pushTask(mockUserResourceId, incompleteMockTask);
 
-          expect(httpService.post).toHaveBeenCalledWith("https://api.bannerbear.com/v2/images", mockImageRequestDataFactory("IMAGE", mockIncompleteRequestModifications), undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
+          expect(httpService.post).toHaveBeenCalledWith("https://api.bannerbear.com/v2/images", mockImageRequestDataFactory("IMAGE", mockIncompleteImageRequestModifications), undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
           expect(response).toBeDefined();
           expect(response).toEqual(mockBannerbearResponseWithoutImage);
         } catch (error: unknown) {
@@ -147,14 +171,15 @@ describe("BannerbearService", () => {
 
       it("creates an imcomplete GIF2VIDEO resource task correctly", async () => {
         httpService.post.and.returnValue({ body: mockBannerbearResponseWithoutImage });
-        const incompleteMockTask = { ...mockImageTask() };
+        const incompleteMockTask = { ...mockGif2VideoTask() };
         delete incompleteMockTask.options.templateParameters.channel;
         delete incompleteMockTask.options.templateParameters.subject;
 
         try {
           const response = await bannerbearService.pushTask(mockUserResourceId, incompleteMockTask);
 
-          expect(httpService.post).toHaveBeenCalledWith("https://api.bannerbear.com/v2/animated_gifs", mockImageRequestDataFactory("GIF2VIDEO", mockIncompleteRequestModifications), undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
+          // eslint-disable-next-line max-len
+          expect(httpService.post).toHaveBeenCalledWith("https://api.bannerbear.com/v2/animated_gifs", mockImageRequestDataFactory("GIF2VIDEO", mockIncompleteGif2VideoRequestModifications), undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
           expect(response).toBeDefined();
           expect(response).toEqual(mockBannerbearResponseWithoutImage);
         } catch (error: unknown) {
@@ -181,7 +206,9 @@ describe("BannerbearService", () => {
       it("creates an IMAGE resource task correctly", async () => {
         httpService.get.and.returnValue({ body: mockBannerbearResponseWithImage });
         try {
-          const response = await bannerbearService.getTask(mockUserResourceId, "IMAGE");
+          const response = await bannerbearService.getTask(mockBannerbearResourceId, "IMAGE");
+
+          expect(httpService.get).toHaveBeenCalledWith(`https://api.bannerbear.com/v2/images/${mockBannerbearResourceId}`, undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
           expect(response).toBeDefined();
           expect(response).toEqual(mockBannerbearResponseWithImage);
         } catch (error: unknown) {
@@ -192,7 +219,9 @@ describe("BannerbearService", () => {
       it("creates a GIF2VIDEO resource task correctly", async () => {
         httpService.get.and.returnValue({ body: mockBannerbearResponseWithImage });
         try {
-          const response = await bannerbearService.getTask(mockUserResourceId, "GIF2VIDEO");
+          const response = await bannerbearService.getTask(mockBannerbearResourceId, "GIF2VIDEO");
+
+          expect(httpService.get).toHaveBeenCalledWith(`https://api.bannerbear.com/v2/animated_gifs/${mockBannerbearResourceId}`, undefined, { Authorization: `Bearer ${envConfig.bannerbear_key}` });
           expect(response).toBeDefined();
           expect(response).toEqual(mockBannerbearResponseWithImage);
         } catch (error: unknown) {

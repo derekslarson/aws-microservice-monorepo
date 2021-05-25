@@ -89,10 +89,10 @@ export class BannerbearService implements BannerbearServiceInterface {
         }, auxTask.options.templateParameters.channel ? {
           name: "channel",
           text: auxTask.options.templateParameters.channel,
-        } : undefined, {
+        } : undefined, auxTask.options.templateParameters.subject ? {
           name: "subject",
           text: auxTask.options.templateParameters.subject,
-        } ].filter(Boolean) as BannerbearModification[];
+        } : undefined ].filter(Boolean) as BannerbearModification[];
       }
       case "IMAGE": {
         const auxTask: Task<"IMAGE"> = task as Task<"IMAGE">;
