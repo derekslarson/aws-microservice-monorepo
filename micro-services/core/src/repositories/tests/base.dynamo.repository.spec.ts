@@ -48,7 +48,7 @@ class TestDynamoRepository extends BaseDynamoRepository<Test> {
 }
 
 describe("BaseDynamoRepository", () => {
-  let documentClient: DocumentClient;
+  let documentClient: Spied<DocumentClient>;
   let idService: Spied<IdService>;
   let loggerService: Spied<LoggerService>;
   let testDynamoRepository: TestDynamoRepository;
@@ -68,18 +68,18 @@ describe("BaseDynamoRepository", () => {
   const mockUpdateResponse = { Attributes: mockItem };
 
   beforeEach(() => {
-    documentClient = {
-      get: jasmine.createSpy("get").and.returnValue(generateDocumentClientResponse(mockGetResponse)),
-      scan: jasmine.createSpy("scan").and.returnValue(generateDocumentClientResponse(mockScanResponse)),
-      update: jasmine.createSpy("update").and.returnValue(generateDocumentClientResponse(mockUpdateResponse)),
-      delete: jasmine.createSpy("delete").and.returnValue(generateDocumentClientResponse()),
-      put: jasmine.createSpy("put").and.returnValue(generateDocumentClientResponse()),
-    } as unknown as DocumentClient;
-
+    documentClient = TestSupport.spyOnClass(DocumentClient);
     idService = TestSupport.spyOnClass(IdService);
+    loggerService = TestSupport.spyOnClass(LoggerService);
+
+    documentClient.get.and.returnValue(generateDocumentClientResponse(mockGetResponse));
+    documentClient.scan.and.returnValue(generateDocumentClientResponse(mockScanResponse));
+    documentClient.update.and.returnValue(generateDocumentClientResponse(mockUpdateResponse));
+    documentClient.delete.and.returnValue(generateDocumentClientResponse());
+    documentClient.put.and.returnValue(generateDocumentClientResponse());
+
     idService.generateId.and.returnValue(mockId);
 
-    loggerService = TestSupport.spyOnClass(LoggerService);
     testDynamoRepository = new TestDynamoRepository(mockTableName, documentClientFactory, idService, loggerService);
   });
 
@@ -109,7 +109,7 @@ describe("BaseDynamoRepository", () => {
     describe("under error conditions", () => {
       describe("when documentClient.get doesn't return an Item prop in the response", () => {
         it("throws a NotFoundError", async () => {
-          documentClient.get = jasmine.createSpy("get").and.returnValue(generateDocumentClientResponse({}));
+          documentClient.get.and.returnValue(generateDocumentClientResponse({}));
 
           try {
             await testDynamoRepository.getByPrimaryKeyPublic(mockId);
@@ -124,7 +124,7 @@ describe("BaseDynamoRepository", () => {
 
       describe("when documentClient.get throws an error", () => {
         beforeEach(() => {
-          documentClient.get = jasmine.createSpy("get").and.returnValue(generateDocumentClientResponse(mockError, true));
+          documentClient.get.and.returnValue(generateDocumentClientResponse(mockError, true));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -169,7 +169,7 @@ describe("BaseDynamoRepository", () => {
     describe("under error conditions", () => {
       describe("when documentClient.delete throws an error", () => {
         beforeEach(() => {
-          documentClient.delete = jasmine.createSpy("delete").and.returnValue(generateDocumentClientResponse(mockError, true));
+          documentClient.delete.and.returnValue(generateDocumentClientResponse(mockError, true));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -211,7 +211,7 @@ describe("BaseDynamoRepository", () => {
     describe("under error conditions", () => {
       describe("when documentClient.scan throws an error", () => {
         beforeEach(() => {
-          documentClient.scan = jasmine.createSpy("scan").and.returnValue(generateDocumentClientResponse(mockError, true));
+          documentClient.scan.and.returnValue(generateDocumentClientResponse(mockError, true));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -274,7 +274,7 @@ describe("BaseDynamoRepository", () => {
     describe("under error conditions", () => {
       describe("when documentClient.put throws an error", () => {
         beforeEach(() => {
-          documentClient.put = jasmine.createSpy("put").and.returnValue(generateDocumentClientResponse(mockError, true));
+          documentClient.put.and.returnValue(generateDocumentClientResponse(mockError, true));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -325,7 +325,7 @@ describe("BaseDynamoRepository", () => {
     describe("under error conditions", () => {
       describe("when documentClient.put throws an error", () => {
         beforeEach(() => {
-          documentClient.put = jasmine.createSpy("put").and.returnValue(generateDocumentClientResponse(mockError, true));
+          documentClient.put.and.returnValue(generateDocumentClientResponse(mockError, true));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -382,7 +382,7 @@ describe("BaseDynamoRepository", () => {
     describe("under error conditions", () => {
       describe("when documentClient.update throws an error", () => {
         beforeEach(() => {
-          documentClient.update = jasmine.createSpy("update").and.returnValue(generateDocumentClientResponse(mockError, true));
+          documentClient.update.and.returnValue(generateDocumentClientResponse(mockError, true));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {

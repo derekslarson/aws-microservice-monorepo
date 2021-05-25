@@ -5,7 +5,7 @@ import { IdService, IdServiceInterface } from "../id.service";
 import { LoggerService } from "../logger.service";
 
 describe("IdService", () => {
-  let uuidV4: UuidV4;
+  let uuidV4: jasmine.Spy<UuidV4>;
   const uuidV4Factory: UuidV4Factory = () => uuidV4;
   let loggerService: Spied<LoggerService>;
   let idService: IdServiceInterface;
@@ -16,6 +16,7 @@ describe("IdService", () => {
   beforeEach(() => {
     uuidV4 = jasmine.createSpy("uuidV4").and.returnValue(mockId);
     loggerService = TestSupport.spyOnClass(LoggerService);
+
     idService = new IdService(uuidV4Factory, loggerService);
   });
 
@@ -44,11 +45,7 @@ describe("IdService", () => {
     describe("under error conditions", () => {
       describe("when uuidV4 throws an error", () => {
         beforeEach(() => {
-          uuidV4 = () => {
-            throw mockError;
-          };
-
-          idService = new IdService(uuidV4Factory, loggerService);
+          uuidV4.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct parameters", () => {

@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { fail } from "assert";
+import axiosObj, { AxiosInstance } from "axios";
 import { Axios, AxiosFactory } from "../../factories/axios.factory";
 import { Spied, TestSupport } from "../../test-support";
 import { HttpRequestService, HttpRequestServiceInterface } from "../http.request.service";
 import { LoggerService } from "../logger.service";
 
 describe("HttpRequestService", () => {
-  let axios: Axios;
-  const axiosFactory: AxiosFactory = () => axios;
+  let axios: Spied<Axios>;
+  const axiosFactory: AxiosFactory = () => axios as unknown as AxiosInstance;
   let loggerService: Spied<LoggerService>;
   let httpRequestService: HttpRequestServiceInterface;
 
@@ -25,14 +26,15 @@ describe("HttpRequestService", () => {
   };
 
   beforeEach(() => {
-    axios = {
-      get: jasmine.createSpy("get").and.returnValue(Promise.resolve(mockAxiosResponse)),
-      post: jasmine.createSpy("post").and.returnValue(Promise.resolve(mockAxiosResponse)),
-      put: jasmine.createSpy("put").and.returnValue(Promise.resolve(mockAxiosResponse)),
-      patch: jasmine.createSpy("patch").and.returnValue(Promise.resolve(mockAxiosResponse)),
-      delete: jasmine.createSpy("delete").and.returnValue(Promise.resolve(mockAxiosResponse)),
-    } as unknown as Axios;
     loggerService = TestSupport.spyOnClass(LoggerService);
+    axios = TestSupport.spyOnObject(axiosObj);
+
+    axios.get.and.returnValue(Promise.resolve(mockAxiosResponse));
+    axios.post.and.returnValue(Promise.resolve(mockAxiosResponse));
+    axios.put.and.returnValue(Promise.resolve(mockAxiosResponse));
+    axios.patch.and.returnValue(Promise.resolve(mockAxiosResponse));
+    axios.delete.and.returnValue(Promise.resolve(mockAxiosResponse));
+
     httpRequestService = new HttpRequestService(loggerService, axiosFactory);
   });
 
@@ -49,7 +51,7 @@ describe("HttpRequestService", () => {
     describe("under error conditions", () => {
       describe("when axios throws an error", () => {
         beforeEach(() => {
-          axios.get = jasmine.createSpy("get").and.returnValue(Promise.reject(mockError));
+          axios.get.and.returnValue(Promise.reject(mockError));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -93,7 +95,7 @@ describe("HttpRequestService", () => {
     describe("under error conditions", () => {
       describe("when axios throws an error", () => {
         beforeEach(() => {
-          axios.post = jasmine.createSpy("post").and.returnValue(Promise.reject(mockError));
+          axios.post.and.returnValue(Promise.reject(mockError));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -137,7 +139,7 @@ describe("HttpRequestService", () => {
     describe("under error conditions", () => {
       describe("when axios throws an error", () => {
         beforeEach(() => {
-          axios.put = jasmine.createSpy("put").and.returnValue(Promise.reject(mockError));
+          axios.put.and.returnValue(Promise.reject(mockError));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -181,7 +183,7 @@ describe("HttpRequestService", () => {
     describe("under error conditions", () => {
       describe("when axios throws an error", () => {
         beforeEach(() => {
-          axios.patch = jasmine.createSpy("patch").and.returnValue(Promise.reject(mockError));
+          axios.patch.and.returnValue(Promise.reject(mockError));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -225,7 +227,7 @@ describe("HttpRequestService", () => {
     describe("under error conditions", () => {
       describe("when axios throws an error", () => {
         beforeEach(() => {
-          axios.delete = jasmine.createSpy("delete").and.returnValue(Promise.reject(mockError));
+          axios.delete.and.returnValue(Promise.reject(mockError));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -287,7 +289,7 @@ describe("HttpRequestService", () => {
         };
 
         beforeEach(() => {
-          axios.get = jasmine.createSpy("get").and.returnValue(Promise.resolve(mockRedirectAxiosResponse));
+          axios.get.and.returnValue(Promise.resolve(mockRedirectAxiosResponse));
         });
 
         it("mutates and returns the axios response correctly", async () => {

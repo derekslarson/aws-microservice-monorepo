@@ -10,8 +10,8 @@ import { BadRequestError } from "../../errors/badRequest.error";
 import { RequestValidationError } from "../../errors/request.validation.error";
 
 describe("ValidationService", () => {
-  let classTransformer: ClassTransformer;
-  let classValidator: ClassValidator;
+  let classTransformer: jasmine.Spy<ClassTransformer>;
+  let classValidator: jasmine.Spy<ClassValidator>;
   let loggerService: Spied<LoggerService>;
   let validationService: ValidationServiceInterface;
 
@@ -46,10 +46,11 @@ describe("ValidationService", () => {
   ];
 
   beforeEach(() => {
+    spyOn(JSON, "parse").and.callThrough();
     classTransformer = jasmine.createSpy("classTransformer").and.returnValue(mockTransformation);
     classValidator = jasmine.createSpy("classValidator").and.returnValue(Promise.resolve(mockValidationSuccessResponse));
-    spyOn(JSON, "parse").and.callThrough();
     loggerService = TestSupport.spyOnClass(LoggerService);
+
     validationService = new ValidationService(classTransformerFactory, classValidatorFactory, loggerService);
   });
 
@@ -119,8 +120,7 @@ describe("ValidationService", () => {
 
       describe("When classValidator returns validation errors", () => {
         beforeEach(() => {
-          classValidator = jasmine.createSpy("classValidator").and.returnValue(Promise.resolve(mockValidationErrorResponse));
-          validationService = new ValidationService(classTransformerFactory, classValidatorFactory, loggerService);
+          classValidator.and.returnValue(Promise.resolve(mockValidationErrorResponse));
         });
 
         const expectedValidationErrors = [

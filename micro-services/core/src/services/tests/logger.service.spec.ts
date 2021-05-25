@@ -1,16 +1,18 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+import errorSerializerObj from "serialize-error";
 import { LogLevel } from "../../enums/logLevel.enum";
 import { ErrorSerializer, ErrorSerializerFactory } from "../../factories/errorSerializer.factory";
 import { LogWriter, LogWriterFactory } from "../../factories/logWriter.factory";
+import { Spied, TestSupport } from "../../test-support";
 import { LoggerServiceConfigInterface, LoggerServiceInterface, LoggerService } from "../logger.service";
 
 describe("LoggerService", () => {
   const envConfig: LoggerServiceConfigInterface = { logLevel: LogLevel.Trace };
-  let logWriter: LogWriter;
-  let errorSerializer: ErrorSerializer;
+  let logWriter: Spied<LogWriter>;
+  let errorSerializer: Spied<ErrorSerializer>;
   let loggerService: LoggerServiceInterface;
 
-  const logWriterFactory: LogWriterFactory = () => logWriter;
+  const logWriterFactory: LogWriterFactory = () => logWriter as unknown as LogWriter;
   const errorSerializerFactory: ErrorSerializerFactory = () => errorSerializer;
 
   const mockMessage = "mock logging message";
@@ -21,11 +23,11 @@ describe("LoggerService", () => {
   const mockError = new Error("Mock Error");
 
   beforeEach(() => {
-    logWriter = jasmine.createSpyObj([ "trace", "info", "warn", "error" ]) as LogWriter;
-    errorSerializer = {
-      serializeError: jasmine.createSpy("serializeError").and.returnValue(mockSerializedError),
-      deserializeError: jasmine.createSpy("deserializeError").and.returnValue(mockError),
-    };
+    logWriter = TestSupport.spyOnObject(console);
+    errorSerializer = TestSupport.spyOnObject(errorSerializerObj);
+
+    errorSerializer.serializeError.and.returnValue(mockSerializedError);
+    errorSerializer.deserializeError.and.returnValue(mockError);
   });
 
   describe("trace", () => {
@@ -179,7 +181,7 @@ describe("LoggerService", () => {
 
         beforeEach(() => {
           envConfig.logLevel = LogLevel.Error;
-          errorSerializer.serializeError = jasmine.createSpy("serializeError").and.throwError(mockSerializationError);
+          errorSerializer.serializeError.and.throwError(mockSerializationError);
           loggerService = new LoggerService(envConfig, logWriterFactory, errorSerializerFactory);
         });
 

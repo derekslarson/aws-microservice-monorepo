@@ -14,7 +14,13 @@ export class TestSupport {
     return jasmine.createSpyObj("spy", methods) as Spied<InstanceType<T>>;
   }
 
-  private static getMethodNames(prototype: Record<string, unknown> = {}): string[] {
+  public static spyOnObject<T extends Object>(objectToSpyOn: T): Spied<T> {
+    const methods = this.getMethodNames(objectToSpyOn)
+
+    return jasmine.createSpyObj("spy", methods) as Spied<T>;
+  }
+
+  private static getMethodNames(prototype: Object = {}): string[] {
     return Object.getOwnPropertyNames(prototype).filter((name) => Object.getOwnPropertyDescriptor(prototype, name)?.value instanceof Function);
   }
 }
