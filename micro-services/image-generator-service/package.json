@@ -19,7 +19,7 @@
     "deploy:stage": "yarn build && cdk deploy --context environment=stage",
     "deploy:prod": "yarn build && cdk deploy --context environment=prod",
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
-    "nyc": "nyc node ../../config/jasmine/jasmine.runner.js",
+    "nyc": "nyc node ../../config/jasmine/jasmine.runner.js --reporter html --reporter text -t coverage --report-dir coverage/summary",
     "test:unit": "yarn clean:unit-tests && npm run build:unit-tests && npm run nyc"
   },
   "devDependencies": {
