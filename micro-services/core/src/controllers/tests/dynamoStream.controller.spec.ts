@@ -39,6 +39,13 @@ describe("DynamoStreamController", () => {
     newImage: mockUnmarshalledImage,
   };
 
+  const mockDummyPreparedRecord = {
+    tableName: "",
+    eventName: "UNKNOWN",
+    newImage: {},
+    oldImage: {},
+  };
+
   beforeEach(() => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     unmarshall = jasmine.createSpy("unmarshal").and.returnValue(mockUnmarshalledImage);
@@ -106,13 +113,6 @@ describe("DynamoStreamController", () => {
       });
 
       describe("when unmarshall throws an error", () => {
-        const mockDummyPreparedRecord = {
-          tableName: "",
-          eventName: "UNKNOWN",
-          newImage: {},
-          oldImage: {},
-        };
-
         beforeEach(() => {
           unmarshall.and.throwError(mockError);
         });
@@ -126,6 +126,19 @@ describe("DynamoStreamController", () => {
 
         it("returns a dummy record and swallows the error", async () => {
           await dynamoStreamController.handleStreamEvent(mockEvent);
+
+          expect(mockProcessorServiceA.determineRecordSupport).toHaveBeenCalledTimes(1);
+          expect(mockProcessorServiceA.determineRecordSupport).toHaveBeenCalledWith(mockDummyPreparedRecord);
+
+          expect(mockProcessorServiceB.determineRecordSupport).toHaveBeenCalledTimes(1);
+          expect(mockProcessorServiceB.determineRecordSupport).toHaveBeenCalledWith(mockDummyPreparedRecord);
+        });
+      });
+
+      describe("when the dynamo record is missing necessary properties", () => {
+        const mockEventWithoutNecessaryProps: DynamoDBStreamEvent = { Records: [ {} ] };
+        it("returns a dummy record", async () => {
+          await dynamoStreamController.handleStreamEvent(mockEventWithoutNecessaryProps);
 
           expect(mockProcessorServiceA.determineRecordSupport).toHaveBeenCalledTimes(1);
           expect(mockProcessorServiceA.determineRecordSupport).toHaveBeenCalledWith(mockDummyPreparedRecord);

@@ -40,11 +40,22 @@ describe("HttpRequestService", () => {
 
   describe("get", () => {
     describe("under normal conditions", () => {
-      it("calls axios.get with the correct parameters", async () => {
-        await httpRequestService.get(mockPath, mockQueryParams, mockHeaders, mockAxiosConfig);
+      describe("when called with only path", () => {
+        it("calls axios.get with the correct parameters", async () => {
+          await httpRequestService.get(mockPath);
 
-        expect(axios.get).toHaveBeenCalledTimes(1);
-        expect(axios.get).toHaveBeenCalledWith(mockPath, { ...mockAxiosConfig, params: mockQueryParams, headers: mockHeaders });
+          expect(axios.get).toHaveBeenCalledTimes(1);
+          expect(axios.get).toHaveBeenCalledWith(mockPath, { params: {}, headers: {} });
+        });
+      });
+
+      describe("when called with path, query params, headers and conifg", () => {
+        it("calls axios.get with the correct parameters", async () => {
+          await httpRequestService.get(mockPath, mockQueryParams, mockHeaders, mockAxiosConfig);
+
+          expect(axios.get).toHaveBeenCalledTimes(1);
+          expect(axios.get).toHaveBeenCalledWith(mockPath, { ...mockAxiosConfig, params: mockQueryParams, headers: mockHeaders });
+        });
       });
     });
 
@@ -84,11 +95,22 @@ describe("HttpRequestService", () => {
 
   describe("post", () => {
     describe("under normal conditions", () => {
-      it("calls axios.post with the correct parameters", async () => {
-        await httpRequestService.post(mockPath, mockBody, mockQueryParams, mockHeaders, mockAxiosConfig);
+      describe("when called with path and body", () => {
+        it("calls axios.post with the correct parameters", async () => {
+          await httpRequestService.post(mockPath, mockBody);
 
-        expect(axios.post).toHaveBeenCalledTimes(1);
-        expect(axios.post).toHaveBeenCalledWith(mockPath, mockBody, { ...mockAxiosConfig, params: mockQueryParams, headers: mockHeaders });
+          expect(axios.post).toHaveBeenCalledTimes(1);
+          expect(axios.post).toHaveBeenCalledWith(mockPath, mockBody, { params: {}, headers: {} });
+        });
+      });
+
+      describe("when called with path, body, query params, headers and conifg", () => {
+        it("calls axios.post with the correct parameters", async () => {
+          await httpRequestService.post(mockPath, mockBody, mockQueryParams, mockHeaders, mockAxiosConfig);
+
+          expect(axios.post).toHaveBeenCalledTimes(1);
+          expect(axios.post).toHaveBeenCalledWith(mockPath, mockBody, { ...mockAxiosConfig, params: mockQueryParams, headers: mockHeaders });
+        });
       });
     });
 
@@ -128,11 +150,22 @@ describe("HttpRequestService", () => {
 
   describe("put", () => {
     describe("under normal conditions", () => {
-      it("calls axios.put with the correct parameters", async () => {
-        await httpRequestService.put(mockPath, mockBody, mockQueryParams, mockHeaders, mockAxiosConfig);
+      describe("when called with path and body", () => {
+        it("calls axios.put with the correct parameters", async () => {
+          await httpRequestService.put(mockPath, mockBody);
 
-        expect(axios.put).toHaveBeenCalledTimes(1);
-        expect(axios.put).toHaveBeenCalledWith(mockPath, mockBody, { ...mockAxiosConfig, params: mockQueryParams, headers: mockHeaders });
+          expect(axios.put).toHaveBeenCalledTimes(1);
+          expect(axios.put).toHaveBeenCalledWith(mockPath, mockBody, { params: {}, headers: {} });
+        });
+      });
+
+      describe("when called with path, body, query params, headers and conifg", () => {
+        it("calls axios.put with the correct parameters", async () => {
+          await httpRequestService.put(mockPath, mockBody, mockQueryParams, mockHeaders, mockAxiosConfig);
+
+          expect(axios.put).toHaveBeenCalledTimes(1);
+          expect(axios.put).toHaveBeenCalledWith(mockPath, mockBody, { ...mockAxiosConfig, params: mockQueryParams, headers: mockHeaders });
+        });
       });
     });
 
@@ -172,11 +205,22 @@ describe("HttpRequestService", () => {
 
   describe("patch", () => {
     describe("under normal conditions", () => {
-      it("calls axios.patch with the correct parameters", async () => {
-        await httpRequestService.patch(mockPath, mockBody, mockQueryParams, mockHeaders, mockAxiosConfig);
+      describe("when called with path and body", () => {
+        it("calls axios.patch with the correct parameters", async () => {
+          await httpRequestService.patch(mockPath, mockBody);
 
-        expect(axios.patch).toHaveBeenCalledTimes(1);
-        expect(axios.patch).toHaveBeenCalledWith(mockPath, mockBody, { ...mockAxiosConfig, params: mockQueryParams, headers: mockHeaders });
+          expect(axios.patch).toHaveBeenCalledTimes(1);
+          expect(axios.patch).toHaveBeenCalledWith(mockPath, mockBody, { params: {}, headers: {} });
+        });
+      });
+
+      describe("when called with path, body, query params, headers and conifg", () => {
+        it("calls axios.patch with the correct parameters", async () => {
+          await httpRequestService.patch(mockPath, mockBody, mockQueryParams, mockHeaders, mockAxiosConfig);
+
+          expect(axios.patch).toHaveBeenCalledTimes(1);
+          expect(axios.patch).toHaveBeenCalledWith(mockPath, mockBody, { ...mockAxiosConfig, params: mockQueryParams, headers: mockHeaders });
+        });
       });
     });
 
@@ -216,11 +260,22 @@ describe("HttpRequestService", () => {
 
   describe("delete", () => {
     describe("under normal conditions", () => {
-      it("calls axios.delete with the correct parameters", async () => {
-        await httpRequestService.delete(mockPath, mockQueryParams, mockHeaders, mockAxiosConfig);
+      describe("when called with only path", () => {
+        it("calls axios.get with the correct parameters", async () => {
+          await httpRequestService.delete(mockPath);
 
-        expect(axios.delete).toHaveBeenCalledTimes(1);
-        expect(axios.delete).toHaveBeenCalledWith(mockPath, { ...mockAxiosConfig, params: mockQueryParams, headers: mockHeaders });
+          expect(axios.delete).toHaveBeenCalledTimes(1);
+          expect(axios.delete).toHaveBeenCalledWith(mockPath, { params: {}, headers: {} });
+        });
+      });
+
+      describe("when called with path, query params, headers and conifg", () => {
+        it("calls axios.delete with the correct parameters", async () => {
+          await httpRequestService.delete(mockPath, mockQueryParams, mockHeaders, mockAxiosConfig);
+
+          expect(axios.delete).toHaveBeenCalledTimes(1);
+          expect(axios.delete).toHaveBeenCalledWith(mockPath, { ...mockAxiosConfig, params: mockQueryParams, headers: mockHeaders });
+        });
       });
     });
 
