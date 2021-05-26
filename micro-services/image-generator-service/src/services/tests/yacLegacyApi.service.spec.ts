@@ -12,7 +12,7 @@ let yacLegacyApiService: YacLegacyApiService;
 const mockYacMessageId = "123";
 const mockYacToken = "yac-token--123123";
 const mockYacMessage: YacMessage = {
-  actualMessageSenderId: "null",
+  actualMessageSenderId: 12,
   actualMessageSenderName: "null",
   duration: 49,
   fileName: "https://yac-production.s3-accelerate.amazonaws.com/test",
