@@ -2,7 +2,7 @@ import { fail } from "assert";
 import { Spied, TestSupport, LoggerService, HttpRequestService } from "@yac/core";
 
 import { EnvConfigInterface } from "../../config/env.config";
-import { YacLegacyApiService } from "../yacLegacyApi.service";
+import { YacLegacyApiService, YacMessage, YacUserMetadata } from "../yacLegacyApi.service";
 
 const envConfig: Pick<EnvConfigInterface, "yacApiUrl"> = { yacApiUrl: "yac_api" };
 let loggerService: Spied<LoggerService>;
@@ -11,15 +11,54 @@ let yacLegacyApiService: YacLegacyApiService;
 
 const mockYacMessageId = "123";
 const mockYacToken = "yac-token--123123";
-const mockYacMessage = {
-  id: mockYacMessageId,
-  is: "this is a yac message",
+const mockYacMessage: YacMessage = {
+  actualMessageSenderId: "null",
+  actualMessageSenderName: "null",
+  duration: 49,
+  fileName: "https://yac-production.s3-accelerate.amazonaws.com/test",
+  forwardMessageId: "null",
+  from: 11,
+  hasReplies: 0,
+  hyperlink: "null",
+  id: Number(mockYacMessageId),
+  isBroadCast: 0,
+  isContinue: 0,
+  isDefault: 0,
+  isDeletedFrom: false,
+  isDeletedTo: false,
+  isForwarded: 0,
+  isGroup: true,
+  isNew: true,
+  isSnoozed: 0,
+  mediaFileName: "",
+  mediaType: "",
+  profileImageFrom: "https://media.yacchat.com/users/test",
+  profileImageTo: "https://media.yacchat.com/groups/27/test",
+  profileNameFrom: "Johndoe",
+  usernameFrom: "atest",
+  profileNameTo: "standups",
+  publicShareUrl: "https://yac.com/play/test",
+  reactions: {},
+  replyTo: "null",
+  seenAt: "null",
+  sendAt: "2021-05-26T10:29:09.000Z",
+  sender: false,
+  snoozeAt: "null",
+  snoozedBy: 0,
+  sortProp: "2021-05-26T10:29:09Z",
+  subject: "test subject",
+  to: 123,
+  transcript: "test transcript",
+  type: "AUDIO",
 };
-const mockYacUser = {
+const mockYacUser: YacUserMetadata = {
   id: 123,
   name: "John Doe",
   username: "username",
   image: "image",
+  email: "email@email.com",
+  bio: "bio",
+  phone: "phone",
 };
 
 describe("YacLegacyApiService", () => {
