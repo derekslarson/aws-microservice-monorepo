@@ -83,27 +83,6 @@ describe("AuthenticationService", () => {
     const mockSignUpInput = { email: mockEmail };
 
     describe("under normal conditions", () => {
-      it("calls crypto.createHmac with the correct params", async () => {
-        await authenticationService.signUp(mockSignUpInput);
-
-        expect(crypto.createHmac).toHaveBeenCalledTimes(1);
-        expect(crypto.createHmac).toHaveBeenCalledWith("SHA256", mockYacClientSecret);
-      });
-
-      it("calls hmac.update with the correct params", async () => {
-        await authenticationService.signUp(mockSignUpInput);
-
-        expect(hmac.update).toHaveBeenCalledTimes(1);
-        expect(hmac.update).toHaveBeenCalledWith(`${mockEmail}${mockYacClientId}`);
-      });
-
-      it("calls hmac.digest with the correct params", async () => {
-        await authenticationService.signUp(mockSignUpInput);
-
-        expect(hmac.digest).toHaveBeenCalledTimes(1);
-        expect(hmac.digest).toHaveBeenCalledWith("base64");
-      });
-
       it("calls cognito.signUp with the correct params", async () => {
         await authenticationService.signUp(mockSignUpInput);
 
@@ -118,7 +97,7 @@ describe("AuthenticationService", () => {
     });
 
     describe("under error conditions", () => {
-      describe("when crypto.createHmac throws an error", () => {
+      describe("when an error is thrown", () => {
         beforeEach(() => {
           crypto.createHmac.and.throwError(mockError);
         });
@@ -145,89 +124,6 @@ describe("AuthenticationService", () => {
           }
         });
       });
-
-      describe("when hmac.update throws an error", () => {
-        beforeEach(() => {
-          hmac.update.and.throwError(mockError);
-        });
-
-        it("calls loggerService.error with the correct params", async () => {
-          try {
-            await authenticationService.signUp(mockSignUpInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(loggerService.error).toHaveBeenCalledTimes(2);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in createUserPoolClientSecretHash", { error: mockError, username: mockEmail }, authenticationService.constructor.name);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in signUp", { error: mockError, signUpInput: mockSignUpInput }, authenticationService.constructor.name);
-          }
-        });
-
-        it("throws the caught error", async () => {
-          try {
-            await authenticationService.signUp(mockSignUpInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(error).toBe(mockError);
-          }
-        });
-      });
-
-      describe("when hmac.digest throws an error", () => {
-        beforeEach(() => {
-          hmac.digest.and.throwError(mockError);
-        });
-
-        it("calls loggerService.error with the correct params", async () => {
-          try {
-            await authenticationService.signUp(mockSignUpInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(loggerService.error).toHaveBeenCalledTimes(2);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in createUserPoolClientSecretHash", { error: mockError, username: mockEmail }, authenticationService.constructor.name);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in signUp", { error: mockError, signUpInput: mockSignUpInput }, authenticationService.constructor.name);
-          }
-        });
-
-        it("throws the caught error", async () => {
-          try {
-            await authenticationService.signUp(mockSignUpInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(error).toBe(mockError);
-          }
-        });
-      });
-
-      describe("when cognito.signUp throws an error", () => {
-        beforeEach(() => {
-          cognito.signUp.and.throwError(mockError);
-        });
-
-        it("calls loggerService.error with the correct params", async () => {
-          try {
-            await authenticationService.signUp(mockSignUpInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in signUp", { error: mockError, signUpInput: mockSignUpInput }, authenticationService.constructor.name);
-          }
-        });
-
-        it("throws the caught error", async () => {
-          try {
-            await authenticationService.signUp(mockSignUpInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(error).toBe(mockError);
-          }
-        });
-      });
     });
   });
 
@@ -235,58 +131,6 @@ describe("AuthenticationService", () => {
     const mockLoginInput = { email: mockEmail };
 
     describe("under normal conditions", () => {
-      it("calls crypto.randomDigits with the correct params", async () => {
-        await authenticationService.login(mockLoginInput);
-
-        expect(crypto.randomDigits).toHaveBeenCalledTimes(1);
-        expect(crypto.randomDigits).toHaveBeenCalledWith(6);
-      });
-
-      it("calls crypto.createHmac with the correct params", async () => {
-        await authenticationService.login(mockLoginInput);
-
-        expect(crypto.createHmac).toHaveBeenCalledTimes(1);
-        expect(crypto.createHmac).toHaveBeenCalledWith("SHA256", mockYacClientSecret);
-      });
-
-      it("calls cognito.adminUpdateUserAttributes with the correct params", async () => {
-        await authenticationService.login(mockLoginInput);
-
-        expect(cognito.adminUpdateUserAttributes).toHaveBeenCalledTimes(1);
-        expect(cognito.adminUpdateUserAttributes).toHaveBeenCalledWith({
-          UserAttributes: [
-            {
-              Name: "custom:authChallenge",
-              Value: `${mockRandomDigits.join("")},${Math.round((new Date()).valueOf() / 1000)}`,
-            },
-          ],
-          UserPoolId: mockPoolId,
-          Username: mockEmail,
-        });
-      });
-
-      it("calls cognito.adminInitiateAuth with the correct params", async () => {
-        await authenticationService.login(mockLoginInput);
-
-        expect(cognito.adminInitiateAuth).toHaveBeenCalledTimes(1);
-        expect(cognito.adminInitiateAuth).toHaveBeenCalledWith({
-          UserPoolId: mockPoolId,
-          ClientId: mockYacClientId,
-          AuthFlow: "CUSTOM_AUTH",
-          AuthParameters: {
-            USERNAME: mockEmail,
-            SECRET_HASH: mockSecretHash,
-          },
-        });
-      });
-
-      it("calls mailService.sendConfirmationCode with the correct params", async () => {
-        await authenticationService.login(mockLoginInput);
-
-        expect(mailService.sendConfirmationCode).toHaveBeenCalledTimes(1);
-        expect(mailService.sendConfirmationCode).toHaveBeenCalledWith(mockEmail, mockRandomDigits.join(""));
-      });
-
       it("returns an object with the Session prop returned by cognito.adminInitiateAuth", async () => {
         const response = await authenticationService.login(mockLoginInput);
 
@@ -460,56 +304,6 @@ describe("AuthenticationService", () => {
     };
 
     describe("under normal conditions", () => {
-      it("calls crypto.createHmac with the correct params", async () => {
-        await authenticationService.confirm(mockConfirmInput);
-
-        expect(crypto.createHmac).toHaveBeenCalledTimes(1);
-        expect(crypto.createHmac).toHaveBeenCalledWith("SHA256", mockYacClientSecret);
-      });
-
-      it("calls cognito.adminRespondToAuthChallenge with the correct params", async () => {
-        await authenticationService.confirm(mockConfirmInput);
-
-        expect(cognito.adminRespondToAuthChallenge).toHaveBeenCalledTimes(1);
-        expect(cognito.adminRespondToAuthChallenge).toHaveBeenCalledWith({
-          UserPoolId: mockPoolId,
-          ClientId: mockYacClientId,
-          Session: mockConfirmInput.session,
-          ChallengeName: "CUSTOM_CHALLENGE",
-          ChallengeResponses: {
-            USERNAME: mockConfirmInput.email,
-            ANSWER: mockConfirmInput.confirmationCode,
-            SECRET_HASH: mockSecretHash,
-          },
-        });
-      });
-
-      it("calls httpRequestService.post with the correct params", async () => {
-        const expectedPath = `${mockPoolDomain}/login`;
-        const expectedBody = `_csrf=${mockXsrfToken}&username=${mockEmail}&password=YAC-${mockSecret}`;
-
-        const expectedQueryParams = {
-          response_type: "code",
-          client_id: mockClientId,
-          redirect_uri: mockRedirectUri,
-        };
-
-        const expectedHeaders = {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Cookie: `XSRF-TOKEN=${mockXsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`,
-        };
-
-        const expectedConfig = {
-          validateStatus: jasmine.any(Function),
-          maxRedirects: 0,
-        };
-
-        await authenticationService.confirm(mockConfirmInput);
-
-        expect(httpRequestService.post).toHaveBeenCalledTimes(1);
-        expect(httpRequestService.post).toHaveBeenCalledWith(expectedPath, expectedBody, expectedQueryParams, expectedHeaders, expectedConfig);
-      });
-
       describe("when cognito.adminRespondToAuthChallenge returns an AuthenticationResult prop", () => {
         it("it returns 'confirmed: true' and an authorizationCode", async () => {
           const result = await authenticationService.confirm(mockConfirmInput);
@@ -639,21 +433,6 @@ describe("AuthenticationService", () => {
 
   describe("getXsrfToken", () => {
     describe("under normal conditions", () => {
-      it("calls httpRequestService.get with the correct parameters", async () => {
-        await authenticationService.getXsrfToken(mockClientId, mockRedirectUri);
-
-        const expectedPath = `${mockPoolDomain}/oauth2/authorize`;
-
-        const expectedQueryParams = {
-          response_type: "code",
-          client_id: mockClientId,
-          redirect_uri: mockRedirectUri,
-        };
-
-        expect(httpRequestService.get).toHaveBeenCalledTimes(1);
-        expect(httpRequestService.get).toHaveBeenCalledWith(expectedPath, expectedQueryParams);
-      });
-
       it("returns the xsrfToken pulled from the response headers", async () => {
         const result = await authenticationService.getXsrfToken(mockClientId, mockRedirectUri);
 
