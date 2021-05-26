@@ -12,6 +12,9 @@ let yacLegacyApiService: YacLegacyApiService;
 const mockYacMessageId = "123";
 const mockYacToken = "yac-token--123123";
 const mockYacMessage: YacMessage = {
+  unHeardMailed: 1,
+  usernameTo: "test",
+  unHeardMailSentAt: "123123",
   actualMessageSenderId: 12,
   actualMessageSenderName: "null",
   duration: 49,
@@ -44,8 +47,6 @@ const mockYacMessage: YacMessage = {
   sendAt: "2021-05-26T10:29:09.000Z",
   sender: false,
   snoozeAt: "null",
-  snoozedBy: 0,
-  sortProp: "2021-05-26T10:29:09Z",
   subject: "test subject",
   to: 123,
   transcript: "test transcript",
