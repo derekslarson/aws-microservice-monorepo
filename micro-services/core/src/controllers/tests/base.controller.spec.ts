@@ -11,24 +11,24 @@ import { BadRequestError } from "../../errors/badRequest.error";
 
 // Need to extend the abstract class and expose its protected methods in order to test them
 class TestController extends BaseController {
-  public generateSuccessResponsePublic(body: Body | string, headers?: Record<string, string>, cookies?: string[]) {
-    return this.generateSuccessResponse(body, headers, cookies);
+  public generateSuccessResponse(body: Body | string, headers?: Record<string, string>, cookies?: string[]) {
+    return super.generateSuccessResponse(body, headers, cookies);
   }
 
-  public generateCreatedResponsePublic(body: Body, headers?: Record<string, string>, cookies?: string[]) {
-    return this.generateCreatedResponse(body, headers, cookies);
+  public generateCreatedResponse(body: Body, headers?: Record<string, string>, cookies?: string[]) {
+    return super.generateCreatedResponse(body, headers, cookies);
   }
 
-  public generateFoundResponsePublic(redirectLocation: string, otherHeaders?: Record<string, string>, cookies?: string[]) {
-    return this.generateFoundResponse(redirectLocation, otherHeaders, cookies);
+  public generateFoundResponse(redirectLocation: string, otherHeaders?: Record<string, string>, cookies?: string[]) {
+    return super.generateFoundResponse(redirectLocation, otherHeaders, cookies);
   }
 
-  public generateSeeOtherResponsePublic(redirectLocation: string, otherHeaders?: Record<string, string>, cookies?: string[]) {
-    return this.generateSeeOtherResponse(redirectLocation, otherHeaders, cookies);
+  public generateSeeOtherResponse(redirectLocation: string, otherHeaders?: Record<string, string>, cookies?: string[]) {
+    return super.generateSeeOtherResponse(redirectLocation, otherHeaders, cookies);
   }
 
-  public generateErrorResponsePublic(error: unknown) {
-    return this.generateErrorResponse(error);
+  public generateErrorResponse(error: unknown) {
+    return super.generateErrorResponse(error);
   }
 }
 
@@ -49,7 +49,7 @@ describe("BaseController", () => {
   describe("generateSuccessResponse", () => {
     describe("under normal conditions", () => {
       it("calls JSON.stringify with the correct parameters", () => {
-        testController.generateSuccessResponsePublic(mockBody);
+        testController.generateSuccessResponse(mockBody);
 
         expect(JSON.stringify).toHaveBeenCalledTimes(1);
         expect(JSON.stringify).toHaveBeenCalledWith(mockBody);
@@ -57,7 +57,7 @@ describe("BaseController", () => {
 
       describe("when only passed a body", () => {
         it("returns the expected format", () => {
-          const response = testController.generateSuccessResponsePublic(mockBody);
+          const response = testController.generateSuccessResponse(mockBody);
 
           expect(response).toEqual({
             statusCode: StatusCode.OK,
@@ -70,7 +70,7 @@ describe("BaseController", () => {
 
       describe("when passed a body and headers", () => {
         it("returns the expected format", () => {
-          const response = testController.generateSuccessResponsePublic(mockBody, mockHeaders);
+          const response = testController.generateSuccessResponse(mockBody, mockHeaders);
 
           expect(response).toEqual({
             statusCode: StatusCode.OK,
@@ -83,7 +83,7 @@ describe("BaseController", () => {
 
       describe("when passed a body, headers and cookies", () => {
         it("returns the expected format", () => {
-          const response = testController.generateSuccessResponsePublic(mockBody, mockHeaders, mockCookies);
+          const response = testController.generateSuccessResponse(mockBody, mockHeaders, mockCookies);
 
           expect(response).toEqual({
             statusCode: StatusCode.OK,
@@ -99,7 +99,7 @@ describe("BaseController", () => {
   describe("generateCreatedResponse", () => {
     describe("under normal conditions", () => {
       it("calls JSON.stringify with the correct parameters", () => {
-        testController.generateCreatedResponsePublic(mockBody);
+        testController.generateCreatedResponse(mockBody);
 
         expect(JSON.stringify).toHaveBeenCalledTimes(1);
         expect(JSON.stringify).toHaveBeenCalledWith(mockBody);
@@ -107,7 +107,7 @@ describe("BaseController", () => {
 
       describe("when only passed a body", () => {
         it("returns the expected format", () => {
-          const response = testController.generateCreatedResponsePublic(mockBody);
+          const response = testController.generateCreatedResponse(mockBody);
 
           expect(response).toEqual({
             statusCode: StatusCode.Created,
@@ -120,7 +120,7 @@ describe("BaseController", () => {
 
       describe("when passed a body and headers", () => {
         it("returns the expected format", () => {
-          const response = testController.generateCreatedResponsePublic(mockBody, mockHeaders);
+          const response = testController.generateCreatedResponse(mockBody, mockHeaders);
 
           expect(response).toEqual({
             statusCode: StatusCode.Created,
@@ -133,7 +133,7 @@ describe("BaseController", () => {
 
       describe("when passed a body, headers and cookies", () => {
         it("returns the expected format", () => {
-          const response = testController.generateCreatedResponsePublic(mockBody, mockHeaders, mockCookies);
+          const response = testController.generateCreatedResponse(mockBody, mockHeaders, mockCookies);
 
           expect(response).toEqual({
             statusCode: StatusCode.Created,
@@ -150,7 +150,7 @@ describe("BaseController", () => {
     describe("under normal conditions", () => {
       describe("when only passed a redirectLocation", () => {
         it("returns the expected format", () => {
-          const response = testController.generateFoundResponsePublic(mockRedirectLocation);
+          const response = testController.generateFoundResponse(mockRedirectLocation);
 
           expect(response).toEqual({
             statusCode: StatusCode.Found,
@@ -162,7 +162,7 @@ describe("BaseController", () => {
 
       describe("when passed a redirectLocation and headers", () => {
         it("returns the expected format", () => {
-          const response = testController.generateFoundResponsePublic(mockRedirectLocation, mockHeaders);
+          const response = testController.generateFoundResponse(mockRedirectLocation, mockHeaders);
 
           expect(response).toEqual({
             statusCode: StatusCode.Found,
@@ -174,7 +174,7 @@ describe("BaseController", () => {
 
       describe("when passed a redirectLocation, headers and cookies", () => {
         it("returns the expected format", () => {
-          const response = testController.generateFoundResponsePublic(mockRedirectLocation, mockHeaders, mockCookies);
+          const response = testController.generateFoundResponse(mockRedirectLocation, mockHeaders, mockCookies);
 
           expect(response).toEqual({
             statusCode: StatusCode.Found,
@@ -190,7 +190,7 @@ describe("BaseController", () => {
     describe("under normal conditions", () => {
       describe("when only passed a redirectLocation", () => {
         it("returns the expected format", () => {
-          const response = testController.generateSeeOtherResponsePublic(mockRedirectLocation);
+          const response = testController.generateSeeOtherResponse(mockRedirectLocation);
 
           expect(response).toEqual({
             statusCode: StatusCode.SeeOther,
@@ -202,7 +202,7 @@ describe("BaseController", () => {
 
       describe("when passed a redirectLocation and headers", () => {
         it("returns the expected format", () => {
-          const response = testController.generateSeeOtherResponsePublic(mockRedirectLocation, mockHeaders);
+          const response = testController.generateSeeOtherResponse(mockRedirectLocation, mockHeaders);
 
           expect(response).toEqual({
             statusCode: StatusCode.SeeOther,
@@ -214,7 +214,7 @@ describe("BaseController", () => {
 
       describe("when passed a redirectLocation, headers and cookies", () => {
         it("returns the expected format", () => {
-          const response = testController.generateSeeOtherResponsePublic(mockRedirectLocation, mockHeaders, mockCookies);
+          const response = testController.generateSeeOtherResponse(mockRedirectLocation, mockHeaders, mockCookies);
 
           expect(response).toEqual({
             statusCode: StatusCode.SeeOther,
@@ -232,7 +232,7 @@ describe("BaseController", () => {
         const mockNotFoundError = new NotFoundError("mock not found errror");
 
         it("returns the expected format", () => {
-          const response = testController.generateErrorResponsePublic(mockNotFoundError);
+          const response = testController.generateErrorResponse(mockNotFoundError);
 
           expect(response).toEqual({
             statusCode: StatusCode.NotFound,
@@ -245,7 +245,7 @@ describe("BaseController", () => {
         const mockForbiddenError = new ForbiddenError("mock forbidden errror");
 
         it("returns the expected format", () => {
-          const response = testController.generateErrorResponsePublic(mockForbiddenError);
+          const response = testController.generateErrorResponse(mockForbiddenError);
 
           expect(response).toEqual({
             statusCode: StatusCode.Forbidden,
@@ -258,7 +258,7 @@ describe("BaseController", () => {
         const mockUnauthorizedError = new UnauthorizedError("mock unauthorized errror");
 
         it("returns the expected format", () => {
-          const response = testController.generateErrorResponsePublic(mockUnauthorizedError);
+          const response = testController.generateErrorResponse(mockUnauthorizedError);
 
           expect(response).toEqual({
             statusCode: StatusCode.Unauthorized,
@@ -276,7 +276,7 @@ describe("BaseController", () => {
         const mockRequestValidationError = new RequestValidationError(mockRequestPortion, mockValidationErrors);
 
         it("returns the expected format", () => {
-          const response = testController.generateErrorResponsePublic(mockRequestValidationError);
+          const response = testController.generateErrorResponse(mockRequestValidationError);
 
           expect(response).toEqual({
             statusCode: StatusCode.BadRequest,
@@ -292,7 +292,7 @@ describe("BaseController", () => {
         const mockBadRequestError = new BadRequestError("mock bad request error");
 
         it("returns the expected format", () => {
-          const response = testController.generateErrorResponsePublic(mockBadRequestError);
+          const response = testController.generateErrorResponse(mockBadRequestError);
 
           expect(response).toEqual({
             statusCode: StatusCode.BadRequest,
@@ -305,7 +305,7 @@ describe("BaseController", () => {
         const mockRandomtError = new Error("random error");
 
         it("returns the expected format", () => {
-          const response = testController.generateErrorResponsePublic(mockRandomtError);
+          const response = testController.generateErrorResponse(mockRandomtError);
 
           expect(response).toEqual({
             statusCode: StatusCode.InternalServerError,

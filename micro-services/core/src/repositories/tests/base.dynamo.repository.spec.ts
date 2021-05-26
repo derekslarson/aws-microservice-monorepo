@@ -22,28 +22,28 @@ class TestDynamoRepository extends BaseDynamoRepository<Test> {
     super(tableName, documentClientFactory, idService, loggerService);
   }
 
-  public getByPrimaryKeyPublic(id: string) {
-    return this.getByPrimaryKey(id);
+  public getByPrimaryKey(id: string) {
+    return super.getByPrimaryKey(id);
   }
 
-  public deleteByPrimaryKeyPublic(id: string) {
-    return this.deleteByPrimaryKey(id);
+  public deleteByPrimaryKey(id: string) {
+    return super.deleteByPrimaryKey(id);
   }
 
-  public getAllPublic() {
-    return this.getAll();
+  public getAll() {
+    return super.getAll();
   }
 
-  public insertPublic(item: Omit<Test, "id">) {
-    return this.insert(item);
+  public insert(item: Omit<Test, "id">) {
+    return super.insert(item);
   }
 
-  public insertWithIdIncludedPublic(item: Test) {
-    return this.insertWithIdIncluded(item);
+  public insertWithIdIncluded(item: Test) {
+    return super.insertWithIdIncluded(item);
   }
 
-  public partialUpdatePublic(id: string, update: RecursivePartial<Omit<Test, "id">>) {
-    return this.partialUpdate(id, update);
+  public partialUpdate(id: string, update: RecursivePartial<Omit<Test, "id">>) {
+    return super.partialUpdate(id, update);
   }
 }
 
@@ -91,7 +91,7 @@ describe("BaseDynamoRepository", () => {
           Key: { id: mockId },
         };
 
-        await testDynamoRepository.getByPrimaryKeyPublic(mockId);
+        await testDynamoRepository.getByPrimaryKey(mockId);
 
         expect(documentClient.get).toHaveBeenCalledTimes(1);
         expect(documentClient.get).toHaveBeenCalledWith(expectedDynamoParam);
@@ -99,7 +99,7 @@ describe("BaseDynamoRepository", () => {
 
       describe("when documentClient.get returns an Item prop in the response", () => {
         it("returns the Item", async () => {
-          const response = await testDynamoRepository.getByPrimaryKeyPublic(mockId);
+          const response = await testDynamoRepository.getByPrimaryKey(mockId);
 
           expect(response).toBe(mockGetResponse.Item);
         });
@@ -112,7 +112,7 @@ describe("BaseDynamoRepository", () => {
           documentClient.get.and.returnValue(generateDocumentClientResponse({}));
 
           try {
-            await testDynamoRepository.getByPrimaryKeyPublic(mockId);
+            await testDynamoRepository.getByPrimaryKey(mockId);
 
             fail("expected to throw");
           } catch (error) {
@@ -129,7 +129,7 @@ describe("BaseDynamoRepository", () => {
 
         it("calls loggerService.error with the correct parameters", async () => {
           try {
-            await testDynamoRepository.getByPrimaryKeyPublic(mockId);
+            await testDynamoRepository.getByPrimaryKey(mockId);
 
             fail("expected to throw");
           } catch (error) {
@@ -140,7 +140,7 @@ describe("BaseDynamoRepository", () => {
 
         it("throws the caught error", async () => {
           try {
-            await testDynamoRepository.getByPrimaryKeyPublic(mockId);
+            await testDynamoRepository.getByPrimaryKey(mockId);
 
             fail("expected to throw");
           } catch (error) {
@@ -159,7 +159,7 @@ describe("BaseDynamoRepository", () => {
           Key: { id: mockId },
         };
 
-        await testDynamoRepository.deleteByPrimaryKeyPublic(mockId);
+        await testDynamoRepository.deleteByPrimaryKey(mockId);
 
         expect(documentClient.delete).toHaveBeenCalledTimes(1);
         expect(documentClient.delete).toHaveBeenCalledWith(expectedDynamoParam);
@@ -174,7 +174,7 @@ describe("BaseDynamoRepository", () => {
 
         it("calls loggerService.error with the correct parameters", async () => {
           try {
-            await testDynamoRepository.deleteByPrimaryKeyPublic(mockId);
+            await testDynamoRepository.deleteByPrimaryKey(mockId);
 
             fail("expected to throw");
           } catch (error) {
@@ -185,7 +185,7 @@ describe("BaseDynamoRepository", () => {
 
         it("throws the caught error", async () => {
           try {
-            await testDynamoRepository.deleteByPrimaryKeyPublic(mockId);
+            await testDynamoRepository.deleteByPrimaryKey(mockId);
 
             fail("expected to throw");
           } catch (error) {
@@ -201,7 +201,7 @@ describe("BaseDynamoRepository", () => {
       it("calls documentClient.scan with the correct parameters", async () => {
         const expectedDynamoParam = { TableName: mockTableName };
 
-        await testDynamoRepository.getAllPublic();
+        await testDynamoRepository.getAll();
 
         expect(documentClient.scan).toHaveBeenCalledTimes(1);
         expect(documentClient.scan).toHaveBeenCalledWith(expectedDynamoParam);
@@ -216,7 +216,7 @@ describe("BaseDynamoRepository", () => {
 
         it("calls loggerService.error with the correct parameters", async () => {
           try {
-            await testDynamoRepository.getAllPublic();
+            await testDynamoRepository.getAll();
 
             fail("expected to throw");
           } catch (error) {
@@ -227,7 +227,7 @@ describe("BaseDynamoRepository", () => {
 
         it("throws the caught error", async () => {
           try {
-            await testDynamoRepository.getAllPublic();
+            await testDynamoRepository.getAll();
 
             fail("expected to throw");
           } catch (error) {
@@ -243,7 +243,7 @@ describe("BaseDynamoRepository", () => {
 
     describe("under normal conditions", () => {
       it("calls idService.generateId with the correct parameters", async () => {
-        await testDynamoRepository.insertPublic(mockInsertParam);
+        await testDynamoRepository.insert(mockInsertParam);
 
         expect(idService.generateId).toHaveBeenCalledTimes(1);
         expect(idService.generateId).toHaveBeenCalledWith();
@@ -258,14 +258,14 @@ describe("BaseDynamoRepository", () => {
           },
         };
 
-        await testDynamoRepository.insertPublic(mockInsertParam);
+        await testDynamoRepository.insert(mockInsertParam);
 
         expect(documentClient.put).toHaveBeenCalledTimes(1);
         expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoParam);
       });
 
       it("returns the inserted item", async () => {
-        const response = await testDynamoRepository.insertPublic(mockInsertParam);
+        const response = await testDynamoRepository.insert(mockInsertParam);
 
         expect(response).toEqual({ ...mockInsertParam, id: mockId });
       });
@@ -279,7 +279,7 @@ describe("BaseDynamoRepository", () => {
 
         it("calls loggerService.error with the correct parameters", async () => {
           try {
-            await testDynamoRepository.insertPublic(mockInsertParam);
+            await testDynamoRepository.insert(mockInsertParam);
 
             fail("expected to throw");
           } catch (error) {
@@ -290,7 +290,7 @@ describe("BaseDynamoRepository", () => {
 
         it("throws the caught error", async () => {
           try {
-            await testDynamoRepository.insertPublic(mockInsertParam);
+            await testDynamoRepository.insert(mockInsertParam);
 
             fail("expected to throw");
           } catch (error) {
@@ -309,14 +309,14 @@ describe("BaseDynamoRepository", () => {
           Item: mockItem,
         };
 
-        await testDynamoRepository.insertWithIdIncludedPublic(mockItem);
+        await testDynamoRepository.insertWithIdIncluded(mockItem);
 
         expect(documentClient.put).toHaveBeenCalledTimes(1);
         expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoParam);
       });
 
       it("returns the inserted item", async () => {
-        const response = await testDynamoRepository.insertWithIdIncludedPublic(mockItem);
+        const response = await testDynamoRepository.insertWithIdIncluded(mockItem);
 
         expect(response).toBe(mockItem);
       });
@@ -330,7 +330,7 @@ describe("BaseDynamoRepository", () => {
 
         it("calls loggerService.error with the correct parameters", async () => {
           try {
-            await testDynamoRepository.insertWithIdIncludedPublic(mockItem);
+            await testDynamoRepository.insertWithIdIncluded(mockItem);
 
             fail("expected to throw");
           } catch (error) {
@@ -341,7 +341,7 @@ describe("BaseDynamoRepository", () => {
 
         it("throws the caught error", async () => {
           try {
-            await testDynamoRepository.insertWithIdIncludedPublic(mockItem);
+            await testDynamoRepository.insertWithIdIncluded(mockItem);
 
             fail("expected to throw");
           } catch (error) {
@@ -366,14 +366,14 @@ describe("BaseDynamoRepository", () => {
           ReturnValues: "ALL_NEW",
         };
 
-        await testDynamoRepository.partialUpdatePublic(mockId, mockPartialUpdate);
+        await testDynamoRepository.partialUpdate(mockId, mockPartialUpdate);
 
         expect(documentClient.update).toHaveBeenCalledTimes(1);
         expect(documentClient.update).toHaveBeenCalledWith(expectedDynamoParam);
       });
 
       it("returns the Attributes prop of the response", async () => {
-        const response = await testDynamoRepository.partialUpdatePublic(mockId, mockPartialUpdate);
+        const response = await testDynamoRepository.partialUpdate(mockId, mockPartialUpdate);
 
         expect(response).toBe(mockItem);
       });
@@ -387,7 +387,7 @@ describe("BaseDynamoRepository", () => {
 
         it("calls loggerService.error with the correct parameters", async () => {
           try {
-            await testDynamoRepository.partialUpdatePublic(mockId, mockPartialUpdate);
+            await testDynamoRepository.partialUpdate(mockId, mockPartialUpdate);
 
             fail("expected to throw");
           } catch (error) {
@@ -398,7 +398,7 @@ describe("BaseDynamoRepository", () => {
 
         it("throws the caught error", async () => {
           try {
-            await testDynamoRepository.partialUpdatePublic(mockId, mockPartialUpdate);
+            await testDynamoRepository.partialUpdate(mockId, mockPartialUpdate);
 
             fail("expected to throw");
           } catch (error) {
