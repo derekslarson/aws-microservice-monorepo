@@ -143,7 +143,7 @@ interface BannerbearImageTaskOptions extends BannerbearTaskParameters {
 }
 
 interface BannerbearTaskParameters {
-  templateParameters: Record<string, any>
+  templateParameters: BannerbearTemplateVideoParameters | BannerbearTemplateImageParameters
 }
 
 interface BannerbearTask {
