@@ -24,7 +24,6 @@ describe("AuthenticationService", () => {
   const mockError = new Error("test");
   const mockPoolId = "mock-pool-id";
   const mockClientId = "mock-client-id";
-  // const mockClientSecret = "mock-client-secret";
   const mockYacClientId = "mock-yac-client-id";
   const mockYacClientSecret = "mock-yac-client-secret";
   const mockPoolDomain = "mock-pool-domain";
