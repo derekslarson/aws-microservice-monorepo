@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { LoggerServiceInterface } from "@yac/core";
+import { BadRequestError, LoggerServiceInterface } from "@yac/core";
 import { injectable, inject } from "inversify";
 import * as crypto from "crypto";
 
@@ -20,6 +20,14 @@ export class MediaService implements MediaServiceInterface {
     try {
       this.loggerService.trace("createMedia called", { messageId, isGroup, token }, this.constructor.name);
       const yacMessage = await this.yacApiService.getMessage(messageId, isGroup, token);
+
+      if (!yacMessage) {
+        throw new BadRequestError("Message does not exist");
+      }
+
+      if (![ "VIDEO", "AUDIO" ].includes(yacMessage.type)) {
+        throw new BadRequestError("Message type is not supported");
+      }
 
       const task = yacMessage.type === "AUDIO" ? await this.generateTask<"IMAGE">("IMAGE", yacMessage, isGroup) : await this.generateTask<"GIF2VIDEO">("GIF2VIDEO", yacMessage, isGroup);
       const bannerbearRequest = await this.bannerbearService.pushTask(this.derivePrimaryKey(messageId, isGroup), task);
@@ -79,12 +87,14 @@ export class MediaService implements MediaServiceInterface {
   private async generateTask<T extends TaskTypes>(type: T, yacMessage: YacMessage, isGroup: boolean): Promise<Task<TaskTypes>> {
     switch (type) {
       case "GIF2VIDEO": {
+        const actualSenderInfo = yacMessage.isForwarded ? await this.yacApiService.getUserImageAndNameWithId(yacMessage.actualMessageSenderId as number) : null;
+        const senderName = yacMessage.isForwarded && actualSenderInfo ? actualSenderInfo.username : yacMessage.usernameFrom;
         const options: Task<"GIF2VIDEO">["options"] = {
           source: yacMessage.fileName,
           templateParameters: {
-            username: `@${yacMessage.usernameFrom}` as `@${string}`,
+            username: `@${senderName}` as `@${string}`,
             channel: isGroup ? `#${yacMessage.profileNameTo}` as `#${string}` : undefined,
-            subject: yacMessage.subject && yacMessage.subject.length >= 30 ? `${yacMessage.subject.slice(0, 30)}...` : yacMessage.subject || undefined,
+            subject: yacMessage.subject && yacMessage.subject.length >= 32 ? `${yacMessage.subject.slice(0, 32)}...` : yacMessage.subject || undefined,
           },
         };
 

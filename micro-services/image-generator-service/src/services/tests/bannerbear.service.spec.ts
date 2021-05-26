@@ -114,7 +114,7 @@ describe("BannerbearService", () => {
 
   describe("pushTask", () => {
     describe("fails correctly", () => {
-      it("fails when Bannerbear service fails", async () => {
+      it("fails when Bannerbear API fails", async () => {
         httpService.post.and.throwError("Failed on bannerbear");
         try {
           await bannerbearService.pushTask(mockUserResourceId, mockImageTask());
