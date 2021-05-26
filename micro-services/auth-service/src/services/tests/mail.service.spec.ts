@@ -4,7 +4,7 @@ import { SES } from "aws-sdk";
 import { SesFactory } from "../../factories/ses.factory";
 import { MailService, MailServiceInterface, MailServiceConfigInterface } from "../mail.service";
 
-describe("HttpRequestService", () => {
+describe("MailService", () => {
   let ses: Spied<SES>;
   const sesFactory: SesFactory = () => ses as unknown as SES;
 
@@ -18,7 +18,7 @@ describe("HttpRequestService", () => {
 
   beforeEach(() => {
     // importing SES for some reason brings in the namespace, so spyOnClass isn't working
-    ses = { sendEmail: jasmine.createSpy("sendEmail") } as unknown as Spied<SES>;
+    ses = TestSupport.spyOnObject(new SES());
 
     ses.sendEmail.and.returnValue(generateAwsResponse({}));
 
