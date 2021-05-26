@@ -19,7 +19,6 @@ describe("MailService", () => {
   beforeEach(() => {
     // importing SES for some reason brings in the namespace, so spyOnClass isn't working
     ses = TestSupport.spyOnObject(new SES());
-
     ses.sendEmail.and.returnValue(generateAwsResponse({}));
 
     loggerService = TestSupport.spyOnClass(LoggerService);
