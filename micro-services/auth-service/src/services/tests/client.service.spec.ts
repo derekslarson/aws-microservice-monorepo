@@ -195,24 +195,12 @@ describe("ClientService", () => {
   });
 
   describe("deleteClient", () => {
-    const expectedDescribeUserPoolClientParams: CognitoIdentityServiceProvider.DescribeUserPoolClientRequest = {
-      UserPoolId: mockUserPoolId,
-      ClientId: mockClientId,
-    };
-
     const expectedDeleteUserPoolClientParams: CognitoIdentityServiceProvider.DeleteUserPoolClientRequest = {
       UserPoolId: mockUserPoolId,
       ClientId: mockClientId,
     };
 
     describe("under normal conditions", () => {
-      it("calls cognito.describeUserPoolClient with the correct params", async () => {
-        await clientService.deleteClient(mockClientId, mockClientSecret);
-
-        expect(cognito.describeUserPoolClient).toHaveBeenCalledTimes(1);
-        expect(cognito.describeUserPoolClient).toHaveBeenCalledWith(expectedDescribeUserPoolClientParams);
-      });
-
       it("calls cognito.deleteUserPoolClient with the correct params", async () => {
         await clientService.deleteClient(mockClientId, mockClientSecret);
 
