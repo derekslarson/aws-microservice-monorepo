@@ -9,36 +9,38 @@ import { ConfirmationInput } from "../../models/confirmation/confirmation.input.
 import { AuthenticationService, AuthenticationServiceInterface, AuthenticationServiceConfigInterface } from "../authentication.service";
 import { MailService } from "../mail.service";
 
-fdescribe("AuthenticationService", () => {
+describe("AuthenticationService", () => {
   let cognito: Spied<CognitoIdentityServiceProvider>;
   let crypto: Spied<Crypto>;
-  const cognitoFactory: CognitoFactory = () => cognito as unknown as CognitoIdentityServiceProvider;
-  const cryptoFactory: CryptoFactory = () => crypto as unknown as Crypto;
-
   let hmac: Spied<Hmac>;
   let loggerService: Spied<LoggerService>;
   let mailService: Spied<MailService>;
   let httpRequestService: Spied<HttpRequestService>;
   let authenticationService: AuthenticationServiceInterface;
 
+  const cognitoFactory: CognitoFactory = () => cognito as unknown as CognitoIdentityServiceProvider;
+  const cryptoFactory: CryptoFactory = () => crypto as unknown as Crypto;
+
   const mockError = new Error("test");
   const mockPoolId = "mock-pool-id";
   const mockClientId = "mock-client-id";
-  const mockClientSecret = "mock-client-secret";
+  // const mockClientSecret = "mock-client-secret";
   const mockYacClientId = "mock-yac-client-id";
   const mockYacClientSecret = "mock-yac-client-secret";
   const mockPoolDomain = "mock-pool-domain";
   const mockApiDomain = "mock-api-domain";
   const mockSecret = "mock-secret";
   const mockSession = "mock-session";
+  const mockNewSession = "mock-new-session";
   const mockRandomDigits = [ 1, 2, 3, 4, 5, 6 ];
   const mockSecretHash = "mock-secret-hash";
-  const mockEmail = "mock@emai.com";
+  const mockEmail = "mock@email.com";
   const mockConfirmationCode = "123456";
   const mockRedirectUri = "https://mock-redirect-uri.com";
   const mockXsrfToken = "mock-xsrf-token";
-  const mockAuthorizationCode = "mock-authorization-code"
-  const mockRedirectPath = `https://mock-redirect-path.com?code=${mockAuthorizationCode}`
+  const mockAuthorizationCode = "mock-authorization-code";
+  const mockRedirectPath = `https://mock-redirect-path.com?code=${mockAuthorizationCode}`;
+  const mockSetCookieHeader = [ `XSRF-TOKEN=${mockXsrfToken};` ];
 
   const mockConfig: AuthenticationServiceConfigInterface = {
     userPool: {
@@ -56,7 +58,8 @@ fdescribe("AuthenticationService", () => {
     mailService = TestSupport.spyOnClass(MailService);
     httpRequestService = TestSupport.spyOnClass(HttpRequestService);
 
-    httpRequestService.post.and.returnValue(Promise.resolve({ redirect: { path: mockRedirectPath } }))
+    httpRequestService.post.and.returnValue(Promise.resolve({ redirect: { path: mockRedirectPath } }));
+    httpRequestService.get.and.returnValue(Promise.resolve({ headers: { "set-cookie": mockSetCookieHeader } }));
 
     // importing CognitoIdentityServiceProvider for some reason brings in the namespace, so spyOnClass isn't working
     cognito = TestSupport.spyOnObject(new CognitoIdentityServiceProvider());
@@ -480,103 +483,56 @@ fdescribe("AuthenticationService", () => {
             SECRET_HASH: mockSecretHash,
           },
         });
+      });
 
       it("calls httpRequestService.post with the correct params", async () => {
         const expectedPath = `${mockPoolDomain}/login`;
-        const 
+        const expectedBody = `_csrf=${mockXsrfToken}&username=${mockEmail}&password=YAC-${mockSecret}`;
+
+        const expectedQueryParams = {
+          response_type: "code",
+          client_id: mockClientId,
+          redirect_uri: mockRedirectUri,
+        };
+
+        const expectedHeaders = {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Cookie: `XSRF-TOKEN=${mockXsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`,
+        };
+
+        const expectedConfig = {
+          validateStatus: jasmine.any(Function),
+          maxRedirects: 0,
+        };
+
         await authenticationService.confirm(mockConfirmInput);
 
         expect(httpRequestService.post).toHaveBeenCalledTimes(1);
-        expect(httpRequestService.post).toHaveBeenCalledWith(
-          `${mockPoolDomain}/login`, 
-          `_csrf=${mockXsrfToken}&username=${mockEmail}&password=YAC-${mockSecret}`, 
-          {
-            response_type: "code",
-            client_id: mockClientId,
-            redirect_uri: mockRedirectUri,
-          }, 
-          {
-            "Content-Type": "application/x-www-form-urlencoded",
-            Cookie: `XSRF-TOKEN=${mockXsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`,
-          }, 
-          {
-            validateStatus(status: number) {
-              return status >= 200 && status < 600;
-            },
-            maxRedirects: 0,
-          }
-        );
+        expect(httpRequestService.post).toHaveBeenCalledWith(expectedPath, expectedBody, expectedQueryParams, expectedHeaders, expectedConfig);
       });
 
-      it("calls mailService.sendConfirmationCode with the correct params", async () => {
-        await authenticationService.confirm(mockLoginInput);
+      describe("when cognito.adminRespondToAuthChallenge returns an AuthenticationResult prop", () => {
+        it("it returns 'confirmed: true' and an authorizationCode", async () => {
+          const result = await authenticationService.confirm(mockConfirmInput);
 
-        expect(mailService.sendConfirmationCode).toHaveBeenCalledTimes(1);
-        expect(mailService.sendConfirmationCode).toHaveBeenCalledWith(mockEmail, mockRandomDigits.join(""));
+          expect(result).toEqual({ confirmed: true, authorizationCode: mockAuthorizationCode });
+        });
       });
 
-      it("returns an object with the Session prop returned by cognito.adminInitiateAuth", async () => {
-        const response = await authenticationService.confirm(mockLoginInput);
+      describe("when cognito.adminRespondToAuthChallenge doesn't return an AuthenticationResult prop", () => {
+        beforeEach(() => {
+          cognito.adminRespondToAuthChallenge.and.returnValue(generateAwsResponse({ Session: mockNewSession }));
+        });
 
-        expect(response.session).toBe(mockSession);
+        it("it returns 'confirmed: false' and a new session", async () => {
+          const result = await authenticationService.confirm(mockConfirmInput);
+
+          expect(result).toEqual({ confirmed: false, session: mockNewSession });
+        });
       });
     });
 
     describe("under error conditions", () => {
-      describe("when crypto.randomDigits throws an error", () => {
-        beforeEach(() => {
-          crypto.randomDigits.and.throwError(mockError);
-        });
-
-        it("calls loggerService.error with the correct params", async () => {
-          try {
-            await authenticationService.confirm(mockLoginInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in confirm", { error: mockError, confirmInput: mockLoginInput }, authenticationService.constructor.name);
-          }
-        });
-
-        it("throws the caught error", async () => {
-          try {
-            await authenticationService.confirm(mockLoginInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(error).toBe(mockError);
-          }
-        });
-      });
-
-      describe("when cognito.adminUpdateUserAttributes throws an error", () => {
-        beforeEach(() => {
-          cognito.adminUpdateUserAttributes.and.throwError(mockError);
-        });
-
-        it("calls loggerService.error with the correct params", async () => {
-          try {
-            await authenticationService.confirm(mockLoginInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in confirm", { error: mockError, confirmInput: mockLoginInput }, authenticationService.constructor.name);
-          }
-        });
-
-        it("throws the caught error", async () => {
-          try {
-            await authenticationService.confirm(mockLoginInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(error).toBe(mockError);
-          }
-        });
-      });
-
       describe("when crypto.createHmac throws an error", () => {
         beforeEach(() => {
           crypto.createHmac.and.throwError(mockError);
@@ -584,19 +540,19 @@ fdescribe("AuthenticationService", () => {
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await authenticationService.confirm(mockLoginInput);
+            await authenticationService.confirm(mockConfirmInput);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(2);
             expect(loggerService.error).toHaveBeenCalledWith("Error in createUserPoolClientSecretHash", { error: mockError, username: mockEmail }, authenticationService.constructor.name);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in confirm", { error: mockError, confirmInput: mockLoginInput }, authenticationService.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in confirm", { error: mockError, confirmationInput: mockConfirmInput }, authenticationService.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await authenticationService.confirm(mockLoginInput);
+            await authenticationService.confirm(mockConfirmInput);
 
             fail("Should have thrown");
           } catch (error) {
@@ -605,25 +561,30 @@ fdescribe("AuthenticationService", () => {
         });
       });
 
-      describe("when cognito.adminInitiateAuth throws an error", () => {
+      describe("when httpRequestService.post throws an error", () => {
         beforeEach(() => {
-          cognito.adminInitiateAuth.and.throwError(mockError);
+          httpRequestService.post.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await authenticationService.confirm(mockLoginInput);
+            await authenticationService.confirm(mockConfirmInput);
 
             fail("Should have thrown");
           } catch (error) {
-            expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in confirm", { error: mockError, confirmInput: mockLoginInput }, authenticationService.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledTimes(2);
+            expect(loggerService.error).toHaveBeenCalledWith(
+              "Error in getAuthorizationCode",
+              { error: mockError, username: mockEmail, clientId: mockClientId, redirectUri: mockRedirectUri, xsrfToken: mockXsrfToken },
+              authenticationService.constructor.name,
+            );
+            expect(loggerService.error).toHaveBeenCalledWith("Error in confirm", { error: mockError, confirmationInput: mockConfirmInput }, authenticationService.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await authenticationService.confirm(mockLoginInput);
+            await authenticationService.confirm(mockConfirmInput);
 
             fail("Should have thrown");
           } catch (error) {
@@ -632,45 +593,115 @@ fdescribe("AuthenticationService", () => {
         });
       });
 
-      describe("when cognito.adminInitiateAuth doesn't return a Session", () => {
+      describe("when httpRequestService.post doesnt return a redirect path", () => {
         beforeEach(() => {
-          cognito.adminInitiateAuth.and.returnValue(generateAwsResponse({}));
+          httpRequestService.post.and.returnValue(Promise.resolve({}));
         });
 
-        it("throws an error with an appropriate message", async () => {
+        it("throws an error with a valid message", async () => {
           try {
-            await authenticationService.confirm(mockLoginInput);
+            await authenticationService.confirm(mockConfirmInput);
 
             fail("Should have thrown");
           } catch (error) {
-            expect((error as Error).message).toBe("No session returned from initiateAuth.");
+            expect((error as Error).message).toBe("redirect path missing in response");
           }
         });
       });
 
-      describe("when mailService.sendConfirmationCode throws an error", () => {
+      describe("when cognito.adminRespondToAuthChallenge throws an error", () => {
         beforeEach(() => {
-          mailService.sendConfirmationCode.and.throwError(mockError);
+          cognito.adminRespondToAuthChallenge.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await authenticationService.confirm(mockLoginInput);
+            await authenticationService.confirm(mockConfirmInput);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in confirm", { error: mockError, confirmInput: mockLoginInput }, authenticationService.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in confirm", { error: mockError, confirmationInput: mockConfirmInput }, authenticationService.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await authenticationService.confirm(mockLoginInput);
+            await authenticationService.confirm(mockConfirmInput);
 
             fail("Should have thrown");
           } catch (error) {
             expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
+
+  describe("getXsrfToken", () => {
+    describe("under normal conditions", () => {
+      it("calls httpRequestService.get with the correct parameters", async () => {
+        await authenticationService.getXsrfToken(mockClientId, mockRedirectUri);
+
+        const expectedPath = `${mockPoolDomain}/oauth2/authorize`;
+
+        const expectedQueryParams = {
+          response_type: "code",
+          client_id: mockClientId,
+          redirect_uri: mockRedirectUri,
+        };
+
+        expect(httpRequestService.get).toHaveBeenCalledTimes(1);
+        expect(httpRequestService.get).toHaveBeenCalledWith(expectedPath, expectedQueryParams);
+      });
+
+      it("returns the xsrfToken pulled from the response headers", async () => {
+        const result = await authenticationService.getXsrfToken(mockClientId, mockRedirectUri);
+
+        expect(result).toEqual({ xsrfToken: mockXsrfToken });
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when httpRequestService.get throws an error", () => {
+        beforeEach(() => {
+          httpRequestService.get.and.throwError(mockError);
+        });
+
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await authenticationService.getXsrfToken(mockClientId, mockRedirectUri);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in getXsrfToken", { error: mockError, clientId: mockClientId, redirectUri: mockRedirectUri }, authenticationService.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await authenticationService.getXsrfToken(mockClientId, mockRedirectUri);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+
+      describe("when httpRequestService.get returns a malformed set-cookie header", () => {
+        beforeEach(() => {
+          httpRequestService.get.and.returnValue(Promise.resolve({ headers: {} }));
+        });
+
+        it("throws an error with a valid message", async () => {
+          try {
+            await authenticationService.getXsrfToken(mockClientId, mockRedirectUri);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect((error as Error).message).toBe("Malformed 'set-cookie' header in response.");
           }
         });
       });
