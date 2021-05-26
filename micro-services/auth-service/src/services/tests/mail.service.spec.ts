@@ -4,7 +4,7 @@ import { SES } from "aws-sdk";
 import { SesFactory } from "../../factories/ses.factory";
 import { MailService, MailServiceInterface, MailServiceConfigInterface } from "../mail.service";
 
-fdescribe("HttpRequestService", () => {
+describe("HttpRequestService", () => {
   let ses: Spied<SES>;
   const sesFactory: SesFactory = () => ses as unknown as SES;
 

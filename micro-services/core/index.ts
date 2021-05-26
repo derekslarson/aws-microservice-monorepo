@@ -44,6 +44,7 @@ export * from "./src/services/validation.service";
 export * from "./src/services/interfaces/processor.service.interface";
 
 export * from "./src/test-support/index";
+export * from "./src/test-support/generateAwsResponse";
 
 export * from "./src/types/recursivePartial.type";
 export * from "./src/types/timestamp.type";
