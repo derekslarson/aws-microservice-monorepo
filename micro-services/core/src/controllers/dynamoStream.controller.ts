@@ -8,7 +8,7 @@ import { ProcessorServiceInterface, ProcessorServiceRecord } from "../services/i
 import { EnvConfigInterface } from "../config/env.config";
 
 @injectable()
-export abstract class DynamoStreamController implements DynamoStreamControllerInterface {
+export class DynamoStreamController implements DynamoStreamControllerInterface {
   private unmarshall: Unmarshall;
 
   private tableNames: string[];
@@ -31,9 +31,8 @@ export abstract class DynamoStreamController implements DynamoStreamControllerIn
 
       await Promise.allSettled(preparedRecords.map((record) => this.callSupportingProcessorServices(record)));
     } catch (error: unknown) {
+      // Shouldn't be able to get here
       this.loggerService.error("Error in handleStreamEvent", { error, event }, this.constructor.name);
-
-      throw error;
     }
   }
 
@@ -53,9 +52,8 @@ export abstract class DynamoStreamController implements DynamoStreamControllerIn
         this.loggerService.error(`Error calling ${failures.length} of ${this.processorServices.length} processor services.`, { errors, record }, this.constructor.name);
       }
     } catch (error: unknown) {
+      // Shouldn't be able to get here
       this.loggerService.error("Error in callSupportingProcessorServices", { error, record }, this.constructor.name);
-
-      throw error;
     }
   }
 
@@ -79,7 +77,12 @@ export abstract class DynamoStreamController implements DynamoStreamControllerIn
     } catch (error: unknown) {
       this.loggerService.error("Error in prepareRecordsForProcessorServices", { error, record }, this.constructor.name);
 
-      throw error;
+      return {
+        tableName: "",
+        eventName: "UNKNOWN",
+        newImage: {},
+        oldImage: {},
+      };
     }
   }
 }

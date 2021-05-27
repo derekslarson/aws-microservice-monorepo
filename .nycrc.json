@@ -2,9 +2,9 @@
   "cache": false,
   "reporter": ["text", "lcov"],
   "check-coverage": true,
-  "branches": 80,
   "lines": 80,
   "functions": 80,
+  "branches": 80,
   "extension": [
     ".ts"
   ],
@@ -20,6 +20,7 @@
     "**/src/inversion-of-control/**",
     "**/src/factories",
     "**/src/test-support/**",
-    "**/src/**/*.spec.ts"
+    "**/src/**/*.spec.ts",
+    "**/*error.ts"
   ]
 }
