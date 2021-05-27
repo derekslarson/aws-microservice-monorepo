@@ -17,12 +17,11 @@ export class HttpRequestService implements HttpRequestServiceInterface {
     this.axios = axiosFactory();
   }
 
-  public async get<T>(path: string, queryParameters: Record<string, string> | string = {}, headers: Record<string, string> = {}, config?: CustomAxiosRequestConfig): Promise<ResponseWithParsedBody<T>> {
+  public async get<T>(path: string, queryParameters: Record<string, string> | string = {}, headers: Record<string, string> = {}, config: CustomAxiosRequestConfig = {}): Promise<ResponseWithParsedBody<T>> {
     try {
       this.loggerService.trace("get called", { path, queryParameters, headers }, this.constructor.name);
 
-      const extraConfig = config || {};
-      const axiosResponse = await this.axios.get<T>(path, { ...extraConfig, params: queryParameters, headers });
+      const axiosResponse = await this.axios.get<T>(path, { ...config, params: queryParameters, headers });
 
       const response = this.convertAxiosResponseToStandardResponse(axiosResponse);
 
@@ -34,12 +33,11 @@ export class HttpRequestService implements HttpRequestServiceInterface {
     }
   }
 
-  public async post<T>(path: string, body: Record<string, any> | string = {}, queryParameters: Record<string, string> = {}, headers: Record<string, string> = {}, config?: CustomAxiosRequestConfig): Promise<ResponseWithParsedBody<T>> {
+  public async post<T>(path: string, body: Record<string, any> | string = {}, queryParameters: Record<string, string> = {}, headers: Record<string, string> = {}, config: CustomAxiosRequestConfig = {}): Promise<ResponseWithParsedBody<T>> {
     try {
       this.loggerService.trace("post called", { path, body, queryParameters, headers }, this.constructor.name);
 
-      const extraConfig = config || {};
-      const axiosResponse = await this.axios.post<T>(path, body, { ...extraConfig, params: queryParameters, headers });
+      const axiosResponse = await this.axios.post<T>(path, body, { ...config, params: queryParameters, headers });
 
       const response = this.convertAxiosResponseToStandardResponse(axiosResponse);
 
@@ -51,12 +49,11 @@ export class HttpRequestService implements HttpRequestServiceInterface {
     }
   }
 
-  public async put<T>(path: string, body: Record<string, any> | string = {}, queryParameters: Record<string, string> = {}, headers: Record<string, string> = {}, config?: CustomAxiosRequestConfig): Promise<ResponseWithParsedBody<T>> {
+  public async put<T>(path: string, body: Record<string, any> | string = {}, queryParameters: Record<string, string> = {}, headers: Record<string, string> = {}, config: CustomAxiosRequestConfig = {}): Promise<ResponseWithParsedBody<T>> {
     try {
       this.loggerService.trace("put called", { path, body, queryParameters, headers }, this.constructor.name);
 
-      const extraConfig = config || {};
-      const axiosResponse = await this.axios.put<T>(path, body, { ...extraConfig, params: queryParameters, headers });
+      const axiosResponse = await this.axios.put<T>(path, body, { ...config, params: queryParameters, headers });
 
       const response = this.convertAxiosResponseToStandardResponse(axiosResponse);
 
@@ -68,12 +65,11 @@ export class HttpRequestService implements HttpRequestServiceInterface {
     }
   }
 
-  public async patch<T>(path: string, body: Record<string, any> | string = {}, queryParameters: Record<string, string> = {}, headers: Record<string, string> = {}, config?: CustomAxiosRequestConfig): Promise<ResponseWithParsedBody<T>> {
+  public async patch<T>(path: string, body: Record<string, any> | string = {}, queryParameters: Record<string, string> = {}, headers: Record<string, string> = {}, config: CustomAxiosRequestConfig = {}): Promise<ResponseWithParsedBody<T>> {
     try {
       this.loggerService.trace("patch called", { path, body, queryParameters, headers }, this.constructor.name);
 
-      const extraConfig = config || {};
-      const axiosResponse = await this.axios.patch<T>(path, body, { ...extraConfig, params: queryParameters, headers });
+      const axiosResponse = await this.axios.patch<T>(path, body, { ...config, params: queryParameters, headers });
 
       const response = this.convertAxiosResponseToStandardResponse(axiosResponse);
 
@@ -85,12 +81,11 @@ export class HttpRequestService implements HttpRequestServiceInterface {
     }
   }
 
-  public async delete<T>(path: string, queryParameters: Record<string, string> = {}, headers: Record<string, string> = {}, config?: CustomAxiosRequestConfig): Promise<ResponseWithParsedBody<T>> {
+  public async delete<T>(path: string, queryParameters: Record<string, string> = {}, headers: Record<string, string> = {}, config: CustomAxiosRequestConfig = {}): Promise<ResponseWithParsedBody<T>> {
     try {
       this.loggerService.trace("delete called", { path, queryParameters, headers }, this.constructor.name);
 
-      const extraConfig = config || {};
-      const axiosResponse = await this.axios.delete<T>(path, { ...extraConfig, params: queryParameters, headers });
+      const axiosResponse = await this.axios.delete<T>(path, { ...config, params: queryParameters, headers });
 
       const response = this.convertAxiosResponseToStandardResponse(axiosResponse);
 
