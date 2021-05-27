@@ -46,7 +46,6 @@ describe("ValidationService", () => {
   ];
 
   beforeEach(() => {
-    spyOn(JSON, "parse").and.callThrough();
     classTransformer = jasmine.createSpy("classTransformer").and.returnValue(mockTransformation);
     classValidator = jasmine.createSpy("classValidator").and.returnValue(Promise.resolve(mockValidationSuccessResponse));
     loggerService = TestSupport.spyOnClass(LoggerService);
@@ -73,12 +72,6 @@ describe("ValidationService", () => {
       });
 
       describe("When passed an object as the validationObject", () => {
-        it("doesn't call JSON.parse", async () => {
-          await validationService.validate(MockDtoConstructor, mockRequestPortion, mockValidationObject);
-
-          expect(JSON.parse).not.toHaveBeenCalled();
-        });
-
         it("calls classTransformer with the correct parameters", async () => {
           await validationService.validate(MockDtoConstructor, mockRequestPortion, mockValidationObject);
 
@@ -88,13 +81,6 @@ describe("ValidationService", () => {
       });
 
       describe("when passed a JSON string as the validationObject", () => {
-        it("calls JSON.parse with the correct parameters", async () => {
-          await validationService.validate(MockDtoConstructor, mockRequestPortion, mockStringValidationObject);
-
-          expect(JSON.parse).toHaveBeenCalledTimes(1);
-          expect(JSON.parse).toHaveBeenCalledWith(mockStringValidationObject);
-        });
-
         it("calls classTransformer with the correct parameters", async () => {
           await validationService.validate(MockDtoConstructor, mockRequestPortion, mockStringValidationObject);
 

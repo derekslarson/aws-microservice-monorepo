@@ -242,13 +242,6 @@ describe("BaseDynamoRepository", () => {
     const { id, ...mockInsertParam } = mockItem;
 
     describe("under normal conditions", () => {
-      it("calls idService.generateId with the correct parameters", async () => {
-        await testDynamoRepository.insert(mockInsertParam);
-
-        expect(idService.generateId).toHaveBeenCalledTimes(1);
-        expect(idService.generateId).toHaveBeenCalledWith();
-      });
-
       it("calls documentClient.put with the correct parameters", async () => {
         const expectedDynamoParam = {
           TableName: mockTableName,

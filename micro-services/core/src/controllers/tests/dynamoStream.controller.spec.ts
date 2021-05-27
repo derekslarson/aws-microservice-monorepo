@@ -25,8 +25,8 @@ describe("DynamoStreamController", () => {
     eventSourceARN: `/${mockTableName}/`,
     eventName: mockEventName,
     dynamodb: {
-      NewImage: { b: { S: "old value" } },
-      OldImage: { b: { S: "new value" } },
+      NewImage: { b: { S: "new value" } },
+      OldImage: { b: { S: "old value" } },
     },
   };
 
