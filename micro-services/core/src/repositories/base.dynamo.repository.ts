@@ -75,7 +75,7 @@ export abstract class BaseDynamoRepository<T> {
 
       const queryResponse = await this.documentClient.scan(scanInput).promise();
 
-      return (queryResponse.Items as T[]) || [];
+      return (queryResponse.Items || []) as T[];
     } catch (error: unknown) {
       this.loggerService.error("Error in getAll", { error }, this.constructor.name);
 
@@ -200,17 +200,7 @@ export abstract class BaseDynamoRepository<T> {
 
       return generatedUpdateItemInput;
     } catch (error: unknown) {
-      this.loggerService.error(
-        "Error in generatePartialUpdateItemInput",
-        {
-          error,
-          id,
-          rootLevelOrNestedObject,
-          previousUpdateItemInput,
-          previousExpressionAttributePath,
-        },
-        this.constructor.name,
-      );
+      this.loggerService.error("Error in generatePartialUpdateItemInput", { error, id, rootLevelOrNestedObject, previousUpdateItemInput, previousExpressionAttributePath }, this.constructor.name);
 
       throw error;
     }
