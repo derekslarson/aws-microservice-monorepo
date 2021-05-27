@@ -43,7 +43,7 @@ export class ClientController extends BaseController implements ClientController
     try {
       this.loggerService.trace("deleteClient called", { request }, this.constructor.name);
 
-      const { id = "" } = request.pathParameters || {};
+      const { id } = request.pathParameters as Record<string, string>;
 
       const { secret } = await this.validationService.validate(DeleteClientInputDto, RequestPortion.Headers, request.headers);
 
