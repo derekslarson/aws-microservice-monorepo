@@ -115,21 +115,21 @@ describe("YacLegacyApiService", () => {
           expect(httpService.get).toHaveBeenCalledWith(`${envConfig.yacApiUrl}/v2/users/undefined/image-and-name`, { userId: String(mockYacUser.id) });
         }
       });
+    });
 
-      describe("success correctly", () => {
-        it("correctly queries the Yac Api", async () => {
-          httpService.get.and.returnValue({ body: mockYacUser });
+    describe("success correctly", () => {
+      it("correctly queries the Yac Api", async () => {
+        httpService.get.and.returnValue({ body: mockYacUser });
 
-          try {
-            const response = await yacLegacyApiService.getUserImageAndNameWithId(mockYacUser.id);
+        try {
+          const response = await yacLegacyApiService.getUserImageAndNameWithId(mockYacUser.id);
 
-            expect(httpService.get).toHaveBeenCalledWith(`${envConfig.yacApiUrl}/v2/users/undefined/image-and-name`, { userId: String(mockYacUser.id) });
-            expect(response).toBeDefined();
-            expect(response).toEqual(mockYacUser);
-          } catch (error: unknown) {
-            fail("Should not have failed");
-          }
-        });
+          expect(httpService.get).toHaveBeenCalledWith(`${envConfig.yacApiUrl}/v2/users/undefined/image-and-name`, { userId: String(mockYacUser.id) });
+          expect(response).toBeDefined();
+          expect(response).toEqual(mockYacUser);
+        } catch (error: unknown) {
+          fail("Should not have failed");
+        }
       });
     });
   });
