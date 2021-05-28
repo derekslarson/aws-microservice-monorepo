@@ -11,20 +11,20 @@
     "yac-api-v4": "bin/yac-api-v4.js"
   },
   "scripts": {
-    "build": "yarn run clean && webpack --bail --config config/webpack/webpack.config.release.js && yarn run build:layer",
-    "build:dev": "yarn run clean && webpack --bail --config config/webpack/webpack.config.dev.js && yarn run build:layer",
+    "build": "yarn  clean && webpack --bail --config config/webpack/webpack.config.release.js && yarn  build:layer",
+    "build:dev": "yarn  clean && webpack --bail --config config/webpack/webpack.config.dev.js && yarn  build:layer",
     "build:layer": "ts-node ./infra/layer/buildLayer.ts && cd ./dist/dependencies/nodejs && yarn install",
-    "build:unit-tests": "yarn run clean:unit-tests && tsc --project ./tsconfig.test.json",
+    "build:unit-tests": "yarn clean:unit-tests && tsc --project ./tsconfig.test.json",
     "clean": "rm -rf ./dist",
     "clean:layer": "rm -rf ./infra/layer/dependencies && rm -f ./infra/layer/support/buildLayer.js",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
-    "deploy:local": "yarn run build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
+    "deploy:local": "yarn  build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
-    "deploy:dev": "yarn run build:dev && cdk deploy --context environment=dev",
-    "deploy:stage": "yarn run build && cdk deploy --context environment=stage",
-    "deploy:prod": "yarn run build && cdk deploy --context environment=prod",
+    "deploy:dev": "yarn  build:dev && cdk deploy --context environment=dev",
+    "deploy:stage": "yarn  build && cdk deploy --context environment=stage",
+    "deploy:prod": "yarn  build && cdk deploy --context environment=prod",
     "nyc": "nyc node config/jasmine/jasmine.runner.js",
-    "test:unit": "yarn run clean:unit-tests && yarn run build:unit-tests && yarn run nyc"
+    "test:unit": "yarn clean:unit-tests && yarn build:unit-tests && yarn nyc"
   },
   "devDependencies": {
     "@aws-cdk/assert": "^1.94.0",

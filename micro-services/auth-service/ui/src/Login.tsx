@@ -45,7 +45,7 @@ function useQuery() {
   }
 }
 
-const Login: React.FC<ILoginProps> = ({ }) => {
+const Login: React.FC<ILoginProps> = () => {
   const query = useQuery()
   const [otp, setOtp] = useState<string>('')
   const [email, setEmail] = useState<string>('')
@@ -189,7 +189,7 @@ const Login: React.FC<ILoginProps> = ({ }) => {
         status: 'ERROR',
         data: e?.data || 'Failed to signin, please try again.'
       })
-      throw 'request failed'
+      throw new Error('request failed')
     }
   }
 
@@ -331,6 +331,7 @@ const Login: React.FC<ILoginProps> = ({ }) => {
     if (cookieSession) {
       authenticateWithCookie()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cookieSession])
 
   return (
