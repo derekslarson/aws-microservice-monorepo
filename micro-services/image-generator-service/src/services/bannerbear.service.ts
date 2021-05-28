@@ -6,11 +6,6 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { MediaInterface } from "../models/media.model";
 
-enum BannerbearTemplates {
-  "GIF2VIDEO" = "wXmzGBDajKNbLN7gjn",
-  "IMAGE" = "N1qMxz5vvgq5eQ4kor",
-}
-
 @injectable()
 export class BannerbearService implements BannerbearServiceInterface {
   constructor(
@@ -37,10 +32,10 @@ export class BannerbearService implements BannerbearServiceInterface {
     }
   }
 
-  public async getTask(id: string): Promise<BannerbearTask> {
+  public async getTask(id: string, type: TaskTypes): Promise<BannerbearTask> {
     this.loggerService.trace("getTask called", { id }, this.constructor.name);
     try {
-      const request = await this.httpService.get<BannerbearTask>(`https://api.bannerbear.com/v2/animated_gifs/${id}`, undefined, { Authorization: `Bearer ${this.envConfig.bannerbear_key}` });
+      const request = await this.httpService.get<BannerbearTask>(`https://api.bannerbear.com/v2/${type === "IMAGE" ? "images" : "animated_gifs"}/${id}`, undefined, { Authorization: `Bearer ${this.envConfig.bannerbear_key}` });
       return {
         created_at: request.body.created_at,
         uid: request.body.uid,
@@ -60,7 +55,7 @@ export class BannerbearService implements BannerbearServiceInterface {
       case "GIF2VIDEO": {
         const taskAux: Task<"GIF2VIDEO"> = task as Task<"GIF2VIDEO">;
         return {
-          template: BannerbearTemplates.GIF2VIDEO,
+          template: this.envConfig.bannerbear_templates.GIF2VIDEO,
           input_media_url: taskAux.options.source,
           frames: Array.from([ [], [], [] ]).map(() => modifications),
           fps: 1,
@@ -71,7 +66,7 @@ export class BannerbearService implements BannerbearServiceInterface {
 
       case "IMAGE": {
         return {
-          template: BannerbearTemplates.IMAGE,
+          template: this.envConfig.bannerbear_templates.IMAGE,
           modifications,
           webhook_url: `${this.envConfig.origin}/bannerbear/callback`,
           metadata: JSON.stringify({ id }),
@@ -94,10 +89,10 @@ export class BannerbearService implements BannerbearServiceInterface {
         }, auxTask.options.templateParameters.channel ? {
           name: "channel",
           text: auxTask.options.templateParameters.channel,
-        } : undefined, {
+        } : undefined, auxTask.options.templateParameters.subject ? {
           name: "subject",
           text: auxTask.options.templateParameters.subject,
-        } ].filter(Boolean) as BannerbearModification[];
+        } : undefined ].filter(Boolean) as BannerbearModification[];
       }
       case "IMAGE": {
         const auxTask: Task<"IMAGE"> = task as Task<"IMAGE">;
@@ -123,7 +118,7 @@ export class BannerbearService implements BannerbearServiceInterface {
   }
 }
 
-type BannerbearServiceConfigType = Pick<EnvConfigInterface, "origin" | "bannerbear_key">;
+type BannerbearServiceConfigType = Pick<EnvConfigInterface, "origin" | "bannerbear_key" | "bannerbear_templates">;
 
 interface BannerbearTemplateVideoParameters {
   username: `@${string}`,
@@ -148,7 +143,7 @@ interface BannerbearImageTaskOptions extends BannerbearTaskParameters {
 }
 
 interface BannerbearTaskParameters {
-  templateParameters: Record<string, any>
+  templateParameters: BannerbearTemplateVideoParameters | BannerbearTemplateImageParameters
 }
 
 interface BannerbearTask {
@@ -177,7 +172,7 @@ interface BannerbearModification {
 }
 
 interface BannerbearRequestDataMeta {
-  template: BannerbearTemplates
+  template: BannerbearServiceConfigType["bannerbear_templates"]["GIF2VIDEO"] | BannerbearServiceConfigType["bannerbear_templates"]["IMAGE"]
   webhook_url: string
   metadata?: string
 }
@@ -197,5 +192,5 @@ export type TaskTypes = "GIF2VIDEO" | "IMAGE";
 
 export interface BannerbearServiceInterface {
   pushTask<T extends Task<TaskTypes>>(id: MediaInterface["id"], options: T): Promise<Omit<BannerbearTask, "image_url">>,
-  getTask(id: string): Promise<BannerbearTask>
+  getTask(id: string, type: TaskTypes): Promise<BannerbearTask>
 }

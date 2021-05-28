@@ -11,20 +11,20 @@
     "yac-api-v4": "bin/yac-api-v4.js"
   },
   "scripts": {
-    "build": "npm run clean && webpack --bail --config config/webpack/webpack.config.release.js && npm run build:layer",
-    "build:dev": "npm run clean && webpack --bail --config config/webpack/webpack.config.dev.js && npm run build:layer",
-    "build:layer": "ts-node ./infra/layer/buildLayer.ts && cd ./dist/dependencies/nodejs && npm install",
-    "build:unit-tests": "npm run clean:unit-tests && tsc --project ./tsconfig.test.json",
+    "build": "yarn run clean && webpack --bail --config config/webpack/webpack.config.release.js && yarn run build:layer",
+    "build:dev": "yarn run clean && webpack --bail --config config/webpack/webpack.config.dev.js && yarn run build:layer",
+    "build:layer": "ts-node ./infra/layer/buildLayer.ts && cd ./dist/dependencies/nodejs && yarn install",
+    "build:unit-tests": "yarn run clean:unit-tests && tsc --project ./tsconfig.test.json",
     "clean": "rm -rf ./dist",
     "clean:layer": "rm -rf ./infra/layer/dependencies && rm -f ./infra/layer/support/buildLayer.js",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
-    "deploy:local": "npm run build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
+    "deploy:local": "yarn run build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
-    "deploy:dev": "npm run build:dev && cdk deploy --context environment=dev",
-    "deploy:stage": "npm run build && cdk deploy --context environment=stage",
-    "deploy:prod": "npm run build && cdk deploy --context environment=prod",
+    "deploy:dev": "yarn run build:dev && cdk deploy --context environment=dev",
+    "deploy:stage": "yarn run build && cdk deploy --context environment=stage",
+    "deploy:prod": "yarn run build && cdk deploy --context environment=prod",
     "nyc": "nyc node config/jasmine/jasmine.runner.js",
-    "test:unit": "npm run clean:unit-tests && npm run build:unit-tests && npm run nyc"
+    "test:unit": "yarn run clean:unit-tests && yarn run build:unit-tests && yarn run nyc"
   },
   "devDependencies": {
     "@aws-cdk/assert": "^1.94.0",

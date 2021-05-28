@@ -8,7 +8,7 @@ import { EnvConfigInterface } from "../config/env.config";
 @injectable()
 export class YacLegacyApiService implements YacLegacyApiServiceInterface {
   constructor(@inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.EnvConfigInterface) private envConfig: EnvConfigInterface,
+    @inject(TYPES.EnvConfigInterface) private envConfig: YacLegacyApiServiceEnvConfigType,
     @inject(TYPES.HttpRequestServiceInterface) private httpService: HttpRequestServiceInterface) {}
 
   public async getMessage(messageId: string, isGroup: boolean, token: string): Promise<YacMessage> {
@@ -87,6 +87,8 @@ export interface YacUserMetadata {
   bio: string;
   phone: string;
 }
+
+type YacLegacyApiServiceEnvConfigType = Pick<EnvConfigInterface, "yacApiUrl">;
 
 export interface YacLegacyApiServiceInterface {
   getMessage(messageId: string, isGroup: boolean, token:string): Promise<YacMessage>
