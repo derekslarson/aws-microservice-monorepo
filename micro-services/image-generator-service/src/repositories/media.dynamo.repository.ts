@@ -37,7 +37,7 @@ export class MediaDynamoRepository extends BaseDynamoRepository<MediaInterface> 
 
   public async create(id: MediaInterface["id"], checksum: string, bannerbear_id: string, bannerbear_url?: string): Promise<MediaInterface> {
     try {
-      this.loggerService.trace("createImage called", { id, bannerbear_id, bannerbear_url }, this.constructor.name);
+      this.loggerService.trace("createImage called", { id, checksum, bannerbear_id, bannerbear_url }, this.constructor.name);
       const image = await this.insertWithIdIncluded({
         id,
         checksum,
@@ -49,7 +49,7 @@ export class MediaDynamoRepository extends BaseDynamoRepository<MediaInterface> 
 
       return image;
     } catch (error: unknown) {
-      this.loggerService.error("Error in createImage", { error, id, bannerbear_id, bannerbear_url }, this.constructor.name);
+      this.loggerService.error("Error in createImage", { error, checksum, id, bannerbear_id, bannerbear_url }, this.constructor.name);
 
       throw error;
     }
