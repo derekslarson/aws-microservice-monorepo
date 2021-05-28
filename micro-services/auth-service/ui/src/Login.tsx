@@ -215,6 +215,29 @@ const Login: React.FC<ILoginProps> = () => {
     }
   }
 
+  const authenticateWithCookie = async () => {
+    if (!cookieSession) {
+      setRequest({
+        status: 'STALE',
+        data: {}
+      })
+      return
+    }
+    try {
+      setLoader({
+        show: true,
+        extra: <>Checking your session</>
+      })
+      await authenticate({ token: cookieSession })
+    } catch (_) {
+      // most probably session is not valid
+      setLoader({
+        show: false
+      })
+      setStep(0)
+    }
+  }
+
   const email_form = () => (
     <motion.form
       key={'email_form'}
@@ -305,32 +328,10 @@ const Login: React.FC<ILoginProps> = () => {
   }, [request, toaster])
 
   useEffect(() => {
-    const authenticateWithCookie = async () => {
-      if (!cookieSession) {
-        setRequest({
-          status: 'STALE',
-          data: {}
-        })
-        return
-      }
-      try {
-        setLoader({
-          show: true,
-          extra: <>Checking your session</>
-        })
-        await authenticate({ token: cookieSession })
-      } catch (_) {
-        // most probably session is not valid
-        setLoader({
-          show: false
-        })
-        setStep(0)
-      }
-    }
-    
     if (cookieSession) {
       authenticateWithCookie()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cookieSession])
 
   return (
