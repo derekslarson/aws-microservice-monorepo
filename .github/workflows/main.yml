@@ -19,6 +19,8 @@ jobs:
         run: yarn
       - name: Bootstrap
         run: npx lerna bootstrap
+      - name: Build
+        run: npx lerna run build:dev
       - name: Test
         run: yarn test:unit
         

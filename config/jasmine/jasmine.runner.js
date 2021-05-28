@@ -9,7 +9,6 @@ jasmine.loadConfig({
   spec_dir: "compiled_tests",
   spec_files: [
     "**/*[sS]pec.js",
-    "!**/*.ts"
   ],
   helpers: [],
 });
