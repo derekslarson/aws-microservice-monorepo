@@ -45,7 +45,7 @@ function useQuery() {
   }
 }
 
-const Login: React.FC<ILoginProps> = ({ }) => {
+const Login: React.FC<ILoginProps> = () => {
   const query = useQuery()
   const [otp, setOtp] = useState<string>('')
   const [email, setEmail] = useState<string>('')
@@ -189,7 +189,7 @@ const Login: React.FC<ILoginProps> = ({ }) => {
         status: 'ERROR',
         data: e?.data || 'Failed to signin, please try again.'
       })
-      throw 'request failed'
+      throw new Error('request failed')
     }
   }
 
@@ -212,29 +212,6 @@ const Login: React.FC<ILoginProps> = ({ }) => {
       } else {
         await authenticate({ email, otp })
       }
-    }
-  }
-
-  const authenticateWithCookie = async () => {
-    if (!cookieSession) {
-      setRequest({
-        status: 'STALE',
-        data: {}
-      })
-      return
-    }
-    try {
-      setLoader({
-        show: true,
-        extra: <>Checking your session</>
-      })
-      await authenticate({ token: cookieSession })
-    } catch (_) {
-      // most probably session is not valid
-      setLoader({
-        show: false
-      })
-      setStep(0)
     }
   }
 
@@ -328,6 +305,29 @@ const Login: React.FC<ILoginProps> = ({ }) => {
   }, [request, toaster])
 
   useEffect(() => {
+    const authenticateWithCookie = async () => {
+      if (!cookieSession) {
+        setRequest({
+          status: 'STALE',
+          data: {}
+        })
+        return
+      }
+      try {
+        setLoader({
+          show: true,
+          extra: <>Checking your session</>
+        })
+        await authenticate({ token: cookieSession })
+      } catch (_) {
+        // most probably session is not valid
+        setLoader({
+          show: false
+        })
+        setStep(0)
+      }
+    }
+    
     if (cookieSession) {
       authenticateWithCookie()
     }
