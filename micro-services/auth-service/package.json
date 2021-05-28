@@ -23,7 +23,9 @@
     "deploy:prod": "yarn workspace @yac/core build && yarn build:prod && cdk deploy --context environment=prod",
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
     "nyc": "nyc node ../../config/jasmine/jasmine.runner.js",
-    "test:unit": "yarn build:unit-tests && yarn nyc"
+    "nyc:coverage-report": "nyc --reporter html --reporter text -t coverage --report-dir coverage/summary node ../../config/jasmine/jasmine.runner.js",
+    "test:unit": "yarn run build:unit-tests && yarn run nyc",
+    "test:unit:coverage-report": "yarn run build:unit-tests && yarn run nyc:coverage-report"
   },
   "devDependencies": {
     "@aws-cdk/assert": "^1.94.0",

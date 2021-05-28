@@ -30,7 +30,7 @@ export class AuthenticationController extends BaseController implements Authenti
 
       await this.authenticationService.signUp(signUpInput);
 
-      const { session } = await this.authenticationService.login({ email: signUpInput.email });
+      const { session } = await this.authenticationService.login(signUpInput);
 
       const responseBody: AuthServiceSignUpResponseBody = { session };
 
@@ -64,7 +64,7 @@ export class AuthenticationController extends BaseController implements Authenti
     try {
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
 
-      const confirmationRequestCookies = await this.validationService.validate(ConfirmationRequestCookiesDto, RequestPortion.Cookies, this.convertCookiesToObject(request.cookies));
+      const confirmationRequestCookies = await this.validationService.validate(ConfirmationRequestCookiesDto, RequestPortion.Cookies, this.parseCookies(request.cookies));
       const confirmationRequestBody = await this.validationService.validate(ConfirmationRequestBodyDto, RequestPortion.Body, request.body);
 
       const confirmationRequestInput: ConfirmationInput = {
@@ -73,8 +73,6 @@ export class AuthenticationController extends BaseController implements Authenti
       };
 
       const confirmResponse = await this.authenticationService.confirm(confirmationRequestInput);
-
-      this.loggerService.info("confirmResponse", { confirmResponse }, this.constructor.name);
 
       return this.generateSuccessResponse(confirmResponse);
     } catch (error: unknown) {
@@ -106,9 +104,9 @@ export class AuthenticationController extends BaseController implements Authenti
     }
   }
 
-  private convertCookiesToObject(cookies: string[] = []): Record<string, string> {
+  private parseCookies(cookies: string[] = []): Record<string, string> {
     try {
-      this.loggerService.trace("convertCookiesToObject called", { cookies }, this.constructor.name);
+      this.loggerService.trace("parseCookies called", { cookies }, this.constructor.name);
 
       const cookieObject = cookies.reduce((acc: Record<string, string>, cookie: string) => {
         const [ key, value ] = cookie.split("=");
@@ -119,7 +117,7 @@ export class AuthenticationController extends BaseController implements Authenti
 
       return cookieObject;
     } catch (error: unknown) {
-      this.loggerService.error("Error in convertCookiesToObject", { error, cookies }, this.constructor.name);
+      this.loggerService.error("Error in parseCookies", { error, cookies }, this.constructor.name);
 
       throw error;
     }

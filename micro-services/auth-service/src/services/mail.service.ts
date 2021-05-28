@@ -26,15 +26,7 @@ export class MailService implements MailServiceInterface {
         Destination: { ToAddresses: [ emailAddress ] },
         Message: {
           Subject: { Data: "Log into your Yac account" },
-          Body: {
-            Html: {
-              Data: `
-                <pUse this code to log into your Yac account.</p>
-                <p><strong>${confirmationCode}</strong></p>
-                <p>This code expires in 30 minutes.</p>
-              `,
-            },
-          },
+          Body: { Html: { Data: `<p>Use this code to log into your Yac account.</p><p><strong>${confirmationCode}</strong></p><p>This code expires in 30 minutes.</p>` } },
         },
       };
 

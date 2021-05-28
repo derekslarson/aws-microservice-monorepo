@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { randomDigits } from "crypto-secure-random-digit";
 
-const cryptoWithRandomDigits = {
+export const cryptoWithRandomDigits = {
   ...crypto,
   randomDigits,
 };
