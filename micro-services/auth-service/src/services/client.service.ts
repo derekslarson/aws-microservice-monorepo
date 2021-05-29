@@ -36,7 +36,7 @@ export class ClientService implements ClientServiceInterface {
 
       const { UserPoolClient } = await this.cognito.createUserPoolClient(createClientParams).promise();
 
-      if (!UserPoolClient || !UserPoolClient.ClientId || !UserPoolClient?.ClientSecret) {
+      if (!UserPoolClient || !UserPoolClient.ClientId || !UserPoolClient.ClientSecret) {
         throw new Error("Malformed response from createUserPoolClient");
       }
 

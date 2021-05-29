@@ -120,15 +120,43 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         this.cognito.adminRespondToAuthChallenge(respondToAuthChallengeParams).promise(),
       ]);
 
-      this.loggerService.info("respondToAuthChallengeResponse", { respondToAuthChallengeResponse }, this.constructor.name);
-
       if (!respondToAuthChallengeResponse.AuthenticationResult) {
-        return { confirmed: false, session: respondToAuthChallengeResponse.Session || "" };
+        return { confirmed: false, session: respondToAuthChallengeResponse.Session as string };
       }
 
       return { confirmed: true, authorizationCode };
     } catch (error: unknown) {
       this.loggerService.error("Error in confirm", { error, confirmationInput }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getXsrfToken(clientId: string, redirectUri: string): Promise<{ xsrfToken: string }> {
+    try {
+      this.loggerService.trace("getXsrfToken called", { clientId, redirectUri }, this.constructor.name);
+
+      const queryParameters = {
+        response_type: "code",
+        client_id: clientId,
+        redirect_uri: redirectUri,
+      };
+
+      const authorizeResponse = await this.httpRequestService.get(`${this.config.userPool.domain}/oauth2/authorize`, queryParameters);
+
+      const setCookieHeader = authorizeResponse.headers["set-cookie"];
+
+      if (!Array.isArray(setCookieHeader)) {
+        throw new Error("Malformed 'set-cookie' header in response.");
+      }
+
+      const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
+
+      const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
+
+      return { xsrfToken };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getXsrfToken", { error, clientId, redirectUri }, this.constructor.name);
 
       throw error;
     }
@@ -183,36 +211,6 @@ export class AuthenticationService implements AuthenticationServiceInterface {
       return secretHash;
     } catch (error: unknown) {
       this.loggerService.error("Error in createUserPoolClientSecretHash", { error, username }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getXsrfToken(clientId: string, redirectUri: string): Promise<{ xsrfToken: string }> {
-    try {
-      this.loggerService.trace("getXsrfToken called", { clientId, redirectUri }, this.constructor.name);
-
-      const queryParameters = {
-        response_type: "code",
-        client_id: clientId,
-        redirect_uri: redirectUri,
-      };
-
-      const authorizeResponse = await this.httpRequestService.get(`${this.config.userPool.domain}/oauth2/authorize`, queryParameters);
-
-      const setCookieHeader = authorizeResponse.headers["set-cookie"];
-
-      if (!Array.isArray(setCookieHeader)) {
-        throw new Error("Malformed 'set-cookie' header in response.");
-      }
-
-      const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
-
-      const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
-
-      return { xsrfToken };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getXsrfToken", { error, clientId, redirectUri }, this.constructor.name);
 
       throw error;
     }
