@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, HttpRequestService } from "@yac/core";
+import { LoggerServiceInterface, HttpRequestServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 
@@ -9,9 +9,9 @@ import { EnvConfigInterface } from "../config/env.config";
 export class AuthorizationService implements AuthorizationServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestService,
-    @inject(TYPES.EnvConfigInterface) private config: EnvConfigInterface,
-  ) {}
+    @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestServiceInterface,
+    @inject(TYPES.EnvConfigInterface) private config: AuthorizationServiceEnvConfigInterfce,
+  ) { }
 
   public async getTokens(authorizationCode: string): Promise<{ accessToken: string; refreshToken: string; }> {
     try {
@@ -34,6 +34,8 @@ export class AuthorizationService implements AuthorizationServiceInterface {
     }
   }
 }
+
+type AuthorizationServiceEnvConfigInterfce = Pick<EnvConfigInterface, "userPoolClientId" | "userPoolClientSecret" | "userPoolClientRedirectUri" | "authServiceDomain">;
 
 export interface AuthorizationServiceInterface {
   getTokens(authorizationCode: string): Promise<{ accessToken: string; refreshToken: string; }>;
