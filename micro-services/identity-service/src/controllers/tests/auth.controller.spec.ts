@@ -241,7 +241,7 @@ describe("AuthController", () => {
         authenticationService.confirm.and.returnValue(mockResponse);
         authorizationService.getTokens.and.returnValue(mockTokens);
 
-        await authController.login(mockRequest);
+        await authController.confirm(mockRequest);
         expect(spyGenerateSuccessResponse).toHaveBeenCalled();
         expect(spyGenerateSuccessResponse).toHaveBeenCalledWith({ confirmed: mockResponse.confirmed, ...mockTokens });
       });
@@ -251,7 +251,7 @@ describe("AuthController", () => {
         validationService.validate.and.returnValue(Promise.resolve());
         authenticationService.confirm.and.returnValue(mockResponse);
 
-        await authController.login(mockRequest);
+        await authController.confirm(mockRequest);
         expect(spyGenerateSuccessResponse).toHaveBeenCalled();
         expect(spyGenerateSuccessResponse).toHaveBeenCalledWith(mockResponse);
       });
