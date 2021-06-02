@@ -3,7 +3,7 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import {
   LoggerServiceInterface,
-  HttpRequestService,
+  HttpRequestServiceInterface,
   AuthServiceSignUpResponseBody,
   AuthServiceSignUpRequestBody,
   AuthServiceLoginResponseBody,
@@ -22,8 +22,8 @@ import { ConfirmationInputDto } from "../models/confirmation/confirmation.input.
 export class AuthenticationService implements AuthenticationServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestService,
-    @inject(TYPES.EnvConfigInterface) private config: EnvConfigInterface,
+    @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestServiceInterface,
+    @inject(TYPES.EnvConfigInterface) private config: AuthenticationServiceEnvConfigType,
   ) {}
 
   public async signUp(signUpInput: SignUpInputDto): Promise<AuthServiceSignUpResponseBody> {
@@ -92,6 +92,8 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 }
+
+type AuthenticationServiceEnvConfigType = Pick<EnvConfigInterface, "authServiceDomain" | "userPoolClientId" | "userPoolClientRedirectUri" | "userPoolClientSecret" >;
 
 export interface AuthenticationServiceInterface {
   signUp(signUpInput: SignUpInputDto): Promise<AuthServiceSignUpResponseBody>
