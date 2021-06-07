@@ -205,7 +205,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
-      memorySize: 512,
     });
 
     const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {

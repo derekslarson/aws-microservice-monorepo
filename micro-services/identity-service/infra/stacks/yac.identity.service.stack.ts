@@ -73,7 +73,6 @@ export class YacIdentityServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy ],
       timeout: CDK.Duration.seconds(15),
-      memorySize: 512,
     });
 
     const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {
