@@ -48,9 +48,13 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       throw new Error("'environment' context param required.");
     }
 
-    const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
+    const stackPrefix = environment === Environment.Local ? developer : environment;
+
+    const ExportNames = generateExportNames(stackPrefix);
 
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
+    const clientsUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.ClientsUpdatedSnsTopicArn);
+    const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
@@ -93,13 +97,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     });
 
     // User Pool and Yac Client
-    const userPool = new Cognito.UserPool(this, `UserPool_${id}`, {
-      selfSignUpEnabled: true,
-      autoVerify: { email: true },
-      signInAliases: { email: true },
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
-      customAttributes: { authChallenge: new Cognito.StringAttribute({ mutable: true }) },
-    });
+    const userPool = Cognito.UserPool.fromUserPoolId(this, `${id}-UserPool`, userPoolId);
 
     const userPoolDomain = new Cognito.UserPoolDomain(this, `UserPoolDomain_${id}`, {
       userPool,
@@ -137,6 +135,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       },
     });
 
+    // We need the secret of the YacUserPoolClient in order to pass it down to the env vars, so we are using a custom resource to fetch it
     const describeCognitoUserPoolClient = new CustomResources.AwsCustomResource(this, "DescribeCognitoUserPoolClient", {
       resourceType: "Custom::DescribeCognitoUserPoolClient",
       onCreate: {
@@ -165,6 +164,11 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       resources: [ "*" ],
     });
 
+    const snsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ clientsUpdatedSnsTopicArn ],
+    });
+
     const basePolicy: IAM.PolicyStatement[] = [];
 
     // Environment Variables
@@ -179,6 +183,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       YAC_USER_POOL_CLIENT_SECRET: yacUserPoolClientSecret,
       MAIL_SENDER: "no-reply@yac.com",
       YAC_AUTH_UI: yacUserPoolClientRedirectUri,
+      CLIENTS_UPDATED_SNS_TOPIC_ARN: clientsUpdatedSnsTopicArn,
     };
 
     // Handlers
@@ -200,6 +205,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
+      memorySize: 512,
     });
 
     const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {
@@ -218,7 +224,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "createClient.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, snsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -228,7 +234,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "deleteClient.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, snsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -278,10 +284,67 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    userPool.addTrigger(Cognito.UserPoolOperation.PRE_SIGN_UP, preSignUpHandler);
-    userPool.addTrigger(Cognito.UserPoolOperation.DEFINE_AUTH_CHALLENGE, defineAuthChallengeHandler);
-    userPool.addTrigger(Cognito.UserPoolOperation.CREATE_AUTH_CHALLENGE, createAuthChallengeHandler);
-    userPool.addTrigger(Cognito.UserPoolOperation.VERIFY_AUTH_CHALLENGE_RESPONSE, verifyAuthChallengeResponseHandler);
+    preSignUpHandler.addPermission(`UserPoolPreSignUpPermission-${id}`, {
+      principal: new IAM.ServicePrincipal("cognito-idp.amazonaws.com"),
+      sourceArn: userPool.userPoolArn,
+    });
+
+    defineAuthChallengeHandler.addPermission(`UserPoolDefineAuthChallengePermission-${id}`, {
+      principal: new IAM.ServicePrincipal("cognito-idp.amazonaws.com"),
+      sourceArn: userPool.userPoolArn,
+    });
+
+    createAuthChallengeHandler.addPermission(`UserPoolCreateAuthChallengePermission-${id}`, {
+      principal: new IAM.ServicePrincipal("cognito-idp.amazonaws.com"),
+      sourceArn: userPool.userPoolArn,
+    });
+
+    verifyAuthChallengeResponseHandler.addPermission(`UserPoolVerifyAuthChallengeResponsePermission-${id}`, {
+      principal: new IAM.ServicePrincipal("cognito-idp.amazonaws.com"),
+      sourceArn: userPool.userPoolArn,
+    });
+
+    new CustomResources.AwsCustomResource(this, `${id}-UpdateUserPool`, {
+      resourceType: "Custom::UpdateUserPool",
+      onCreate: {
+        region: this.region,
+        service: "CognitoIdentityServiceProvider",
+        action: "updateUserPool",
+        parameters: {
+          UserPoolId: userPool.userPoolId,
+          LambdaConfig: {
+            PreSignUp: preSignUpHandler.functionArn,
+            DefineAuthChallenge: defineAuthChallengeHandler.functionArn,
+            CreateAuthChallenge: createAuthChallengeHandler.functionArn,
+            VerifyAuthChallengeResponse: verifyAuthChallengeResponseHandler.functionArn,
+          },
+        },
+        physicalResourceId: CustomResources.PhysicalResourceId.of(userPool.userPoolId),
+      },
+      policy: CustomResources.AwsCustomResourcePolicy.fromSdkCalls({ resources: CustomResources.AwsCustomResourcePolicy.ANY_RESOURCE }),
+    });
+
+    // While this is already called in the base class once, we need to call it again here,
+    // because the initial invocation was before the yacUserPoolClient existed
+    new CustomResources.AwsCustomResource(this, `${id}-SetAuthorizerAudiencesAfterYacClientCreation`, {
+      resourceType: "Custom::SnsPublish",
+      onCreate: {
+        region: this.region,
+        service: "SNS",
+        action: "publish",
+        parameters: {
+          TopicArn: this.clientsUpdatedSnsTopic.topicArn,
+          Message: JSON.stringify({ apiId: this.httpApi.apiId }),
+        },
+        physicalResourceId: CustomResources.PhysicalResourceId.of(this.clientsUpdatedSnsTopic.topicArn),
+      },
+      policy: CustomResources.AwsCustomResourcePolicy.fromStatements([
+        new IAM.PolicyStatement({
+          actions: [ "*" ],
+          resources: [ "*" ],
+        }),
+      ]),
+    });
 
     // Lambda Routes
     const signUpRoute: RouteProps<AuthServiceSignUpPath, AuthServiceSignUpMethod> = {

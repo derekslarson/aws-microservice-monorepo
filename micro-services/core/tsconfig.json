@@ -3,14 +3,15 @@
     "index.ts"
   ],
   "exclude": [
-    "dist"
+    "dist",
+    "lib"
   ],
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./",
     "skipLibCheck": true,
     "declaration": true,
-    "outDir": "./dist",
-    "declarationDir": "./dist"
+    "outDir": "./lib",
+    "declarationDir": "./lib"
   }
 }

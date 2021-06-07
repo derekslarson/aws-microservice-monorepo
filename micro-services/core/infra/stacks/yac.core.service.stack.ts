@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-new */
 
 import * as CDK from "@aws-cdk/core";
@@ -6,6 +7,11 @@ import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as Route53Targets from "@aws-cdk/aws-route53-targets";
+import * as SNS from "@aws-cdk/aws-sns";
+import * as Cognito from "@aws-cdk/aws-cognito";
+import * as Lambda from "@aws-cdk/aws-lambda";
+import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
+import * as IAM from "@aws-cdk/aws-iam";
 import { generateExportNames } from "../../src/enums/exportNames.enum";
 import { Environment } from "../../src/enums/environment.enum";
 
@@ -20,11 +26,18 @@ export class YacCoreServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
+    const stackPrefix = environment === Environment.Local ? developer : environment;
+
     const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
     const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
     const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
+
+    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
+      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
+      code: Lambda.Code.fromAsset("dist/dependencies"),
+    });
 
     const certificate = ACM.Certificate.fromCertificateArn(this, `${id}-cert`, certificateArn);
 
@@ -41,6 +54,38 @@ export class YacCoreServiceStack extends CDK.Stack {
       target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2Domain(domainName)),
     });
 
+    // User Pool and Yac Client
+    const userPool = new Cognito.UserPool(this, `${id}UserPool`, {
+      selfSignUpEnabled: true,
+      autoVerify: { email: true },
+      signInAliases: { email: true },
+      removalPolicy: CDK.RemovalPolicy.DESTROY,
+      customAttributes: { authChallenge: new Cognito.StringAttribute({ mutable: true }) },
+    });
+
+    const adminPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "*" ],
+      resources: [ "*" ],
+    });
+
+    const clientsUpdatedSnsTopic = new SNS.Topic(this, `${id}-ClientsUpdatedSnsTopic`, { topicName: `${id}-ClientsUpdatedSnsTopic` });
+
+    new Lambda.Function(this, `${id}-SetAuthorizerAudencesHandler`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/setAuthorizerAudences"),
+      handler: "setAuthorizerAudences.handler",
+      layers: [ dependencyLayer ],
+      environment: {
+        USER_POOL_ID: userPool.userPoolId,
+        STACK_PREFIX: stackPrefix,
+      },
+      timeout: CDK.Duration.seconds(15),
+      initialPolicy: [ adminPolicyStatement ],
+      events: [
+        new LambdaEventSources.SnsEventSource(clientsUpdatedSnsTopic),
+      ],
+    });
+
     new CDK.CfnOutput(this, `${id}-CustomDomainNameExport`, {
       exportName: ExportNames.CustomDomainName,
       value: domainName.name,
@@ -54,6 +99,16 @@ export class YacCoreServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `${id}-RegionalHostedZoneIdExport`, {
       exportName: ExportNames.RegionalHostedZoneId,
       value: domainName.regionalHostedZoneId,
+    });
+
+    new CDK.CfnOutput(this, `${id}-UserPoolIdExport`, {
+      exportName: ExportNames.UserPoolId,
+      value: userPool.userPoolId,
+    });
+
+    new CDK.CfnOutput(this, `${id}-ClientsUpdatedSnsTopicExport`, {
+      exportName: ExportNames.ClientsUpdatedSnsTopicArn,
+      value: clientsUpdatedSnsTopic.topicArn,
     });
   }
 

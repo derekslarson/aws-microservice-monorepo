@@ -37,6 +37,7 @@ export * from "./src/models/http/response.model";
 
 export * from "./src/repositories/base.dynamo.repository";
 
+export * from "./src/services/clientsUpdated.sns.service";
 export * from "./src/services/id.service";
 export * from "./src/services/http.request.service";
 export * from "./src/services/logger.service";
@@ -53,3 +54,4 @@ export * from "./src/types/timestamp.type";
 export * from "./src/util/internalServerError.response.generator";
 
 export * from "./src/api-contracts/auth.service";
+export * from "./src/api-contracts/sns.topics";

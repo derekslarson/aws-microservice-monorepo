@@ -19,7 +19,7 @@ class WebpackConfig {
 
     this.output = {
       libraryTarget: "commonjs2",
-      path: path.resolve(__dirname, "../dist"),
+      path: path.resolve(__dirname, "../lib"),
       filename: "index.js",
     };
 

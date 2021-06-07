@@ -1,6 +1,6 @@
 import { inject, injectable } from "inversify";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { ForbiddenError, LoggerServiceInterface, NotFoundError } from "@yac/core";
+import { ClientsUpdatedSnsServiceInterface, ForbiddenError, LoggerServiceInterface, NotFoundError } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CreateClientInputDto } from "../models/client/client.creation.input.model";
@@ -12,6 +12,7 @@ export class ClientService implements ClientServiceInterface {
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.ClientsUpdatedSnsServiceInterface) private clientsUpdatedSnsService: ClientsUpdatedSnsServiceInterface,
     @inject(TYPES.EnvConfigInterface) private config: ClientServiceConfigInterface,
     @inject(TYPES.CognitoFactory) cognitoFactory: CognitoFactory,
   ) {
@@ -35,6 +36,8 @@ export class ClientService implements ClientServiceInterface {
       };
 
       const { UserPoolClient } = await this.cognito.createUserPoolClient(createClientParams).promise();
+
+      await this.clientsUpdatedSnsService.sendMessage();
 
       if (!UserPoolClient || !UserPoolClient.ClientId || !UserPoolClient.ClientSecret) {
         throw new Error("Malformed response from createUserPoolClient");
@@ -90,6 +93,8 @@ export class ClientService implements ClientServiceInterface {
       };
 
       await this.cognito.deleteUserPoolClient(deleteUserPoolClientParams).promise();
+
+      await this.clientsUpdatedSnsService.sendMessage();
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteClient", { error, id }, this.constructor.name);
 
