@@ -70,10 +70,10 @@ export class YacCoreServiceStack extends CDK.Stack {
 
     const clientsUpdatedSnsTopic = new SNS.Topic(this, `${id}-ClientsUpdatedSnsTopic`, { topicName: `${id}-ClientsUpdatedSnsTopic` });
 
-    new Lambda.Function(this, `${id}-SetAuthorizerAudencesHandler`, {
+    new Lambda.Function(this, `${id}-SetAuthorizerAudiencesHandler`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/setAuthorizerAudences"),
-      handler: "setAuthorizerAudences.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/setAuthorizerAudiences"),
+      handler: "setAuthorizerAudiences.handler",
       layers: [ dependencyLayer ],
       environment: {
         USER_POOL_ID: userPool.userPoolId,
