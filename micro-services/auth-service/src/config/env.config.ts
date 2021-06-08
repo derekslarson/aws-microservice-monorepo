@@ -5,7 +5,10 @@ export const envConfig: EnvConfigInterface = {
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   apiDomain: process.env.API_DOMAIN || "",
   tableNames: { clientsTableName: process.env.CLIENTS_TABLE_NAME || "" },
-  snsTopicArns: { clientsUpdated: process.env.CLIENTS_UPDATED_SNS_TOPIC_ARN || "" },
+  snsTopicArns: {
+    clientsUpdated: process.env.CLIENTS_UPDATED_SNS_TOPIC_ARN || "",
+    userSignedUp: process.env.USER_SIGNED_UP_SNS_TOPIC_ARN || "",
+  },
   mailSender: process.env.MAIL_SENDER || "",
   authUI: process.env.YAC_AUTH_UI || "",
   userPool: {

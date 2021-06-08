@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { DynamoDBRecord, DynamoDBStreamEvent } from "aws-lambda";
 import { Unmarshall, UnmarshallFactory } from "../../factories/unmarshall.factory";
-import { ProcessorServiceInterface, ProcessorServiceRecord } from "../../services/interfaces/processor.service.interface";
+import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord } from "../../services/interfaces/dynamo.processor.service.interface";
 import { Spied, TestSupport } from "../../test-support";
 import { DynamoStreamController, DynamoStreamControllerInterface } from "../dynamoStream.controller";
 import { LoggerService } from "../../services/logger.service";
@@ -12,8 +12,8 @@ describe("DynamoStreamController", () => {
   const unmarshallFactory: UnmarshallFactory = () => unmarshall;
   let loggerService: Spied<LoggerService>;
   let dynamoStreamController: DynamoStreamControllerInterface;
-  let mockProcessorServiceA: Spied<ProcessorServiceInterface>;
-  let mockProcessorServiceB: Spied<ProcessorServiceInterface>;
+  let mockProcessorServiceA: Spied<DynamoProcessorServiceInterface>;
+  let mockProcessorServiceB: Spied<DynamoProcessorServiceInterface>;
 
   const mockTableName = "test-table";
   const mockEnvConfig = { tableNames: { TEST_TABLE: mockTableName } };
@@ -32,7 +32,7 @@ describe("DynamoStreamController", () => {
 
   const mockEvent: DynamoDBStreamEvent = { Records: [ mockRawRecord ] };
 
-  const mockPreparedRecord: ProcessorServiceRecord = {
+  const mockPreparedRecord: DynamoProcessorServiceRecord = {
     tableName: mockTableName,
     eventName: mockEventName,
     oldImage: mockUnmarshalledImage,

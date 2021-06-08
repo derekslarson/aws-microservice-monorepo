@@ -69,6 +69,7 @@ export class YacCoreServiceStack extends CDK.Stack {
     });
 
     const clientsUpdatedSnsTopic = new SNS.Topic(this, `${id}-ClientsUpdatedSnsTopic`, { topicName: `${id}-ClientsUpdatedSnsTopic` });
+    const userSignedUpSnsTopic = new SNS.Topic(this, `${id}-UserSignedUpSnsTopic`, { topicName: `${id}-UserSignedUpSnsTopic` });
 
     new Lambda.Function(this, `${id}-SetAuthorizerAudencesHandler`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
@@ -109,6 +110,11 @@ export class YacCoreServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `${id}-ClientsUpdatedSnsTopicExport`, {
       exportName: ExportNames.ClientsUpdatedSnsTopicArn,
       value: clientsUpdatedSnsTopic.topicArn,
+    });
+
+    new CDK.CfnOutput(this, `${id}-UserSignedUpSnsTopicExport`, {
+      exportName: ExportNames.UserSignedUpSnsTopicArn,
+      value: userSignedUpSnsTopic.topicArn,
     });
   }
 

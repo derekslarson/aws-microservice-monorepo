@@ -2,14 +2,17 @@ const TYPES = {
   EnvConfigInterface: Symbol.for("EnvConfigInterface"),
 
   DynamoStreamControllerInterface: Symbol.for("DynamoStreamControllerInterface"),
+  SnsEventControllerInterface: Symbol.for("SnsEventControllerInterface"),
 
   ClientsUpdatedSnsServiceInterface: Symbol.for("ClientsUpdatedSnsServiceInterface"),
   HttpRequestServiceInterface: Symbol.for("HttpRequestServiceInterface"),
   IdServiceInterface: Symbol.for("IdServiceInterface"),
   LoggerServiceInterface: Symbol.for("LoggerServiceInterface"),
+  UserSignedUpSnsServiceInterface: Symbol.for("UserSignedUpSnsServiceInterface"),
   ValidationServiceInterface: Symbol.for("ValidationServiceInterface"),
 
-  ProcessorServicesInterface: Symbol.for("ProcessorServicesInterface"),
+  DynamoProcessorServicesInterface: Symbol.for("DynamoProcessorServicesInterface"),
+  SnsProcessorServicesInterface: Symbol.for("SnsProcessorServicesInterface"),
 
   AxiosFactory: Symbol.for("AxiosFactory"),
   ClassTransformerFactory: Symbol.for("ClassTransformerFactory"),

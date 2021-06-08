@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
+import { HttpRequestServiceInterface, LoggerServiceInterface, UserSignedUpSnsServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
@@ -22,6 +22,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MailServiceInterface) private mailService: MailServiceInterface,
     @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestServiceInterface,
+    @inject(TYPES.UserSignedUpSnsServiceInterface) private userSignedUpSnsService: UserSignedUpSnsServiceInterface,
     @inject(TYPES.CognitoFactory) cognitoFactory: CognitoFactory,
     @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
   ) {
@@ -42,7 +43,9 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         Password: `YAC-${this.config.secret}`,
       };
 
-      await this.cognito.signUp(signUpParams).promise();
+      const signupResponse = await this.cognito.signUp(signUpParams).promise();
+
+      await this.userSignedUpSnsService.sendMessage({ id: signupResponse.UserSub, email: signUpInput.email });
     } catch (error: unknown) {
       this.loggerService.error("Error in signUp", { error, signUpInput }, this.constructor.name);
 

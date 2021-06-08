@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { LoggerService, Spied, TestSupport, generateAwsResponse, HttpRequestService } from "@yac/core";
+import { LoggerService, Spied, TestSupport, generateAwsResponse, HttpRequestService, UserSignedUpSnsService } from "@yac/core";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
 import { Hmac } from "crypto";
 import { CognitoFactory } from "../../factories/cognito.factory";
@@ -16,6 +16,7 @@ describe("AuthenticationService", () => {
   let loggerService: Spied<LoggerService>;
   let mailService: Spied<MailService>;
   let httpRequestService: Spied<HttpRequestService>;
+  let userSignedUpSnsService: Spied<UserSignedUpSnsService>;
   let authenticationService: AuthenticationServiceInterface;
 
   const cognitoFactory: CognitoFactory = () => cognito as unknown as CognitoIdentityServiceProvider;
@@ -40,6 +41,7 @@ describe("AuthenticationService", () => {
   const mockAuthorizationCode = "mock-authorization-code";
   const mockRedirectPath = `https://mock-redirect-path.com?code=${mockAuthorizationCode}`;
   const mockSetCookieHeader = [ `XSRF-TOKEN=${mockXsrfToken};` ];
+  const mockSignUpResponse = { UserSub: "mock-userSub" };
 
   const mockConfig: AuthenticationServiceConfigInterface = {
     userPool: {
@@ -56,13 +58,14 @@ describe("AuthenticationService", () => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     mailService = TestSupport.spyOnClass(MailService);
     httpRequestService = TestSupport.spyOnClass(HttpRequestService);
+    userSignedUpSnsService = TestSupport.spyOnClass(UserSignedUpSnsService);
 
     httpRequestService.post.and.returnValue(Promise.resolve({ redirect: { path: mockRedirectPath } }));
     httpRequestService.get.and.returnValue(Promise.resolve({ headers: { "set-cookie": mockSetCookieHeader } }));
 
     // importing CognitoIdentityServiceProvider for some reason brings in the namespace, so spyOnClass isn't working
     cognito = TestSupport.spyOnObject(new CognitoIdentityServiceProvider());
-    cognito.signUp.and.returnValue(generateAwsResponse({}));
+    cognito.signUp.and.returnValue(generateAwsResponse(mockSignUpResponse));
     cognito.adminUpdateUserAttributes.and.returnValue(generateAwsResponse({}));
     cognito.adminInitiateAuth.and.returnValue(generateAwsResponse({ Session: mockSession }));
     cognito.adminRespondToAuthChallenge.and.returnValue(generateAwsResponse({ AuthenticationResult: {} }));
@@ -76,7 +79,7 @@ describe("AuthenticationService", () => {
     crypto.randomDigits.and.returnValue(mockRandomDigits);
     crypto.createHmac.and.returnValue(hmac);
 
-    authenticationService = new AuthenticationService(mockConfig, loggerService, mailService, httpRequestService, cognitoFactory, cryptoFactory);
+    authenticationService = new AuthenticationService(mockConfig, loggerService, mailService, httpRequestService, userSignedUpSnsService, cognitoFactory, cryptoFactory);
   });
 
   describe("signUp", () => {
@@ -93,6 +96,13 @@ describe("AuthenticationService", () => {
           Username: mockEmail,
           Password: `YAC-${mockSecret}`,
         });
+      });
+
+      it("calls userSignedUpSnsService.sendMessage with the correct params", async () => {
+        await authenticationService.signUp(mockSignUpInput);
+
+        expect(userSignedUpSnsService.sendMessage).toHaveBeenCalledTimes(1);
+        expect(userSignedUpSnsService.sendMessage).toHaveBeenCalledWith({ id: mockSignUpResponse.UserSub, email: mockEmail });
       });
     });
 

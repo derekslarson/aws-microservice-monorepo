@@ -13,5 +13,6 @@ export interface EnvConfigInterface {
   tableNames: Record<string, string>;
   snsTopicArns: {
     clientsUpdated?: string;
+    userSignedUp?: string;
   };
 }

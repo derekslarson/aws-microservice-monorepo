@@ -6,6 +6,7 @@ export * from "./src/decorators/isOptionalIf.validation.decorator";
 
 export * from "./src/controllers/base.controller";
 export * from "./src/controllers/dynamoStream.controller";
+export * from "./src/controllers/snsEvent.controller";
 
 export * from "./src/enums/environment.enum";
 export * from "./src/enums/exportNames.enum";
@@ -38,11 +39,13 @@ export * from "./src/models/http/response.model";
 export * from "./src/repositories/base.dynamo.repository";
 
 export * from "./src/services/clientsUpdated.sns.service";
+export * from "./src/services/userSignedUp.sns.service";
 export * from "./src/services/id.service";
 export * from "./src/services/http.request.service";
 export * from "./src/services/logger.service";
 export * from "./src/services/validation.service";
-export * from "./src/services/interfaces/processor.service.interface";
+export * from "./src/services/interfaces/dynamo.processor.service.interface";
+export * from "./src/services/interfaces/sns.processor.service.interface";
 
 export * from "./src/test-support/index";
 export * from "./src/test-support/generateAwsResponse";

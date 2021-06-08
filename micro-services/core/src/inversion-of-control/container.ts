@@ -1,10 +1,13 @@
-import { ContainerModule } from "inversify";
+import { Container, ContainerModule } from "inversify";
 import { TYPES } from "./types";
+
+import { SnsEventController, SnsEventControllerInterface } from "../controllers/snsEvent.controller";
 
 import { ClientsUpdatedSnsService, ClientsUpdatedSnsServiceInterface } from "../services/clientsUpdated.sns.service";
 import { IdService, IdServiceInterface } from "../services/id.service";
 import { HttpRequestService, HttpRequestServiceInterface } from "../services/http.request.service";
 import { LoggerService, LoggerServiceInterface } from "../services/logger.service";
+import { UserSignedUpSnsService, UserSignedUpSnsServiceInterface } from "../services/userSignedUp.sns.service";
 import { ValidationService, ValidationServiceInterface } from "../services/validation.service";
 
 import { axiosFactory, AxiosFactory } from "../factories/axios.factory";
@@ -17,12 +20,15 @@ import { snsFactory, SnsFactory } from "../factories/sns.factory";
 import { unmarshallFactory, UnmarshallFactory } from "../factories/unmarshall.factory";
 import { uuidV4Factory, UuidV4Factory } from "../factories/uuidV4.factory";
 
-const container = new ContainerModule((bind) => {
+const coreContainerModule = new ContainerModule((bind) => {
   try {
+    bind<SnsEventControllerInterface>(TYPES.SnsEventControllerInterface).to(SnsEventController);
+
     bind<ClientsUpdatedSnsServiceInterface>(TYPES.ClientsUpdatedSnsServiceInterface).to(ClientsUpdatedSnsService);
     bind<HttpRequestServiceInterface>(TYPES.HttpRequestServiceInterface).to(HttpRequestService);
     bind<IdServiceInterface>(TYPES.IdServiceInterface).to(IdService);
     bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);
+    bind<UserSignedUpSnsServiceInterface>(TYPES.UserSignedUpSnsServiceInterface).to(UserSignedUpSnsService);
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
 
     bind<AxiosFactory>(TYPES.AxiosFactory).toFactory(() => axiosFactory);
@@ -42,4 +48,7 @@ const container = new ContainerModule((bind) => {
   }
 });
 
-export { container };
+const container = new Container();
+container.load(coreContainerModule);
+
+export { coreContainerModule, container };

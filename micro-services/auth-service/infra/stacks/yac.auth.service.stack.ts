@@ -54,6 +54,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
     const clientsUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.ClientsUpdatedSnsTopicArn);
+    const userSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.UserSignedUpSnsTopicArn);
     const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
 
     // Layers
@@ -164,9 +165,14 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       resources: [ "*" ],
     });
 
-    const snsPublishPolicyStatement = new IAM.PolicyStatement({
+    const clientsUpdatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
       resources: [ clientsUpdatedSnsTopicArn ],
+    });
+
+    const userSignedUpSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ userSignedUpSnsTopicArn ],
     });
 
     const basePolicy: IAM.PolicyStatement[] = [];
@@ -184,6 +190,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       MAIL_SENDER: "no-reply@yac.com",
       YAC_AUTH_UI: yacUserPoolClientRedirectUri,
       CLIENTS_UPDATED_SNS_TOPIC_ARN: clientsUpdatedSnsTopicArn,
+      USER_SIGNED_UP_SNS_TOPIC_ARN: userSignedUpSnsTopicArn,
     };
 
     // Handlers
@@ -193,7 +200,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "signUp.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement, userSignedUpSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -223,7 +230,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "createClient.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, snsPublishPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsUpdatedSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -233,7 +240,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "deleteClient.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, snsPublishPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsUpdatedSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 

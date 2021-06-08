@@ -4,7 +4,7 @@ import { DynamoDBRecord, DynamoDBStreamEvent } from "aws-lambda";
 import { TYPES } from "../inversion-of-control/types";
 import { LoggerServiceInterface } from "../services/logger.service";
 import { Unmarshall, UnmarshallFactory } from "../factories/unmarshall.factory";
-import { ProcessorServiceInterface, ProcessorServiceRecord } from "../services/interfaces/processor.service.interface";
+import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord } from "../services/interfaces/dynamo.processor.service.interface";
 import { EnvConfigInterface } from "../config/env.config";
 
 @injectable()
@@ -15,7 +15,7 @@ export class DynamoStreamController implements DynamoStreamControllerInterface {
 
   constructor(
   @inject(TYPES.EnvConfigInterface) envConfig: DynamoStreamControllerConfigInterface,
-    @inject(TYPES.ProcessorServicesInterface) private processorServices: ProcessorServiceInterface[],
+    @inject(TYPES.DynamoProcessorServicesInterface) private processorServices: DynamoProcessorServiceInterface[],
     @inject(TYPES.UnmarshallFactory) unmarshallFactory: UnmarshallFactory,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
   ) {
@@ -36,7 +36,7 @@ export class DynamoStreamController implements DynamoStreamControllerInterface {
     }
   }
 
-  private async callSupportingProcessorServices(record: ProcessorServiceRecord): Promise<void> {
+  private async callSupportingProcessorServices(record: DynamoProcessorServiceRecord): Promise<void> {
     try {
       this.loggerService.trace("callSupportingProcessorServices called", { record }, this.constructor.name);
 
@@ -57,7 +57,7 @@ export class DynamoStreamController implements DynamoStreamControllerInterface {
     }
   }
 
-  private prepareRecordsForProcessorServices(record: DynamoDBRecord): ProcessorServiceRecord {
+  private prepareRecordsForProcessorServices(record: DynamoDBRecord): DynamoProcessorServiceRecord {
     try {
       this.loggerService.trace("prepareRecordsForProcessorServices called", { record }, this.constructor.name);
 
