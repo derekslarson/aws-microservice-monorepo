@@ -25,7 +25,7 @@ describe("ClientsUpdatedSnsService", () => {
     clientsUpdatedSnsService = new ClientsUpdatedSnsService(loggerService, snsFactory, mockEnv);
   });
 
-  describe("generateId", () => {
+  describe("sendMessage", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         spyOn(clientsUpdatedSnsService, "publish").and.returnValue(Promise.resolve());
