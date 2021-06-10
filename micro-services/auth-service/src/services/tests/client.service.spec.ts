@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Spied, TestSupport, generateAwsResponse, NotFoundError, ForbiddenError } from "@yac/core";
+import { LoggerService, Spied, TestSupport, generateAwsResponse, NotFoundError, ForbiddenError, ClientsUpdatedSnsService } from "@yac/core";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
 import { CognitoFactory } from "../../factories/cognito.factory";
 import { ClientService, ClientServiceInterface, ClientServiceConfigInterface } from "../client.service";
@@ -9,6 +9,7 @@ describe("ClientService", () => {
   const cognitoFactory: CognitoFactory = () => cognito as unknown as CognitoIdentityServiceProvider;
 
   let loggerService: Spied<LoggerService>;
+  let clientsUpdatedSnsService: Spied<ClientsUpdatedSnsService>;
   let clientService: ClientServiceInterface;
 
   const mockError = new Error("test");
@@ -39,8 +40,9 @@ describe("ClientService", () => {
     cognito.deleteUserPoolClient.and.returnValue(generateAwsResponse({}));
 
     loggerService = TestSupport.spyOnClass(LoggerService);
+    clientsUpdatedSnsService = TestSupport.spyOnClass(ClientsUpdatedSnsService);
 
-    clientService = new ClientService(loggerService, mockConfig, cognitoFactory);
+    clientService = new ClientService(loggerService, clientsUpdatedSnsService, mockConfig, cognitoFactory);
   });
 
   describe("createClient", () => {
@@ -68,6 +70,13 @@ describe("ClientService", () => {
 
         expect(cognito.createUserPoolClient).toHaveBeenCalledTimes(1);
         expect(cognito.createUserPoolClient).toHaveBeenCalledWith(expectedCreateClientParams);
+      });
+
+      it("calls clientsUpdatedSnsService.sendMessage with the correct params", async () => {
+        await clientService.createClient(mockCreateClientInput);
+
+        expect(clientsUpdatedSnsService.sendMessage).toHaveBeenCalledTimes(1);
+        expect(clientsUpdatedSnsService.sendMessage).toHaveBeenCalledWith();
       });
 
       it("returns the created client in the proper format", async () => {
@@ -206,6 +215,13 @@ describe("ClientService", () => {
 
         expect(cognito.deleteUserPoolClient).toHaveBeenCalledTimes(1);
         expect(cognito.deleteUserPoolClient).toHaveBeenCalledWith(expectedDeleteUserPoolClientParams);
+      });
+
+      it("calls clientsUpdatedSnsService.sendMessage with the correct params", async () => {
+        await clientService.deleteClient(mockClientId, mockClientSecret);
+
+        expect(clientsUpdatedSnsService.sendMessage).toHaveBeenCalledTimes(1);
+        expect(clientsUpdatedSnsService.sendMessage).toHaveBeenCalledWith();
       });
     });
 

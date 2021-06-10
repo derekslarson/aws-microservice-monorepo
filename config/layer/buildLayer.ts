@@ -91,7 +91,7 @@ async function installYacCore(dependencies: Record<string, string>): Promise<voi
 
     mkdirSync("./dist/dependencies/nodejs/node_modules/@yac", { recursive: true });
 
-    await exec("cp -r ../core/dist ./dist/dependencies/nodejs/node_modules/@yac/core");
+    await exec("cp -r ../core/lib ./dist/dependencies/nodejs/node_modules/@yac/core");
 
     console.log(`${greenCheck} @yac/core installed\n`);
   } catch (error: unknown) {
@@ -111,7 +111,9 @@ async function installYacCore(dependencies: Record<string, string>): Promise<voi
 
     await installExternalDependencies(dependencies.withoutYac);
 
-    await installYacCore(dependencies.withYac);
+    if ("@yac/core" in dependencies.withYac) {
+      await installYacCore(dependencies.withYac);
+    }
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
 

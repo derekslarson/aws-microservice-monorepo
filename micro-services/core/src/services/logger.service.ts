@@ -17,8 +17,7 @@ export class LoggerService implements LoggerServiceInterface {
   constructor(
   @inject(TYPES.EnvConfigInterface) envConfig: LoggerServiceConfigInterface,
     @inject(TYPES.LogWriterFactory) logWriterFactory: LogWriterFactory,
-    @inject(TYPES.ErrorSerializerFactory)
-    errorSerializerFactory: ErrorSerializerFactory,
+    @inject(TYPES.ErrorSerializerFactory) errorSerializerFactory: ErrorSerializerFactory,
   ) {
     this.logLevel = envConfig.logLevel;
     this.logWriter = logWriterFactory();

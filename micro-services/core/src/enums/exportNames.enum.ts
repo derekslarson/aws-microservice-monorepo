@@ -1,11 +1,13 @@
 const ExportNames = {
   MessageCreatedSnsTopicArn: "messageCreatedSnsTopicArn",
+  UserPoolId: "userPoolId",
   YacUserPoolClientId: "yacUserPoolClientId",
   YacUserPoolClientSecret: "yacUserPoolClientSecret",
   YacUserPoolClientRedirectUri: "yacUserPoolClientRedirectUri",
   CustomDomainName: "customDomainName",
   RegionalDomainName: "regionalDomainName",
   RegionalHostedZoneId: "regionalHostedZoneId",
+  ClientsUpdatedSnsTopicArn: "clientsUpdatedSnsTopicArn",
 };
 
 export function generateExportNames(id: string): Readonly<typeof ExportNames> {

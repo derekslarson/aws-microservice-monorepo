@@ -12,6 +12,7 @@
     "**/config/**",
     "**/coverage/**",
     "**/dist/**",
+    "**/lib/**",
     "**/infra/**",
     "**/src/config/**",
     "**/src/enums/**",

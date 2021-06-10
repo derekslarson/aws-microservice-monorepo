@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/require-await */
 import "reflect-metadata";
 import { DefineAuthChallengeTriggerEvent } from "aws-lambda";
-import { LoggerServiceInterface } from "@yac/core/dist/src/services/logger.service";
+import { LoggerServiceInterface } from "@yac/core";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 
