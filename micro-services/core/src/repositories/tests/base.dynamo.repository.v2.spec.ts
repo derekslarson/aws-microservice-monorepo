@@ -25,11 +25,11 @@ class TestDynamoRepository extends BaseDynamoRepositoryV2<Test> {
     return super.partialUpdate(pk, sk, update);
   }
 
-  public batchGet(keyList: DynamoDB.DocumentClient.KeyList, prevFetchedItems: RawEntity<Test>[] = [], backoff = 200, maxBackoff = 1600) {
+  public batchGet(keyList: DynamoDB.DocumentClient.KeyList, prevFetchedItems: RawEntity<Test>[] = [], backoff = 200, maxBackoff = 800) {
     return super.batchGet(keyList, prevFetchedItems, backoff, maxBackoff);
   }
 
-  public batchWrite(writeRequests: DynamoDB.DocumentClient.WriteRequests, backoff = 200, maxBackoff = 1600) {
+  public batchWrite(writeRequests: DynamoDB.DocumentClient.WriteRequests, backoff = 200, maxBackoff = 800) {
     return super.batchWrite(writeRequests, backoff, maxBackoff);
   }
 }
@@ -78,10 +78,6 @@ describe("BaseDynamoRepositoryV2", () => {
     loggerService = TestSupport.spyOnClass(LoggerService);
 
     documentClient.get.and.returnValue(generateDocumentClientResponse(mockGetResponse));
-    documentClient.delete.and.returnValue(generateDocumentClientResponse());
-    documentClient.put.and.returnValue(generateDocumentClientResponse());
-
-    idService.generateId.and.returnValue(mockId);
 
     testDynamoRepository = new TestDynamoRepository(documentClientFactory, mockTableName, idService, loggerService);
   });
@@ -150,6 +146,96 @@ describe("BaseDynamoRepositoryV2", () => {
     });
   });
 
+  describe("batchGet", () => {
+    const mockKeyList: DynamoDB.DocumentClient.KeyList = Array.from({ length: 101 }).map((_, i) => ({ pk: mockId, sk: i }));
+    const mockRawItems = mockKeyList.map((key, i) => ({ ...key, a: i + 1 }));
+    const mockCleansedItems = mockRawItems.map((item) => ({ a: item.a }));
+
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        documentClient.batchGet.and.returnValues(
+          generateDocumentClientResponse({
+            Responses: { [mockTableName]: mockRawItems.slice(0, 99) },
+            UnprocessedKeys: { [mockTableName]: { Keys: mockKeyList.slice(99, 100) } },
+          }),
+          generateDocumentClientResponse({ Responses: { [mockTableName]: mockRawItems.slice(100) } }),
+          generateDocumentClientResponse({ Responses: { [mockTableName]: mockRawItems.slice(99, 100) } }),
+        );
+      });
+
+      it("calls documentClient.batchGet with the correct parameters", async () => {
+        const expectedBatchWriteParamsOne = { RequestItems: { [mockTableName]: { Keys: mockKeyList.slice(0, 100) } } };
+        const expectedBatchWriteParamsTwo = { RequestItems: { [mockTableName]: { Keys: mockKeyList.slice(100) } } };
+        const expectedBatchWriteParamsThree = { RequestItems: { [mockTableName]: { Keys: mockKeyList.slice(99, 100) } } };
+
+        await testDynamoRepository.batchGet(mockKeyList);
+
+        expect(documentClient.batchGet).toHaveBeenCalledTimes(3);
+        expect(documentClient.batchGet).toHaveBeenCalledWith(expectedBatchWriteParamsOne);
+        expect(documentClient.batchGet).toHaveBeenCalledWith(expectedBatchWriteParamsTwo);
+        expect(documentClient.batchGet).toHaveBeenCalledWith(expectedBatchWriteParamsThree);
+      });
+
+      it("returns cleansed versions of the fetched items", async () => {
+        const expectedFetchedItems = [ ...mockCleansedItems.slice(0, 99), ...mockCleansedItems.slice(100), ...mockCleansedItems.slice(99, 100) ];
+
+        const fetchedItems = await testDynamoRepository.batchGet(mockKeyList);
+
+        expect(fetchedItems).toEqual(expectedFetchedItems);
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when documentClient.batchGet throws an error", () => {
+        beforeEach(() => {
+          documentClient.batchGet.and.returnValue(generateDocumentClientResponse(mockError, true));
+        });
+
+        it("calls loggerService.error with the correct parameters", async () => {
+          try {
+            await testDynamoRepository.batchGet(mockKeyList);
+
+            fail("expected to throw");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in batchGet", { error: mockError, keyList: mockKeyList, prevFetchedItems: [], backoff: 200, maxBackoff: 800 }, testDynamoRepository.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await testDynamoRepository.batchGet(mockKeyList);
+
+            fail("expected to throw");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+
+      describe("when maxBackoff is exceeded", () => {
+        beforeEach(() => {
+          documentClient.batchGet.and.returnValue(
+            generateDocumentClientResponse({
+              Responses: { [mockTableName]: [] },
+              UnprocessedKeys: { [mockTableName]: { Keys: mockKeyList.slice(0, 1) } },
+            }),
+          );
+        });
+
+        it("throws a valid error", async () => {
+          try {
+            await testDynamoRepository.batchGet(mockKeyList.slice(0, 1));
+
+            fail("expected to throw");
+          } catch (error: unknown) {
+            expect((error as Error).message).toBe(`Max backoff reached. Remaining unprocessed keys:\n${JSON.stringify(mockKeyList.slice(0, 1), null, 2)}`);
+          }
+        });
+      });
+    });
+  });
+
   describe("batchWrite", () => {
     const mockWriteRequests: DynamoDB.DocumentClient.WriteRequests = Array.from({ length: 26 }).map((_, i) => ({
       PutRequest: {
@@ -163,7 +249,7 @@ describe("BaseDynamoRepositoryV2", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         documentClient.batchWrite.and.returnValues(
-          generateDocumentClientResponse({ UnprocessedItems: { [mockTableName]: [ mockWriteRequests[2] ] } }),
+          generateDocumentClientResponse({ UnprocessedItems: { [mockTableName]: mockWriteRequests.slice(2, 3) } }),
           generateDocumentClientResponse({}),
           generateDocumentClientResponse({}),
         );
@@ -196,7 +282,7 @@ describe("BaseDynamoRepositoryV2", () => {
             fail("expected to throw");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in batchWrite", { error: mockError, writeRequests: mockWriteRequests, backoff: 200, maxBackoff: 1600 }, testDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in batchWrite", { error: mockError, writeRequests: mockWriteRequests, backoff: 200, maxBackoff: 800 }, testDynamoRepository.constructor.name);
           }
         });
 
@@ -207,6 +293,24 @@ describe("BaseDynamoRepositoryV2", () => {
             fail("expected to throw");
           } catch (error) {
             expect(error).toBe(mockError);
+          }
+        });
+      });
+
+      describe("when maxBackoff is exceeded", () => {
+        beforeEach(() => {
+          documentClient.batchWrite.and.returnValue(
+            generateDocumentClientResponse({ UnprocessedItems: { [mockTableName]: mockWriteRequests.slice(0, 1) } }),
+          );
+        });
+
+        it("throws a valid error", async () => {
+          try {
+            await testDynamoRepository.batchWrite(mockWriteRequests.slice(0, 1));
+
+            fail("expected to throw");
+          } catch (error: unknown) {
+            expect((error as Error).message).toBe(`Max backoff reached. Remaining unprocessed write requests:\n${JSON.stringify(mockWriteRequests.slice(0, 1), null, 2)}`);
           }
         });
       });

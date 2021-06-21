@@ -38,7 +38,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
-  protected async batchGet(keyList: DynamoDB.DocumentClient.KeyList, prevFetchedItems: RawEntity<T>[] = [], backoff = 200, maxBackoff = 1600): Promise<CleansedEntity<T>[]> {
+  protected async batchGet(keyList: DynamoDB.DocumentClient.KeyList, prevFetchedItems: RawEntity<T>[] = [], backoff = 200, maxBackoff = 800): Promise<CleansedEntity<T>[]> {
     try {
       this.loggerService.trace("batchGet called", { keyList, prevFetchedItems, backoff, maxBackoff }, this.constructor.name);
 
@@ -75,7 +75,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
 
       return combinedFetchedItems.map((item) => this.cleanse(item));
     } catch (error: unknown) {
-      this.loggerService.error("Error in chunkedBatchGet", { error, keyList, prevFetchedItems, backoff, maxBackoff }, this.constructor.name);
+      this.loggerService.error("Error in batchGet", { error, keyList, prevFetchedItems, backoff, maxBackoff }, this.constructor.name);
 
       throw error;
     }
@@ -83,7 +83,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
 
   // https://github.com/typescript-eslint/typescript-eslint/issues/1277
   // eslint-disable-next-line consistent-return
-  protected async batchWrite(writeRequests: DynamoDB.DocumentClient.WriteRequests, backoff = 200, maxBackoff = 1600): Promise<void> {
+  protected async batchWrite(writeRequests: DynamoDB.DocumentClient.WriteRequests, backoff = 200, maxBackoff = 800): Promise<void> {
     try {
       this.loggerService.trace("batchWrite called", { writeRequests, backoff, maxBackoff }, this.constructor.name);
 
