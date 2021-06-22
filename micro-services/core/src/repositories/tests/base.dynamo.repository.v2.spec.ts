@@ -32,6 +32,10 @@ class TestDynamoRepository extends BaseDynamoRepositoryV2<Test> {
   public batchWrite(writeRequests: DynamoDB.DocumentClient.WriteRequests, backoff = 200, maxBackoff = 800) {
     return super.batchWrite(writeRequests, backoff, maxBackoff);
   }
+
+  public cleanse(item: RawEntity<Test>) {
+    return super.cleanse(item);
+  }
 }
 
 describe("BaseDynamoRepositoryV2", () => {
@@ -313,6 +317,16 @@ describe("BaseDynamoRepositoryV2", () => {
             expect((error as Error).message).toBe(`Max backoff reached. Remaining unprocessed write requests:\n${JSON.stringify(mockWriteRequests.slice(0, 1), null, 2)}`);
           }
         });
+      });
+    });
+  });
+
+  describe("cleanse", () => {
+    describe("under normal conditions", () => {
+      it("strips index and metadata related attributes from raw entities", () => {
+        const item = testDynamoRepository.cleanse(mockRawItem);
+
+        expect(item).toEqual(mockItem);
       });
     });
   });

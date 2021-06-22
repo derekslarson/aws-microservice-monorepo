@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { DocumentClientFactory, IdService, LoggerService, Spied, TestSupport } from "@yac/core";
+import { DocumentClientFactory, generateAwsResponse, IdService, LoggerService, Spied, TestSupport } from "@yac/core";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
 import { User } from "../../models/user.model";
 import { UserDynamoRepository, UserRepositoryInterface } from "../user.dynamo.repository";
@@ -15,9 +15,9 @@ describe("UserDynamoRepository", () => {
   let userDynamoRepository: UserDynamoRepositoryWithAnyMethod;
   const documentClientFactory: DocumentClientFactory = () => documentClient;
 
-  const mockEnvConfig = { tableNames: { users: "mock-users-table-name" } };
-
-  const mockId = "mock-id";
+  const mockCoreTableName = "mock-core-table-name";
+  const mockEnvConfig = { tableNames: { core: mockCoreTableName } };
+  const mockCognitoId = "mock-id";
   const mockEmail = "mock@email.com";
   const mockError = new Error("mock-error");
 
@@ -30,33 +30,52 @@ describe("UserDynamoRepository", () => {
   });
 
   describe("createUser", () => {
+    const mockYacId = `USER#${mockCognitoId}`;
+
     const mockUserInput: User = {
-      id: mockId,
+      id: mockCognitoId,
       email: mockEmail,
     };
 
     const mockCreatedUser: User = {
-      id: mockId,
+      id: mockYacId,
       email: mockEmail,
     };
 
     describe("under normal conditions", () => {
       beforeEach(() => {
-        spyOn(userDynamoRepository, "insertWithIdIncluded").and.returnValue(Promise.resolve(mockCreatedUser));
+        documentClient.put.and.returnValue(generateAwsResponse({}));
       });
 
-      it("calls userRepository.insertWithIdIncluded with the correct params", async () => {
+      it("calls documentClient.put with the correct params", async () => {
+        const expectedDynamoInput = {
+          TableName: mockCoreTableName,
+          Item: {
+            type: "USER",
+            pk: mockYacId,
+            sk: mockYacId,
+            id: mockYacId,
+            email: mockEmail,
+          },
+        };
+
         await userDynamoRepository.createUser(mockUserInput);
 
-        expect(userDynamoRepository.insertWithIdIncluded).toHaveBeenCalledTimes(1);
-        expect(userDynamoRepository.insertWithIdIncluded).toHaveBeenCalledWith(mockUserInput);
+        expect(documentClient.put).toHaveBeenCalledTimes(1);
+        expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoInput);
+      });
+
+      it("returns a cleansed version of the created user", async () => {
+        const createdUser = await userDynamoRepository.createUser(mockUserInput);
+
+        expect(createdUser).toEqual(mockCreatedUser);
       });
     });
 
     describe("under error conditions", () => {
-      describe("when userRepository.insertWithIdIncluded throws an error", () => {
+      describe("when documentClient.put throws an error", () => {
         beforeEach(() => {
-          spyOn(userDynamoRepository, "insertWithIdIncluded").and.throwError(mockError);
+          documentClient.put.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {

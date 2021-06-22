@@ -9,6 +9,7 @@ const ExportNames = {
   RegionalHostedZoneId: "regionalHostedZoneId",
   ClientsUpdatedSnsTopicArn: "clientsUpdatedSnsTopicArn",
   UserSignedUpSnsTopicArn: "userSignedUpSnsTopicArn",
+  CoreTableName: "coreTableName",
 };
 
 export function generateExportNames(id: string): Readonly<typeof ExportNames> {

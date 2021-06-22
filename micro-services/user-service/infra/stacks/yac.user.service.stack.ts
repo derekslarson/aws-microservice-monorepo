@@ -28,6 +28,7 @@ export class YacUserServiceStack extends YacHttpServiceStack {
     const ExportNames = generateExportNames(stackPrefix);
 
     const userSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.UserSignedUpSnsTopicArn);
+    const coreTableName = CDK.Fn.importValue(ExportNames.CoreTableName);
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
@@ -35,20 +36,17 @@ export class YacUserServiceStack extends YacHttpServiceStack {
       code: Lambda.Code.fromAsset("dist/dependencies"),
     });
 
+    // Database
+    const coreTable = DynamoDB.Table.fromTableName(this, "CoreTable", coreTableName);
+
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
-
-    // Database
-    const usersTable = new DynamoDB.Table(this, "UsersTable", {
-      partitionKey: { name: "id", type: DynamoDB.AttributeType.STRING },
-      billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
-    });
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
-      USERS_DYNAMO_TABLE_NAME: usersTable.tableName,
       USER_SIGNED_UP_SNS_TOPIC_ARN: userSignedUpSnsTopicArn,
+      CORE_TABLE_NAME: coreTableName,
     };
 
     // Handlers
@@ -66,6 +64,6 @@ export class YacUserServiceStack extends YacHttpServiceStack {
     });
 
     // permissions for the handler
-    usersTable.grantWriteData(userSignedUpHandler);
+    coreTable.grantWriteData(userSignedUpHandler);
   }
 }

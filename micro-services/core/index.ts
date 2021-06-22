@@ -37,6 +37,7 @@ export * from "./src/models/http/request.model";
 export * from "./src/models/http/response.model";
 
 export * from "./src/repositories/base.dynamo.repository";
+export * from "./src/repositories/base.dynamo.repository.v2";
 
 export * from "./src/services/clientsUpdated.sns.service";
 export * from "./src/services/userSignedUp.sns.service";

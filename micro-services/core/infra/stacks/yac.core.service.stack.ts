@@ -3,6 +3,7 @@
 
 import * as CDK from "@aws-cdk/core";
 import * as ACM from "@aws-cdk/aws-certificatemanager";
+import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as Route53 from "@aws-cdk/aws-route53";
@@ -87,6 +88,13 @@ export class YacCoreServiceStack extends CDK.Stack {
       ],
     });
 
+    const coreTable = new DynamoDB.Table(this, `${id}-CoreTable`, {
+      billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
+      partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
+      sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
+      removalPolicy: CDK.RemovalPolicy.DESTROY,
+    });
+
     new CDK.CfnOutput(this, `${id}-CustomDomainNameExport`, {
       exportName: ExportNames.CustomDomainName,
       value: domainName.name,
@@ -115,6 +123,11 @@ export class YacCoreServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `${id}-UserSignedUpSnsTopicExport`, {
       exportName: ExportNames.UserSignedUpSnsTopicArn,
       value: userSignedUpSnsTopic.topicArn,
+    });
+
+    new CDK.CfnOutput(this, `${id}-CoreTableNameExport`, {
+      exportName: ExportNames.CoreTableName,
+      value: coreTable.tableName,
     });
   }
 

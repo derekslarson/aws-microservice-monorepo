@@ -19,6 +19,7 @@ const TYPES = {
   ClassValidatorFactory: Symbol.for("ClassValidatorFactory"),
   DocumentClientFactory: Symbol.for("DocumentClientFactory"),
   ErrorSerializerFactory: Symbol.for("ErrorSerializerFactory"),
+  KsuidFactory: Symbol.for("KsuidFactory"),
   LogWriterFactory: Symbol.for("LogWriterFactory"),
   SnsFactory: Symbol.for("SnsFactory"),
   UnmarshallFactory: Symbol.for("UnmarshallFactory"),

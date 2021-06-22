@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { HttpRequestServiceInterface, LoggerServiceInterface, UserSignedUpSnsServiceInterface } from "@yac/core";
+import { AWSError, CognitoIdentityServiceProvider } from "aws-sdk";
+import { BadRequestError, HttpRequestServiceInterface, LoggerServiceInterface, UserSignedUpSnsServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
@@ -47,6 +47,10 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       await this.userSignedUpSnsService.sendMessage({ id: signupResponse.UserSub, email: signUpInput.email });
     } catch (error: unknown) {
+      if (this.isAwsError(error) && error.code === "UsernameExistsException") {
+        throw new BadRequestError(error.message);
+      }
+
       this.loggerService.error("Error in signUp", { error, signUpInput }, this.constructor.name);
 
       throw error;
@@ -217,6 +221,10 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       throw error;
     }
+  }
+
+  private isAwsError(error: unknown): error is AWSError {
+    return (error as AWSError)?.code !== undefined;
   }
 }
 

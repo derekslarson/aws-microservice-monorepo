@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { LoggerService, Spied, TestSupport, generateAwsResponse, HttpRequestService, UserSignedUpSnsService } from "@yac/core";
-import { CognitoIdentityServiceProvider } from "aws-sdk";
+import { LoggerService, Spied, TestSupport, generateAwsResponse, HttpRequestService, UserSignedUpSnsService, BadRequestError } from "@yac/core";
+import { AWSError, CognitoIdentityServiceProvider } from "aws-sdk";
 import { Hmac } from "crypto";
 import { CognitoFactory } from "../../factories/cognito.factory";
 import { Crypto, CryptoFactory, cryptoWithRandomDigits } from "../../factories/crypto.factory";
@@ -107,7 +107,37 @@ describe("AuthenticationService", () => {
     });
 
     describe("under error conditions", () => {
-      describe("when an error is thrown", () => {
+      describe("when an UsernameExistsException is thrown", () => {
+        const mockUsernameExistsException = new Error("An account with the given email already exists.") as AWSError;
+        mockUsernameExistsException.code = "UsernameExistsException";
+
+        beforeEach(() => {
+          cognito.signUp.and.throwError(mockUsernameExistsException);
+        });
+
+        it("doesn't call loggerService.error", async () => {
+          try {
+            await authenticationService.signUp(mockSignUpInput);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).not.toHaveBeenCalled();
+          }
+        });
+
+        it("throws a BadRequestError with the UsernameExistsException's message", async () => {
+          try {
+            await authenticationService.signUp(mockSignUpInput);
+
+            fail("Should have thrown");
+          } catch (error: unknown) {
+            expect(error).toBeInstanceOf(BadRequestError);
+            expect((error as BadRequestError).message).toBe("An account with the given email already exists.");
+          }
+        });
+      });
+
+      describe("when an unexpected error is thrown", () => {
         beforeEach(() => {
           crypto.createHmac.and.throwError(mockError);
         });

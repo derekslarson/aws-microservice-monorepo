@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { UuidV4, UuidV4Factory } from "../../factories/uuidV4.factory";
+import ksuid from "ksuid";
+import { Ksuid, KsuidFactory } from "../../factories/ksuid.factory";
 import { Spied, TestSupport } from "../../test-support";
 import { IdService, IdServiceInterface } from "../id.service";
 import { LoggerService } from "../logger.service";
 
 describe("IdService", () => {
-  let uuidV4: jasmine.Spy<UuidV4>;
-  const uuidV4Factory: UuidV4Factory = () => uuidV4;
+  let mockKsuid: Spied<Ksuid>;
+  const ksuidFactory: KsuidFactory = () => mockKsuid as unknown as Ksuid;
   let loggerService: Spied<LoggerService>;
   let idService: IdServiceInterface;
 
@@ -14,14 +15,18 @@ describe("IdService", () => {
   const mockError = new Error("mock error");
 
   beforeEach(() => {
-    uuidV4 = jasmine.createSpy("uuidV4").and.returnValue(mockId);
+    mockKsuid = TestSupport.spyOnObject(ksuid);
     loggerService = TestSupport.spyOnClass(LoggerService);
 
-    idService = new IdService(uuidV4Factory, loggerService);
+    idService = new IdService(ksuidFactory, loggerService);
   });
 
   describe("generateId", () => {
     describe("under normal conditions", () => {
+      beforeEach(() => {
+        mockKsuid.randomSync.and.returnValue({ string: mockId });
+      });
+
       it("calls loggerService.trace with the correct parameters", () => {
         idService.generateId();
 
@@ -29,13 +34,13 @@ describe("IdService", () => {
         expect(loggerService.trace).toHaveBeenCalledWith("generateId called", {}, idService.constructor.name);
       });
 
-      it("calls uuidV4", () => {
+      it("calls ksuid.randomSync", () => {
         idService.generateId();
 
-        expect(uuidV4).toHaveBeenCalledTimes(1);
+        expect(mockKsuid.randomSync).toHaveBeenCalledTimes(1);
       });
 
-      it("returns the string returned by uuidV4", () => {
+      it("returns the string returned by ksuid.randomSync", () => {
         const id = idService.generateId();
 
         expect(id).toBe(mockId);
@@ -43,9 +48,9 @@ describe("IdService", () => {
     });
 
     describe("under error conditions", () => {
-      describe("when uuidV4 throws an error", () => {
+      describe("when ksuid.randomSync throws an error", () => {
         beforeEach(() => {
-          uuidV4.and.throwError(mockError);
+          mockKsuid.randomSync.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct parameters", () => {
