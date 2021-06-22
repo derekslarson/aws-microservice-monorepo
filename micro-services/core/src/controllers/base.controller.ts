@@ -19,9 +19,20 @@ import { ForbiddenError } from "../errors/forbidden.error";
 import { StatusCode } from "../enums/statusCode.enum";
 import { RequestValidationError } from "../errors/request.validation.error";
 import { UnauthorizedError } from "../errors/unauthorized.error";
+import { Request } from "../models/http/request.model";
 
 @injectable()
 export abstract class BaseController {
+  protected getUserIdFromRequestWithJwt(request: Request): string {
+    const rawUserId = request.requestContext.authorizer?.jwt.claims.sub;
+
+    if (!rawUserId) {
+      throw new ForbiddenError("Forbidden");
+    }
+
+    return `USER#${rawUserId as string}`;
+  }
+
   protected generateSuccessResponse(body: Body | string, headers: Record<string, string> = {}, cookies: string[] = []): SuccessResponse {
     return {
       statusCode: StatusCode.OK,
