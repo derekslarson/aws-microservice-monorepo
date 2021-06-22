@@ -117,7 +117,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
-  protected cleanse(item: RawEntity<T>): CleansedEntity<T> {
+  protected cleanse<U>(item: RawEntity<U>): CleansedEntity<U> {
     const { type, pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, ...rest } = item;
 
     return rest;

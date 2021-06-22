@@ -1,6 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import { Expose } from "@yac/core";
-import { IsString } from "class-validator";
+import { IsString, IsEnum } from "class-validator";
+import { Role } from "../enums/role.enum";
 
 export class TeamAddMemberPathParametersInputDto {
   @Expose()
@@ -12,4 +13,8 @@ export class TeamAddMemberBodyInputDto {
   @Expose()
   @IsString()
   public userId: string;
+
+  @Expose()
+  @IsEnum(Role)
+  public role: Role;
 }

@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, ForbiddenError } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamServiceInterface } from "../services/team.service";
 import { TeamCreationBodyInputDto } from "../models/team.creation.input.model";
@@ -41,15 +41,20 @@ export class TeamController extends BaseController implements TeamControllerInte
     try {
       this.loggerService.trace("createTeam called", { request }, this.constructor.name);
 
-      // Need to add logic to check role on team
-      // const authUserId = this.getUserIdFromRequestWithJwt(request);
+      const authUserId = this.getUserIdFromRequestWithJwt(request);
 
-      const [ { teamId }, { userId } ] = await Promise.all([
+      const [ { teamId }, { userId, role } ] = await Promise.all([
         this.validationService.validate(TeamAddMemberPathParametersInputDto, RequestPortion.PathParameters, request.pathParameters),
         this.validationService.validate(TeamAddMemberBodyInputDto, RequestPortion.Body, request.body),
       ]);
 
-      await this.teamService.addUserToTeam(teamId, userId);
+      const isTeamAdmin = await this.teamService.isTeamAdmin(teamId, authUserId);
+
+      if (!isTeamAdmin) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      await this.teamService.addUserToTeam(teamId, userId, role);
 
       return this.generateSuccessResponse({ message: "user added to team" });
     } catch (error: unknown) {
@@ -63,17 +68,22 @@ export class TeamController extends BaseController implements TeamControllerInte
     try {
       this.loggerService.trace("createTeam called", { request }, this.constructor.name);
 
-      // Need to add logic to check role on team
-      // const authUserId = this.getUserIdFromRequestWithJwt(request);
+      const authUserId = this.getUserIdFromRequestWithJwt(request);
 
       const [ { teamId }, { userId } ] = await Promise.all([
         this.validationService.validate(TeamRemoveMemberPathParametersInputDto, RequestPortion.PathParameters, request.pathParameters),
         this.validationService.validate(TeamRemoveMemberBodyInputDto, RequestPortion.Body, request.body),
       ]);
 
+      const isTeamAdmin = await this.teamService.isTeamAdmin(teamId, authUserId);
+
+      if (!isTeamAdmin) {
+        throw new ForbiddenError("Forbidden");
+      }
+
       await this.teamService.removeUserFromTeam(teamId, userId);
 
-      return this.generateSuccessResponse({ message: "user added to team" });
+      return this.generateSuccessResponse({ message: "user removed from team" });
     } catch (error: unknown) {
       this.loggerService.error("Error in createTeam", { error, request }, this.constructor.name);
 
@@ -85,10 +95,15 @@ export class TeamController extends BaseController implements TeamControllerInte
     try {
       this.loggerService.trace("createTeam called", { request }, this.constructor.name);
 
-      // Need to add logic to check role on team
-      // const authUserId = this.getUserIdFromRequestWithJwt(request);
+      const authUserId = this.getUserIdFromRequestWithJwt(request);
 
       const { teamId } = await this.validationService.validate(UsersGetByTeamIdPathParametersInputDto, RequestPortion.PathParameters, request.pathParameters);
+
+      const isTeamMember = await this.teamService.isTeamMember(teamId, authUserId);
+
+      if (!isTeamMember) {
+        throw new ForbiddenError("Forbidden");
+      }
 
       const users = await this.teamService.getUsersByTeamId(teamId);
 

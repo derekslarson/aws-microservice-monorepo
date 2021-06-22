@@ -1,11 +1,13 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, NotFoundError } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { Team } from "../models/team.model";
+import { Role } from "../enums/role.enum";
+import { TeamMembership } from "../models/team.membership.model";
 
 @injectable()
 export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implements TeamRepositoryInterface {
@@ -46,11 +48,32 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
     }
   }
 
-  public async addUserToTeam(teamId: string, userId: string): Promise<void> {
+  public async getTeamMembership(teamId: string, userId: string): Promise<TeamMembership> {
+    try {
+      this.loggerService.trace("removeUserFromTeam called", { teamId, userId }, this.constructor.name);
+
+      const { Item } = await this.documentClient.get({
+        TableName: this.tableName,
+        Key: { pk: teamId, sk: userId },
+      }).promise();
+
+      if (!Item) {
+        throw new NotFoundError("Team membership not found");
+      }
+
+      return this.cleanse(Item as RawEntity<TeamMembership>);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in removeUserFromTeam", { error, teamId, userId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async addUserToTeam(teamId: string, userId: string, role: Role): Promise<void> {
     try {
       this.loggerService.trace("addUserToTeam called", { teamId, userId }, this.constructor.name);
 
-      const teamMembership = {
+      const teamMembership: RawEntity<TeamMembership> = {
         pk: teamId,
         sk: userId,
         gsi1pk: userId,
@@ -58,6 +81,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
         type: "TEAM-MEMBERSHIP:USER",
         teamId,
         userId,
+        role,
       };
 
       await this.documentClient.put({
@@ -86,7 +110,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
     }
   }
 
-  public async getUsersByTeamId(teamId: string): Promise<string[]> {
+  public async getTeamMembershipsByTeamId(teamId: string): Promise<TeamMembership[]> {
     try {
       this.loggerService.trace("getUsersByTeamId called", { teamId }, this.constructor.name);
 
@@ -103,9 +127,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
         },
       }).promise();
 
-      const userIds = (Items as { userId: string; }[]).map((membership) => membership.userId);
-
-      return userIds;
+      return Items.map((item) => this.cleanse(item as RawEntity<TeamMembership>));
     } catch (error: unknown) {
       this.loggerService.error("Error in getUsersByTeamId", { error, teamId }, this.constructor.name);
 
@@ -116,9 +138,10 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
 
 export interface TeamRepositoryInterface {
   createTeam(team: Omit<Team, "id">): Promise<Team>;
-  addUserToTeam(teamId: string, userId: string): Promise<void>;
+  addUserToTeam(teamId: string, userId: string, role: Role): Promise<void>;
   removeUserFromTeam(teamId: string, userId: string): Promise<void>;
-  getUsersByTeamId(teamId: string): Promise<string[]>;
+  getTeamMembershipsByTeamId(teamId: string): Promise<TeamMembership[]>;
+  getTeamMembership(teamId: string, userId: string): Promise<TeamMembership>;
 }
 
 type TeamRepositoryConfigType = Pick<EnvConfigInterface, "tableNames">;

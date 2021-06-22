@@ -1,9 +1,11 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/core";
+import { LoggerServiceInterface, NotFoundError } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamRepositoryInterface } from "../repositories/team.dynamo.repository";
-import { TeamCreationInputDto } from "../models/team.creation.input.model";
+import { TeamCreationBodyInputDto } from "../models/team.creation.input.model";
 import { Team } from "../models/team.model";
+import { Role } from "../enums/role.enum";
+import { TeamMembership } from "../models/team.membership.model";
 
 @injectable()
 export class TeamService implements TeamServiceInterface {
@@ -13,7 +15,7 @@ export class TeamService implements TeamServiceInterface {
   ) {
   }
 
-  public async createTeam(teamCreationInput: TeamCreationInputDto, userId: string): Promise<Team> {
+  public async createTeam(teamCreationInput: TeamCreationBodyInputDto, userId: string): Promise<Team> {
     try {
       this.loggerService.trace("createTeam called", { teamCreationInput, userId }, this.constructor.name);
 
@@ -32,13 +34,13 @@ export class TeamService implements TeamServiceInterface {
     }
   }
 
-  public async addUserToTeam(teamId: string, userId: string): Promise<void> {
+  public async addUserToTeam(teamId: string, userId: string, role: Role): Promise<void> {
     try {
-      this.loggerService.trace("addUserToTeam called", { teamId, userId }, this.constructor.name);
+      this.loggerService.trace("addUserToTeam called", { teamId, userId, role }, this.constructor.name);
 
-      await this.teamRepository.addUserToTeam(teamId, userId);
+      await this.teamRepository.addUserToTeam(teamId, userId, role);
     } catch (error: unknown) {
-      this.loggerService.error("Error in addUserToTeam", { error, teamId, userId }, this.constructor.name);
+      this.loggerService.error("Error in addUserToTeam", { error, teamId, userId, role }, this.constructor.name);
 
       throw error;
     }
@@ -56,15 +58,51 @@ export class TeamService implements TeamServiceInterface {
     }
   }
 
-  public async getUsersByTeamId(teamId: string): Promise<string[]> {
+  public async getUsersByTeamId(teamId: string): Promise<Omit<TeamMembership, "teamId">[]> {
     try {
       this.loggerService.trace("getUsersByTeamId called", { teamId }, this.constructor.name);
 
-      const userIds = await this.teamRepository.getUsersByTeamId(teamId);
+      const memberships = await this.teamRepository.getTeamMembershipsByTeamId(teamId);
 
-      return userIds;
+      return memberships.map(({ userId, role }) => ({ userId, role }));
     } catch (error: unknown) {
       this.loggerService.error("Error in getUsersByTeamId", { error, teamId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async isTeamMember(teamId: string, userId: string): Promise<boolean> {
+    try {
+      this.loggerService.trace("isTeamMember called", { teamId, userId }, this.constructor.name);
+
+      await this.teamRepository.getTeamMembership(teamId, userId);
+
+      return true;
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        return false;
+      }
+
+      this.loggerService.error("Error in isTeamMember", { error, teamId, userId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async isTeamAdmin(teamId: string, userId: string): Promise<boolean> {
+    try {
+      this.loggerService.trace("isTeamAdmin called", { teamId, userId }, this.constructor.name);
+
+      const membership = await this.teamRepository.getTeamMembership(teamId, userId);
+
+      return membership.role === Role.Admin;
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        return false;
+      }
+
+      this.loggerService.error("Error in isTeamAdmin", { error, teamId, userId }, this.constructor.name);
 
       throw error;
     }
@@ -72,8 +110,10 @@ export class TeamService implements TeamServiceInterface {
 }
 
 export interface TeamServiceInterface {
-  createTeam(TeamCreationInput: TeamCreationInputDto, userId: string): Promise<Team>;
-  addUserToTeam(teamId: string, userId: string): Promise<void>;
+  createTeam(TeamCreationInput: TeamCreationBodyInputDto, userId: string): Promise<Team>;
+  addUserToTeam(teamId: string, userId: string, role: Role): Promise<void>;
   removeUserFromTeam(teamId: string, userId: string): Promise<void>;
-  getUsersByTeamId(teamId: string): Promise<string[]>;
+  getUsersByTeamId(teamId: string): Promise<Omit<TeamMembership, "teamId">[]>;
+  isTeamMember(teamId: string, userId: string): Promise<boolean>;
+  isTeamAdmin(teamId: string, userId: string): Promise<boolean>;
 }
