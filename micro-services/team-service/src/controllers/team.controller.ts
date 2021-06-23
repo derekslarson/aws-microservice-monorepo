@@ -6,7 +6,7 @@ import { TYPES } from "../inversion-of-control/types";
 import { TeamServiceInterface } from "../services/team.service";
 import { TeamCreationBodyInputDto } from "../models/team.creation.input.model";
 import { TeamAddMemberBodyInputDto, TeamAddMemberPathParametersInputDto } from "../models/team.addMember.input.model";
-import { TeamRemoveMemberBodyInputDto, TeamRemoveMemberPathParametersInputDto } from "../models/team.removeMember.input.model";
+import { TeamRemoveMemberPathParametersInputDto } from "../models/team.removeMember.input.model";
 import { UsersGetByTeamIdPathParametersInputDto } from "../models/users.getByTeamId.input.model";
 
 @injectable()
@@ -39,7 +39,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
   public async addUserToTeam(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("createTeam called", { request }, this.constructor.name);
+      this.loggerService.trace("addUserToTeam called", { request }, this.constructor.name);
 
       const authUserId = this.getUserIdFromRequestWithJwt(request);
 
@@ -58,7 +58,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       return this.generateSuccessResponse({ message: "user added to team" });
     } catch (error: unknown) {
-      this.loggerService.error("Error in createTeam", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in addUserToTeam", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -66,14 +66,11 @@ export class TeamController extends BaseController implements TeamControllerInte
 
   public async removeUserFromTeam(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("createTeam called", { request }, this.constructor.name);
+      this.loggerService.trace("removeUserFromTeam called", { request }, this.constructor.name);
 
       const authUserId = this.getUserIdFromRequestWithJwt(request);
 
-      const [ { teamId }, { userId } ] = await Promise.all([
-        this.validationService.validate(TeamRemoveMemberPathParametersInputDto, RequestPortion.PathParameters, request.pathParameters),
-        this.validationService.validate(TeamRemoveMemberBodyInputDto, RequestPortion.Body, request.body),
-      ]);
+      const { teamId, userId } = await this.validationService.validate(TeamRemoveMemberPathParametersInputDto, RequestPortion.PathParameters, request.pathParameters);
 
       const isTeamAdmin = await this.teamService.isTeamAdmin(teamId, authUserId);
 
@@ -85,7 +82,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       return this.generateSuccessResponse({ message: "user removed from team" });
     } catch (error: unknown) {
-      this.loggerService.error("Error in createTeam", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in removeUserFromTeam", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -93,7 +90,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
   public async getUsersByTeamId(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("createTeam called", { request }, this.constructor.name);
+      this.loggerService.trace("getUsersByTeamId called", { request }, this.constructor.name);
 
       const authUserId = this.getUserIdFromRequestWithJwt(request);
 
@@ -109,7 +106,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       return this.generateSuccessResponse({ users });
     } catch (error: unknown) {
-      this.loggerService.error("Error in createTeam", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in getUsersByTeamId", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }

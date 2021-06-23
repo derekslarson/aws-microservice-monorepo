@@ -7,6 +7,9 @@ import { Spied, TestSupport } from "../../test-support";
 import { BaseDynamoRepositoryV2 } from "../base.dynamo.repository.v2";
 import { RecursivePartial } from "../../types/recursivePartial.type";
 import { RawEntity } from "../../types/raw.entity.type";
+import { CleansedEntity } from "../../types/cleansed.entity.type";
+import { generateAwsResponse } from "../../test-support/generateAwsResponse";
+import { NotFoundError } from "../../errors/notFound.error";
 
 interface Test {
   a: number;
@@ -25,7 +28,15 @@ class TestDynamoRepository extends BaseDynamoRepositoryV2<Test> {
     return super.partialUpdate(pk, sk, update);
   }
 
-  public batchGet(keyList: DynamoDB.DocumentClient.KeyList, prevFetchedItems: RawEntity<Test>[] = [], backoff = 200, maxBackoff = 800) {
+  public get<U = DynamoDB.DocumentClient.AttributeMap>(params: DynamoDB.DocumentClient.GetItemInput, entityType = "Entity"): Promise<CleansedEntity<U>> {
+    return super.get(params, entityType);
+  }
+
+  public query<U = DynamoDB.DocumentClient.AttributeMap>(params: DynamoDB.DocumentClient.QueryInput): Promise<{ Items: CleansedEntity<U>[]; LastEvaluatedKey?: DynamoDB.DocumentClient.Key; }> {
+    return super.query(params);
+  }
+
+  public batchGet<U = DynamoDB.DocumentClient.AttributeMap>(keyList: DynamoDB.DocumentClient.KeyList, prevFetchedItems: RawEntity<U>[] = [], backoff = 200, maxBackoff = 800) {
     return super.batchGet(keyList, prevFetchedItems, backoff, maxBackoff);
   }
 
@@ -33,7 +44,7 @@ class TestDynamoRepository extends BaseDynamoRepositoryV2<Test> {
     return super.batchWrite(writeRequests, backoff, maxBackoff);
   }
 
-  public cleanse(item: RawEntity<Test>) {
+  public cleanse<U>(item: RawEntity<U>) {
     return super.cleanse(item);
   }
 }
@@ -55,6 +66,7 @@ describe("BaseDynamoRepositoryV2", () => {
   const mockId = "234";
   const mockTableName = "mock-table";
   const mockItem: Test = { a: 1 };
+  const mockKey = { pk: mockPk, sk: mockSk };
 
   const mockRawItem: RawEntity<Test> = {
     type: mockType,
@@ -69,10 +81,6 @@ describe("BaseDynamoRepositoryV2", () => {
 
   const mockError = new Error("mock-error");
 
-  function generateDocumentClientResponse(response?: unknown, reject?: boolean) {
-    return { promise: () => (reject ? Promise.reject(response) : Promise.resolve(response)) };
-  }
-
   const mockGetResponse = { Item: mockRawItem };
   const mockUpdateResponse = { Attributes: mockRawItem };
 
@@ -81,7 +89,7 @@ describe("BaseDynamoRepositoryV2", () => {
     idService = TestSupport.spyOnClass(IdService);
     loggerService = TestSupport.spyOnClass(LoggerService);
 
-    documentClient.get.and.returnValue(generateDocumentClientResponse(mockGetResponse));
+    documentClient.get.and.returnValue(generateAwsResponse(mockGetResponse));
 
     testDynamoRepository = new TestDynamoRepository(documentClientFactory, mockTableName, idService, loggerService);
   });
@@ -91,7 +99,7 @@ describe("BaseDynamoRepositoryV2", () => {
 
     describe("under normal conditions", () => {
       beforeEach(() => {
-        documentClient.update.and.returnValue(generateDocumentClientResponse(mockUpdateResponse));
+        documentClient.update.and.returnValue(generateAwsResponse(mockUpdateResponse));
       });
 
       it("calls documentClient.update with the correct parameters", async () => {
@@ -123,7 +131,7 @@ describe("BaseDynamoRepositoryV2", () => {
     describe("under error conditions", () => {
       describe("when documentClient.update throws an error", () => {
         beforeEach(() => {
-          documentClient.update.and.returnValue(generateDocumentClientResponse(mockError, true));
+          documentClient.update.and.returnValue(generateAwsResponse(mockError, true));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -150,6 +158,166 @@ describe("BaseDynamoRepositoryV2", () => {
     });
   });
 
+  describe("get", () => {
+    const mockParams = {
+      TableName: mockTableName,
+      Key: mockKey,
+    };
+
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        documentClient.get.and.returnValue(generateAwsResponse({ Item: mockItem }));
+      });
+
+      it("calls documentClient.get with the correct parameters", async () => {
+        await testDynamoRepository.get(mockParams);
+
+        expect(documentClient.get).toHaveBeenCalledTimes(1);
+        expect(documentClient.get).toHaveBeenCalledWith(mockParams);
+      });
+
+      it("returns cleansed version of the fetched item", async () => {
+        const fetchedItem = await testDynamoRepository.get(mockParams);
+
+        expect(fetchedItem).toEqual(mockItem);
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when documentClient.get throws an error", () => {
+        beforeEach(() => {
+          documentClient.get.and.returnValue(generateAwsResponse(mockError, true));
+        });
+
+        it("calls loggerService.error with the correct parameters", async () => {
+          try {
+            await testDynamoRepository.get(mockParams);
+
+            fail("expected to throw");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in get", { error: mockError, params: mockParams }, testDynamoRepository.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await testDynamoRepository.get(mockParams);
+
+            fail("expected to throw");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+
+      describe("When documentClient.get doesn't return an Item prop", () => {
+        beforeEach(() => {
+          documentClient.get.and.returnValue(generateAwsResponse({}));
+        });
+
+        describe("when an enityType is passed in", () => {
+          const mockEntityType = "mock-entity-type";
+
+          it("throws a NotFoundError with the enitityType in the message", async () => {
+            try {
+              await testDynamoRepository.get(mockParams, mockEntityType);
+
+              fail("Expected an error");
+            } catch (error) {
+              expect(error).toBeInstanceOf(NotFoundError);
+              expect((error as NotFoundError).message).toBe(`${mockEntityType} not found.`);
+            }
+          });
+        });
+
+        describe("when an enityType is not passed in", () => {
+          it("throws a NotFoundError with 'Entity' in the message", async () => {
+            try {
+              await testDynamoRepository.get(mockParams);
+
+              fail("Expected an error");
+            } catch (error) {
+              expect(error).toBeInstanceOf(NotFoundError);
+              expect((error as NotFoundError).message).toBe("Entity not found.");
+            }
+          });
+        });
+      });
+    });
+  });
+
+  describe("query", () => {
+    const mockParams: DynamoDB.DocumentClient.QueryInput = {
+      TableName: mockTableName,
+      IndexName: "mock-index-name",
+      KeyConditionExpression: "mock-key-condition-expression",
+      ExpressionAttributeNames: { "#key": "key" },
+      ExpressionAttributeValues: { ":val": "val" },
+    };
+
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        documentClient.query.and.returnValue(generateAwsResponse({ Items: [ mockItem ], LastEvaluatedKey: mockKey }));
+      });
+
+      it("calls documentClient.query with the correct parameters", async () => {
+        await testDynamoRepository.query(mockParams);
+
+        expect(documentClient.query).toHaveBeenCalledTimes(1);
+        expect(documentClient.query).toHaveBeenCalledWith(mockParams);
+      });
+
+      it("returns cleansed version of the fetched items and LasEvaluatedKey returned by documentClient.query", async () => {
+        const { Items, LastEvaluatedKey } = await testDynamoRepository.query(mockParams);
+
+        expect(Items).toEqual([ mockItem ]);
+        expect(LastEvaluatedKey).toEqual(mockKey);
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when documentClient.query throws an error", () => {
+        beforeEach(() => {
+          documentClient.query.and.returnValue(generateAwsResponse(mockError, true));
+        });
+
+        it("calls loggerService.error with the correct parameters", async () => {
+          try {
+            await testDynamoRepository.query(mockParams);
+
+            fail("expected to throw");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in query", { error: mockError, params: mockParams }, testDynamoRepository.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await testDynamoRepository.query(mockParams);
+
+            fail("expected to throw");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+
+      describe("When documentClient.query doesn't return an Items prop", () => {
+        beforeEach(() => {
+          documentClient.query.and.returnValue(generateAwsResponse({}));
+        });
+
+        it("returns an empty array", async () => {
+          const { Items } = await testDynamoRepository.query(mockParams);
+
+          expect(Items).toEqual([]);
+        });
+      });
+    });
+  });
+
   describe("batchGet", () => {
     const mockKeyList: DynamoDB.DocumentClient.KeyList = Array.from({ length: 101 }).map((_, i) => ({ pk: mockId, sk: i }));
     const mockRawItems = mockKeyList.map((key, i) => ({ ...key, a: i + 1 }));
@@ -158,26 +326,26 @@ describe("BaseDynamoRepositoryV2", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         documentClient.batchGet.and.returnValues(
-          generateDocumentClientResponse({
+          generateAwsResponse({
             Responses: { [mockTableName]: mockRawItems.slice(0, 99) },
             UnprocessedKeys: { [mockTableName]: { Keys: mockKeyList.slice(99, 100) } },
           }),
-          generateDocumentClientResponse({ Responses: { [mockTableName]: mockRawItems.slice(100) } }),
-          generateDocumentClientResponse({ Responses: { [mockTableName]: mockRawItems.slice(99, 100) } }),
+          generateAwsResponse({ Responses: { [mockTableName]: mockRawItems.slice(100) } }),
+          generateAwsResponse({ Responses: { [mockTableName]: mockRawItems.slice(99, 100) } }),
         );
       });
 
       it("calls documentClient.batchGet with the correct parameters", async () => {
-        const expectedBatchWriteParamsOne = { RequestItems: { [mockTableName]: { Keys: mockKeyList.slice(0, 100) } } };
-        const expectedBatchWriteParamsTwo = { RequestItems: { [mockTableName]: { Keys: mockKeyList.slice(100) } } };
-        const expectedBatchWriteParamsThree = { RequestItems: { [mockTableName]: { Keys: mockKeyList.slice(99, 100) } } };
+        const expectedBatchGetParamsOne = { RequestItems: { [mockTableName]: { Keys: mockKeyList.slice(0, 100) } } };
+        const expectedBatchGetParamsTwo = { RequestItems: { [mockTableName]: { Keys: mockKeyList.slice(100) } } };
+        const expectedBatchGetParamsThree = { RequestItems: { [mockTableName]: { Keys: mockKeyList.slice(99, 100) } } };
 
         await testDynamoRepository.batchGet(mockKeyList);
 
         expect(documentClient.batchGet).toHaveBeenCalledTimes(3);
-        expect(documentClient.batchGet).toHaveBeenCalledWith(expectedBatchWriteParamsOne);
-        expect(documentClient.batchGet).toHaveBeenCalledWith(expectedBatchWriteParamsTwo);
-        expect(documentClient.batchGet).toHaveBeenCalledWith(expectedBatchWriteParamsThree);
+        expect(documentClient.batchGet).toHaveBeenCalledWith(expectedBatchGetParamsOne);
+        expect(documentClient.batchGet).toHaveBeenCalledWith(expectedBatchGetParamsTwo);
+        expect(documentClient.batchGet).toHaveBeenCalledWith(expectedBatchGetParamsThree);
       });
 
       it("returns cleansed versions of the fetched items", async () => {
@@ -192,7 +360,7 @@ describe("BaseDynamoRepositoryV2", () => {
     describe("under error conditions", () => {
       describe("when documentClient.batchGet throws an error", () => {
         beforeEach(() => {
-          documentClient.batchGet.and.returnValue(generateDocumentClientResponse(mockError, true));
+          documentClient.batchGet.and.returnValue(generateAwsResponse(mockError, true));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -220,7 +388,7 @@ describe("BaseDynamoRepositoryV2", () => {
       describe("when maxBackoff is exceeded", () => {
         beforeEach(() => {
           documentClient.batchGet.and.returnValue(
-            generateDocumentClientResponse({
+            generateAwsResponse({
               Responses: { [mockTableName]: [] },
               UnprocessedKeys: { [mockTableName]: { Keys: mockKeyList.slice(0, 1) } },
             }),
@@ -253,9 +421,9 @@ describe("BaseDynamoRepositoryV2", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         documentClient.batchWrite.and.returnValues(
-          generateDocumentClientResponse({ UnprocessedItems: { [mockTableName]: mockWriteRequests.slice(2, 3) } }),
-          generateDocumentClientResponse({}),
-          generateDocumentClientResponse({}),
+          generateAwsResponse({ UnprocessedItems: { [mockTableName]: mockWriteRequests.slice(2, 3) } }),
+          generateAwsResponse({}),
+          generateAwsResponse({}),
         );
       });
 
@@ -276,7 +444,7 @@ describe("BaseDynamoRepositoryV2", () => {
     describe("under error conditions", () => {
       describe("when documentClient.batchWrite throws an error", () => {
         beforeEach(() => {
-          documentClient.batchWrite.and.returnValue(generateDocumentClientResponse(mockError, true));
+          documentClient.batchWrite.and.returnValue(generateAwsResponse(mockError, true));
         });
 
         it("calls loggerService.error with the correct parameters", async () => {
@@ -304,7 +472,7 @@ describe("BaseDynamoRepositoryV2", () => {
       describe("when maxBackoff is exceeded", () => {
         beforeEach(() => {
           documentClient.batchWrite.and.returnValue(
-            generateDocumentClientResponse({ UnprocessedItems: { [mockTableName]: mockWriteRequests.slice(0, 1) } }),
+            generateAwsResponse({ UnprocessedItems: { [mockTableName]: mockWriteRequests.slice(0, 1) } }),
           );
         });
 

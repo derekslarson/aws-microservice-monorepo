@@ -7,6 +7,7 @@ import { IdServiceInterface } from "../services/id.service";
 import { RecursivePartial } from "../types/recursivePartial.type";
 import { RawEntity } from "../types/raw.entity.type";
 import { CleansedEntity } from "../types/cleansed.entity.type";
+import { NotFoundError } from "../errors/notFound.error";
 
 @injectable()
 export abstract class BaseDynamoRepositoryV2<T> {
@@ -38,7 +39,41 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
-  protected async batchGet(keyList: DynamoDB.DocumentClient.KeyList, prevFetchedItems: RawEntity<T>[] = [], backoff = 200, maxBackoff = 800): Promise<CleansedEntity<T>[]> {
+  protected async get<U = DynamoDB.DocumentClient.AttributeMap>(params: DynamoDB.DocumentClient.GetItemInput, entityType = "Entity"): Promise<CleansedEntity<U>> {
+    try {
+      this.loggerService.trace("get called", { params }, this.constructor.name);
+
+      const { Item } = await this.documentClient.get(params).promise();
+
+      if (!Item) {
+        throw new NotFoundError(`${entityType} not found.`);
+      }
+
+      return this.cleanse(Item as RawEntity<U>);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in get", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  protected async query<U = DynamoDB.DocumentClient.AttributeMap>(params: DynamoDB.DocumentClient.QueryInput): Promise<{ Items: CleansedEntity<U>[]; LastEvaluatedKey?: DynamoDB.DocumentClient.Key; }> {
+    try {
+      this.loggerService.trace("query called", { params }, this.constructor.name);
+
+      const response = await this.documentClient.query(params).promise();
+
+      const cleansedItems = (response.Items || []).map((item) => this.cleanse(item as RawEntity<U>));
+
+      return { Items: cleansedItems, LastEvaluatedKey: response.LastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in query", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  protected async batchGet<U = DynamoDB.DocumentClient.AttributeMap>(keyList: DynamoDB.DocumentClient.KeyList, prevFetchedItems: RawEntity<U>[] = [], backoff = 200, maxBackoff = 800): Promise<CleansedEntity<U>[]> {
     try {
       this.loggerService.trace("batchGet called", { keyList, prevFetchedItems, backoff, maxBackoff }, this.constructor.name);
 
@@ -46,12 +81,12 @@ export abstract class BaseDynamoRepositoryV2<T> {
 
       const batchGetResponses = await Promise.all(chunkedKeyList.map((chunk) => this.documentClient.batchGet({ RequestItems: { [this.tableName]: { Keys: chunk } } }).promise()));
 
-      const { fetchedItems, unprocessedKeys } = batchGetResponses.reduce((acc: { fetchedItems: RawEntity<T>[]; unprocessedKeys: DynamoDB.DocumentClient.KeyList; }, batchGetResponse) => {
+      const { fetchedItems, unprocessedKeys } = batchGetResponses.reduce((acc: { fetchedItems: RawEntity<U>[]; unprocessedKeys: DynamoDB.DocumentClient.KeyList; }, batchGetResponse) => {
         const items = batchGetResponse.Responses?.[this.tableName];
         const unprocessed = batchGetResponse.UnprocessedKeys?.[this.tableName]?.Keys;
 
         if (items) {
-          acc.fetchedItems.push(...items as RawEntity<T>[]);
+          acc.fetchedItems.push(...items as RawEntity<U>[]);
         }
 
         if (unprocessed) {

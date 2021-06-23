@@ -5,7 +5,7 @@ import { TeamRepositoryInterface } from "../repositories/team.dynamo.repository"
 import { TeamCreationBodyInputDto } from "../models/team.creation.input.model";
 import { Team } from "../models/team.model";
 import { Role } from "../enums/role.enum";
-import { TeamMembership } from "../models/team.membership.model";
+import { TeamUserRelationship } from "../models/team.user.relationship.model";
 
 @injectable()
 export class TeamService implements TeamServiceInterface {
@@ -38,7 +38,7 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("addUserToTeam called", { teamId, userId, role }, this.constructor.name);
 
-      await this.teamRepository.addUserToTeam(teamId, userId, role);
+      await this.teamRepository.createTeamUserRelationship(teamId, userId, role);
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToTeam", { error, teamId, userId, role }, this.constructor.name);
 
@@ -50,7 +50,7 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("removeUserFromTeam called", { teamId, userId }, this.constructor.name);
 
-      await this.teamRepository.removeUserFromTeam(teamId, userId);
+      await this.teamRepository.deleteTeamUserRelationship(teamId, userId);
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromTeam", { error, teamId, userId }, this.constructor.name);
 
@@ -58,13 +58,13 @@ export class TeamService implements TeamServiceInterface {
     }
   }
 
-  public async getUsersByTeamId(teamId: string): Promise<Omit<TeamMembership, "teamId">[]> {
+  public async getUsersByTeamId(teamId: string): Promise<Omit<TeamUserRelationship, "teamId">[]> {
     try {
       this.loggerService.trace("getUsersByTeamId called", { teamId }, this.constructor.name);
 
-      const memberships = await this.teamRepository.getTeamMembershipsByTeamId(teamId);
+      const teamUserRelationships = await this.teamRepository.getTeamUserRelationshipsByTeamId(teamId);
 
-      return memberships.map(({ userId, role }) => ({ userId, role }));
+      return teamUserRelationships.map(({ userId, role }) => ({ userId, role }));
     } catch (error: unknown) {
       this.loggerService.error("Error in getUsersByTeamId", { error, teamId }, this.constructor.name);
 
@@ -76,7 +76,7 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("isTeamMember called", { teamId, userId }, this.constructor.name);
 
-      await this.teamRepository.getTeamMembership(teamId, userId);
+      await this.teamRepository.getTeamUserRelationship(teamId, userId);
 
       return true;
     } catch (error: unknown) {
@@ -94,7 +94,7 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("isTeamAdmin called", { teamId, userId }, this.constructor.name);
 
-      const membership = await this.teamRepository.getTeamMembership(teamId, userId);
+      const membership = await this.teamRepository.getTeamUserRelationship(teamId, userId);
 
       return membership.role === Role.Admin;
     } catch (error: unknown) {
@@ -113,7 +113,7 @@ export interface TeamServiceInterface {
   createTeam(TeamCreationInput: TeamCreationBodyInputDto, userId: string): Promise<Team>;
   addUserToTeam(teamId: string, userId: string, role: Role): Promise<void>;
   removeUserFromTeam(teamId: string, userId: string): Promise<void>;
-  getUsersByTeamId(teamId: string): Promise<Omit<TeamMembership, "teamId">[]>;
+  getUsersByTeamId(teamId: string): Promise<Omit<TeamUserRelationship, "teamId">[]>;
   isTeamMember(teamId: string, userId: string): Promise<boolean>;
   isTeamAdmin(teamId: string, userId: string): Promise<boolean>;
 }

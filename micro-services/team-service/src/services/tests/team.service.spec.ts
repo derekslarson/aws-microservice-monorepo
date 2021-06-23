@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Spied, TestSupport } from "@yac/core";
-import { TeamCreationInputDto } from "../../models/team.creation.input.model";
+import { LoggerService, NotFoundError, Spied, TestSupport } from "@yac/core";
+import { Role } from "../../enums/role.enum";
+import { TeamCreationBodyInputDto } from "../../models/team.creation.input.model";
 import { Team } from "../../models/team.model";
 import { TeamDynamoRepository } from "../../repositories/team.dynamo.repository";
 import { TeamService, TeamServiceInterface } from "../team.service";
@@ -13,6 +14,9 @@ describe("TeamService", () => {
   const mockUserId = "mock-user-id";
   const mockTeamId = "mock-team-id";
   const mockName = "mock@name.com";
+  const mockRole = Role.User;
+  const mockTeamUserRelationship = { teamId: mockTeamId, userId: mockUserId, role: mockRole };
+  const mockTeamUserRelationshipAdmin = { teamId: mockTeamId, userId: mockUserId, role: Role.Admin };
   const mockError = new Error("mock-error");
 
   beforeEach(() => {
@@ -23,7 +27,7 @@ describe("TeamService", () => {
   });
 
   describe("createTeam", () => {
-    const mockTeamCreationInput: TeamCreationInputDto = { name: mockName };
+    const mockTeamCreationInput: TeamCreationBodyInputDto = { name: mockName };
 
     const expectedRepositoryParam: Omit<Team, "id"> = {
       createdBy: mockUserId,
@@ -88,37 +92,37 @@ describe("TeamService", () => {
   describe("addUserToTeam", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        teamRepository.addUserToTeam.and.returnValue(Promise.resolve());
+        teamRepository.createTeamUserRelationship.and.returnValue(Promise.resolve());
       });
 
-      it("calls teamRepository.addUserToTeam with the correct params", async () => {
-        await teamService.addUserToTeam(mockTeamId, mockUserId);
+      it("calls teamRepository.createTeamUserRelationship with the correct params", async () => {
+        await teamService.addUserToTeam(mockTeamId, mockUserId, mockRole);
 
-        expect(teamRepository.addUserToTeam).toHaveBeenCalledTimes(1);
-        expect(teamRepository.addUserToTeam).toHaveBeenCalledWith(mockTeamId, mockUserId);
+        expect(teamRepository.createTeamUserRelationship).toHaveBeenCalledTimes(1);
+        expect(teamRepository.createTeamUserRelationship).toHaveBeenCalledWith(mockTeamId, mockUserId, mockRole);
       });
     });
 
     describe("under error conditions", () => {
-      describe("when teamRepository.addUserToTeam throws an error", () => {
+      describe("when teamRepository.createTeamUserRelationship throws an error", () => {
         beforeEach(() => {
-          teamRepository.addUserToTeam.and.throwError(mockError);
+          teamRepository.createTeamUserRelationship.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamService.addUserToTeam(mockTeamId, mockUserId);
+            await teamService.addUserToTeam(mockTeamId, mockUserId, mockRole);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in addUserToTeam", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamService.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in addUserToTeam", { error: mockError, teamId: mockTeamId, userId: mockUserId, role: mockRole }, teamService.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamService.addUserToTeam(mockTeamId, mockUserId);
+            await teamService.addUserToTeam(mockTeamId, mockUserId, mockRole);
 
             fail("Should have thrown");
           } catch (error) {
@@ -132,21 +136,21 @@ describe("TeamService", () => {
   describe("removeUserFromTeam", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        teamRepository.removeUserFromTeam.and.returnValue(Promise.resolve());
+        teamRepository.deleteTeamUserRelationship.and.returnValue(Promise.resolve());
       });
 
-      it("calls teamRepository.removeUserFromTeam with the correct params", async () => {
+      it("calls teamRepository.deleteTeamUserRelationship with the correct params", async () => {
         await teamService.removeUserFromTeam(mockTeamId, mockUserId);
 
-        expect(teamRepository.removeUserFromTeam).toHaveBeenCalledTimes(1);
-        expect(teamRepository.removeUserFromTeam).toHaveBeenCalledWith(mockTeamId, mockUserId);
+        expect(teamRepository.deleteTeamUserRelationship).toHaveBeenCalledTimes(1);
+        expect(teamRepository.deleteTeamUserRelationship).toHaveBeenCalledWith(mockTeamId, mockUserId);
       });
     });
 
     describe("under error conditions", () => {
-      describe("when teamRepository.removeUserFromTeam throws an error", () => {
+      describe("when teamRepository.deleteTeamUserRelationship throws an error", () => {
         beforeEach(() => {
-          teamRepository.removeUserFromTeam.and.throwError(mockError);
+          teamRepository.deleteTeamUserRelationship.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {
@@ -176,27 +180,29 @@ describe("TeamService", () => {
   describe("getUsersByTeamId", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        teamRepository.getUsersByTeamId.and.returnValue(Promise.resolve([ mockUserId ]));
+        teamRepository.getTeamUserRelationshipsByTeamId.and.returnValue(Promise.resolve([ mockTeamUserRelationship ]));
       });
 
-      it("calls teamRepository.getUsersByTeamId with the correct params", async () => {
+      it("calls teamRepository.getTeamUserRelationshipsByTeamId with the correct params", async () => {
         await teamService.getUsersByTeamId(mockTeamId);
 
-        expect(teamRepository.getUsersByTeamId).toHaveBeenCalledTimes(1);
-        expect(teamRepository.getUsersByTeamId).toHaveBeenCalledWith(mockTeamId);
+        expect(teamRepository.getTeamUserRelationshipsByTeamId).toHaveBeenCalledTimes(1);
+        expect(teamRepository.getTeamUserRelationshipsByTeamId).toHaveBeenCalledWith(mockTeamId);
       });
 
-      it("returns the response of teamRepository.getUsersByTeamId", async () => {
-        const createdTeam = await teamService.getUsersByTeamId(mockTeamId);
+      it("returns the response of teamRepository.getTeamUserRelationshipsByTeamId", async () => {
+        const { teamId, ...expectedUser } = mockTeamUserRelationship;
 
-        expect(createdTeam).toEqual([ mockUserId ]);
+        const users = await teamService.getUsersByTeamId(mockTeamId);
+
+        expect(users).toEqual([ expectedUser ]);
       });
     });
 
     describe("under error conditions", () => {
-      describe("when teamRepository.getUsersByTeamId throws an error", () => {
+      describe("when teamRepository.getTeamUserRelationshipsByTeamId throws an error", () => {
         beforeEach(() => {
-          teamRepository.getUsersByTeamId.and.throwError(mockError);
+          teamRepository.getTeamUserRelationshipsByTeamId.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {
@@ -213,6 +219,162 @@ describe("TeamService", () => {
         it("throws the caught error", async () => {
           try {
             await teamService.getUsersByTeamId(mockTeamId);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
+
+  describe("isTeamMember", () => {
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        teamRepository.getTeamUserRelationship.and.returnValue(Promise.resolve(mockTeamUserRelationship));
+      });
+
+      it("calls teamRepository.getTeamUserRelationship with the correct params", async () => {
+        await teamService.isTeamMember(mockTeamId, mockUserId);
+
+        expect(teamRepository.getTeamUserRelationship).toHaveBeenCalledTimes(1);
+        expect(teamRepository.getTeamUserRelationship).toHaveBeenCalledWith(mockTeamId, mockUserId);
+      });
+
+      describe("when teamRepository.getTeamUserRelationship doesn't throw", () => {
+        it("returns true", async () => {
+          const isTeamMember = await teamService.isTeamMember(mockTeamId, mockUserId);
+
+          expect(isTeamMember).toBe(true);
+        });
+      });
+
+      describe("when teamRepository.getTeamUserRelationship throws a NotFoundError", () => {
+        beforeEach(() => {
+          teamRepository.getTeamUserRelationship.and.throwError(new NotFoundError("mock-not-found-error"));
+        });
+
+        it("returns false", async () => {
+          const isTeamMember = await teamService.isTeamMember(mockTeamId, mockUserId);
+
+          expect(isTeamMember).toBe(false);
+        });
+
+        it("doesn't call loggerService.error", async () => {
+          await teamService.isTeamMember(mockTeamId, mockUserId);
+
+          expect(loggerService.error).not.toHaveBeenCalled();
+        });
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when teamRepository.getTeamUserRelationship throws an error that isn't a NotFoundError", () => {
+        beforeEach(() => {
+          teamRepository.getTeamUserRelationship.and.throwError(mockError);
+        });
+
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await teamService.isTeamMember(mockTeamId, mockUserId);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in isTeamMember", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamService.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await teamService.isTeamMember(mockTeamId, mockUserId);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
+
+  describe("isTeamAdmin", () => {
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        teamRepository.getTeamUserRelationship.and.returnValue(Promise.resolve(mockTeamUserRelationship));
+      });
+
+      it("calls teamRepository.getTeamUserRelationship with the correct params", async () => {
+        await teamService.isTeamAdmin(mockTeamId, mockUserId);
+
+        expect(teamRepository.getTeamUserRelationship).toHaveBeenCalledTimes(1);
+        expect(teamRepository.getTeamUserRelationship).toHaveBeenCalledWith(mockTeamId, mockUserId);
+      });
+
+      describe("when teamRepository.getTeamUserRelationship returns a TeamUserRelationship with an Admin role", () => {
+        beforeEach(() => {
+          teamRepository.getTeamUserRelationship.and.returnValue(Promise.resolve(mockTeamUserRelationshipAdmin));
+        });
+
+        it("returns true", async () => {
+          const isTeamAdmin = await teamService.isTeamAdmin(mockTeamId, mockUserId);
+
+          expect(isTeamAdmin).toBe(true);
+        });
+      });
+
+      describe("when teamRepository.getTeamUserRelationship returns a TeamUserRelationship with a User role", () => {
+        beforeEach(() => {
+          teamRepository.getTeamUserRelationship.and.returnValue(Promise.resolve(mockTeamUserRelationship));
+        });
+
+        it("returns false", async () => {
+          const isTeamAdmin = await teamService.isTeamAdmin(mockTeamId, mockUserId);
+
+          expect(isTeamAdmin).toBe(false);
+        });
+      });
+
+      describe("when teamRepository.getTeamUserRelationship throws a NotFoundError", () => {
+        beforeEach(() => {
+          teamRepository.getTeamUserRelationship.and.throwError(new NotFoundError("mock-not-found-error"));
+        });
+
+        it("returns false", async () => {
+          const isTeamAdmin = await teamService.isTeamAdmin(mockTeamId, mockUserId);
+
+          expect(isTeamAdmin).toBe(false);
+        });
+
+        it("doesn't call loggerService.error", async () => {
+          await teamService.isTeamAdmin(mockTeamId, mockUserId);
+
+          expect(loggerService.error).not.toHaveBeenCalled();
+        });
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when teamRepository.getTeamUserRelationship throws an error that isn't a NotFoundError", () => {
+        beforeEach(() => {
+          teamRepository.getTeamUserRelationship.and.throwError(mockError);
+        });
+
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await teamService.isTeamAdmin(mockTeamId, mockUserId);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in isTeamAdmin", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamService.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await teamService.isTeamAdmin(mockTeamId, mockUserId);
 
             fail("Should have thrown");
           } catch (error) {

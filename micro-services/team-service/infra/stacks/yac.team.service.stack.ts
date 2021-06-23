@@ -58,14 +58,64 @@ export class YacTeamServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    // permissions for the handler
-    coreTable.grantWriteData(createTeamHandler);
+    const addUserToTeamHandler = new Lambda.Function(this, `AddUserToTeam_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/addUserToTeam"),
+      handler: "addUserToTeam.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const removeUserFromTeamHandler = new Lambda.Function(this, `RemoveUserFromTeam_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/removeUserFromTeam"),
+      handler: "removeUserFromTeam.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getUsersByTeamIdHandler = new Lambda.Function(this, `GetUsersByTeamId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getUsersByTeamId"),
+      handler: "getUsersByTeamId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    coreTable.grantFullAccess(createTeamHandler);
+    coreTable.grantFullAccess(addUserToTeamHandler);
+    coreTable.grantFullAccess(removeUserFromTeamHandler);
+    coreTable.grantFullAccess(getUsersByTeamIdHandler);
 
     const routes: RouteProps[] = [
       {
         path: "/teams",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createTeamHandler,
+        authorizationScopes: [ "yac/team.write" ],
+      },
+      {
+        path: "/teams/{teamId}/users",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: addUserToTeamHandler,
+        authorizationScopes: [ "yac/team.write" ],
+      },
+      {
+        path: "/teams/{teamId}/users",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getUsersByTeamIdHandler,
+        authorizationScopes: [ "yac/team.read" ],
+      },
+      {
+        path: "/teams/{teamId}/users/{userId}",
+        method: ApiGatewayV2.HttpMethod.DELETE,
+        handler: removeUserFromTeamHandler,
         authorizationScopes: [ "yac/team.write" ],
       },
     ];

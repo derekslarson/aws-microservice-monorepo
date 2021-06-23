@@ -21,10 +21,11 @@ describe("TeamDynamoRepository", () => {
   const mockRawId = "mock-id";
   const mockTeamId = `TEAM#${mockRawId}`;
   const mockUserId = `USER#${mockRawId}`;
+  const mockKey = { pk: mockTeamId, sk: mockUserId };
   const mockRole = Role.User;
   const mockName = "mock-name";
   const mockCreatedBy = "mock-created-by";
-  const mockMembership = { userId: mockUserId, teamId: mockTeamId };
+  const mockTeamUserRelationship = { userId: mockUserId, teamId: mockTeamId, role: mockRole };
   const mockError = new Error("mock-error");
 
   beforeEach(() => {
@@ -49,27 +50,48 @@ describe("TeamDynamoRepository", () => {
 
     describe("under normal conditions", () => {
       beforeEach(() => {
-        documentClient.put.and.returnValue(generateAwsResponse({}));
+        documentClient.transactWrite.and.returnValue(generateAwsResponse({}));
         idService.generateId.and.returnValue(mockRawId);
       });
 
-      it("calls documentClient.put with the correct params", async () => {
+      it("calls documentClient.transactWrite with the correct params", async () => {
         const expectedDynamoInput = {
-          TableName: mockCoreTableName,
-          Item: {
-            type: "TEAM",
-            pk: mockTeamId,
-            sk: mockTeamId,
-            id: mockTeamId,
-            name: mockName,
-            createdBy: mockCreatedBy,
-          },
+          TransactItems: [
+            {
+              Put: {
+                TableName: mockCoreTableName,
+                Item: {
+                  type: "TEAM",
+                  pk: mockTeamId,
+                  sk: mockTeamId,
+                  id: mockTeamId,
+                  name: mockName,
+                  createdBy: mockCreatedBy,
+                },
+              },
+            },
+            {
+              Put: {
+                TableName: mockCoreTableName,
+                Item: {
+                  pk: mockTeamId,
+                  sk: mockCreatedBy,
+                  gsi1pk: mockCreatedBy,
+                  gsi1sk: mockTeamId,
+                  type: "TEAM-USER-RELATIONSHIP",
+                  teamId: mockTeamId,
+                  userId: mockCreatedBy,
+                  role: Role.Admin,
+                },
+              },
+            },
+          ],
         };
 
         await teamDynamoRepository.createTeam(mockTeamInput);
 
-        expect(documentClient.put).toHaveBeenCalledTimes(1);
-        expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoInput);
+        expect(documentClient.transactWrite).toHaveBeenCalledTimes(1);
+        expect(documentClient.transactWrite).toHaveBeenCalledWith(expectedDynamoInput);
       });
 
       it("returns a cleansed version of the created team", async () => {
@@ -80,9 +102,9 @@ describe("TeamDynamoRepository", () => {
     });
 
     describe("under error conditions", () => {
-      describe("when documentClient.put throws an error", () => {
+      describe("when documentClient.transactWrite throws an error", () => {
         beforeEach(() => {
-          documentClient.put.and.throwError(mockError);
+          documentClient.transactWrite.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {
@@ -109,7 +131,7 @@ describe("TeamDynamoRepository", () => {
     });
   });
 
-  describe("addUserToTeam", () => {
+  describe("createTeamUserRelationship", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         documentClient.put.and.returnValue(generateAwsResponse({}));
@@ -123,14 +145,14 @@ describe("TeamDynamoRepository", () => {
             sk: mockUserId,
             gsi1pk: mockUserId,
             gsi1sk: mockTeamId,
-            type: "TEAM-MEMBERSHIP:USER",
+            type: "TEAM-USER-RELATIONSHIP",
             teamId: mockTeamId,
             userId: mockUserId,
             role: mockRole,
           },
         };
 
-        await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId, mockRole);
+        await teamDynamoRepository.createTeamUserRelationship(mockTeamId, mockUserId, mockRole);
 
         expect(documentClient.put).toHaveBeenCalledTimes(1);
         expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoInput);
@@ -145,18 +167,18 @@ describe("TeamDynamoRepository", () => {
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId, mockRole);
+            await teamDynamoRepository.createTeamUserRelationship(mockTeamId, mockUserId, mockRole);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in addUserToTeam", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in createTeamUserRelationship", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamDynamoRepository.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId, mockRole);
+            await teamDynamoRepository.createTeamUserRelationship(mockTeamId, mockUserId, mockRole);
 
             fail("Should have thrown");
           } catch (error) {
@@ -167,7 +189,62 @@ describe("TeamDynamoRepository", () => {
     });
   });
 
-  describe("removeUserFromTeam", () => {
+  describe("getTeamUserRelationship", () => {
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        spyOn(teamDynamoRepository, "get").and.returnValue(mockTeamUserRelationship);
+      });
+
+      it("calls this.get with the correct params", async () => {
+        const expectedDynamoInput = {
+          TableName: mockCoreTableName,
+          Key: mockKey,
+        };
+
+        await teamDynamoRepository.getTeamUserRelationship(mockTeamId, mockUserId);
+
+        expect(teamDynamoRepository.get).toHaveBeenCalledTimes(1);
+        expect(teamDynamoRepository.get).toHaveBeenCalledWith(expectedDynamoInput, "Team-User Relationship");
+      });
+
+      it("returns the item returned by this.get", async () => {
+        const teamUserRelationship = await teamDynamoRepository.getTeamUserRelationship(mockTeamId, mockUserId);
+
+        expect(teamUserRelationship).toEqual(mockTeamUserRelationship);
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when this.get throws an error", () => {
+        beforeEach(() => {
+          spyOn(teamDynamoRepository, "get").and.throwError(mockError);
+        });
+
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await teamDynamoRepository.getTeamUserRelationship(mockTeamId, mockUserId);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in getTeamUserRelationship", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamDynamoRepository.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await teamDynamoRepository.getTeamUserRelationship(mockTeamId, mockUserId);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
+
+  describe("deleteTeamUserRelationship", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         documentClient.delete.and.returnValue(generateAwsResponse({}));
@@ -182,7 +259,7 @@ describe("TeamDynamoRepository", () => {
           },
         };
 
-        await teamDynamoRepository.removeUserFromTeam(mockTeamId, mockUserId);
+        await teamDynamoRepository.deleteTeamUserRelationship(mockTeamId, mockUserId);
 
         expect(documentClient.delete).toHaveBeenCalledTimes(1);
         expect(documentClient.delete).toHaveBeenCalledWith(expectedDynamoInput);
@@ -197,18 +274,18 @@ describe("TeamDynamoRepository", () => {
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamDynamoRepository.removeUserFromTeam(mockTeamId, mockUserId);
+            await teamDynamoRepository.deleteTeamUserRelationship(mockTeamId, mockUserId);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in removeUserFromTeam", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in deleteTeamUserRelationship", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamDynamoRepository.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamDynamoRepository.removeUserFromTeam(mockTeamId, mockUserId);
+            await teamDynamoRepository.deleteTeamUserRelationship(mockTeamId, mockUserId);
 
             fail("Should have thrown");
           } catch (error) {
@@ -219,13 +296,13 @@ describe("TeamDynamoRepository", () => {
     });
   });
 
-  describe("getTeamMembershipsByTeamId", () => {
+  describe("getTeamUserRelationshipsByTeamId", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        documentClient.query.and.returnValue(generateAwsResponse({ Items: [ mockMembership ] }));
+        spyOn(teamDynamoRepository, "query").and.returnValue({ Items: [ mockTeamUserRelationship ], LastEvaluatedKey: mockKey });
       });
 
-      it("calls documentClient.query with the correct params", async () => {
+      it("calls this.query with the correct params", async () => {
         const expectedDynamoInput = {
           TableName: mockCoreTableName,
           KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
@@ -239,51 +316,39 @@ describe("TeamDynamoRepository", () => {
           },
         };
 
-        await teamDynamoRepository.getTeamMembershipsByTeamId(mockTeamId);
+        await teamDynamoRepository.getTeamUserRelationshipsByTeamId(mockTeamId);
 
-        expect(documentClient.query).toHaveBeenCalledTimes(1);
-        expect(documentClient.query).toHaveBeenCalledWith(expectedDynamoInput);
+        expect(teamDynamoRepository.query).toHaveBeenCalledTimes(1);
+        expect(teamDynamoRepository.query).toHaveBeenCalledWith(expectedDynamoInput);
       });
 
-      it("returns the userIds from the membership items returned by documentClient.quer", async () => {
-        const userIds = await teamDynamoRepository.getTeamMembershipsByTeamId(mockTeamId);
+      it("returns the Items returned by this.query", async () => {
+        const teamUserRelationships = await teamDynamoRepository.getTeamUserRelationshipsByTeamId(mockTeamId);
 
-        expect(userIds).toEqual([ mockMembership.userId ]);
+        expect(teamUserRelationships).toEqual([ mockTeamUserRelationship ]);
       });
     });
 
     describe("under error conditions", () => {
-      describe("When documentClient.query doesn't return an Items prop", () => {
+      describe("when this.query throws an error", () => {
         beforeEach(() => {
-          documentClient.query.and.returnValue(generateAwsResponse({}));
-        });
-
-        it("returns an empty array", async () => {
-          const userIds = await teamDynamoRepository.getTeamMembershipsByTeamId(mockTeamId);
-
-          expect(userIds).toEqual([]);
-        });
-      });
-
-      describe("when documentClient.query throws an error", () => {
-        beforeEach(() => {
-          documentClient.query.and.throwError(mockError);
+          spyOn(teamDynamoRepository, "query").and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamDynamoRepository.getTeamMembershipsByTeamId(mockTeamId);
+            await teamDynamoRepository.getTeamUserRelationshipsByTeamId(mockTeamId);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in getTeamMembershipsByTeamId", { error: mockError, teamId: mockTeamId }, teamDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in getTeamUserRelationshipsByTeamId", { error: mockError, teamId: mockTeamId }, teamDynamoRepository.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamDynamoRepository.getTeamMembershipsByTeamId(mockTeamId);
+            await teamDynamoRepository.getTeamUserRelationshipsByTeamId(mockTeamId);
 
             fail("Should have thrown");
           } catch (error) {
