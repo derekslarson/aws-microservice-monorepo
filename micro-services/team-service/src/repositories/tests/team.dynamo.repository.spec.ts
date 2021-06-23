@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { DocumentClientFactory, generateAwsResponse, IdService, LoggerService, Spied, TestSupport } from "@yac/core";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
+import { Role } from "../../enums/role.enum";
 import { Team } from "../../models/team.model";
 import { TeamDynamoRepository, TeamRepositoryInterface } from "../team.dynamo.repository";
 
@@ -20,6 +21,7 @@ describe("TeamDynamoRepository", () => {
   const mockRawId = "mock-id";
   const mockTeamId = `TEAM#${mockRawId}`;
   const mockUserId = `USER#${mockRawId}`;
+  const mockRole = Role.User;
   const mockName = "mock-name";
   const mockCreatedBy = "mock-created-by";
   const mockMembership = { userId: mockUserId, teamId: mockTeamId };
@@ -124,10 +126,11 @@ describe("TeamDynamoRepository", () => {
             type: "TEAM-MEMBERSHIP:USER",
             teamId: mockTeamId,
             userId: mockUserId,
+            role: mockRole,
           },
         };
 
-        await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId);
+        await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId, mockRole);
 
         expect(documentClient.put).toHaveBeenCalledTimes(1);
         expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoInput);
@@ -142,7 +145,7 @@ describe("TeamDynamoRepository", () => {
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId);
+            await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId, mockRole);
 
             fail("Should have thrown");
           } catch (error) {
@@ -153,7 +156,7 @@ describe("TeamDynamoRepository", () => {
 
         it("throws the caught error", async () => {
           try {
-            await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId);
+            await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId, mockRole);
 
             fail("Should have thrown");
           } catch (error) {
@@ -216,7 +219,7 @@ describe("TeamDynamoRepository", () => {
     });
   });
 
-  describe("getUsersByTeamId", () => {
+  describe("getTeamMembershipsByTeamId", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         documentClient.query.and.returnValue(generateAwsResponse({ Items: [ mockMembership ] }));
@@ -236,14 +239,14 @@ describe("TeamDynamoRepository", () => {
           },
         };
 
-        await teamDynamoRepository.getUsersByTeamId(mockTeamId);
+        await teamDynamoRepository.getTeamMembershipsByTeamId(mockTeamId);
 
         expect(documentClient.query).toHaveBeenCalledTimes(1);
         expect(documentClient.query).toHaveBeenCalledWith(expectedDynamoInput);
       });
 
       it("returns the userIds from the membership items returned by documentClient.quer", async () => {
-        const userIds = await teamDynamoRepository.getUsersByTeamId(mockTeamId);
+        const userIds = await teamDynamoRepository.getTeamMembershipsByTeamId(mockTeamId);
 
         expect(userIds).toEqual([ mockMembership.userId ]);
       });
@@ -256,7 +259,7 @@ describe("TeamDynamoRepository", () => {
         });
 
         it("returns an empty array", async () => {
-          const userIds = await teamDynamoRepository.getUsersByTeamId(mockTeamId);
+          const userIds = await teamDynamoRepository.getTeamMembershipsByTeamId(mockTeamId);
 
           expect(userIds).toEqual([]);
         });
@@ -269,18 +272,18 @@ describe("TeamDynamoRepository", () => {
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamDynamoRepository.getUsersByTeamId(mockTeamId);
+            await teamDynamoRepository.getTeamMembershipsByTeamId(mockTeamId);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in getUsersByTeamId", { error: mockError, teamId: mockTeamId }, teamDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in getTeamMembershipsByTeamId", { error: mockError, teamId: mockTeamId }, teamDynamoRepository.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamDynamoRepository.getUsersByTeamId(mockTeamId);
+            await teamDynamoRepository.getTeamMembershipsByTeamId(mockTeamId);
 
             fail("Should have thrown");
           } catch (error) {
