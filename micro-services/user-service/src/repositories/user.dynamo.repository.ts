@@ -22,7 +22,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
     try {
       this.loggerService.trace("createUser called", { user }, this.constructor.name);
 
-      const id = `USER#${user.id}`;
+      const id = `USER-${user.id}`;
 
       const userEntity: RawEntity<User> = {
         type: "USER",
