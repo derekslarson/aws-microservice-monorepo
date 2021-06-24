@@ -30,7 +30,7 @@ describe("UserDynamoRepository", () => {
   });
 
   describe("createUser", () => {
-    const mockYacId = `USER#${mockCognitoId}`;
+    const mockYacId = `USER-${mockCognitoId}`;
 
     const mockUserInput: User = {
       id: mockCognitoId,
