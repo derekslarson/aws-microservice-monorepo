@@ -63,7 +63,7 @@ describe("BaseController", () => {
       it("returns the sub claim in the request context's jwt, formatted correctly", () => {
         const userId = testController.getUserIdFromRequestWithJwt(mockRequest);
 
-        expect(userId).toBe(`USER#${mockRawUserId}`);
+        expect(userId).toBe(`USER-${mockRawUserId}`);
       });
     });
 

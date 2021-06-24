@@ -19,8 +19,8 @@ describe("TeamDynamoRepository", () => {
   const mockCoreTableName = "mock-core-table-name";
   const mockEnvConfig = { tableNames: { core: mockCoreTableName } };
   const mockRawId = "mock-id";
-  const mockTeamId = `TEAM#${mockRawId}`;
-  const mockUserId = `USER#${mockRawId}`;
+  const mockTeamId = `TEAM-${mockRawId}`;
+  const mockUserId = `USER-${mockRawId}`;
   const mockKey = { pk: mockTeamId, sk: mockUserId };
   const mockRole = Role.User;
   const mockName = "mock-name";
@@ -312,7 +312,7 @@ describe("TeamDynamoRepository", () => {
           },
           ExpressionAttributeValues: {
             ":pk": mockTeamId,
-            ":user": "USER#",
+            ":user": "USER-",
           },
         };
 

@@ -30,7 +30,7 @@ export abstract class BaseController {
       throw new ForbiddenError("Forbidden");
     }
 
-    return `USER#${rawUserId as string}`;
+    return `USER-${rawUserId as string}`;
   }
 
   protected generateSuccessResponse(body: Body | string, headers: Record<string, string> = {}, cookies: string[] = []): SuccessResponse {

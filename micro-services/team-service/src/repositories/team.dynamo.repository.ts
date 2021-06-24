@@ -24,7 +24,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
     try {
       this.loggerService.trace("createTeam called", { team }, this.constructor.name);
 
-      const id = `TEAM#${this.idService.generateId()}`;
+      const id = `TEAM-${this.idService.generateId()}`;
 
       const teamEntity: RawEntity<Team> = {
         type: "TEAM",
@@ -140,7 +140,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
         },
         ExpressionAttributeValues: {
           ":pk": teamId,
-          ":user": "USER#",
+          ":user": "USER-",
         },
       });
 
