@@ -36,7 +36,10 @@ export class YacTeamServiceStack extends YacHttpServiceStack {
     });
 
     // Databases
-    const coreTable = DynamoDB.Table.fromTableName(this, "CoreTable", coreTableName);
+    const coreTable = DynamoDB.Table.fromTableAttributes(this, "CoreTable", {
+      tableName: coreTableName,
+      globalIndexes: [],
+    });
 
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
@@ -91,7 +94,7 @@ export class YacTeamServiceStack extends YacHttpServiceStack {
     coreTable.grantFullAccess(createTeamHandler);
     coreTable.grantFullAccess(addUserToTeamHandler);
     coreTable.grantFullAccess(removeUserFromTeamHandler);
-    coreTable.grantFullAccess(getUsersByTeamIdHandler);
+    coreTable.grantReadData(getUsersByTeamIdHandler);
 
     const routes: RouteProps[] = [
       {
