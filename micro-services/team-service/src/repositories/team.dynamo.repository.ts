@@ -1,13 +1,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Team, Role, TeamUserRelationship } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { Team } from "../models/team.model";
-import { Role } from "../enums/role.enum";
-import { TeamUserRelationship } from "../models/team.user.relationship.model";
 
 @injectable()
 export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implements TeamRepositoryInterface {

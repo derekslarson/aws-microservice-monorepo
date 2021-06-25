@@ -1,61 +1,29 @@
-export * from "./infra/constructs/http.api";
+export * from "./infra/constructs";
 
-export * from "./src/config/env.config";
+export * from "./src/api-contracts";
 
-export * from "./src/decorators/isOptionalIf.validation.decorator";
+export * from "./src/config";
 
-export * from "./src/controllers/base.controller";
-export * from "./src/controllers/dynamoStream.controller";
-export * from "./src/controllers/snsEvent.controller";
+export * from "./src/controllers";
 
-export * from "./src/enums/environment.enum";
-export * from "./src/enums/exportNames.enum";
-export * from "./src/enums/http.method.enum";
-export * from "./src/enums/logLevel.enum";
-export * from "./src/enums/statusCode.enum";
-export * from "./src/enums/request.portion.enum";
+export * from "./src/decorators";
 
-export * from "./src/errors/badRequest.error";
-export * from "./src/errors/base.error";
-export * from "./src/errors/forbidden.error";
-export * from "./src/errors/notFound.error";
-export * from "./src/errors/unauthorized.error";
+export * from "./src/enums";
 
-export * from "./src/factories/axios.factory";
-export * from "./src/factories/classTransformer.factory";
-export * from "./src/factories/classValidator.factory";
-export * from "./src/factories/documentClient.factory";
-export * from "./src/factories/errorSerializer.factory";
-export * from "./src/factories/logWriter.factory";
-export * from "./src/factories/unmarshall.factory";
-export * from "./src/factories/uuidV4.factory";
+export * from "./src/errors";
 
-export * from "./src/inversion-of-control/container";
-export * from "./src/inversion-of-control/types";
+export * from "./src/factories";
 
-export * from "./src/models/http/request.model";
-export * from "./src/models/http/response.model";
+export * from "./src/inversion-of-control";
 
-export * from "./src/repositories/base.dynamo.repository";
-export * from "./src/repositories/base.dynamo.repository.v2";
+export * from "./src/models";
 
-export * from "./src/services/clientsUpdated.sns.service";
-export * from "./src/services/userSignedUp.sns.service";
-export * from "./src/services/id.service";
-export * from "./src/services/http.request.service";
-export * from "./src/services/logger.service";
-export * from "./src/services/validation.service";
-export * from "./src/services/interfaces/dynamo.processor.service.interface";
-export * from "./src/services/interfaces/sns.processor.service.interface";
+export * from "./src/repositories";
 
-export * from "./src/test-support/index";
-export * from "./src/test-support/generateAwsResponse";
-export * from "./src/test-support/generateMockRequest";
+export * from "./src/services";
 
-export * from "./src/types/recursivePartial.type";
-export * from "./src/types/timestamp.type";
+export * from "./src/test-support";
 
-export * from "./src/util/internalServerError.response.generator";
+export * from "./src/types";
 
-export * from "./src/api-contracts/auth.service";
-export * from "./src/api-contracts/sns.topics";
+export * from "./src/util";

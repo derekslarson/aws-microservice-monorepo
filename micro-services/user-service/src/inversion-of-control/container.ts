@@ -5,6 +5,7 @@ import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { UserSignedUpProcessorService } from "../services/userSignedUp.processor.service";
 import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
 import { UserService, UserServiceInterface } from "../services/user.service";
+import { UserController, UserControllerInterface } from "../controllers/user.controller";
 
 const container = new Container();
 
@@ -14,6 +15,8 @@ try {
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
 
   container.bind<SnsProcessorServiceInterface>(TYPES.UserSignedUpProcessorServiceInterface).to(UserSignedUpProcessorService);
+
+  container.bind<UserControllerInterface>(TYPES.UserControllerInterface).to(UserController);
 
   container.bind<UserServiceInterface>(TYPES.UserServiceInterface).to(UserService);
 

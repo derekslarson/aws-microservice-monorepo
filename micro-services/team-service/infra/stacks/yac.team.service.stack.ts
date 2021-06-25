@@ -110,7 +110,7 @@ export class YacTeamServiceStack extends YacHttpServiceStack {
         path: "/teams/{teamId}/users",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUsersByTeamIdHandler,
-        authorizationScopes: [ "yac/team.read" ],
+        authorizationScopes: [ "yac/team.read", "yac/user.read" ],
       },
       {
         path: "/teams/{teamId}/users/{userId}",

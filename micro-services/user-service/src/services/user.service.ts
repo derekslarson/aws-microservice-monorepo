@@ -1,9 +1,8 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/core";
+import { LoggerServiceInterface, TeamUserRelationship, User } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface } from "../repositories/user.dynamo.repository";
 import { UserCreationInput } from "../models/user.creation.input.model";
-import { User } from "../models/user.model";
 
 @injectable()
 export class UserService implements UserServiceInterface {
@@ -31,8 +30,23 @@ export class UserService implements UserServiceInterface {
       throw error;
     }
   }
+
+  public async getTeamsByUserId(userId: string): Promise<Omit<TeamUserRelationship, "userId">[]> {
+    try {
+      this.loggerService.trace("getTeamsByUserId called", { userId }, this.constructor.name);
+
+      const teamUserRelationships = await this.userRepository.getTeamUserRelationshipsByUserId(userId);
+
+      return teamUserRelationships.map(({ teamId, role }) => ({ teamId, role }));
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getTeamsByUserId", { error, userId }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface UserServiceInterface {
   createUser(userCreationInput: UserCreationInput): Promise<User>;
+  getTeamsByUserId(userId: string): Promise<Omit<TeamUserRelationship, "userId">[]>;
 }

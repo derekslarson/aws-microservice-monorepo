@@ -15,6 +15,7 @@ import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as IAM from "@aws-cdk/aws-iam";
 import { generateExportNames } from "../../src/enums/exportNames.enum";
 import { Environment } from "../../src/enums/environment.enum";
+import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacCoreServiceStack extends CDK.Stack {
   constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
@@ -93,6 +94,12 @@ export class YacCoreServiceStack extends CDK.Stack {
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
       removalPolicy: CDK.RemovalPolicy.DESTROY,
+    });
+
+    coreTable.addGlobalSecondaryIndex({
+      indexName: GlobalSecondaryIndex.One,
+      partitionKey: { name: "gsi1pk", type: DynamoDB.AttributeType.STRING },
+      sortKey: { name: "gsi1sk", type: DynamoDB.AttributeType.STRING },
     });
 
     new CDK.CfnOutput(this, `${id}-CustomDomainNameExport`, {

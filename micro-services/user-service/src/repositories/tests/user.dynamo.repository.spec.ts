@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { DocumentClientFactory, generateAwsResponse, IdService, LoggerService, Spied, TestSupport } from "@yac/core";
+import { DocumentClientFactory, generateAwsResponse, IdService, LoggerService, Role, Spied, TestSupport, User } from "@yac/core";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
-import { User } from "../../models/user.model";
 import { UserDynamoRepository, UserRepositoryInterface } from "../user.dynamo.repository";
 
 interface UserDynamoRepositoryWithAnyMethod extends UserRepositoryInterface {
@@ -16,10 +15,19 @@ describe("UserDynamoRepository", () => {
   const documentClientFactory: DocumentClientFactory = () => documentClient;
 
   const mockCoreTableName = "mock-core-table-name";
-  const mockEnvConfig = { tableNames: { core: mockCoreTableName } };
+  const mockGsiOneIndexName = "mock-gsi-one-index-name";
+  const mockEnvConfig = {
+    tableNames: { core: mockCoreTableName },
+    globalSecondaryIndexNames: { one: mockGsiOneIndexName },
+  };
   const mockCognitoId = "mock-id";
+  const mockUserId = `USER-${mockCognitoId}`;
+  const mockTeamId = "mock-teamId";
+  const mockKey = { pk: mockTeamId, sk: mockUserId };
+  const mockRole = Role.User;
   const mockEmail = "mock@email.com";
   const mockError = new Error("mock-error");
+  const mockTeamUserRelationship = { userId: mockUserId, teamId: mockTeamId, role: mockRole };
 
   beforeEach(() => {
     documentClient = TestSupport.spyOnClass(DocumentClient);
@@ -30,15 +38,13 @@ describe("UserDynamoRepository", () => {
   });
 
   describe("createUser", () => {
-    const mockYacId = `USER-${mockCognitoId}`;
-
     const mockUserInput: User = {
       id: mockCognitoId,
       email: mockEmail,
     };
 
     const mockCreatedUser: User = {
-      id: mockYacId,
+      id: mockUserId,
       email: mockEmail,
     };
 
@@ -52,9 +58,9 @@ describe("UserDynamoRepository", () => {
           TableName: mockCoreTableName,
           Item: {
             type: "USER",
-            pk: mockYacId,
-            sk: mockYacId,
-            id: mockYacId,
+            pk: mockUserId,
+            sk: mockUserId,
+            id: mockUserId,
             email: mockEmail,
           },
         };
@@ -92,6 +98,70 @@ describe("UserDynamoRepository", () => {
         it("throws the caught error", async () => {
           try {
             await userDynamoRepository.createUser(mockUserInput);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
+
+  describe("getTeamUserRelationshipsByUserId", () => {
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        spyOn(userDynamoRepository, "query").and.returnValue({ Items: [ mockTeamUserRelationship ], LastEvaluatedKey: mockKey });
+      });
+
+      it("calls this.query with the correct params", async () => {
+        const expectedDynamoInput = {
+          TableName: mockCoreTableName,
+          IndexName: mockGsiOneIndexName,
+          KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :team)",
+          ExpressionAttributeNames: {
+            "#gsi1pk": "gsi1pk",
+            "#gsi1sk": "gsi1sk",
+          },
+          ExpressionAttributeValues: {
+            ":gsi1pk": mockUserId,
+            ":team": "TEAM-",
+          },
+        };
+
+        await userDynamoRepository.getTeamUserRelationshipsByUserId(mockUserId);
+
+        expect(userDynamoRepository.query).toHaveBeenCalledTimes(1);
+        expect(userDynamoRepository.query).toHaveBeenCalledWith(expectedDynamoInput);
+      });
+
+      it("returns the Items returned by this.query", async () => {
+        const userUserRelationships = await userDynamoRepository.getTeamUserRelationshipsByUserId(mockUserId);
+
+        expect(userUserRelationships).toEqual([ mockTeamUserRelationship ]);
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when this.query throws an error", () => {
+        beforeEach(() => {
+          spyOn(userDynamoRepository, "query").and.throwError(mockError);
+        });
+
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await userDynamoRepository.getTeamUserRelationshipsByUserId(mockUserId);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in getTeamUserRelationshipsByUserId", { error: mockError, userId: mockUserId }, userDynamoRepository.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await userDynamoRepository.getTeamUserRelationshipsByUserId(mockUserId);
 
             fail("Should have thrown");
           } catch (error) {

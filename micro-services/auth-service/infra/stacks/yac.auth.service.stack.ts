@@ -110,6 +110,9 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const resourceServerIdentifier = "yac";
 
     const resourceServerScopes: Cognito.ResourceServerScope[] = [
+      { scopeName: "user.read", scopeDescription: "Read users" },
+      { scopeName: "user.write", scopeDescription: "Write users" },
+      { scopeName: "user.delete", scopeDescription: "Delete users" },
       { scopeName: "message.read", scopeDescription: "Read messages" },
       { scopeName: "message.write", scopeDescription: "Write messages" },
       { scopeName: "message.delete", scopeDescription: "Delete messages" },

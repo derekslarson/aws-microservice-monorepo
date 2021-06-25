@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { DocumentClientFactory, generateAwsResponse, IdService, LoggerService, Spied, TestSupport } from "@yac/core";
+import { DocumentClientFactory, generateAwsResponse, IdService, LoggerService, Role, Spied, Team, TestSupport } from "@yac/core";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
-import { Role } from "../../enums/role.enum";
-import { Team } from "../../models/team.model";
 import { TeamDynamoRepository, TeamRepositoryInterface } from "../team.dynamo.repository";
 
 interface TeamDynamoRepositoryWithAnyMethod extends TeamRepositoryInterface {

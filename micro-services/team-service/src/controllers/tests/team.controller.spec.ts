@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService, ForbiddenError } from "@yac/core";
-import { Role } from "../../enums/role.enum";
+import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService, ForbiddenError, Role } from "@yac/core";
 import { TeamAddMemberBodyInputDto, TeamAddMemberPathParametersInputDto } from "../../models/team.addMember.input.model";
 import { TeamCreationBodyInputDto } from "../../models/team.creation.input.model";
 import { TeamRemoveMemberPathParametersInputDto } from "../../models/team.removeMember.input.model";

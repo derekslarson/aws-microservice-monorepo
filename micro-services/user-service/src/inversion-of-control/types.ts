@@ -4,6 +4,8 @@ const TYPES = {
   ...CORE_TYPES,
   UserSignedUpProcessorServiceInterface: Symbol.for("UserSignedUpProcessorServiceInterface"),
 
+  UserControllerInterface: Symbol.for("UserControllerInterface"),
+
   UserServiceInterface: Symbol.for("UserServiceInterface"),
 
   UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),

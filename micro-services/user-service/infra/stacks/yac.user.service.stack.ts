@@ -3,10 +3,13 @@ import * as CDK from "@aws-cdk/core";
 import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Lambda from "@aws-cdk/aws-lambda";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import {
   Environment,
   generateExportNames,
   LogLevel,
+  RouteProps,
+  GlobalSecondaryIndex,
 } from "@yac/core";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/core/infra/stacks/yac.http.service.stack";
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
@@ -47,6 +50,7 @@ export class YacUserServiceStack extends YacHttpServiceStack {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       USER_SIGNED_UP_SNS_TOPIC_ARN: userSignedUpSnsTopicArn,
       CORE_TABLE_NAME: coreTableName,
+      GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
     };
 
     // Handlers
@@ -63,7 +67,29 @@ export class YacUserServiceStack extends YacHttpServiceStack {
       ],
     });
 
+    const getTeamsByUserIdHandler = new Lambda.Function(this, `GetTeamsByUserId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getTeamsByUserId"),
+      handler: "getTeamsByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const routes: RouteProps[] = [
+      {
+        path: "/users/{userId}/teams",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: getTeamsByUserIdHandler,
+        authorizationScopes: [ "yac/user.read", "yac/team.read" ],
+      },
+    ];
+
+    routes.forEach((route) => this.httpApi.addRoute(route));
+
     // permissions for the handler
-    coreTable.grantWriteData(userSignedUpHandler);
+    coreTable.grantFullAccess(userSignedUpHandler);
+    coreTable.grantFullAccess(getTeamsByUserIdHandler);
   }
 }

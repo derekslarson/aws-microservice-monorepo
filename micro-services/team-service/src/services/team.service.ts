@@ -1,12 +1,8 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError } from "@yac/core";
+import { LoggerServiceInterface, NotFoundError, Role, Team, TeamUserRelationship } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamRepositoryInterface } from "../repositories/team.dynamo.repository";
 import { TeamCreationBodyInputDto } from "../models/team.creation.input.model";
-import { Team } from "../models/team.model";
-import { Role } from "../enums/role.enum";
-import { TeamUserRelationship } from "../models/team.user.relationship.model";
-
 @injectable()
 export class TeamService implements TeamServiceInterface {
   constructor(
