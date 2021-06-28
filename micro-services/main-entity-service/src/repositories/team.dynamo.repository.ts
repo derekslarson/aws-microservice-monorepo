@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Team, Role, TeamUserRelationship } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Team, Role, TeamUserRelationship, TeamConversationRelationship, IdPrefix, EntityType } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
@@ -25,10 +25,10 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
     try {
       this.loggerService.trace("createTeam called", { team }, this.constructor.name);
 
-      const id = `TEAM-${this.idService.generateId()}`;
+      const id = `${IdPrefix.Team}-${this.idService.generateId()}`;
 
       const teamEntity: RawEntity<Team> = {
-        type: "TEAM",
+        type: EntityType.Team,
         pk: id,
         sk: id,
         id,
@@ -36,31 +36,10 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
         createdBy: team.createdBy,
       };
 
-      await this.documentClient.transactWrite({
-        TransactItems: [
-          {
-            Put: {
-              TableName: this.tableName,
-              Item: teamEntity,
-            },
-          },
-          {
-            Put: {
-              TableName: this.tableName,
-              Item: {
-                pk: id,
-                sk: team.createdBy,
-                gsi1pk: team.createdBy,
-                gsi1sk: id,
-                type: "TEAM-USER-RELATIONSHIP",
-                teamId: id,
-                userId: team.createdBy,
-                role: Role.Admin,
-              },
-            },
-          },
-        ],
-      }).promise();
+      await Promise.all([
+        this.documentClient.put({ TableName: this.tableName, Item: teamEntity }).promise(),
+        this.addUserToTeam(id, team.createdBy, Role.Admin),
+      ]);
 
       return this.cleanse(teamEntity);
     } catch (error: unknown) {
@@ -70,16 +49,16 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
     }
   }
 
-  public async createTeamUserRelationship(teamId: string, userId: string, role: Role): Promise<void> {
+  public async addUserToTeam(teamId: string, userId: string, role: Role): Promise<void> {
     try {
-      this.loggerService.trace("createTeamUserRelationship called", { teamId, userId }, this.constructor.name);
+      this.loggerService.trace("addUserToTeam called", { teamId, userId, role }, this.constructor.name);
 
-      const teamMembership: RawEntity<TeamUserRelationship> = {
+      const teamUserRelationship: RawEntity<TeamUserRelationship> = {
         pk: teamId,
         sk: userId,
         gsi1pk: userId,
         gsi1sk: teamId,
-        type: "TEAM-USER-RELATIONSHIP",
+        type: EntityType.TeamUserRelationship,
         teamId,
         userId,
         role,
@@ -87,10 +66,10 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
 
       await this.documentClient.put({
         TableName: this.tableName,
-        Item: teamMembership,
+        Item: teamUserRelationship,
       }).promise();
     } catch (error: unknown) {
-      this.loggerService.error("Error in createTeamUserRelationship", { error, teamId, userId }, this.constructor.name);
+      this.loggerService.error("Error in addUserToTeam", { error, teamId, userId, role }, this.constructor.name);
 
       throw error;
     }
@@ -110,16 +89,16 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
     }
   }
 
-  public async deleteTeamUserRelationship(teamId: string, userId: string): Promise<void> {
+  public async removeUserFromTeam(teamId: string, userId: string): Promise<void> {
     try {
-      this.loggerService.trace("deleteTeamUserRelationship called", { teamId, userId }, this.constructor.name);
+      this.loggerService.trace("removeUserFromTeam called", { teamId, userId }, this.constructor.name);
 
       await this.documentClient.delete({
         TableName: this.tableName,
         Key: { pk: teamId, sk: userId },
       }).promise();
     } catch (error: unknown) {
-      this.loggerService.error("Error in deleteTeamUserRelationship", { error, teamId, userId }, this.constructor.name);
+      this.loggerService.error("Error in removeUserFromTeam", { error, teamId, userId }, this.constructor.name);
 
       throw error;
     }
@@ -137,7 +116,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
         },
         ExpressionAttributeValues: {
           ":pk": teamId,
-          ":user": "USER-",
+          ":user": IdPrefix.User,
         },
       });
 
@@ -162,7 +141,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
         },
         ExpressionAttributeValues: {
           ":gsi1pk": userId,
-          ":team": "TEAM-",
+          ":team": IdPrefix.Team,
         },
       });
 
@@ -175,13 +154,53 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
       throw error;
     }
   }
+
+  public async addConversationToTeam(teamId: string, conversationId: string): Promise<void> {
+    try {
+      this.loggerService.trace("addConversationToTeam called", { teamId, conversationId }, this.constructor.name);
+
+      const teamConversationRelationship: RawEntity<TeamConversationRelationship> = {
+        pk: teamId,
+        sk: conversationId,
+        type: EntityType.TeamConversationRelationship,
+        teamId,
+        conversationId,
+      };
+
+      await this.documentClient.put({
+        TableName: this.tableName,
+        Item: teamConversationRelationship,
+      }).promise();
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addConversationToTeam", { error, teamId, conversationId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async removeConversationFromTeam(teamId: string, conversationId: string): Promise<void> {
+    try {
+      this.loggerService.trace("removeConversationFromTeam called", { teamId, conversationId }, this.constructor.name);
+
+      await this.documentClient.delete({
+        TableName: this.tableName,
+        Key: { pk: teamId, sk: conversationId },
+      }).promise();
+    } catch (error: unknown) {
+      this.loggerService.error("Error in removeConversationFromTeam", { error, teamId, conversationId }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface TeamRepositoryInterface {
   createTeam(team: Omit<Team, "id">): Promise<Team>;
-  createTeamUserRelationship(teamId: string, userId: string, role: Role): Promise<void>;
+  addUserToTeam(teamId: string, userId: string, role: Role): Promise<void>;
+  removeUserFromTeam(teamId: string, userId: string): Promise<void>;
   getTeamUserRelationship(teamId: string, userId: string): Promise<TeamUserRelationship>;
-  deleteTeamUserRelationship(teamId: string, userId: string): Promise<void>;
+  addConversationToTeam(teamId: string, conversationId: string): Promise<void>;
+  removeConversationFromTeam(teamId: string, conversationId: string): Promise<void>;
   getTeamsByUserId(teamId: string): Promise<Team[]>;
 }
 

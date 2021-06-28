@@ -44,9 +44,24 @@ export class UserService implements UserServiceInterface {
       throw error;
     }
   }
+
+  public async getUsersByConversationId(teamId: string): Promise<User[]> {
+    try {
+      this.loggerService.trace("getUsersByConversationId called", { teamId }, this.constructor.name);
+
+      const users = await this.userRepository.getUsersByConversationId(teamId);
+
+      return users;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersByConversationId", { error, teamId }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface UserServiceInterface {
   createUser(userCreationInput: UserCreationInput): Promise<User>;
   getUsersByTeamId(teamId: string): Promise<User[]>;
+  getUsersByConversationId(teamId: string): Promise<User[]>;
 }

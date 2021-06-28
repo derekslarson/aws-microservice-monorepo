@@ -1,188 +1,231 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Team, Role, TeamUserRelationship } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Conversation, Role, ConversationUserRelationship, ConversationType, TeamConversationRelationship, IdPrefix, EntityType } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 
 @injectable()
-export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implements TeamRepositoryInterface {
+export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Conversation> implements ConversationRepositoryInterface {
   private gsiOneIndexName: string;
 
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
     @inject(TYPES.IdServiceInterface) idService: IdServiceInterface,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: TeamRepositoryConfigType,
+    @inject(TYPES.EnvConfigInterface) envConfig: ConversationRepositoryConfigType,
   ) {
     super(documentClientFactory, envConfig.tableNames.core, idService, loggerService);
-
     this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
   }
 
-  public async createTeam(team: Omit<Team, "id">): Promise<Team> {
+  public async createDmConversation(userIdA: string, userIdB: string): Promise<Conversation> {
     try {
-      this.loggerService.trace("createTeam called", { team }, this.constructor.name);
+      this.loggerService.trace("createDmConversation called", { userIdA, userIdB }, this.constructor.name);
 
-      const id = `TEAM-${this.idService.generateId()}`;
+      const id = `${IdPrefix.DmConversation}-${[ userIdA, userIdB ].sort().join("-")}`;
 
-      const teamEntity: RawEntity<Team> = {
-        type: "TEAM",
+      const conversationEntity: RawEntity<Conversation> = {
+        type: EntityType.DmConversation,
         pk: id,
         sk: id,
         id,
-        name: team.name,
-        createdBy: team.createdBy,
-      };
-
-      await this.documentClient.transactWrite({
-        TransactItems: [
-          {
-            Put: {
-              TableName: this.tableName,
-              Item: teamEntity,
-            },
-          },
-          {
-            Put: {
-              TableName: this.tableName,
-              Item: {
-                pk: id,
-                sk: team.createdBy,
-                gsi1pk: team.createdBy,
-                gsi1sk: id,
-                type: "TEAM-USER-RELATIONSHIP",
-                teamId: id,
-                userId: team.createdBy,
-                role: Role.Admin,
-              },
-            },
-          },
-        ],
-      }).promise();
-
-      return this.cleanse(teamEntity);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in createTeam", { error, team }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async createTeamUserRelationship(teamId: string, userId: string, role: Role): Promise<void> {
-    try {
-      this.loggerService.trace("createTeamUserRelationship called", { teamId, userId }, this.constructor.name);
-
-      const teamMembership: RawEntity<TeamUserRelationship> = {
-        pk: teamId,
-        sk: userId,
-        gsi1pk: userId,
-        gsi1sk: teamId,
-        type: "TEAM-USER-RELATIONSHIP",
-        teamId,
-        userId,
-        role,
+        conversationType: ConversationType.DM,
       };
 
       await this.documentClient.put({
         TableName: this.tableName,
-        Item: teamMembership,
+        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
+        Item: conversationEntity,
+      }).promise();
+
+      await Promise.all([ userIdA, userIdB ].map((userId) => this.addUserToConversation(id, userId, Role.Admin)));
+
+      return this.cleanse(conversationEntity);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in createDmConversation", { error, userIdA, userIdB }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async createChannelConversation(name: string, createdBy: string): Promise<Conversation> {
+    try {
+      this.loggerService.trace("createConversation called", { name, createdBy }, this.constructor.name);
+
+      const id = `${IdPrefix.ChannelConversation}-${this.idService.generateId()}`;
+
+      const conversationEntity: RawEntity<Conversation> = {
+        type: EntityType.ChannelConversation,
+        pk: id,
+        sk: id,
+        id,
+        conversationType: ConversationType.Channel,
+        name,
+        createdBy,
+      };
+
+      await Promise.all([
+        this.documentClient.put({ TableName: this.tableName, Item: conversationEntity }).promise(),
+        this.addUserToConversation(id, createdBy, Role.Admin),
+      ]);
+
+      return this.cleanse(conversationEntity);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in createConversation", { error, name, createdBy }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async addUserToConversation(conversationId: string, userId: string, role: Role): Promise<void> {
+    try {
+      this.loggerService.trace("addUserToConversation called", { conversationId, userId, role }, this.constructor.name);
+
+      const conversationUserRelationship: RawEntity<ConversationUserRelationship> = {
+        pk: conversationId,
+        sk: userId,
+        gsi1pk: userId,
+        gsi1sk: conversationId,
+        type: EntityType.ConversationUserRelationship,
+        conversationId,
+        userId,
+        role,
+        muted: false,
+      };
+
+      await this.documentClient.put({
+        TableName: this.tableName,
+        Item: conversationUserRelationship,
       }).promise();
     } catch (error: unknown) {
-      this.loggerService.error("Error in createTeamUserRelationship", { error, teamId, userId }, this.constructor.name);
+      this.loggerService.error("Error in addUserToConversation", { error, conversationId, userId, role }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getTeamUserRelationship(teamId: string, userId: string): Promise<TeamUserRelationship> {
+  public async getConversationUserRelationship(conversationId: string, userId: string): Promise<ConversationUserRelationship> {
     try {
-      this.loggerService.trace("getTeamUserRelationship called", { teamId, userId }, this.constructor.name);
+      this.loggerService.trace("getConversationUserRelationship called", { conversationId, userId }, this.constructor.name);
 
-      const teamUserRelationship = await this.get<TeamUserRelationship>({ Key: { pk: teamId, sk: userId } }, "Team-User Relationship");
+      const conversationUserRelationship = await this.get<ConversationUserRelationship>({ Key: { pk: conversationId, sk: userId } }, "Conversation-User Relationship");
 
-      return teamUserRelationship;
+      return conversationUserRelationship;
     } catch (error: unknown) {
-      this.loggerService.error("Error in getTeamUserRelationship", { error, teamId, userId }, this.constructor.name);
+      this.loggerService.error("Error in getConversationUserRelationship", { error, conversationId, userId }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async deleteTeamUserRelationship(teamId: string, userId: string): Promise<void> {
+  public async removeUserFromConversation(conversationId: string, userId: string): Promise<void> {
     try {
-      this.loggerService.trace("deleteTeamUserRelationship called", { teamId, userId }, this.constructor.name);
+      this.loggerService.trace("removeUserFromConversation called", { conversationId, userId }, this.constructor.name);
 
       await this.documentClient.delete({
         TableName: this.tableName,
-        Key: { pk: teamId, sk: userId },
+        Key: { pk: conversationId, sk: userId },
       }).promise();
     } catch (error: unknown) {
-      this.loggerService.error("Error in deleteTeamUserRelationship", { error, teamId, userId }, this.constructor.name);
+      this.loggerService.error("Error in removeUserFromConversation", { error, conversationId, userId }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getTeamUserRelationshipsByTeamId(teamId: string): Promise<TeamUserRelationship[]> {
+  public async getConversationsByUserId(userId: string): Promise<Conversation[]> {
     try {
-      this.loggerService.trace("getTeamUserRelationshipsByTeamId called", { teamId }, this.constructor.name);
+      this.loggerService.trace("getConversationsByUserId called", { userId }, this.constructor.name);
 
-      const { Items: teamUserRelationships } = await this.query<TeamUserRelationship>({
-        KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
-        ExpressionAttributeNames: {
-          "#pk": "pk",
-          "#sk": "sk",
-        },
-        ExpressionAttributeValues: {
-          ":pk": teamId,
-          ":user": "USER-",
-        },
-      });
-
-      return teamUserRelationships;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getTeamUserRelationshipsByTeamId", { error, teamId }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getTeamsByUserId(userId: string): Promise<Team[]> {
-    try {
-      this.loggerService.trace("getTeamsByUserId called", { userId }, this.constructor.name);
-
-      const { Items: teamUserRelationships } = await this.query<TeamUserRelationship>({
+      const { Items: conversationUserRelationships } = await this.query<ConversationUserRelationship>({
         IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :team)",
+        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :conversation)",
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
           "#gsi1sk": "gsi1sk",
         },
         ExpressionAttributeValues: {
           ":gsi1pk": userId,
-          ":team": "TEAM-",
+          ":conversation": IdPrefix.Conversation,
         },
       });
 
-      const teams = await this.batchGet<Team>({ Keys: teamUserRelationships.map((relationship) => ({ pk: relationship.teamId, sk: relationship.teamId })) });
+      const conversations = await this.batchGet<Conversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
 
-      return teams;
+      return conversations;
     } catch (error: unknown) {
-      this.loggerService.error("Error in getTeamsByUserId", { error, userId }, this.constructor.name);
+      this.loggerService.error("Error in getConversationsByUserId", { error, userId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getUnreadConversationsByUserId(userId: string): Promise<Conversation[]> {
+    try {
+      this.loggerService.trace("getUnreadConversationsByUserId called", { userId }, this.constructor.name);
+
+      const { Items: conversationUserRelationships } = await this.query<ConversationUserRelationship>({
+        IndexName: this.gsiOneIndexName,
+        FilterExpression: "attribute_exists(unreadMessages)",
+        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :conversation)",
+        ExpressionAttributeNames: {
+          "#gsi1pk": "gsi1pk",
+          "#gsi1sk": "gsi1sk",
+        },
+        ExpressionAttributeValues: {
+          ":gsi1pk": userId,
+          ":conversation": IdPrefix.Conversation,
+        },
+      });
+
+      const conversations = await this.batchGet<Conversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
+
+      return conversations;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUnreadConversationsByUserId", { error, userId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getConversationsByTeamId(userId: string): Promise<Conversation[]> {
+    try {
+      this.loggerService.trace("getConversationsByTeamId called", { userId }, this.constructor.name);
+
+      const { Items: teamConversationRelationships } = await this.query<TeamConversationRelationship>({
+        KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :conversation)",
+        ExpressionAttributeNames: {
+          "#pk": "pk",
+          "#sk": "sk",
+        },
+        ExpressionAttributeValues: {
+          ":pk": userId,
+          ":conversation": IdPrefix.Conversation,
+        },
+      });
+
+      const conversations = await this.batchGet<Conversation>({ Keys: teamConversationRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
+
+      return conversations;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getConversationsByUserId", { error, userId }, this.constructor.name);
 
       throw error;
     }
   }
 }
 
-export interface TeamRepositoryInterface {
-  createTeam(team: Omit<Team, "id">): Promise<Team>;
-  createTeamUserRelationship(teamId: string, userId: string, role: Role): Promise<void>;
-  getTeamUserRelationship(teamId: string, userId: string): Promise<TeamUserRelationship>;
-  deleteTeamUserRelationship(teamId: string, userId: string): Promise<void>;
-  getTeamsByUserId(teamId: string): Promise<Team[]>;
+export interface ConversationRepositoryInterface {
+  createDmConversation(userIdA: string, userIdB: string): Promise<Conversation>;
+  createChannelConversation(userIdA: string, userIdB: string): Promise<Conversation>;
+  addUserToConversation(conversationId: string, userId: string, role: Role): Promise<void>;
+  removeUserFromConversation(conversationId: string, userId: string): Promise<void>;
+  getConversationUserRelationship(conversationId: string, userId: string): Promise<ConversationUserRelationship>;
+  getConversationsByUserId(userId: string): Promise<Conversation[]>;
+  getUnreadConversationsByUserId(userId: string): Promise<Conversation[]>;
+  getConversationsByTeamId(teamId: string): Promise<Conversation[]>;
 }
 
-type TeamRepositoryConfigType = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
+type ConversationRepositoryConfigType = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;

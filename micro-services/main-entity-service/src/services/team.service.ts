@@ -34,7 +34,7 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("addUserToTeam called", { teamId, userId, role }, this.constructor.name);
 
-      await this.teamRepository.createTeamUserRelationship(teamId, userId, role);
+      await this.teamRepository.addUserToTeam(teamId, userId, role);
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToTeam", { error, teamId, userId, role }, this.constructor.name);
 
@@ -46,7 +46,7 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("removeUserFromTeam called", { teamId, userId }, this.constructor.name);
 
-      await this.teamRepository.deleteTeamUserRelationship(teamId, userId);
+      await this.teamRepository.removeUserFromTeam(teamId, userId);
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromTeam", { error, teamId, userId }, this.constructor.name);
 
@@ -90,9 +90,9 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("isTeamAdmin called", { teamId, userId }, this.constructor.name);
 
-      const membership = await this.teamRepository.getTeamUserRelationship(teamId, userId);
+      const relationship = await this.teamRepository.getTeamUserRelationship(teamId, userId);
 
-      return membership.role === Role.Admin;
+      return relationship.role === Role.Admin;
     } catch (error: unknown) {
       if (error instanceof NotFoundError) {
         return false;

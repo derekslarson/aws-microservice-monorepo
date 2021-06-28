@@ -133,7 +133,7 @@ describe("TeamDynamoRepository", () => {
     });
   });
 
-  describe("createTeamUserRelationship", () => {
+  describe("addUserToTeam", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         documentClient.put.and.returnValue(generateAwsResponse({}));
@@ -154,7 +154,7 @@ describe("TeamDynamoRepository", () => {
           },
         };
 
-        await teamDynamoRepository.createTeamUserRelationship(mockTeamId, mockUserId, mockRole);
+        await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId, mockRole);
 
         expect(documentClient.put).toHaveBeenCalledTimes(1);
         expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoInput);
@@ -169,18 +169,18 @@ describe("TeamDynamoRepository", () => {
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamDynamoRepository.createTeamUserRelationship(mockTeamId, mockUserId, mockRole);
+            await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId, mockRole);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in createTeamUserRelationship", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in addUserToTeam", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamDynamoRepository.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamDynamoRepository.createTeamUserRelationship(mockTeamId, mockUserId, mockRole);
+            await teamDynamoRepository.addUserToTeam(mockTeamId, mockUserId, mockRole);
 
             fail("Should have thrown");
           } catch (error) {
@@ -246,7 +246,7 @@ describe("TeamDynamoRepository", () => {
     });
   });
 
-  describe("deleteTeamUserRelationship", () => {
+  describe("removeUserFromTeam", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         documentClient.delete.and.returnValue(generateAwsResponse({}));
@@ -261,7 +261,7 @@ describe("TeamDynamoRepository", () => {
           },
         };
 
-        await teamDynamoRepository.deleteTeamUserRelationship(mockTeamId, mockUserId);
+        await teamDynamoRepository.removeUserFromTeam(mockTeamId, mockUserId);
 
         expect(documentClient.delete).toHaveBeenCalledTimes(1);
         expect(documentClient.delete).toHaveBeenCalledWith(expectedDynamoInput);
@@ -276,18 +276,18 @@ describe("TeamDynamoRepository", () => {
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamDynamoRepository.deleteTeamUserRelationship(mockTeamId, mockUserId);
+            await teamDynamoRepository.removeUserFromTeam(mockTeamId, mockUserId);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in deleteTeamUserRelationship", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in removeUserFromTeam", { error: mockError, teamId: mockTeamId, userId: mockUserId }, teamDynamoRepository.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamDynamoRepository.deleteTeamUserRelationship(mockTeamId, mockUserId);
+            await teamDynamoRepository.removeUserFromTeam(mockTeamId, mockUserId);
 
             fail("Should have thrown");
           } catch (error) {

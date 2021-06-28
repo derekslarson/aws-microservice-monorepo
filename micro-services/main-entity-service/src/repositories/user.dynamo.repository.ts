@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, User, TeamUserRelationship } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, User, TeamUserRelationship, ConversationUserRelationship, IdPrefix, EntityType } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
@@ -8,8 +8,6 @@ import { TYPES } from "../inversion-of-control/types";
 
 @injectable()
 export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implements UserRepositoryInterface {
-  private gsiOneIndexName: string;
-
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
     @inject(TYPES.IdServiceInterface) idService: IdServiceInterface,
@@ -17,18 +15,16 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
     @inject(TYPES.EnvConfigInterface) envConfig: UserRepositoryConfigType,
   ) {
     super(documentClientFactory, envConfig.tableNames.core, idService, loggerService);
-
-    this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
   }
 
   public async createUser(user: User): Promise<User> {
     try {
       this.loggerService.trace("createUser called", { user }, this.constructor.name);
 
-      const id = `USER-${user.id}`;
+      const id = `${IdPrefix.User}-${user.id}`;
 
       const userEntity: RawEntity<User> = {
-        type: "USER",
+        type: EntityType.User,
         pk: id,
         sk: id,
         id,
@@ -74,7 +70,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
         },
         ExpressionAttributeValues: {
           ":pk": teamId,
-          ":user": "USER-",
+          ":user": IdPrefix.User,
         },
       });
 
@@ -87,12 +83,39 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
       throw error;
     }
   }
+
+  public async getUsersByConversationId(conversationId: string): Promise<User[]> {
+    try {
+      this.loggerService.trace("getUsersByConversationId called", { conversationId }, this.constructor.name);
+
+      const { Items: conversationUserRelationships } = await this.query<ConversationUserRelationship>({
+        KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
+        ExpressionAttributeNames: {
+          "#pk": "pk",
+          "#sk": "sk",
+        },
+        ExpressionAttributeValues: {
+          ":pk": conversationId,
+          ":user": IdPrefix.User,
+        },
+      });
+
+      const users = await this.batchGet<User>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.userId, sk: relationship.userId })) });
+
+      return users;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersByConversationId", { error, conversationId }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface UserRepositoryInterface {
   createUser(user: User): Promise<User>;
   getUser(userId: string): Promise<User>;
   getUsersByTeamId(teamId: string): Promise<User[]>;
+  getUsersByConversationId(teamId: string): Promise<User[]>;
 }
 
-type UserRepositoryConfigType = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
+type UserRepositoryConfigType = Pick<EnvConfigInterface, "tableNames">;

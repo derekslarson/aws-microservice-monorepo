@@ -90,21 +90,21 @@ describe("TeamService", () => {
   describe("addUserToTeam", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        teamRepository.createTeamUserRelationship.and.returnValue(Promise.resolve());
+        teamRepository.addUserToTeam.and.returnValue(Promise.resolve());
       });
 
-      it("calls teamRepository.createTeamUserRelationship with the correct params", async () => {
+      it("calls teamRepository.addUserToTeam with the correct params", async () => {
         await teamService.addUserToTeam(mockTeamId, mockUserId, mockRole);
 
-        expect(teamRepository.createTeamUserRelationship).toHaveBeenCalledTimes(1);
-        expect(teamRepository.createTeamUserRelationship).toHaveBeenCalledWith(mockTeamId, mockUserId, mockRole);
+        expect(teamRepository.addUserToTeam).toHaveBeenCalledTimes(1);
+        expect(teamRepository.addUserToTeam).toHaveBeenCalledWith(mockTeamId, mockUserId, mockRole);
       });
     });
 
     describe("under error conditions", () => {
-      describe("when teamRepository.createTeamUserRelationship throws an error", () => {
+      describe("when teamRepository.addUserToTeam throws an error", () => {
         beforeEach(() => {
-          teamRepository.createTeamUserRelationship.and.throwError(mockError);
+          teamRepository.addUserToTeam.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {
@@ -134,21 +134,21 @@ describe("TeamService", () => {
   describe("removeUserFromTeam", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        teamRepository.deleteTeamUserRelationship.and.returnValue(Promise.resolve());
+        teamRepository.removeUserFromTeam.and.returnValue(Promise.resolve());
       });
 
-      it("calls teamRepository.deleteTeamUserRelationship with the correct params", async () => {
+      it("calls teamRepository.removeUserFromTeam with the correct params", async () => {
         await teamService.removeUserFromTeam(mockTeamId, mockUserId);
 
-        expect(teamRepository.deleteTeamUserRelationship).toHaveBeenCalledTimes(1);
-        expect(teamRepository.deleteTeamUserRelationship).toHaveBeenCalledWith(mockTeamId, mockUserId);
+        expect(teamRepository.removeUserFromTeam).toHaveBeenCalledTimes(1);
+        expect(teamRepository.removeUserFromTeam).toHaveBeenCalledWith(mockTeamId, mockUserId);
       });
     });
 
     describe("under error conditions", () => {
-      describe("when teamRepository.deleteTeamUserRelationship throws an error", () => {
+      describe("when teamRepository.removeUserFromTeam throws an error", () => {
         beforeEach(() => {
-          teamRepository.deleteTeamUserRelationship.and.throwError(mockError);
+          teamRepository.removeUserFromTeam.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {
