@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Message, KeyPrefix, EntityType, NotFoundError } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Message, KeyPrefix, EntityType, NotFoundError, ConversationUserRelationship } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
@@ -23,11 +23,29 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
     this.gsiTwoIndexName = envConfig.globalSecondaryIndexNames.two;
   }
 
-  public async createMessage(message: Omit<Message, "id">): Promise<Message> {
+  public async createMessage(message: Omit<Message, "id" | "seenAt">): Promise<Message> {
     try {
       this.loggerService.trace("createMessage called", { message }, this.constructor.name);
 
       const id = `${message.replyTo ? KeyPrefix.Reply : KeyPrefix.Message}${this.idService.generateId()}`;
+
+      const { Items: conversationMembers } = await this.query<ConversationUserRelationship>({
+        KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
+        ExpressionAttributeNames: {
+          "#pk": "pk",
+          "#sk": "sk",
+        },
+        ExpressionAttributeValues: {
+          ":pk": message.conversationId,
+          ":user": KeyPrefix.User,
+        },
+      });
+
+      const seenAt = conversationMembers.reduce((acc: { [key: string]: string | null }, member) => {
+        acc[member.userId] = member.userId === message.from ? new Date().toISOString() : null;
+
+        return acc;
+      }, {});
 
       let replyTo: string | undefined;
 
@@ -47,6 +65,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
         gsi2sk: replyTo ? id : undefined,
         ...message,
         id,
+        seenAt,
         replyTo,
       };
 
@@ -55,9 +74,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
         Item: messageEntity,
       }).promise();
 
-      const conversationMemberIds = Object.keys(message.seenAt);
-
-      await Promise.all(conversationMemberIds.map((userId) => {
+      await Promise.all(conversationMembers.map(({ userId }) => {
         let updateExpression = "SET #recentMessageId = :messageId, #updatedAt = :timestamp";
 
         const expressionAttributeNames: Record<string, string> = {
@@ -175,7 +192,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
 }
 
 export interface MessageRepositoryInterface {
-  createMessage(message: Omit<Message, "id">): Promise<Message>;
+  createMessage(message: Omit<Message, "id" | "seenAt">): Promise<Message>;
   updateMessage(messageId: string, update: Partial<Message>): Promise<Message>;
   getMessage(messageId: string): Promise<Message>;
   getMessagesByConversationId(conversationId: string): Promise<Message[]>;

@@ -10,11 +10,11 @@ export class MessageService implements MessageServiceInterface {
     @inject(TYPES.MessageRepositoryInterface) private messageRepository: MessageRepositoryInterface,
   ) {}
 
-  public async createMessage(messageCreationInput: Omit<Message, "id" | "sentAt" | "reactions" | "hasReplies">): Promise<Message> {
+  public async createMessage(messageCreationInput: Omit<Message, "id" | "seenAt" | "sentAt" | "reactions" | "hasReplies">): Promise<Message> {
     try {
       this.loggerService.trace("createMessage called", { messageCreationInput }, this.constructor.name);
 
-      const messageCreationBody: Omit<Message, "id"> = {
+      const messageCreationBody: Omit<Message, "id" | "seenAt"> = {
         ...messageCreationInput,
         sentAt: new Date().toISOString(),
         reactions: {},
