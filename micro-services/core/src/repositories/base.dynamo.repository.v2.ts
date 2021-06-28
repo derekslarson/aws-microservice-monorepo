@@ -39,11 +39,14 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
-  protected async get<U = DynamoDB.DocumentClient.AttributeMap>(params: DynamoDB.DocumentClient.GetItemInput, entityType = "Entity"): Promise<CleansedEntity<U>> {
+  protected async get<U = DynamoDB.DocumentClient.AttributeMap>(params: Omit<DynamoDB.DocumentClient.GetItemInput, "TableName">, entityType = "Entity"): Promise<CleansedEntity<U>> {
     try {
       this.loggerService.trace("get called", { params }, this.constructor.name);
 
-      const { Item } = await this.documentClient.get(params).promise();
+      const { Item } = await this.documentClient.get({
+        TableName: this.tableName,
+        ...params,
+      }).promise();
 
       if (!Item) {
         throw new NotFoundError(`${entityType} not found.`);
@@ -57,11 +60,14 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
-  protected async query<U = DynamoDB.DocumentClient.AttributeMap>(params: DynamoDB.DocumentClient.QueryInput): Promise<{ Items: CleansedEntity<U>[]; LastEvaluatedKey?: DynamoDB.DocumentClient.Key; }> {
+  protected async query<U = DynamoDB.DocumentClient.AttributeMap>(params: Omit<DynamoDB.DocumentClient.QueryInput, "TableName">): Promise<{ Items: CleansedEntity<U>[]; LastEvaluatedKey?: DynamoDB.DocumentClient.Key; }> {
     try {
       this.loggerService.trace("query called", { params }, this.constructor.name);
 
-      const response = await this.documentClient.query(params).promise();
+      const response = await this.documentClient.query({
+        TableName: this.tableName,
+        ...params,
+      }).promise();
 
       const cleansedItems = (response.Items || []).map((item) => this.cleanse(item as RawEntity<U>));
 
@@ -73,13 +79,13 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
-  protected async batchGet<U = DynamoDB.DocumentClient.AttributeMap>(keyList: DynamoDB.DocumentClient.KeyList, prevFetchedItems: RawEntity<U>[] = [], backoff = 200, maxBackoff = 800): Promise<CleansedEntity<U>[]> {
+  protected async batchGet<U = DynamoDB.DocumentClient.AttributeMap>(keysAndAttributes: DynamoDB.DocumentClient.KeysAndAttributes, prevFetchedItems: RawEntity<U>[] = [], backoff = 200, maxBackoff = 800): Promise<CleansedEntity<U>[]> {
     try {
-      this.loggerService.trace("batchGet called", { keyList, prevFetchedItems, backoff, maxBackoff }, this.constructor.name);
+      this.loggerService.trace("batchGet called", { keysAndAttributes, prevFetchedItems, backoff, maxBackoff }, this.constructor.name);
 
-      const chunkedKeyList = this.chunkArrayInGroups(keyList, 100);
+      const chunkedKeyList = this.chunkArrayInGroups(keysAndAttributes.Keys, 100);
 
-      const batchGetResponses = await Promise.all(chunkedKeyList.map((chunk) => this.documentClient.batchGet({ RequestItems: { [this.tableName]: { Keys: chunk } } }).promise()));
+      const batchGetResponses = await Promise.all(chunkedKeyList.map((chunk) => this.documentClient.batchGet({ RequestItems: { [this.tableName]: { ...keysAndAttributes, Keys: chunk } } }).promise()));
 
       const { fetchedItems, unprocessedKeys } = batchGetResponses.reduce((acc: { fetchedItems: RawEntity<U>[]; unprocessedKeys: DynamoDB.DocumentClient.KeyList; }, batchGetResponse) => {
         const items = batchGetResponse.Responses?.[this.tableName];
@@ -104,13 +110,13 @@ export abstract class BaseDynamoRepositoryV2<T> {
         }
 
         return new Promise((resolve) => {
-          setTimeout(() => resolve(this.batchGet(unprocessedKeys, combinedFetchedItems, backoff * 2)), backoff);
+          setTimeout(() => resolve(this.batchGet({ ...keysAndAttributes, Keys: unprocessedKeys }, combinedFetchedItems, backoff * 2)), backoff);
         });
       }
 
       return combinedFetchedItems.map((item) => this.cleanse(item));
     } catch (error: unknown) {
-      this.loggerService.error("Error in batchGet", { error, keyList, prevFetchedItems, backoff, maxBackoff }, this.constructor.name);
+      this.loggerService.error("Error in batchGet", { error, keysAndAttributes, prevFetchedItems, backoff, maxBackoff }, this.constructor.name);
 
       throw error;
     }

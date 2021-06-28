@@ -28,16 +28,16 @@ class TestDynamoRepository extends BaseDynamoRepositoryV2<Test> {
     return super.partialUpdate(pk, sk, update);
   }
 
-  public get<U = DynamoDB.DocumentClient.AttributeMap>(params: DynamoDB.DocumentClient.GetItemInput, entityType = "Entity"): Promise<CleansedEntity<U>> {
+  public get<U = DynamoDB.DocumentClient.AttributeMap>(params: Omit<DynamoDB.DocumentClient.GetItemInput, "TableName">, entityType = "Entity"): Promise<CleansedEntity<U>> {
     return super.get(params, entityType);
   }
 
-  public query<U = DynamoDB.DocumentClient.AttributeMap>(params: DynamoDB.DocumentClient.QueryInput): Promise<{ Items: CleansedEntity<U>[]; LastEvaluatedKey?: DynamoDB.DocumentClient.Key; }> {
+  public query<U = DynamoDB.DocumentClient.AttributeMap>(params: Omit<DynamoDB.DocumentClient.QueryInput, "TableName">): Promise<{ Items: CleansedEntity<U>[]; LastEvaluatedKey?: DynamoDB.DocumentClient.Key; }> {
     return super.query(params);
   }
 
-  public batchGet<U = DynamoDB.DocumentClient.AttributeMap>(keyList: DynamoDB.DocumentClient.KeyList, prevFetchedItems: RawEntity<U>[] = [], backoff = 200, maxBackoff = 800) {
-    return super.batchGet(keyList, prevFetchedItems, backoff, maxBackoff);
+  public batchGet<U = DynamoDB.DocumentClient.AttributeMap>(keysAndAttributes: DynamoDB.DocumentClient.KeysAndAttributes, prevFetchedItems: RawEntity<U>[] = [], backoff = 200, maxBackoff = 800) {
+    return super.batchGet(keysAndAttributes, prevFetchedItems, backoff, maxBackoff);
   }
 
   public batchWrite(writeRequests: DynamoDB.DocumentClient.WriteRequests, backoff = 200, maxBackoff = 800) {
@@ -159,10 +159,7 @@ describe("BaseDynamoRepositoryV2", () => {
   });
 
   describe("get", () => {
-    const mockParams = {
-      TableName: mockTableName,
-      Key: mockKey,
-    };
+    const mockParams = { Key: mockKey };
 
     describe("under normal conditions", () => {
       beforeEach(() => {
@@ -173,7 +170,7 @@ describe("BaseDynamoRepositoryV2", () => {
         await testDynamoRepository.get(mockParams);
 
         expect(documentClient.get).toHaveBeenCalledTimes(1);
-        expect(documentClient.get).toHaveBeenCalledWith(mockParams);
+        expect(documentClient.get).toHaveBeenCalledWith({ TableName: mockTableName, ...mockParams });
       });
 
       it("returns cleansed version of the fetched item", async () => {
@@ -248,8 +245,7 @@ describe("BaseDynamoRepositoryV2", () => {
   });
 
   describe("query", () => {
-    const mockParams: DynamoDB.DocumentClient.QueryInput = {
-      TableName: mockTableName,
+    const mockParams: Omit<DynamoDB.DocumentClient.QueryInput, "TableName"> = {
       IndexName: "mock-index-name",
       KeyConditionExpression: "mock-key-condition-expression",
       ExpressionAttributeNames: { "#key": "key" },
@@ -265,7 +261,7 @@ describe("BaseDynamoRepositoryV2", () => {
         await testDynamoRepository.query(mockParams);
 
         expect(documentClient.query).toHaveBeenCalledTimes(1);
-        expect(documentClient.query).toHaveBeenCalledWith(mockParams);
+        expect(documentClient.query).toHaveBeenCalledWith({ TableName: mockTableName, ...mockParams });
       });
 
       it("returns cleansed version of the fetched items and LasEvaluatedKey returned by documentClient.query", async () => {
@@ -340,7 +336,7 @@ describe("BaseDynamoRepositoryV2", () => {
         const expectedBatchGetParamsTwo = { RequestItems: { [mockTableName]: { Keys: mockKeyList.slice(100) } } };
         const expectedBatchGetParamsThree = { RequestItems: { [mockTableName]: { Keys: mockKeyList.slice(99, 100) } } };
 
-        await testDynamoRepository.batchGet(mockKeyList);
+        await testDynamoRepository.batchGet({ Keys: mockKeyList });
 
         expect(documentClient.batchGet).toHaveBeenCalledTimes(3);
         expect(documentClient.batchGet).toHaveBeenCalledWith(expectedBatchGetParamsOne);
@@ -351,7 +347,7 @@ describe("BaseDynamoRepositoryV2", () => {
       it("returns cleansed versions of the fetched items", async () => {
         const expectedFetchedItems = [ ...mockCleansedItems.slice(0, 99), ...mockCleansedItems.slice(100), ...mockCleansedItems.slice(99, 100) ];
 
-        const fetchedItems = await testDynamoRepository.batchGet(mockKeyList);
+        const fetchedItems = await testDynamoRepository.batchGet({ Keys: mockKeyList });
 
         expect(fetchedItems).toEqual(expectedFetchedItems);
       });
@@ -365,18 +361,18 @@ describe("BaseDynamoRepositoryV2", () => {
 
         it("calls loggerService.error with the correct parameters", async () => {
           try {
-            await testDynamoRepository.batchGet(mockKeyList);
+            await testDynamoRepository.batchGet({ Keys: mockKeyList });
 
             fail("expected to throw");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in batchGet", { error: mockError, keyList: mockKeyList, prevFetchedItems: [], backoff: 200, maxBackoff: 800 }, testDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in batchGet", { error: mockError, keysAndAttributes: { Keys: mockKeyList }, prevFetchedItems: [], backoff: 200, maxBackoff: 800 }, testDynamoRepository.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await testDynamoRepository.batchGet(mockKeyList);
+            await testDynamoRepository.batchGet({ Keys: mockKeyList });
 
             fail("expected to throw");
           } catch (error) {
@@ -397,7 +393,7 @@ describe("BaseDynamoRepositoryV2", () => {
 
         it("throws a valid error", async () => {
           try {
-            await testDynamoRepository.batchGet(mockKeyList.slice(0, 1));
+            await testDynamoRepository.batchGet({ Keys: mockKeyList });
 
             fail("expected to throw");
           } catch (error: unknown) {
