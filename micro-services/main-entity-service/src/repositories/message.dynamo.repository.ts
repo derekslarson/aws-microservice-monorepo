@@ -29,15 +29,25 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
 
       const id = `${message.replyTo ? KeyPrefix.Reply : KeyPrefix.Message}${this.idService.generateId()}`;
 
+      let replyTo: string | undefined;
+
+      if (message.replyTo) {
+        const replyToMessage = await this.getMessage(message.replyTo);
+
+        replyTo = replyToMessage.replyTo || message.replyTo;
+      }
+
       const messageEntity: RawEntity<Message> = {
         type: EntityType.Message,
-        pk: message.conversationId,
+        pk: id,
         sk: id,
-        gsi1pk: id,
+        gsi1pk: message.conversationId,
         gsi1sk: id,
-        ...(message.replyTo ? { gsi2pk: message.replyTo, gsi2sk: id } : {}),
+        gsi2pk: replyTo,
+        gsi2sk: replyTo ? id : undefined,
         ...message,
         id,
+        replyTo,
       };
 
       await this.documentClient.put({
@@ -45,23 +55,35 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
         Item: messageEntity,
       }).promise();
 
-      const conversationMemberIds = Object.keys(message.seenAt).filter((userId) => !message.seenAt[userId]);
+      const conversationMemberIds = Object.keys(message.seenAt);
 
-      await Promise.all(conversationMemberIds.map((userId) => this.documentClient.update({
-        TableName: this.tableName,
-        Key: { pk: message.conversationId, sk: userId },
-        UpdateExpression: "ADD #unreadMessages :unreadMessage SET #recentMessageId = :messageId, #updatedAt = :timestamp",
-        ExpressionAttributeNames: {
-          "#unreadMessages": "unreadMessages",
+      await Promise.all(conversationMemberIds.map((userId) => {
+        let updateExpression = "SET #recentMessageId = :messageId, #updatedAt = :timestamp";
+
+        const expressionAttributeNames: Record<string, string> = {
           "#recentMessageId": "recentMessageId",
           "#updatedAt": "updatedAt",
-        },
-        ExpressionAttributeValues: {
-          ":unreadMessage": this.documentClient.createSet([ id ]),
+        };
+
+        const expressionAttributeValues: Record<string, unknown> = {
           ":messageId": id,
           ":timestamp": new Date().toISOString(),
-        },
-      }).promise()));
+        };
+
+        if (userId !== message.from) {
+          updateExpression += " ADD #unreadMessages :unreadMessage";
+          expressionAttributeNames["#unreadMessages"] = "unreadMessages";
+          expressionAttributeValues[":unreadMessage"] = this.documentClient.createSet([ id ]);
+        }
+
+        return this.documentClient.update({
+          TableName: this.tableName,
+          Key: { pk: message.conversationId, sk: userId },
+          UpdateExpression: updateExpression,
+          ExpressionAttributeNames: expressionAttributeNames,
+          ExpressionAttributeValues: expressionAttributeValues,
+        }).promise();
+      }));
 
       return this.cleanse(messageEntity);
     } catch (error: unknown) {
@@ -75,22 +97,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
     try {
       this.loggerService.trace("getMessage called", { messageId }, this.constructor.name);
 
-      const { Items: [ message ] } = await this.query<Message>({
-        IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :gsi1pk AND #gsi1sk = :gsi1sk",
-        ExpressionAttributeNames: {
-          "#gsi1pk": "gsi1pk",
-          "#gsi1sk": "gsi1sk",
-        },
-        ExpressionAttributeValues: {
-          ":gsi1pk": messageId,
-          ":gsi1sk": messageId,
-        },
-      });
-
-      if (!message) {
-        throw new NotFoundError("Message not found");
-      }
+      const message = await this.get<Message>({ Key: { pk: messageId, sk: messageId } });
 
       return message;
     } catch (error: unknown) {
@@ -121,13 +128,14 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
       this.loggerService.trace("getMessagesByConversationId called", { conversationId }, this.constructor.name);
 
       const { Items: messages } = await this.query<Message>({
-        KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :message)",
+        IndexName: this.gsiOneIndexName,
+        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :message)",
         ExpressionAttributeNames: {
-          "#pk": "pk",
-          "#sk": "sk",
+          "#gsi1pk": "gsi1pk",
+          "#gsi1sk": "gsi1sk",
         },
         ExpressionAttributeValues: {
-          ":pk": conversationId,
+          ":gsi1pk": conversationId,
           ":message": KeyPrefix.Message,
         },
       });
