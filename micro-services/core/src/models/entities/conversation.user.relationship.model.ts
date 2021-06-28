@@ -5,4 +5,7 @@ export interface ConversationUserRelationship {
   userId: string;
   role: Role;
   muted: boolean;
+  updatedAt: string;
+  unreadMessages?: string[];
+  recentMessageId?: string;
 }

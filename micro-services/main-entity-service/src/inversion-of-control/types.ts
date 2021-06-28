@@ -3,6 +3,7 @@ import { TYPES as CORE_TYPES } from "@yac/core";
 const TYPES = {
   ...CORE_TYPES,
 
+  ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
   ConversationRepositoryInterface: Symbol.for("ConversationRepositoryInterface"),
 
   UserSignedUpProcessorServiceInterface: Symbol.for("UserSignedUpProcessorServiceInterface"),
@@ -13,6 +14,9 @@ const TYPES = {
   TeamControllerInterface: Symbol.for("TeamControllerInterface"),
   TeamServiceInterface: Symbol.for("TeamServiceInterface"),
   TeamRepositoryInterface: Symbol.for("TeamRepositoryInterface"),
+
+  MessageServiceInterface: Symbol.for("MessageServiceInterface"),
+  MessageRepositoryInterface: Symbol.for("MessageRepositoryInterface"),
 };
 
 export { TYPES };

@@ -1,13 +1,13 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, User, TeamUserRelationship, ConversationUserRelationship, IdPrefix, EntityType } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, User, TeamUserRelationship, ConversationUserRelationship, KeyPrefix, EntityType } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 
 @injectable()
-export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implements UserRepositoryInterface {
+export class UserDynamoRepository extends BaseDynamoRepositoryV2 implements UserRepositoryInterface {
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
     @inject(TYPES.IdServiceInterface) idService: IdServiceInterface,
@@ -21,7 +21,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
     try {
       this.loggerService.trace("createUser called", { user }, this.constructor.name);
 
-      const id = `${IdPrefix.User}-${user.id}`;
+      const id = `${KeyPrefix.User}${user.id}`;
 
       const userEntity: RawEntity<User> = {
         type: EntityType.User,
@@ -70,7 +70,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
         },
         ExpressionAttributeValues: {
           ":pk": teamId,
-          ":user": IdPrefix.User,
+          ":user": KeyPrefix.User,
         },
       });
 
@@ -96,7 +96,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
         },
         ExpressionAttributeValues: {
           ":pk": conversationId,
-          ":user": IdPrefix.User,
+          ":user": KeyPrefix.User,
         },
       });
 

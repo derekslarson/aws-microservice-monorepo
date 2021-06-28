@@ -10,7 +10,7 @@ import { CleansedEntity } from "../types/cleansed.entity.type";
 import { NotFoundError } from "../errors/notFound.error";
 
 @injectable()
-export abstract class BaseDynamoRepositoryV2<T> {
+export abstract class BaseDynamoRepositoryV2 {
   protected documentClient: DynamoDB.DocumentClient;
 
   constructor(
@@ -23,7 +23,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
     this.documentClient = documentClientFactory();
   }
 
-  protected async partialUpdate(pk: string, sk: string, update: RecursivePartial<T>): Promise<CleansedEntity<T>> {
+  protected async partialUpdate<U = DynamoDB.DocumentClient.AttributeMap>(pk: string, sk: string, update: RecursivePartial<U>): Promise<CleansedEntity<U>> {
     try {
       this.loggerService.trace("partialUpdate called", { update }, this.constructor.name);
 
@@ -31,7 +31,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
 
       const { Attributes } = await this.documentClient.update(updateItemInput).promise();
 
-      return this.cleanse(Attributes as RawEntity<T>);
+      return this.cleanse(Attributes as RawEntity<U>);
     } catch (error: unknown) {
       this.loggerService.error("Error in partialUpdate", { error, update }, this.constructor.name);
 

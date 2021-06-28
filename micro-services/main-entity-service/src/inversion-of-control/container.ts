@@ -10,6 +10,8 @@ import { UserService, UserServiceInterface } from "../services/user.service";
 import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
 import { UserSignedUpProcessorService } from "../services/userSignedUp.processor.service";
 import { ConversationDynamoRepository, ConversationRepositoryInterface } from "../repositories/conversation.dynamo.repository";
+import { MessageDynamoRepository, MessageRepositoryInterface } from "../repositories/message.dynamo.repository";
+import { MessageService, MessageServiceInterface } from "../services/message.service";
 
 const container = new Container();
 
@@ -27,6 +29,9 @@ try {
   container.bind<TeamControllerInterface>(TYPES.TeamControllerInterface).to(TeamController);
   container.bind<TeamServiceInterface>(TYPES.TeamServiceInterface).to(TeamService);
   container.bind<TeamRepositoryInterface>(TYPES.TeamRepositoryInterface).to(TeamDynamoRepository);
+
+  container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);
+  container.bind<MessageRepositoryInterface>(TYPES.MessageRepositoryInterface).to(MessageDynamoRepository);
 
   container.bind<SnsProcessorServiceInterface>(TYPES.UserSignedUpProcessorServiceInterface).to(UserSignedUpProcessorService);
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([

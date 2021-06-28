@@ -26,6 +26,10 @@ describe("UserDynamoRepository", () => {
   const mockKey = { pk: mockTeamId, sk: mockUserId };
   const mockRole = Role.User;
   const mockEmail = "mock@email.com";
+  const mockUser: User = {
+    id: mockUserId,
+    email: mockEmail,
+  };
   const mockError = new Error("mock-error");
   const mockTeamUserRelationship = { userId: mockUserId, teamId: mockTeamId, role: mockRole };
 
@@ -40,11 +44,6 @@ describe("UserDynamoRepository", () => {
   describe("createUser", () => {
     const mockUserInput: User = {
       id: mockCognitoId,
-      email: mockEmail,
-    };
-
-    const mockCreatedUser: User = {
-      id: mockUserId,
       email: mockEmail,
     };
 
@@ -74,7 +73,7 @@ describe("UserDynamoRepository", () => {
       it("returns a cleansed version of the created user", async () => {
         const createdUser = await userDynamoRepository.createUser(mockUserInput);
 
-        expect(createdUser).toEqual(mockCreatedUser);
+        expect(createdUser).toEqual(mockUser);
       });
     });
 
@@ -155,7 +154,7 @@ describe("UserDynamoRepository", () => {
       it("returns the Items returned by this.query", async () => {
         const userUserRelationships = await userDynamoRepository.getUsersByTeamId(mockUserId);
 
-        expect(userUserRelationships).toEqual([ mockTeamUserRelationship ]);
+        expect(userUserRelationships).toEqual([ mockUser ]);
       });
     });
 

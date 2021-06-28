@@ -1,13 +1,13 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Team, Role, TeamUserRelationship, TeamConversationRelationship, IdPrefix, EntityType } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Team, Role, TeamUserRelationship, TeamConversationRelationship, KeyPrefix, EntityType } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 
 @injectable()
-export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implements TeamRepositoryInterface {
+export class TeamDynamoRepository extends BaseDynamoRepositoryV2 implements TeamRepositoryInterface {
   private gsiOneIndexName: string;
 
   constructor(
@@ -25,7 +25,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
     try {
       this.loggerService.trace("createTeam called", { team }, this.constructor.name);
 
-      const id = `${IdPrefix.Team}-${this.idService.generateId()}`;
+      const id = `${KeyPrefix.Team}${this.idService.generateId()}`;
 
       const teamEntity: RawEntity<Team> = {
         type: EntityType.Team,
@@ -54,11 +54,11 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
       this.loggerService.trace("addUserToTeam called", { teamId, userId, role }, this.constructor.name);
 
       const teamUserRelationship: RawEntity<TeamUserRelationship> = {
+        type: EntityType.TeamUserRelationship,
         pk: teamId,
         sk: userId,
         gsi1pk: userId,
         gsi1sk: teamId,
-        type: EntityType.TeamUserRelationship,
         teamId,
         userId,
         role,
@@ -116,7 +116,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
         },
         ExpressionAttributeValues: {
           ":pk": teamId,
-          ":user": IdPrefix.User,
+          ":user": KeyPrefix.User,
         },
       });
 
@@ -141,7 +141,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
         },
         ExpressionAttributeValues: {
           ":gsi1pk": userId,
-          ":team": IdPrefix.Team,
+          ":team": KeyPrefix.Team,
         },
       });
 

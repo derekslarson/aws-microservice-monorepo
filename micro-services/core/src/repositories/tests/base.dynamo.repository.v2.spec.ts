@@ -19,12 +19,12 @@ interface Test {
 }
 
 // Need to extend the abstract class and expose its protected methods in order to test them
-class TestDynamoRepository extends BaseDynamoRepositoryV2<Test> {
+class TestDynamoRepository extends BaseDynamoRepositoryV2 {
   constructor(documentClientFactory: DocumentClientFactory, tableName: string, idService: IdServiceInterface, loggerService: LoggerServiceInterface) {
     super(documentClientFactory, tableName, idService, loggerService);
   }
 
-  public partialUpdate(pk: string, sk: string, update: RecursivePartial<Test>) {
+  public partialUpdate<U = DynamoDB.DocumentClient.AttributeMap>(pk: string, sk: string, update: RecursivePartial<U>) {
     return super.partialUpdate(pk, sk, update);
   }
 
@@ -122,7 +122,7 @@ describe("BaseDynamoRepositoryV2", () => {
       });
 
       it("returns a cleansed version of  'Attributes' prop of the response", async () => {
-        const response = await testDynamoRepository.partialUpdate(mockPk, mockSk, mockPartialUpdate);
+        const response = await testDynamoRepository.partialUpdate<Test>(mockPk, mockSk, mockPartialUpdate);
 
         expect(response).toEqual(mockItem);
       });

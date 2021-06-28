@@ -1,7 +1,7 @@
 import "source-map-support/register";
 import * as CDK from "@aws-cdk/core";
 import { Environment } from "@yac/core";
-import { YacMainEntityServiceStack } from "./stacks/yac.mainEntity.service.stack";
+import { YacEntityServiceStack } from "./stacks/yac.entity.service.stack";
 
 const app = new CDK.App();
 
@@ -17,4 +17,4 @@ if (!environment) {
 const stackPrefix = environment === Environment.Local ? developer : environment;
 
 // eslint-disable-next-line no-new
-new YacMainEntityServiceStack(app, `${stackPrefix}-YacTeamService`, { serviceName: "main-entity-service" });
+new YacEntityServiceStack(app, `${stackPrefix}-YacEntityService`, { serviceName: "entity-service" });

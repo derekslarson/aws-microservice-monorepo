@@ -1,13 +1,13 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Conversation, Role, ConversationUserRelationship, ConversationType, TeamConversationRelationship, IdPrefix, EntityType } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Conversation, Role, ConversationUserRelationship, ConversationType, TeamConversationRelationship, KeyPrefix, EntityType, DmConversation, ChannelConversation } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 
 @injectable()
-export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Conversation> implements ConversationRepositoryInterface {
+export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 implements ConversationRepositoryInterface {
   private gsiOneIndexName: string;
 
   constructor(
@@ -20,13 +20,13 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
     this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
   }
 
-  public async createDmConversation(userIdA: string, userIdB: string): Promise<Conversation> {
+  public async createDmConversation(userIdA: string, userIdB: string): Promise<DmConversation> {
     try {
       this.loggerService.trace("createDmConversation called", { userIdA, userIdB }, this.constructor.name);
 
-      const id = `${IdPrefix.DmConversation}-${[ userIdA, userIdB ].sort().join("-")}`;
+      const id = `${KeyPrefix.DmConversation}${[ userIdA, userIdB ].sort().join("-")}`;
 
-      const conversationEntity: RawEntity<Conversation> = {
+      const conversationEntity: RawEntity<DmConversation> = {
         type: EntityType.DmConversation,
         pk: id,
         sk: id,
@@ -50,30 +50,28 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
     }
   }
 
-  public async createChannelConversation(name: string, createdBy: string): Promise<Conversation> {
+  public async createChannelConversation(conversation: Omit<ChannelConversation, "id">): Promise<ChannelConversation> {
     try {
-      this.loggerService.trace("createConversation called", { name, createdBy }, this.constructor.name);
+      this.loggerService.trace("createConversation called", { conversation }, this.constructor.name);
 
-      const id = `${IdPrefix.ChannelConversation}-${this.idService.generateId()}`;
+      const id = `${KeyPrefix.ChannelConversation}${this.idService.generateId()}`;
 
-      const conversationEntity: RawEntity<Conversation> = {
+      const conversationEntity: RawEntity<ChannelConversation> = {
         type: EntityType.ChannelConversation,
         pk: id,
         sk: id,
         id,
-        conversationType: ConversationType.Channel,
-        name,
-        createdBy,
+        ...conversation,
       };
 
       await Promise.all([
         this.documentClient.put({ TableName: this.tableName, Item: conversationEntity }).promise(),
-        this.addUserToConversation(id, createdBy, Role.Admin),
+        this.addUserToConversation(id, conversation.createdBy, Role.Admin),
       ]);
 
       return this.cleanse(conversationEntity);
     } catch (error: unknown) {
-      this.loggerService.error("Error in createConversation", { error, name, createdBy }, this.constructor.name);
+      this.loggerService.error("Error in createConversation", { error, conversation }, this.constructor.name);
 
       throw error;
     }
@@ -83,16 +81,19 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
     try {
       this.loggerService.trace("addUserToConversation called", { conversationId, userId, role }, this.constructor.name);
 
+      const timestamp = new Date().toISOString();
+
       const conversationUserRelationship: RawEntity<ConversationUserRelationship> = {
         pk: conversationId,
         sk: userId,
         gsi1pk: userId,
-        gsi1sk: conversationId,
+        gsi1sk: `${KeyPrefix.Time}${timestamp}`,
         type: EntityType.ConversationUserRelationship,
         conversationId,
         userId,
         role,
         muted: false,
+        updatedAt: timestamp,
       };
 
       await this.documentClient.put({
@@ -120,6 +121,20 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
     }
   }
 
+  public async updateConversationUserRelationship(conversationId: string, userId: string, update: Partial<ConversationUserRelationship>): Promise<ConversationUserRelationship> {
+    try {
+      this.loggerService.trace("updateConversationUserRelationship called", { conversationId, userId, update }, this.constructor.name);
+
+      const conversationUserRelationship = await this.partialUpdate<ConversationUserRelationship>(conversationId, userId, update);
+
+      return conversationUserRelationship;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateConversationUserRelationship", { error, conversationId, userId, update }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async removeUserFromConversation(conversationId: string, userId: string): Promise<void> {
     try {
       this.loggerService.trace("removeUserFromConversation called", { conversationId, userId }, this.constructor.name);
@@ -141,6 +156,33 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
       const { Items: conversationUserRelationships } = await this.query<ConversationUserRelationship>({
         IndexName: this.gsiOneIndexName,
+        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :time)",
+        ExpressionAttributeNames: {
+          "#gsi1pk": "gsi1pk",
+          "#gsi1sk": "gsi1sk",
+        },
+        ExpressionAttributeValues: {
+          ":gsi1pk": userId,
+          ":time": KeyPrefix.Time,
+        },
+      });
+
+      const conversations = await this.batchGet<Conversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
+
+      return conversations;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getConversationsByUserId", { error, userId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getDmConversationsByUserId(userId: string): Promise<DmConversation[]> {
+    try {
+      this.loggerService.trace("getDmConversationsByUserId called", { userId }, this.constructor.name);
+
+      const { Items: conversationUserRelationships } = await this.query<ConversationUserRelationship>({
+        IndexName: this.gsiOneIndexName,
         KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :conversation)",
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
@@ -148,11 +190,38 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
         },
         ExpressionAttributeValues: {
           ":gsi1pk": userId,
-          ":conversation": IdPrefix.Conversation,
+          ":conversation": KeyPrefix.DmConversation,
         },
       });
 
-      const conversations = await this.batchGet<Conversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
+      const conversations = await this.batchGet<DmConversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
+
+      return conversations;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getDmConversationsByUserId", { error, userId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getChannelConversationsByUserId(userId: string): Promise<ChannelConversation[]> {
+    try {
+      this.loggerService.trace("getConversationsByUserId called", { userId }, this.constructor.name);
+
+      const { Items: conversationUserRelationships } = await this.query<ConversationUserRelationship>({
+        IndexName: this.gsiOneIndexName,
+        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :conversation)",
+        ExpressionAttributeNames: {
+          "#gsi1pk": "gsi1pk",
+          "#gsi1sk": "gsi1sk",
+        },
+        ExpressionAttributeValues: {
+          ":gsi1pk": userId,
+          ":conversation": KeyPrefix.ChannelConversation,
+        },
+      });
+
+      const conversations = await this.batchGet<ChannelConversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
 
       return conversations;
     } catch (error: unknown) {
@@ -176,7 +245,7 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
         },
         ExpressionAttributeValues: {
           ":gsi1pk": userId,
-          ":conversation": IdPrefix.Conversation,
+          ":conversation": KeyPrefix.Conversation,
         },
       });
 
@@ -202,7 +271,7 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
         },
         ExpressionAttributeValues: {
           ":pk": userId,
-          ":conversation": IdPrefix.Conversation,
+          ":conversation": KeyPrefix.Conversation,
         },
       });
 
@@ -218,13 +287,16 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 }
 
 export interface ConversationRepositoryInterface {
-  createDmConversation(userIdA: string, userIdB: string): Promise<Conversation>;
-  createChannelConversation(userIdA: string, userIdB: string): Promise<Conversation>;
+  createDmConversation(userIdA: string, userIdB: string): Promise<DmConversation>;
+  createChannelConversation(conversation: Omit<ChannelConversation, "id">): Promise<ChannelConversation>
   addUserToConversation(conversationId: string, userId: string, role: Role): Promise<void>;
   removeUserFromConversation(conversationId: string, userId: string): Promise<void>;
   getConversationUserRelationship(conversationId: string, userId: string): Promise<ConversationUserRelationship>;
+  updateConversationUserRelationship(conversationId: string, userId: string, update: Partial<ConversationUserRelationship>): Promise<ConversationUserRelationship>;
   getConversationsByUserId(userId: string): Promise<Conversation[]>;
   getUnreadConversationsByUserId(userId: string): Promise<Conversation[]>;
+  getDmConversationsByUserId(userId: string): Promise<DmConversation[]>;
+  getChannelConversationsByUserId(userId: string): Promise<ChannelConversation[]>;
   getConversationsByTeamId(teamId: string): Promise<Conversation[]>;
 }
 

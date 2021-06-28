@@ -16,9 +16,10 @@ describe("TeamDynamoRepository", () => {
 
   const mockCoreTableName = "mock-core-table-name";
   const mockGsiOneIndexName = "mock-gsi-one-index-name";
+  const mockGsiTwoIndexName = "mock-gsi-two-index-name";
   const mockEnvConfig = {
     tableNames: { core: mockCoreTableName },
-    globalSecondaryIndexNames: { one: mockGsiOneIndexName },
+    globalSecondaryIndexNames: { one: mockGsiOneIndexName, two: mockGsiTwoIndexName },
   };
   const mockRawId = "mock-id";
   const mockTeamId = `TEAM-${mockRawId}`;
@@ -28,6 +29,12 @@ describe("TeamDynamoRepository", () => {
   const mockName = "mock-name";
   const mockCreatedBy = "mock-created-by";
   const mockTeamUserRelationship = { userId: mockUserId, teamId: mockTeamId, role: mockRole };
+  const mockTeam: Team = {
+    id: mockTeamId,
+    name: mockName,
+    createdBy: mockCreatedBy,
+  };
+
   const mockError = new Error("mock-error");
 
   beforeEach(() => {
@@ -40,12 +47,6 @@ describe("TeamDynamoRepository", () => {
 
   describe("createTeam", () => {
     const mockTeamInput: Omit<Team, "id"> = {
-      name: mockName,
-      createdBy: mockCreatedBy,
-    };
-
-    const mockCreatedTeam: Team = {
-      id: mockTeamId,
       name: mockName,
       createdBy: mockCreatedBy,
     };
@@ -99,7 +100,7 @@ describe("TeamDynamoRepository", () => {
       it("returns a cleansed version of the created team", async () => {
         const createdTeam = await teamDynamoRepository.createTeam(mockTeamInput);
 
-        expect(createdTeam).toEqual(mockCreatedTeam);
+        expect(createdTeam).toEqual(mockTeam);
       });
     });
 
@@ -327,7 +328,7 @@ describe("TeamDynamoRepository", () => {
       it("returns the Items returned by this.query", async () => {
         const teamUserRelationships = await teamDynamoRepository.getTeamsByUserId(mockTeamId);
 
-        expect(teamUserRelationships).toEqual([ mockTeamUserRelationship ]);
+        expect(teamUserRelationships).toEqual([ mockTeam ]);
       });
     });
 

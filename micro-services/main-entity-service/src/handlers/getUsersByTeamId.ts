@@ -3,16 +3,16 @@ import { generateInternalServerErrorResponse, LoggerServiceInterface } from "@ya
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamControllerInterface } from "../controllers/team.controller";
+import { UserControllerInterface } from "../controllers/user.controller";
 
-const teamController = container.get<TeamControllerInterface>(TYPES.TeamControllerInterface);
+const userController = container.get<UserControllerInterface>(TYPES.UserControllerInterface);
 const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
     loggerService.trace("getUsersByTeamId called", { event }, "getUsersByTeamId handler");
 
-    const response = await teamController.getUsersByTeamId(event);
+    const response = await userController.getUsersByTeamId(event);
 
     return response;
   } catch (error: unknown) {

@@ -1,5 +1,5 @@
 {
-  "name": "@yac/main-entity-service",
+  "name": "@yac/entity-service",
   "version": "0.1.0",
   "scripts": {
     "build:local": "yarn clean && webpack --bail --config ../../config/webpack/webpack.config.dev.js && yarn build:layer",

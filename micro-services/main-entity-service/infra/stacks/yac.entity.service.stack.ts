@@ -15,7 +15,7 @@ import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/core/infra/stack
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as SNS from "@aws-cdk/aws-sns";
 
-export class YacMainEntityServiceStack extends YacHttpServiceStack {
+export class YacEntityServiceStack extends YacHttpServiceStack {
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
@@ -31,7 +31,6 @@ export class YacMainEntityServiceStack extends YacHttpServiceStack {
     const ExportNames = generateExportNames(stackPrefix);
 
     const userSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.UserSignedUpSnsTopicArn);
-    const coreTableName = CDK.Fn.importValue(ExportNames.CoreTableName);
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
@@ -40,9 +39,23 @@ export class YacMainEntityServiceStack extends YacHttpServiceStack {
     });
 
     // Databases
-    const coreTable = DynamoDB.Table.fromTableAttributes(this, "CoreTable", {
-      tableName: coreTableName,
-      globalIndexes: [ GlobalSecondaryIndex.One ],
+    const coreTable = new DynamoDB.Table(this, `${id}-CoreTable`, {
+      billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
+      partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
+      sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
+      removalPolicy: CDK.RemovalPolicy.DESTROY,
+    });
+
+    coreTable.addGlobalSecondaryIndex({
+      indexName: GlobalSecondaryIndex.One,
+      partitionKey: { name: "gsi1pk", type: DynamoDB.AttributeType.STRING },
+      sortKey: { name: "gsi1sk", type: DynamoDB.AttributeType.STRING },
+    });
+
+    coreTable.addGlobalSecondaryIndex({
+      indexName: GlobalSecondaryIndex.Two,
+      partitionKey: { name: "gsi2pk", type: DynamoDB.AttributeType.STRING },
+      sortKey: { name: "gsi2sk", type: DynamoDB.AttributeType.STRING },
     });
 
     // Policies
@@ -56,8 +69,9 @@ export class YacMainEntityServiceStack extends YacHttpServiceStack {
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
-      CORE_TABLE_NAME: coreTableName,
+      CORE_TABLE_NAME: coreTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
+      GSI_TWO_INDEX_NAME: GlobalSecondaryIndex.Two,
     };
 
     // User Handlers

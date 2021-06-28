@@ -5,7 +5,7 @@ export interface Message {
   transcript: string;
   sentAt: string;
   seenAt: { [key: string]: string | null };
-  reactions: { [key: string]: number }
+  reactions: { [key: string]: number };
+  hasReplies: boolean;
   replyTo?: string;
-  hasReplies?: boolean;
 }
