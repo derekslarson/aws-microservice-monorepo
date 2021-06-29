@@ -2,9 +2,13 @@ import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationRepositoryInterface } from "../repositories/conversation.dynamo.repository";
-import { ChannelConversation, Conversation, DmConversation } from "../models/conversation/conversation.model";
+import { Conversation } from "../models/conversation/conversation.model";
 import { ConversationType } from "../enums/conversationType.enum";
 import { ConversationUserRelationship } from "../models/conversation/conversation.user.relationship.model";
+import { DmConversation } from "../models/conversation/dm.conversation.model";
+import { ChannelConversation } from "../models/conversation/channel.conversation.model";
+import { DmConversationCreationInput } from "../models/conversation/dm.conversation.creation.input.model";
+import { ChannelConversationCreationInput } from "../models/conversation/channel.conversation.creation.input.model";
 
 @injectable()
 export class ConversationService implements ConversationServiceInterface {
@@ -13,23 +17,23 @@ export class ConversationService implements ConversationServiceInterface {
     @inject(TYPES.ConversationRepositoryInterface) private conversationRepository: ConversationRepositoryInterface,
   ) {}
 
-  public async createDmConversation(userIdA: string, userIdB: string): Promise<DmConversation> {
+  public async createDmConversation(conversationCreationInput: DmConversationCreationInput): Promise<DmConversation> {
     try {
-      this.loggerService.trace("createConversation called", { userIdA, userIdB }, this.constructor.name);
+      this.loggerService.trace("createConversation called", { conversationCreationInput }, this.constructor.name);
 
       const conversation = await this.conversationRepository.createDmConversation(userIdA, userIdB);
 
       return conversation;
     } catch (error: unknown) {
-      this.loggerService.error("Error in createConversation", { error, userIdA, userIdB }, this.constructor.name);
+      this.loggerService.error("Error in createConversation", { error, conversationCreationInput }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async createChannelConversation(name: string, createdBy: string): Promise<ChannelConversation> {
+  public async createChannelConversation(conversationCreationInput: ChannelConversationCreationInput): Promise<ChannelConversation> {
     try {
-      this.loggerService.trace("createConversation called", { name, createdBy }, this.constructor.name);
+      this.loggerService.trace("createConversation called", { conversationCreationInput }, this.constructor.name);
 
       const conversationBody: Omit<ChannelConversation, "id"> = {
         name,
@@ -41,7 +45,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       return conversation;
     } catch (error: unknown) {
-      this.loggerService.error("Error in createConversation", { error, name, createdBy }, this.constructor.name);
+      this.loggerService.error("Error in createConversation", { error, conversationCreationInput }, this.constructor.name);
 
       throw error;
     }
@@ -135,7 +139,8 @@ export class ConversationService implements ConversationServiceInterface {
 }
 
 export interface ConversationServiceInterface {
-  createDmConversation(userIdA: string, userIdB: string): Promise<Conversation>;
+  createDmConversation(conversationCreationInput: DmConversationCreationInput): Promise<DmConversation>;
+  createChannelConversation(conversationCreationInput: ChannelConversationCreationInput): Promise<ChannelConversation>;
   addUserToConversation(conversationId: string, userId: string, role: Role): Promise<void>;
   updateConversationUserRelationship(conversationId: string, userId: string, update: Partial<ConversationUserRelationship>): Promise<void>;
   removeUserFromConversation(conversationId: string, userId: string): Promise<void>;

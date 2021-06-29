@@ -6,11 +6,13 @@ import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { ChannelConversation, Conversation, DmConversation } from "../models/conversation/conversation.model";
+import { Conversation } from "../models/conversation/conversation.model";
 import { EntityType } from "../enums/entityType.enum";
 import { ConversationType } from "../enums/conversationType.enum";
 import { ConversationUserRelationship } from "../models/conversation/conversation.user.relationship.model";
 import { TeamConversationRelationship } from "../models/team/team.conversation.relationship.model";
+import { DmConversation } from "../models/conversation/dm.conversation.model";
+import { ChannelConversation } from "../models/conversation/channel.conversation.model";
 
 @injectable()
 export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 implements ConversationRepositoryInterface {
@@ -180,9 +182,9 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
         },
       });
 
-      const conversations = await this.batchGet<Conversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
+      const unsortedConversations = await this.batchGet<Conversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
 
-      const conversationsWithRole = this.addRoleToConversations<Conversation>(conversationUserRelationships, conversations);
+      const conversationsWithRole = this.addRoleToConversations<Conversation>(conversationUserRelationships, unsortedConversations);
 
       return {
         conversations: conversationsWithRole,
@@ -214,9 +216,9 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
         },
       });
 
-      const conversations = await this.batchGet<Conversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
+      const unsortedConversations = await this.batchGet<Conversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
 
-      const conversationsWithRole = this.addRoleToConversations(conversationUserRelationships, conversations);
+      const conversationsWithRole = this.addRoleToConversations(conversationUserRelationships, unsortedConversations);
 
       return {
         conversations: conversationsWithRole,
@@ -247,9 +249,9 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
         },
       });
 
-      const conversations = await this.batchGet<DmConversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
+      const unsortedConversations = await this.batchGet<DmConversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
 
-      const conversationsWithRole = this.addRoleToConversations<DmConversation>(conversationUserRelationships, conversations);
+      const conversationsWithRole = this.addRoleToConversations<DmConversation>(conversationUserRelationships, unsortedConversations);
 
       return {
         conversations: conversationsWithRole,
@@ -280,9 +282,9 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
         },
       });
 
-      const conversations = await this.batchGet<ChannelConversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
+      const unsortedConversations = await this.batchGet<ChannelConversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
 
-      const conversationsWithRole = this.addRoleToConversations<ChannelConversation>(conversationUserRelationships, conversations);
+      const conversationsWithRole = this.addRoleToConversations<ChannelConversation>(conversationUserRelationships, unsortedConversations);
 
       return {
         conversations: conversationsWithRole,

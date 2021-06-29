@@ -3,7 +3,7 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, ForbiddenError } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { UsersGetByTeamIdPathParametersInputDto } from "../models/user/users.getByTeamId.input.model";
+import { UsersGetByTeamIdPathParametersDto } from "../models/user/users.getByTeamId.input.model";
 import { TeamServiceInterface } from "../services/team.service";
 import { UserServiceInterface } from "../services/user.service";
 
@@ -24,7 +24,7 @@ export class UserController extends BaseController implements UserControllerInte
 
       const authUserId = this.getUserIdFromRequestWithJwt(request);
 
-      const { teamId } = await this.validationService.validate(UsersGetByTeamIdPathParametersInputDto, RequestPortion.PathParameters, request.pathParameters);
+      const { teamId } = await this.validationService.validate(UsersGetByTeamIdPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
 
       const isTeamMember = await this.teamService.isTeamMember(teamId, authUserId);
 

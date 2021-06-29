@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService, ForbiddenError, Role } from "@yac/core";
-import { TeamAddMemberBodyInputDto, TeamAddMemberPathParametersInputDto } from "../../models/team/team.addMember.input.model";
-import { TeamCreationBodyInputDto } from "../../models/team/team.creation.input.model";
-import { TeamRemoveMemberPathParametersInputDto } from "../../models/team/team.removeMember.input.model";
-import { UsersGetByTeamIdPathParametersInputDto } from "../../models/user/users.getByTeamId.input.model";
+import { TeamAddMemberBodyDto, TeamAddMemberPathParametersDto } from "../../models/team/team.addMember.input.model";
+import { TeamCreationBodyDto } from "../../models/team/team.creation.input.model";
+import { TeamRemoveMemberPathParametersDto } from "../../models/team/team.removeMember.input.model";
+import { UsersGetByTeamIdPathParametersDto } from "../../models/user/users.getByTeamId.input.model";
 
 import { TeamService } from "../../services/team.service";
 import { TeamController, TeamControllerInterface } from "../team.controller";
@@ -60,7 +60,7 @@ describe("TeamController", () => {
         await teamController.createTeam(mockRequest);
 
         expect(validationService.validate).toHaveBeenCalledTimes(1);
-        expect(validationService.validate).toHaveBeenCalledWith(TeamCreationBodyInputDto, RequestPortion.Body, mockRequest.body);
+        expect(validationService.validate).toHaveBeenCalledWith(TeamCreationBodyDto, RequestPortion.Body, mockRequest.body);
       });
 
       it("calls teamService.createTeam with the correct params", async () => {
@@ -137,8 +137,8 @@ describe("TeamController", () => {
         await teamController.addUserToTeam(mockRequest);
 
         expect(validationService.validate).toHaveBeenCalledTimes(2);
-        expect(validationService.validate).toHaveBeenCalledWith(TeamAddMemberPathParametersInputDto, RequestPortion.PathParameters, mockRequest.pathParameters);
-        expect(validationService.validate).toHaveBeenCalledWith(TeamAddMemberBodyInputDto, RequestPortion.Body, mockRequest.body);
+        expect(validationService.validate).toHaveBeenCalledWith(TeamAddMemberPathParametersDto, RequestPortion.PathParameters, mockRequest.pathParameters);
+        expect(validationService.validate).toHaveBeenCalledWith(TeamAddMemberBodyDto, RequestPortion.Body, mockRequest.body);
       });
 
       it("calls teamService.isTeamAdmin with the correct params", async () => {
@@ -237,7 +237,7 @@ describe("TeamController", () => {
         await teamController.removeUserFromTeam(mockRequest);
 
         expect(validationService.validate).toHaveBeenCalledTimes(1);
-        expect(validationService.validate).toHaveBeenCalledWith(TeamRemoveMemberPathParametersInputDto, RequestPortion.PathParameters, mockRequest.pathParameters);
+        expect(validationService.validate).toHaveBeenCalledWith(TeamRemoveMemberPathParametersDto, RequestPortion.PathParameters, mockRequest.pathParameters);
       });
 
       it("calls teamService.isTeamAdmin with the correct params", async () => {
@@ -336,7 +336,7 @@ describe("TeamController", () => {
         await teamController.getTeamsByUserId(mockRequest);
 
         expect(validationService.validate).toHaveBeenCalledTimes(1);
-        expect(validationService.validate).toHaveBeenCalledWith(UsersGetByTeamIdPathParametersInputDto, RequestPortion.PathParameters, mockRequest.pathParameters);
+        expect(validationService.validate).toHaveBeenCalledWith(UsersGetByTeamIdPathParametersDto, RequestPortion.PathParameters, mockRequest.pathParameters);
       });
 
       it("calls teamService.isTeamMember with the correct params", async () => {

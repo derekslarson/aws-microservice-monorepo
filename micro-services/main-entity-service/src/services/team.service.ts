@@ -2,7 +2,7 @@ import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamRepositoryInterface } from "../repositories/team.dynamo.repository";
-import { TeamCreationBodyInputDto } from "../models/team/team.creation.input.model";
+import { TeamCreationBodyDto } from "../models/team/team.creation.input.model";
 import { Team } from "../models/team/team.model";
 @injectable()
 export class TeamService implements TeamServiceInterface {
@@ -12,7 +12,7 @@ export class TeamService implements TeamServiceInterface {
   ) {
   }
 
-  public async createTeam(teamCreationInput: TeamCreationBodyInputDto, userId: string): Promise<Team> {
+  public async createTeam(teamCreationInput: TeamCreationBodyDto, userId: string): Promise<Team> {
     try {
       this.loggerService.trace("createTeam called", { teamCreationInput, userId }, this.constructor.name);
 
@@ -107,7 +107,7 @@ export class TeamService implements TeamServiceInterface {
 }
 
 export interface TeamServiceInterface {
-  createTeam(TeamCreationInput: TeamCreationBodyInputDto, userId: string): Promise<Team>;
+  createTeam(TeamCreationInput: TeamCreationBodyDto, userId: string): Promise<Team>;
   addUserToTeam(teamId: string, userId: string, role: Role): Promise<void>;
   removeUserFromTeam(teamId: string, userId: string): Promise<void>;
   getTeamsByUserId(teamId: string): Promise<Team[]>;

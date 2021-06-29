@@ -109,30 +109,6 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2 implements Team
     }
   }
 
-  public async getTeamUserRelationshipsByTeamId(teamId: string): Promise<TeamUserRelationship[]> {
-    try {
-      this.loggerService.trace("getTeamUserRelationshipsByTeamId called", { teamId }, this.constructor.name);
-
-      const { Items: teamUserRelationships } = await this.query<TeamUserRelationship>({
-        KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
-        ExpressionAttributeNames: {
-          "#pk": "pk",
-          "#sk": "sk",
-        },
-        ExpressionAttributeValues: {
-          ":pk": teamId,
-          ":user": KeyPrefix.User,
-        },
-      });
-
-      return teamUserRelationships;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getTeamUserRelationshipsByTeamId", { error, teamId }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
   public async getTeamsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ teams: WithRole<Team>[]; lastEvaluatedKey?: string }> {
     try {
       this.loggerService.trace("getTeamsByUserId called", { userId }, this.constructor.name);

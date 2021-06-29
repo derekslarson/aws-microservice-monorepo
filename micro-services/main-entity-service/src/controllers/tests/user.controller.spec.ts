@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService, ForbiddenError } from "@yac/core";
-import { TeamsGetByUserIdPathParametersInputDto } from "../../models/team/teams.getByUserId.input.model";
+import { TeamsGetByUserIdPathParametersDto } from "../../models/team/teams.getByUserId.input.model";
 import { TeamService } from "../../services/team.service";
 import { UserService } from "../../services/user.service";
 import { UserController, UserControllerInterface } from "../user.controller";
@@ -55,7 +55,7 @@ describe("UserController", () => {
         await userController.getUsersByTeamId(mockRequest);
 
         expect(validationService.validate).toHaveBeenCalledTimes(1);
-        expect(validationService.validate).toHaveBeenCalledWith(TeamsGetByUserIdPathParametersInputDto, RequestPortion.PathParameters, mockRequest.pathParameters);
+        expect(validationService.validate).toHaveBeenCalledWith(TeamsGetByUserIdPathParametersDto, RequestPortion.PathParameters, mockRequest.pathParameters);
       });
 
       it("calls userService.getUsersByTeamId with the correct params", async () => {

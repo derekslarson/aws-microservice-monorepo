@@ -80,9 +80,9 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2 implements User
         },
       });
 
-      const users = await this.batchGet<User>({ Keys: teamUserRelationships.map((relationship) => ({ pk: relationship.userId, sk: relationship.userId })) });
+      const unsortedUsers = await this.batchGet<User>({ Keys: teamUserRelationships.map((relationship) => ({ pk: relationship.userId, sk: relationship.userId })) });
 
-      const usersWithRole = this.addRoleToUsers(teamUserRelationships, users);
+      const usersWithRole = this.addRoleToUsers(teamUserRelationships, unsortedUsers);
 
       return {
         users: usersWithRole,
@@ -112,9 +112,9 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2 implements User
         },
       });
 
-      const users = await this.batchGet<User>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.userId, sk: relationship.userId })) });
+      const unsortedUsers = await this.batchGet<User>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.userId, sk: relationship.userId })) });
 
-      const usersWithRole = this.addRoleToUsers(conversationUserRelationships, users);
+      const usersWithRole = this.addRoleToUsers(conversationUserRelationships, unsortedUsers);
 
       return {
         users: usersWithRole,

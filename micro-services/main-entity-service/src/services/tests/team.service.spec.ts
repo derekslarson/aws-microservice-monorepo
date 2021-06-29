@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, NotFoundError, Role, Spied, TestSupport } from "@yac/core";
-import { TeamCreationBodyInputDto } from "../../models/team/team.creation.input.model";
+import { TeamCreationBodyDto } from "../../models/team/team.creation.input.model";
 import { Team } from "../../models/team/team.model";
 import { TeamDynamoRepository } from "../../repositories/team.dynamo.repository";
 import { TeamService, TeamServiceInterface } from "../team.service";
@@ -27,7 +27,7 @@ describe("TeamService", () => {
   });
 
   describe("createTeam", () => {
-    const mockTeamCreationInput: TeamCreationBodyInputDto = { name: mockName };
+    const mockTeamCreationInput: TeamCreationBodyDto = { name: mockName };
 
     const expectedRepositoryParam: Omit<Team, "id"> = {
       createdBy: mockUserId,
@@ -180,17 +180,17 @@ describe("TeamService", () => {
   describe("getTeamsByUserId", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        teamRepository.getTeamUserRelationshipsByTeamId.and.returnValue(Promise.resolve([ mockTeamUserRelationship ]));
+        teamRepository.getTeamsByUserId.and.returnValue(Promise.resolve([ mockTeamUserRelationship ]));
       });
 
-      it("calls teamRepository.getTeamUserRelationshipsByTeamId with the correct params", async () => {
+      it("calls teamRepository.getTeamsByUserId with the correct params", async () => {
         await teamService.getTeamsByUserId(mockUserId);
 
-        expect(teamRepository.getTeamUserRelationshipsByTeamId).toHaveBeenCalledTimes(1);
-        expect(teamRepository.getTeamUserRelationshipsByTeamId).toHaveBeenCalledWith(mockUserId);
+        expect(teamRepository.getTeamsByUserId).toHaveBeenCalledTimes(1);
+        expect(teamRepository.getTeamsByUserId).toHaveBeenCalledWith(mockUserId);
       });
 
-      it("returns the response of teamRepository.getTeamUserRelationshipsByTeamId with teamIds stripped", async () => {
+      it("returns the response of teamRepository.getTeamsByUserId with teamIds stripped", async () => {
         const { teamId, ...expectedUser } = mockTeamUserRelationship;
 
         const teams = await teamService.getTeamsByUserId(mockUserId);
@@ -200,9 +200,9 @@ describe("TeamService", () => {
     });
 
     describe("under error conditions", () => {
-      describe("when teamRepository.getTeamUserRelationshipsByTeamId throws an error", () => {
+      describe("when teamRepository.getTeamsByUserId throws an error", () => {
         beforeEach(() => {
-          teamRepository.getTeamUserRelationshipsByTeamId.and.throwError(mockError);
+          teamRepository.getTeamsByUserId.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {

@@ -1,9 +1,13 @@
-// eslint-disable-next-line max-classes-per-file
+/* eslint-disable @typescript-eslint/explicit-member-accessibility */
 import { Expose } from "@yac/core";
 import { IsString } from "class-validator";
 
-export class UsersGetByTeamIdPathParametersInputDto {
+export class UsersGetByTeamIdPathParametersDto {
   @Expose()
   @IsString()
-  public teamId: string;
+  teamId: string;
+}
+
+export interface UsersGetByTeamIdInput {
+  teamId: string;
 }

@@ -1,7 +1,7 @@
 import { Expose } from "@yac/core";
 import { IsString } from "class-validator";
 
-export class TeamRemoveMemberPathParametersInputDto {
+export class TeamRemoveMemberPathParametersDto {
   @Expose()
   @IsString()
   public teamId: string;
@@ -9,4 +9,9 @@ export class TeamRemoveMemberPathParametersInputDto {
   @Expose()
   @IsString()
   public userId: string;
+}
+
+export interface TeamRemoveMemberInput {
+  teamId: string;
+  userId: string;
 }

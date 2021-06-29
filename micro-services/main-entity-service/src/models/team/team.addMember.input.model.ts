@@ -1,19 +1,26 @@
-// eslint-disable-next-line max-classes-per-file
+/* eslint-disable max-classes-per-file */
+/* eslint-disable @typescript-eslint/explicit-member-accessibility */
 import { Expose, Role } from "@yac/core";
 import { IsString, IsEnum } from "class-validator";
 
-export class TeamAddMemberPathParametersInputDto {
+export class TeamAddMemberPathParametersDto {
   @Expose()
   @IsString()
-  public teamId: string;
+  teamId: string;
 }
 
-export class TeamAddMemberBodyInputDto {
+export class TeamAddMemberBodyDto {
   @Expose()
   @IsString()
-  public userId: string;
+  userId: string;
 
   @Expose()
   @IsEnum(Role)
-  public role: Role;
+  role: Role;
+}
+
+export interface TeamAddMemberInput {
+  teamId: string;
+  userId: string;
+  role: Role;
 }
