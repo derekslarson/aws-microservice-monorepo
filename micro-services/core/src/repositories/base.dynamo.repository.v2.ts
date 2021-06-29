@@ -8,6 +8,7 @@ import { RecursivePartial } from "../types/recursivePartial.type";
 import { RawEntity } from "../types/raw.entity.type";
 import { CleansedEntity } from "../types/cleansed.entity.type";
 import { NotFoundError } from "../errors/notFound.error";
+import { BadRequestError } from "../errors";
 
 @injectable()
 export abstract class BaseDynamoRepositoryV2 {
@@ -182,7 +183,11 @@ export abstract class BaseDynamoRepositoryV2 {
     try {
       this.loggerService.trace("decodeExclusiveStartKey called", { key }, this.constructor.name);
 
-      const decodedKey = JSON.parse(Buffer.from(key, "base64").toString()) as DynamoDB.DocumentClient.Key;
+      const decodedKey = JSON.parse(Buffer.from(key, "base64").toString()) as unknown;
+
+      if (!this.isDyanmoKey(decodedKey)) {
+        throw new BadRequestError("Malformed start key");
+      }
 
       return decodedKey;
     } catch (error: unknown) {
@@ -193,13 +198,33 @@ export abstract class BaseDynamoRepositoryV2 {
   }
 
   private chunkArrayInGroups<T>(arr: T[], size: number): T[][] {
-    const arrayOfArrays: T[][] = [];
+    try {
+      this.loggerService.trace("chunkArrayInGroups called", { arr, size }, this.constructor.name);
 
-    for (let i = 0; i < arr.length; i += size) {
-      arrayOfArrays.push(arr.slice(i, i + size));
+      const arrayOfArrays: T[][] = [];
+
+      for (let i = 0; i < arr.length; i += size) {
+        arrayOfArrays.push(arr.slice(i, i + size));
+      }
+
+      return arrayOfArrays;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in chunkArrayInGroups", { error, arr, size }, this.constructor.name);
+
+      throw error;
     }
+  }
 
-    return arrayOfArrays;
+  private isDyanmoKey(key: unknown): key is DynamoDB.DocumentClient.Key {
+    try {
+      this.loggerService.trace("isDyanmoKey called", { key }, this.constructor.name);
+
+      return Object.prototype.toString.call(key) === "[object Object]";
+    } catch (error: unknown) {
+      this.loggerService.error("Error in isDyanmoKey", { error, key }, this.constructor.name);
+
+      throw error;
+    }
   }
 
   private generatePartialUpdateItemInput(
