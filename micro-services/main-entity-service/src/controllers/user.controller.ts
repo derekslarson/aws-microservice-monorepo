@@ -3,7 +3,7 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, ForbiddenError } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { UsersGetByTeamIdPathParametersInputDto } from "../models/users.getByTeamId.input.model";
+import { UsersGetByTeamIdPathParametersInputDto } from "../models/user/users.getByTeamId.input.model";
 import { TeamServiceInterface } from "../services/team.service";
 import { UserServiceInterface } from "../services/user.service";
 

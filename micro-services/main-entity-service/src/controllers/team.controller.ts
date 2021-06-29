@@ -4,10 +4,10 @@ import { injectable, inject } from "inversify";
 import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, ForbiddenError } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamServiceInterface } from "../services/team.service";
-import { TeamCreationBodyInputDto } from "../models/team.creation.input.model";
-import { TeamAddMemberBodyInputDto, TeamAddMemberPathParametersInputDto } from "../models/team.addMember.input.model";
-import { TeamRemoveMemberPathParametersInputDto } from "../models/team.removeMember.input.model";
-import { TeamsGetByUserIdPathParametersInputDto } from "../models/teams.getByUserId.input.model";
+import { TeamCreationBodyInputDto } from "../models/team/team.creation.input.model";
+import { TeamAddMemberBodyInputDto, TeamAddMemberPathParametersInputDto } from "../models/team/team.addMember.input.model";
+import { TeamRemoveMemberPathParametersInputDto } from "../models/team/team.removeMember.input.model";
+import { TeamsGetByUserIdPathParametersInputDto } from "../models/team/teams.getByUserId.input.model";
 
 @injectable()
 export class TeamController extends BaseController implements TeamControllerInterface {

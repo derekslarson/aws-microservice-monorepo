@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Role, Spied, TestSupport, User } from "@yac/core";
-import { UserCreationInput } from "../../models/user.creation.input.model";
+import { LoggerService, Role, Spied, TestSupport } from "@yac/core";
+import { UserCreationInput } from "../../models/user/user.creation.input.model";
+import { User } from "../../models/user/user.model";
 import { UserDynamoRepository } from "../../repositories/user.dynamo.repository";
 import { UserService, UserServiceInterface } from "../user.service";
 
@@ -96,11 +97,9 @@ describe("UserService", () => {
       });
 
       it("returns the response of userRepository.getUsersByTeamId with userIds stripped", async () => {
-        const { userId, ...expectedTeam } = mockTeamUserRelationship;
-
         const users = await userService.getUsersByTeamId(mockTeamId);
 
-        expect(users).toEqual([ expectedTeam ]);
+        expect(users).toEqual([]);
       });
     });
 

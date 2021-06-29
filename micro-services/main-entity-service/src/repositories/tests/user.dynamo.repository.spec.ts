@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { DocumentClientFactory, generateAwsResponse, IdService, LoggerService, Role, Spied, TestSupport, User } from "@yac/core";
+import { DocumentClientFactory, generateAwsResponse, IdService, LoggerService, Role, Spied, TestSupport } from "@yac/core";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
+import { User } from "../../models/user/user.model";
 import { UserDynamoRepository, UserRepositoryInterface } from "../user.dynamo.repository";
 
 interface UserDynamoRepositoryWithAnyMethod extends UserRepositoryInterface {
@@ -154,7 +155,7 @@ describe("UserDynamoRepository", () => {
       it("returns the Items returned by this.query", async () => {
         const userUserRelationships = await userDynamoRepository.getUsersByTeamId(mockUserId);
 
-        expect(userUserRelationships).toEqual([ mockUser ]);
+        expect(userUserRelationships).toEqual({ users: [ { ...mockUser, role: mockRole } ] });
       });
     });
 

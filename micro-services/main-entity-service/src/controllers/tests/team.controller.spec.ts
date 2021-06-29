@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService, ForbiddenError, Role } from "@yac/core";
-import { TeamAddMemberBodyInputDto, TeamAddMemberPathParametersInputDto } from "../../models/team.addMember.input.model";
-import { TeamCreationBodyInputDto } from "../../models/team.creation.input.model";
-import { TeamRemoveMemberPathParametersInputDto } from "../../models/team.removeMember.input.model";
-import { UsersGetByTeamIdPathParametersInputDto } from "../../models/users.getByTeamId.input.model";
+import { TeamAddMemberBodyInputDto, TeamAddMemberPathParametersInputDto } from "../../models/team/team.addMember.input.model";
+import { TeamCreationBodyInputDto } from "../../models/team/team.creation.input.model";
+import { TeamRemoveMemberPathParametersInputDto } from "../../models/team/team.removeMember.input.model";
+import { UsersGetByTeamIdPathParametersInputDto } from "../../models/user/users.getByTeamId.input.model";
+
 import { TeamService } from "../../services/team.service";
 import { TeamController, TeamControllerInterface } from "../team.controller";
 

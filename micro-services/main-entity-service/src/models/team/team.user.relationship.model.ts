@@ -1,4 +1,4 @@
-import { Role } from "../../enums/role.enum";
+import { Role } from "@yac/core";
 
 export interface TeamUserRelationship {
   teamId: string;

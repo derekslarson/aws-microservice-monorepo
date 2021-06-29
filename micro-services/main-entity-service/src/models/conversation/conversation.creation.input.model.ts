@@ -1,5 +1,6 @@
-import { ConversationType, Expose } from "@yac/core";
+import { Expose } from "@yac/core";
 import { IsEnum, IsString } from "class-validator";
+import { ConversationType } from "../../enums/conversationType.enum";
 
 export class ConversationCreationBodyInputDto {
   @Expose()

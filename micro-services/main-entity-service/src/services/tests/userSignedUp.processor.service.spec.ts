@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, SnsProcessorServiceInterface, SnsProcessorServiceRecord, Spied, TestSupport } from "@yac/core";
-import { UserCreationInput } from "../../models/user.creation.input.model";
+import { UserCreationInput } from "../../models/user/user.creation.input.model";
 import { UserService } from "../user.service";
 import { UserSignedUpProcessorService, UserSignedUpProcessorServiceConfigInterface } from "../userSignedUp.processor.service";
 

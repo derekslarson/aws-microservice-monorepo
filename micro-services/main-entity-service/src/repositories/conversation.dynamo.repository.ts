@@ -1,10 +1,16 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Conversation, Role, ConversationUserRelationship, ConversationType, TeamConversationRelationship, KeyPrefix, EntityType, DmConversation, ChannelConversation, WithRole, DynamoSetValues } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Role, WithRole, DynamoSetValues } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
+import { ChannelConversation, Conversation, DmConversation } from "../models/conversation/conversation.model";
+import { EntityType } from "../enums/entityType.enum";
+import { ConversationType } from "../enums/conversationType.enum";
+import { ConversationUserRelationship } from "../models/conversation/conversation.user.relationship.model";
+import { TeamConversationRelationship } from "../models/team/team.conversation.relationship.model";
 
 @injectable()
 export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 implements ConversationRepositoryInterface {

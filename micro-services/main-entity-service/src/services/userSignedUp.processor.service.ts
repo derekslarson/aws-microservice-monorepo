@@ -4,7 +4,7 @@ import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServi
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { UserServiceInterface } from "./user.service";
-import { UserCreationInput } from "../models/user.creation.input.model";
+import { UserCreationInput } from "../models/user/user.creation.input.model";
 
 @injectable()
 export class UserSignedUpProcessorService implements SnsProcessorServiceInterface {

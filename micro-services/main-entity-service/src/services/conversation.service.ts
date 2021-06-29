@@ -1,7 +1,10 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, Role, Conversation, ConversationUserRelationship, DmConversation, ChannelConversation, ConversationType } from "@yac/core";
+import { LoggerServiceInterface, NotFoundError, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationRepositoryInterface } from "../repositories/conversation.dynamo.repository";
+import { ChannelConversation, Conversation, DmConversation } from "../models/conversation/conversation.model";
+import { ConversationType } from "../enums/conversationType.enum";
+import { ConversationUserRelationship } from "../models/conversation/conversation.user.relationship.model";
 
 @injectable()
 export class ConversationService implements ConversationServiceInterface {
@@ -84,7 +87,7 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("getConversationsByUserId called", { userId }, this.constructor.name);
 
-      const conversations = await this.conversationRepository.getConversationsByUserId(userId);
+      const { conversations } = await this.conversationRepository.getConversationsByUserId(userId);
 
       return conversations;
     } catch (error: unknown) {

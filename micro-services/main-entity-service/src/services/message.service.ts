@@ -1,7 +1,8 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Message } from "@yac/core";
+import { LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageRepositoryInterface } from "../repositories/message.dynamo.repository";
+import { Message } from "../models/message/message.model";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
@@ -61,9 +62,9 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { userId }, this.constructor.name);
 
-      const conversations = await this.messageRepository.getMessagesByConversationId(userId);
+      const { messages } = await this.messageRepository.getMessagesByConversationId(userId);
 
-      return conversations;
+      return messages;
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByConversationId", { error, userId }, this.constructor.name);
 
@@ -75,9 +76,9 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("getRepliesByMessageId called", { userId }, this.constructor.name);
 
-      const conversations = await this.messageRepository.getRepliesByMessageId(userId);
+      const { replies } = await this.messageRepository.getRepliesByMessageId(userId);
 
-      return conversations;
+      return replies;
     } catch (error: unknown) {
       this.loggerService.error("Error in getRepliesByMessageId", { error, userId }, this.constructor.name);
 

@@ -1,8 +1,9 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, User } from "@yac/core";
+import { LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface } from "../repositories/user.dynamo.repository";
-import { UserCreationInput } from "../models/user.creation.input.model";
+import { UserCreationInput } from "../models/user/user.creation.input.model";
+import { User } from "../models/user/user.model";
 
 @injectable()
 export class UserService implements UserServiceInterface {
@@ -35,7 +36,7 @@ export class UserService implements UserServiceInterface {
     try {
       this.loggerService.trace("getUsersByTeamId called", { teamId }, this.constructor.name);
 
-      const users = await this.userRepository.getUsersByTeamId(teamId);
+      const { users } = await this.userRepository.getUsersByTeamId(teamId);
 
       return users;
     } catch (error: unknown) {
@@ -49,7 +50,7 @@ export class UserService implements UserServiceInterface {
     try {
       this.loggerService.trace("getUsersByConversationId called", { conversationId }, this.constructor.name);
 
-      const users = await this.userRepository.getUsersByConversationId(conversationId);
+      const { users } = await this.userRepository.getUsersByConversationId(conversationId);
 
       return users;
     } catch (error: unknown) {

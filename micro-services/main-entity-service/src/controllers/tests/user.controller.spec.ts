@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService, ForbiddenError } from "@yac/core";
-import { TeamsGetByUserIdPathParametersInputDto } from "../../models/teams.getByUserId.input.model";
+import { TeamsGetByUserIdPathParametersInputDto } from "../../models/team/teams.getByUserId.input.model";
 import { TeamService } from "../../services/team.service";
 import { UserService } from "../../services/user.service";
 import { UserController, UserControllerInterface } from "../user.controller";

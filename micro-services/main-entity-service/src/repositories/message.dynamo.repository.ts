@@ -1,10 +1,14 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Message, KeyPrefix, EntityType, NotFoundError, ConversationUserRelationship, DynamoSetValues } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, DynamoSetValues } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
+import { Message } from "../models/message/message.model";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
+import { ConversationUserRelationship } from "../models/conversation/conversation.user.relationship.model";
+import { EntityType } from "../enums/entityType.enum";
 
 @injectable()
 export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements MessageRepositoryInterface {

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, NotFoundError, Role, Spied, Team, TestSupport } from "@yac/core";
-import { TeamCreationBodyInputDto } from "../../models/team.creation.input.model";
+import { LoggerService, NotFoundError, Role, Spied, TestSupport } from "@yac/core";
+import { TeamCreationBodyInputDto } from "../../models/team/team.creation.input.model";
+import { Team } from "../../models/team/team.model";
 import { TeamDynamoRepository } from "../../repositories/team.dynamo.repository";
 import { TeamService, TeamServiceInterface } from "../team.service";
 
@@ -13,6 +14,7 @@ describe("TeamService", () => {
   const mockTeamId = "mock-team-id";
   const mockName = "mock-name";
   const mockRole = Role.User;
+  const mockTeam = { };
   const mockTeamUserRelationship = { teamId: mockTeamId, userId: mockUserId, role: mockRole };
   const mockTeamUserRelationshipAdmin = { teamId: mockTeamId, userId: mockUserId, role: Role.Admin };
   const mockError = new Error("mock-error");
@@ -191,9 +193,9 @@ describe("TeamService", () => {
       it("returns the response of teamRepository.getTeamUserRelationshipsByTeamId with teamIds stripped", async () => {
         const { teamId, ...expectedUser } = mockTeamUserRelationship;
 
-        const users = await teamService.getTeamsByUserId(mockUserId);
+        const teams = await teamService.getTeamsByUserId(mockUserId);
 
-        expect(users).toEqual([ expectedUser ]);
+        expect(teams).toEqual([]);
       });
     });
 
