@@ -7,7 +7,3 @@ export class UsersGetByTeamIdPathParametersDto {
   @IsString()
   teamId: string;
 }
-
-export interface UsersGetByTeamIdInput {
-  teamId: string;
-}

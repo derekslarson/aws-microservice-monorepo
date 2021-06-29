@@ -5,9 +5,8 @@ import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, Logg
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { Message } from "../models/message/message.model";
+import { Message } from "../models/message.model";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { ConversationUserRelationship } from "../models/conversation/conversation.user.relationship.model";
 import { EntityType } from "../enums/entityType.enum";
 
 @injectable()

@@ -1,9 +1,8 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/core";
+import { LoggerServiceInterface, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface } from "../repositories/user.dynamo.repository";
-import { UserCreationInput } from "../models/user/user.creation.input.model";
-import { User } from "../models/user/user.model";
+import { User } from "../models/user.model";
 
 @injectable()
 export class UserService implements UserServiceInterface {
@@ -13,9 +12,11 @@ export class UserService implements UserServiceInterface {
   ) {
   }
 
-  public async createUser(userCreationInput: UserCreationInput): Promise<User> {
+  public async createUser(createUserInput: CreateUserInput): Promise<CreateUserOutput> {
     try {
-      this.loggerService.trace("createUser called", { userCreationInput }, this.constructor.name);
+      this.loggerService.trace("createUser called", { createUserInput }, this.constructor.name);
+
+      const {} = createUserInput;
 
       const user: User = {
         id: userCreationInput.id,
@@ -26,13 +27,13 @@ export class UserService implements UserServiceInterface {
 
       return createdUser;
     } catch (error: unknown) {
-      this.loggerService.error("Error in createUser", { error, userCreationInput }, this.constructor.name);
+      this.loggerService.error("Error in createUser", { error, createUserInput }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getUsersByTeamId(teamId: string): Promise<User[]> {
+  public async getUsersByTeamId(getUsersByTeamIdInput: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput> {
     try {
       this.loggerService.trace("getUsersByTeamId called", { teamId }, this.constructor.name);
 
@@ -46,7 +47,7 @@ export class UserService implements UserServiceInterface {
     }
   }
 
-  public async getUsersByConversationId(conversationId: string): Promise<User[]> {
+  public async getUsersByConversationId(getUsersByConversationIdInput: GetUsersByConversationIdInput): Promise<GetUsersByConversationIdOutput> {
     try {
       this.loggerService.trace("getUsersByConversationId called", { conversationId }, this.constructor.name);
 
@@ -62,7 +63,36 @@ export class UserService implements UserServiceInterface {
 }
 
 export interface UserServiceInterface {
-  createUser(userCreationInput: UserCreationInput): Promise<User>;
-  getUsersByTeamId(teamId: string): Promise<User[]>;
-  getUsersByConversationId(teamId: string): Promise<User[]>;
+  createUser(createUserInput: CreateUserInput): Promise<CreateUserOutput>;
+  getUsersByTeamId(getUsersByTeamIdInput: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput>;
+  getUsersByConversationId(getUsersByConversationIdInput: GetUsersByConversationIdInput): Promise<GetUsersByConversationIdOutput>;
+}
+
+export interface CreateUserInput {
+  id: string;
+  email: string;
+}
+
+export interface CreateUserOutput {
+  user: User;
+}
+
+export interface GetUsersByTeamIdInput {
+  teamId: string;
+  exclusiveStartKey?: string;
+}
+
+export interface GetUsersByTeamIdOutput {
+  users: WithRole<User>[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetUsersByConversationIdInput {
+  teamId: string;
+  exclusiveStartKey?: string;
+}
+
+export interface GetUsersByConversationIdOutput {
+  users: WithRole<User>[];
+  lastEvaluatedKey?: string;
 }

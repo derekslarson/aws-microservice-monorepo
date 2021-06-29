@@ -3,19 +3,15 @@
 import { Expose } from "@yac/core";
 import { IsString } from "class-validator";
 
-export class ChannelConversationCreationPathParametersDto {
+export class FriendshipCreationPathParametersDto {
   @Expose()
   @IsString()
   userId: string;
 }
 
-export class ChannelConversationCreationBodyDto {
+export class FriendshipCreationBodyDto {
+  // other user's id
   @Expose()
   @IsString()
-  name: string;
-}
-
-export interface ChannelConversationCreationInput {
-  name: string;
-  createdBy: string;
+  userId: string;
 }

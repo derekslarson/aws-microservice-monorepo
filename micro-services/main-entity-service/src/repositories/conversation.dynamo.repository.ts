@@ -1,18 +1,14 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Role, WithRole, DynamoSetValues } from "@yac/core";
-
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, WithRole, DynamoSetValues } from "@yac/core";
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { Conversation } from "../models/conversation/conversation.model";
+import { ChannelConversation, Conversation, DmConversation } from "../models/conversation.model";
 import { EntityType } from "../enums/entityType.enum";
-import { ConversationType } from "../enums/conversationType.enum";
-import { ConversationUserRelationship } from "../models/conversation/conversation.user.relationship.model";
-import { TeamConversationRelationship } from "../models/team/team.conversation.relationship.model";
-import { DmConversation } from "../models/conversation/dm.conversation.model";
-import { ChannelConversation } from "../models/conversation/channel.conversation.model";
+import { TeamConversationRelationship } from "../models/team.conversation.relationship.model";
+import { ConversationUserRelationship } from "../models/conversation.user.relationship.model";
 
 @injectable()
 export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 implements ConversationRepositoryInterface {
@@ -28,18 +24,17 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
     this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
   }
 
-  public async createDmConversation(userIdA: string, userIdB: string): Promise<DmConversation> {
+  public async createDmConversation(createDmConversationInput: CreateDmConversationInput): Promise<CreateDmConversationOutput> {
     try {
-      this.loggerService.trace("createDmConversation called", { userIdA, userIdB }, this.constructor.name);
+      this.loggerService.trace("createDmConversation called", { createDmConversationInput }, this.constructor.name);
 
-      const id = `${KeyPrefix.DmConversation}${[ userIdA, userIdB ].sort().join("-")}`;
+      const { conversation } = createDmConversationInput;
 
       const conversationEntity: RawEntity<DmConversation> = {
         type: EntityType.DmConversation,
-        pk: id,
-        sk: id,
-        id,
-        conversationType: ConversationType.DM,
+        pk: conversation.id,
+        sk: conversation.id,
+        ...conversation,
       };
 
       await this.documentClient.put({
@@ -48,125 +43,111 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
         Item: conversationEntity,
       }).promise();
 
-      await Promise.all([ userIdA, userIdB ].map((userId) => this.addUserToConversation(id, userId, Role.Admin)));
-
-      return this.cleanse(conversationEntity);
+      return { conversation };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createDmConversation", { error, userIdA, userIdB }, this.constructor.name);
+      this.loggerService.error("Error in createDmConversation", { error, createDmConversationInput }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async createChannelConversation(conversation: Omit<ChannelConversation, "id">): Promise<ChannelConversation> {
+  public async createChannelConversation(createChannelConversationInput: CreateChannelConversationInput): Promise<CreateChannelConversationOutput> {
     try {
-      this.loggerService.trace("createConversation called", { conversation }, this.constructor.name);
+      this.loggerService.trace("createConversation called", { createChannelConversationInput }, this.constructor.name);
 
-      const id = `${KeyPrefix.ChannelConversation}${this.idService.generateId()}`;
+      const { conversation } = createChannelConversationInput;
 
       const conversationEntity: RawEntity<ChannelConversation> = {
         type: EntityType.ChannelConversation,
-        pk: id,
-        sk: id,
-        id,
+        pk: conversation.id,
+        sk: conversation.id,
         ...conversation,
-      };
-
-      await Promise.all([
-        this.documentClient.put({ TableName: this.tableName, Item: conversationEntity }).promise(),
-        this.addUserToConversation(id, conversation.createdBy, Role.Admin),
-      ]);
-
-      return this.cleanse(conversationEntity);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in createConversation", { error, conversation }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async addUserToConversation(conversationId: string, userId: string, role: Role): Promise<void> {
-    try {
-      this.loggerService.trace("addUserToConversation called", { conversationId, userId, role }, this.constructor.name);
-
-      const timestamp = new Date().toISOString();
-
-      const conversationUserRelationship: RawEntity<ConversationUserRelationship> = {
-        pk: conversationId,
-        sk: userId,
-        gsi1pk: userId,
-        gsi1sk: `${KeyPrefix.Time}${timestamp}`,
-        type: EntityType.ConversationUserRelationship,
-        conversationId,
-        userId,
-        role,
-        muted: false,
-        updatedAt: timestamp,
       };
 
       await this.documentClient.put({
         TableName: this.tableName,
-        Item: conversationUserRelationship,
+        Item: conversationEntity,
       }).promise();
+
+      return { conversation };
     } catch (error: unknown) {
-      this.loggerService.error("Error in addUserToConversation", { error, conversationId, userId, role }, this.constructor.name);
+      this.loggerService.error("Error in createConversation", { error, createChannelConversationInput }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getConversationUserRelationship(conversationId: string, userId: string): Promise<ConversationUserRelationship> {
+  public async createConversationUserRelationship(createConversationUserRelationshipInput: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput> {
     try {
-      this.loggerService.trace("getConversationUserRelationship called", { conversationId, userId }, this.constructor.name);
+      this.loggerService.trace("createConversationUserRelationship called", { createConversationUserRelationshipInput }, this.constructor.name);
+
+      const { conversationUserRelationship } = createConversationUserRelationshipInput;
+
+      const conversationUserRelationshipEntity: RawEntity<ConversationUserRelationship> = {
+        pk: conversationUserRelationship.conversationId,
+        sk: conversationUserRelationship.userId,
+        gsi1pk: conversationUserRelationship.userId,
+        gsi1sk: `${KeyPrefix.Time}${conversationUserRelationship.updatedAt}`,
+        type: EntityType.ConversationUserRelationship,
+        ...conversationUserRelationship,
+      };
+
+      await this.documentClient.put({
+        TableName: this.tableName,
+        Item: conversationUserRelationshipEntity,
+      }).promise();
+
+      return { conversationUserRelationship };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in createConversationUserRelationship", { error, createConversationUserRelationshipInput }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getConversationUserRelationship(getConversationUserRelationshipInput: GetConversationUserRelationshipInput): Promise<GetConversationUserRelationshipOutput> {
+    try {
+      this.loggerService.trace("getConversationUserRelationship called", { getConversationUserRelationshipInput }, this.constructor.name);
+
+      const { conversationId, userId } = getConversationUserRelationshipInput;
 
       const { unreadMessages, ...rest } = await this.get<DynamoSetValues<ConversationUserRelationship, "unreadMessages">>({ Key: { pk: conversationId, sk: userId } }, "Conversation-User Relationship");
 
-      return {
+      const conversationUserRelationship = {
         ...rest,
         ...(unreadMessages && { unreadMessages: unreadMessages.values }),
       };
+
+      return { conversationUserRelationship };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getConversationUserRelationship", { error, conversationId, userId }, this.constructor.name);
+      this.loggerService.error("Error in getConversationUserRelationship", { error, getConversationUserRelationshipInput }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async updateConversationUserRelationship(conversationId: string, userId: string, update: Partial<ConversationUserRelationship>): Promise<ConversationUserRelationship> {
+  public async deleteConversationUserRelationship(deleteConversationUserRelationshipInput: DeleteConversationUserRelationshipInput): Promise<DeleteConversationUserRelationshipOutput> {
     try {
-      this.loggerService.trace("updateConversationUserRelationship called", { conversationId, userId, update }, this.constructor.name);
+      this.loggerService.trace("deleteConversationUserRelationship called", { deleteConversationUserRelationshipInput }, this.constructor.name);
 
-      const { unreadMessages, ...rest } = await this.partialUpdate<ConversationUserRelationship>(conversationId, userId, update) as DynamoSetValues<ConversationUserRelationship, "unreadMessages">;
-
-      return {
-        ...rest,
-        ...(unreadMessages && { unreadMessages: unreadMessages.values }),
-      };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in updateConversationUserRelationship", { error, conversationId, userId, update }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async removeUserFromConversation(conversationId: string, userId: string): Promise<void> {
-    try {
-      this.loggerService.trace("removeUserFromConversation called", { conversationId, userId }, this.constructor.name);
+      const { conversationId, userId } = deleteConversationUserRelationshipInput;
 
       await this.documentClient.delete({
         TableName: this.tableName,
         Key: { pk: conversationId, sk: userId },
       }).promise();
     } catch (error: unknown) {
-      this.loggerService.error("Error in removeUserFromConversation", { error, conversationId, userId }, this.constructor.name);
+      this.loggerService.error("Error in deleteConversationUserRelationship", { error, deleteConversationUserRelationshipInput }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<Conversation>[], lastEvaluatedKey?: string; }> {
+  public async getConversationsByUserId(getConversationsByUserIdInput: GetConversationsByUserIdInput): Promise<GetConversationsByUserIdOutput> {
     try {
-      this.loggerService.trace("getConversationsByUserId called", { userId }, this.constructor.name);
+      this.loggerService.trace("getConversationsByUserId called", { getConversationsByUserIdInput }, this.constructor.name);
+
+      const { userId, exclusiveStartKey } = getConversationsByUserIdInput;
 
       const { Items: conversationUserRelationships, LastEvaluatedKey } = await this.query<ConversationUserRelationship>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
@@ -191,15 +172,17 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
         ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
       };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getConversationsByUserId", { error, userId }, this.constructor.name);
+      this.loggerService.error("Error in getConversationsByUserId", { error, getConversationsByUserIdInput }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getUnreadConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<Conversation>[], lastEvaluatedKey?: string; }> {
+  public async getUnreadConversationsByUserId(getUnreadConversationsByUserIdInput: GetUnreadConversationsByUserIdInput): Promise<GetUnreadConversationsByUserIdOutput> {
     try {
-      this.loggerService.trace("getUnreadConversationsByUserId called", { userId }, this.constructor.name);
+      this.loggerService.trace("getUnreadConversationsByUserId called", { getUnreadConversationsByUserIdInput }, this.constructor.name);
+
+      const { userId, exclusiveStartKey } = getUnreadConversationsByUserIdInput;
 
       const { Items: conversationUserRelationships, LastEvaluatedKey } = await this.query<ConversationUserRelationship>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
@@ -225,15 +208,17 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
         ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
       };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getUnreadConversationsByUserId", { error, userId }, this.constructor.name);
+      this.loggerService.error("Error in getUnreadConversationsByUserId", { error, getUnreadConversationsByUserIdInput }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getDmConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<DmConversation>[], lastEvaluatedKey?: string; }> {
+  public async getDmConversationsByUserId(getDmConversationsByUserIdInput: GetDmConversationsByUserIdInput): Promise<GetDmConversationsByUserIdOutput> {
     try {
-      this.loggerService.trace("getDmConversationsByUserId called", { userId }, this.constructor.name);
+      this.loggerService.trace("getDmConversationsByUserId called", { getDmConversationsByUserIdInput }, this.constructor.name);
+
+      const { userId, exclusiveStartKey } = getDmConversationsByUserIdInput;
 
       const { Items: conversationUserRelationships, LastEvaluatedKey } = await this.query<ConversationUserRelationship>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
@@ -258,15 +243,17 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
         ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
       };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getDmConversationsByUserId", { error, userId }, this.constructor.name);
+      this.loggerService.error("Error in getDmConversationsByUserId", { error, getDmConversationsByUserIdInput }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getChannelConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<ChannelConversation>[]; lastEvaluatedKey?: string; }> {
+  public async getChannelConversationsByUserId(getChannelConversationsByUserIdInput: GetChannelConversationsByUserIdInput): Promise<GetChannelConversationsByUserIdOutput> {
     try {
-      this.loggerService.trace("getChannelConversationsByUserId called", { userId }, this.constructor.name);
+      this.loggerService.trace("getChannelConversationsByUserId called", { getChannelConversationsByUserIdInput }, this.constructor.name);
+
+      const { userId, exclusiveStartKey } = getChannelConversationsByUserIdInput;
 
       const { Items: conversationUserRelationships, LastEvaluatedKey } = await this.query<ConversationUserRelationship>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
@@ -291,15 +278,17 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
         ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
       };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getChannelConversationsByUserId", { error, userId }, this.constructor.name);
+      this.loggerService.error("Error in getChannelConversationsByUserId", { error, getChannelConversationsByUserIdInput }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getConversationsByTeamId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: Conversation[], lastEvaluatedKey?: string; }> {
+  public async getConversationsByTeamId(getConversationsByTeamIdInput: GetConversationsByTeamIdInput): Promise<GetConversationsByTeamIdOutput> {
     try {
-      this.loggerService.trace("getConversationsByTeamId called", { userId }, this.constructor.name);
+      this.loggerService.trace("getConversationsByTeamId called", { getConversationsByTeamIdInput }, this.constructor.name);
+
+      const { userId, exclusiveStartKey } = getConversationsByTeamIdInput;
 
       const { Items: teamConversationRelationships, LastEvaluatedKey } = await this.query<TeamConversationRelationship>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
@@ -321,7 +310,7 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
         ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
       };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getConversationsByUserId", { error, userId }, this.constructor.name);
+      this.loggerService.error("Error in getConversationsByUserId", { error, getConversationsByTeamIdInput }, this.constructor.name);
 
       throw error;
     }
@@ -356,17 +345,105 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
 }
 
 export interface ConversationRepositoryInterface {
-  createDmConversation(userIdA: string, userIdB: string): Promise<DmConversation>;
-  createChannelConversation(conversation: Omit<ChannelConversation, "id">): Promise<ChannelConversation>
-  addUserToConversation(conversationId: string, userId: string, role: Role): Promise<void>;
-  removeUserFromConversation(conversationId: string, userId: string): Promise<void>;
-  getConversationUserRelationship(conversationId: string, userId: string): Promise<ConversationUserRelationship>;
-  updateConversationUserRelationship(conversationId: string, userId: string, update: Partial<ConversationUserRelationship>): Promise<ConversationUserRelationship>;
-  getConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<Conversation>[], lastEvaluatedKey?: string; }>;
-  getUnreadConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<Conversation>[], lastEvaluatedKey?: string; }>;
-  getDmConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<DmConversation>[], lastEvaluatedKey?: string; }>;
-  getChannelConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<ChannelConversation>[]; lastEvaluatedKey?: string; }>;
-  getConversationsByTeamId(teamId: string, exclusiveStartKey?: string): Promise<{ conversations: Conversation[], lastEvaluatedKey?: string; }>;
+  createDmConversation(createDmConversationInput: CreateDmConversationInput): Promise<CreateDmConversationOutput>;
+  createChannelConversation(createChannelConversationInput: CreateChannelConversationInput): Promise<CreateChannelConversationOutput>;
+  createConversationUserRelationship(createConversationUserRelationshipInput: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput>;
+  getConversationUserRelationship(getConversationUserRelationshipInput: GetConversationUserRelationshipInput): Promise<GetConversationUserRelationshipOutput>;
+  deleteConversationUserRelationship(deleteConversationUserRelationshipInput: DeleteConversationUserRelationshipInput): Promise<DeleteConversationUserRelationshipOutput>;
+  getConversationsByUserId(getConversationsByUserIdInput: GetConversationsByUserIdInput): Promise<GetConversationsByUserIdOutput>;
+  getUnreadConversationsByUserId(getUnreadConversationsByUserIdInput: GetUnreadConversationsByUserIdInput): Promise<GetUnreadConversationsByUserIdOutput>;
+  getDmConversationsByUserId(getDmConversationsByUserIdInput: GetDmConversationsByUserIdInput): Promise<GetDmConversationsByUserIdOutput>;
+  getChannelConversationsByUserId(getChannelConversationsByUserIdInput: GetChannelConversationsByUserIdInput): Promise<GetChannelConversationsByUserIdOutput>;
+  getConversationsByTeamId(getConversationsByTeamIdInput: GetConversationsByTeamIdInput): Promise<GetConversationsByTeamIdOutput>;
 }
 
 type ConversationRepositoryConfigType = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
+
+export interface CreateDmConversationInput {
+  conversation: DmConversation;
+}
+
+export interface CreateDmConversationOutput {
+  conversation: DmConversation;
+}
+
+export interface CreateChannelConversationInput {
+  conversation: ChannelConversation;
+}
+
+export interface CreateChannelConversationOutput {
+  conversation: ChannelConversation;
+}
+
+export interface CreateConversationUserRelationshipInput {
+  conversationUserRelationship: ConversationUserRelationship;
+}
+
+export interface CreateConversationUserRelationshipOutput {
+  conversationUserRelationship: ConversationUserRelationship;
+}
+
+export interface GetConversationUserRelationshipInput {
+  conversationId: string;
+  userId: string;
+}
+
+export interface GetConversationUserRelationshipOutput {
+  conversationUserRelationship: ConversationUserRelationship;
+}
+
+export interface DeleteConversationUserRelationshipInput {
+  conversationId: string;
+  userId: string;
+}
+
+export type DeleteConversationUserRelationshipOutput = void;
+
+export interface GetConversationsByUserIdInput {
+  userId: string;
+  exclusiveStartKey?: string;
+}
+
+export interface GetConversationsByUserIdOutput {
+  conversations: WithRole<Conversation>[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetUnreadConversationsByUserIdInput {
+  userId: string;
+  exclusiveStartKey?: string;
+}
+
+export interface GetUnreadConversationsByUserIdOutput {
+  conversations: WithRole<Conversation>[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetDmConversationsByUserIdInput {
+  userId: string;
+  exclusiveStartKey?: string;
+}
+
+export interface GetDmConversationsByUserIdOutput {
+  conversations: WithRole<DmConversation>[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetChannelConversationsByUserIdInput {
+  userId: string;
+  exclusiveStartKey?: string;
+}
+
+export interface GetChannelConversationsByUserIdOutput {
+  conversations: WithRole<ChannelConversation>[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetConversationsByTeamIdInput {
+  userId: string;
+  exclusiveStartKey?: string;
+}
+export interface GetConversationsByTeamIdOutput {
+  conversations: Conversation[];
+  lastEvaluatedKey?: string;
+}

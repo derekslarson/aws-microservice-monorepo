@@ -2,12 +2,12 @@
 import { Expose } from "@yac/core";
 import { IsString } from "class-validator";
 
-export class TeamsGetByUserIdPathParametersDto {
+export class TeamRemoveUserPathParametersDto {
   @Expose()
   @IsString()
-  userId: string;
-}
+  teamId: string;
 
-export interface TeamsGetByUserIdInput {
+  @Expose()
+  @IsString()
   userId: string;
 }

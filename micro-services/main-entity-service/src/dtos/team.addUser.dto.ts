@@ -3,24 +3,18 @@
 import { Expose, Role } from "@yac/core";
 import { IsString, IsEnum } from "class-validator";
 
-export class TeamAddMemberPathParametersDto {
+export class TeamAddUserPathParametersDto {
   @Expose()
   @IsString()
   teamId: string;
 }
 
-export class TeamAddMemberBodyDto {
+export class TeamAddUserBodyDto {
   @Expose()
   @IsString()
   userId: string;
 
   @Expose()
   @IsEnum(Role)
-  role: Role;
-}
-
-export interface TeamAddMemberInput {
-  teamId: string;
-  userId: string;
   role: Role;
 }

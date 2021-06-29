@@ -5,11 +5,11 @@ import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, Logg
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { User } from "../models/user/user.model";
+import { User } from "../models/user.model";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
-import { TeamUserRelationship } from "../models/team/team.user.relationship.model";
-import { ConversationUserRelationship } from "../models/conversation/conversation.user.relationship.model";
+import { TeamUserRelationship } from "../models/team.user.relationship.model";
+import { ConversationUserRelationship } from "../models/conversation.user.relationship.model";
 
 @injectable()
 export class UserDynamoRepository extends BaseDynamoRepositoryV2 implements UserRepositoryInterface {
