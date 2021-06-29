@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Team, Role, TeamUserRelationship, TeamConversationRelationship, KeyPrefix, EntityType } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Team, Role, TeamUserRelationship, TeamConversationRelationship, KeyPrefix, EntityType, WithRole } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
@@ -128,11 +128,12 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2 implements Team
     }
   }
 
-  public async getTeamsByUserId(userId: string): Promise<Team[]> {
+  public async getTeamsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ teams: WithRole<Team>[]; lastEvaluatedKey?: string }> {
     try {
       this.loggerService.trace("getTeamsByUserId called", { userId }, this.constructor.name);
 
-      const { Items: teamUserRelationships } = await this.query<TeamUserRelationship>({
+      const { Items: teamUserRelationships, LastEvaluatedKey } = await this.query<TeamUserRelationship>({
+        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         IndexName: this.gsiOneIndexName,
         KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :team)",
         ExpressionAttributeNames: {
@@ -147,7 +148,12 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2 implements Team
 
       const teams = await this.batchGet<Team>({ Keys: teamUserRelationships.map((relationship) => ({ pk: relationship.teamId, sk: relationship.teamId })) });
 
-      return teams;
+      const teamsWithRole = this.addRoleToTeams(teamUserRelationships, teams);
+
+      return {
+        teams: teamsWithRole,
+        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+      };
     } catch (error: unknown) {
       this.loggerService.error("Error in getTeamsByUserId", { error, userId }, this.constructor.name);
 
@@ -192,6 +198,33 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2 implements Team
       throw error;
     }
   }
+
+  private addRoleToTeams(teamUserRelationships: TeamUserRelationship[], teams: Team[]): WithRole<Team>[] {
+    try {
+      this.loggerService.trace("addRoleToTeams called", { teamUserRelationships, teams }, this.constructor.name);
+
+      const teamMap = teams.reduce((acc: { [key: string]: Team; }, team) => {
+        acc[team.id] = team;
+
+        return acc;
+      }, {});
+
+      const teamsWithRole = teamUserRelationships.map((relationship) => {
+        const team = teamMap[relationship.teamId];
+
+        return {
+          ...team,
+          role: relationship.role,
+        };
+      });
+
+      return teamsWithRole;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addRoleToTeams", { error, teamUserRelationships, teams }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface TeamRepositoryInterface {
@@ -201,7 +234,7 @@ export interface TeamRepositoryInterface {
   getTeamUserRelationship(teamId: string, userId: string): Promise<TeamUserRelationship>;
   addConversationToTeam(teamId: string, conversationId: string): Promise<void>;
   removeConversationFromTeam(teamId: string, conversationId: string): Promise<void>;
-  getTeamsByUserId(teamId: string): Promise<Team[]>;
+  getTeamsByUserId(teamId: string, exclusiveStartKey?: string): Promise<{ teams: WithRole<Team>[]; lastEvaluatedKey?: string }>;
 }
 
 type TeamRepositoryConfigType = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;

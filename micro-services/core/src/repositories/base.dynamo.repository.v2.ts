@@ -164,6 +164,34 @@ export abstract class BaseDynamoRepositoryV2 {
     return rest;
   }
 
+  protected encodeLastEvaluatedKey(key: DynamoDB.DocumentClient.Key): string {
+    try {
+      this.loggerService.trace("encodeLastEvaluatedKey called", { key }, this.constructor.name);
+
+      const encodedKey = Buffer.from(JSON.stringify(key)).toString("base64");
+
+      return encodedKey;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in encodeLastEvaluatedKey", { error, key }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  protected decodeExclusiveStartKey(key: string): DynamoDB.DocumentClient.Key {
+    try {
+      this.loggerService.trace("decodeExclusiveStartKey called", { key }, this.constructor.name);
+
+      const decodedKey = JSON.parse(Buffer.from(key, "base64").toString()) as DynamoDB.DocumentClient.Key;
+
+      return decodedKey;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in decodeExclusiveStartKey", { error, key }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   private chunkArrayInGroups<T>(arr: T[], size: number): T[][] {
     const arrayOfArrays: T[][] = [];
 

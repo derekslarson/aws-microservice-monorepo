@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Message, KeyPrefix, EntityType, NotFoundError, ConversationUserRelationship } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Message, KeyPrefix, EntityType, NotFoundError, ConversationUserRelationship, DynamoSetValues } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
@@ -140,11 +140,106 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
     }
   }
 
-  public async getMessagesByConversationId(conversationId: string): Promise<Message[]> {
+  public async markMessageRead(messageId: string, userId: string): Promise<void> {
+    try {
+      this.loggerService.trace("markMessageRead called", { messageId }, this.constructor.name);
+
+      const message = await this.getMessage(messageId);
+
+      const timestamp = new Date().toISOString();
+
+      await Promise.all([
+        this.documentClient.update({
+          TableName: this.tableName,
+          Key: {
+            pk: message.conversationId,
+            sk: messageId,
+          },
+          UpdateExpression: "SET #seenAt.#userId = :timestamp",
+          ExpressionAttributeNames: {
+            "#seenAt": "seenAt",
+            "#userId": userId,
+          },
+          ExpressionAttributeValues: { ":timestamp": timestamp },
+        }).promise(),
+        this.documentClient.update({
+          TableName: this.tableName,
+          Key: {
+            pk: message.conversationId,
+            sk: userId,
+          },
+          UpdateExpression: "DELETE #unreadMessages :messageIdSet",
+          ExpressionAttributeNames: { "#unreadMessages": "unreadMessages" },
+          ExpressionAttributeValues: { ":messageIdSet": this.documentClient.createSet([ messageId ]) },
+        }).promise(),
+      ]);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in markMessageRead", { error, messageId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async markMessageUnread(messageId: string, userId: string): Promise<void> {
+    try {
+      this.loggerService.trace("markMessageRead called", { messageId }, this.constructor.name);
+
+      const message = await this.getMessage(messageId);
+
+      await Promise.all([
+        this.documentClient.update({
+          TableName: this.tableName,
+          Key: {
+            pk: message.conversationId,
+            sk: messageId,
+          },
+          UpdateExpression: "SET #seenAt.#userId = :null",
+          ExpressionAttributeNames: {
+            "#seenAt": "seenAt",
+            "#userId": userId,
+          },
+          ExpressionAttributeValues: { ":null": null },
+        }).promise(),
+        this.documentClient.update({
+          TableName: this.tableName,
+          Key: {
+            pk: message.conversationId,
+            sk: userId,
+          },
+          UpdateExpression: "ADD #unreadMessages :messageIdSet",
+          ExpressionAttributeNames: { "#unreadMessages": "unreadMessages" },
+          ExpressionAttributeValues: { ":messageIdSet": this.documentClient.createSet([ messageId ]) },
+        }).promise(),
+      ]);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in markMessageRead", { error, messageId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async markConversationRead(conversationId: string, userId: string): Promise<void> {
+    try {
+      this.loggerService.trace("markMessageRead called", { conversationId }, this.constructor.name);
+
+      const conversationUserRelationship = await this.get<DynamoSetValues<ConversationUserRelationship, "unreadMessages">>({ Key: { pk: conversationId, sk: userId } });
+
+      if (conversationUserRelationship.unreadMessages?.values) {
+        await Promise.all(conversationUserRelationship.unreadMessages.values.map((messageId: string) => this.markMessageRead(messageId, userId)));
+      }
+    } catch (error: unknown) {
+      this.loggerService.error("Error in markMessageRead", { error, conversationId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getMessagesByConversationId(conversationId: string, exclusiveStartKey?: string): Promise<{ messages: Message[]; lastEvaluatedKey?: string; }> {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { conversationId }, this.constructor.name);
 
-      const { Items: messages } = await this.query<Message>({
+      const { Items: messages, LastEvaluatedKey } = await this.query<Message>({
+        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         IndexName: this.gsiOneIndexName,
         KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :message)",
         ExpressionAttributeNames: {
@@ -157,7 +252,10 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
         },
       });
 
-      return messages;
+      return {
+        messages,
+        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+      };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByConversationId", { error, conversationId }, this.constructor.name);
 
@@ -165,11 +263,12 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
     }
   }
 
-  public async getRepliesByMessageId(messageId: string): Promise<Message[]> {
+  public async getRepliesByMessageId(messageId: string, exclusiveStartKey?: string): Promise<{ replies: Message[]; lastEvaluatedKey?: string; }> {
     try {
       this.loggerService.trace("getRepliesByMessageId called", { messageId }, this.constructor.name);
 
-      const { Items: messages } = await this.query<Message>({
+      const { Items: replies, LastEvaluatedKey } = await this.query<Message>({
+        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         IndexName: this.gsiTwoIndexName,
         KeyConditionExpression: "#gsi2pk = :gsi2pk AND begins_with(#gsi2sk, :reply)",
         ExpressionAttributeNames: {
@@ -182,7 +281,10 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2 implements M
         },
       });
 
-      return messages;
+      return {
+        replies,
+        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+      };
     } catch (error: unknown) {
       this.loggerService.error("Error in getRepliesByMessageId", { error, messageId }, this.constructor.name);
 
@@ -195,8 +297,11 @@ export interface MessageRepositoryInterface {
   createMessage(message: Omit<Message, "id" | "seenAt">): Promise<Message>;
   updateMessage(messageId: string, update: Partial<Message>): Promise<Message>;
   getMessage(messageId: string): Promise<Message>;
-  getMessagesByConversationId(conversationId: string): Promise<Message[]>;
-  getRepliesByMessageId(messageId: string): Promise<Message[]>;
+  markMessageRead(messageId: string, userId: string): Promise<void>;
+  markMessageUnread(messageId: string, userId: string): Promise<void>;
+  markConversationRead(conversationId: string, userId: string): Promise<void>;
+  getMessagesByConversationId(conversationId: string, exclusiveStartKey?: string): Promise<{ messages: Message[]; lastEvaluatedKey?: string; }>;
+  getRepliesByMessageId(messageId: string, exclusiveStartKey?: string): Promise<{ replies: Message[]; lastEvaluatedKey?: string; }>;
 }
 
 type MessageRepositoryConfigType = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;

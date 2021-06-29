@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Conversation, Role, ConversationUserRelationship, ConversationType, TeamConversationRelationship, KeyPrefix, EntityType, DmConversation, ChannelConversation } from "@yac/core";
+import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, Conversation, Role, ConversationUserRelationship, ConversationType, TeamConversationRelationship, KeyPrefix, EntityType, DmConversation, ChannelConversation, WithRole, DynamoSetValues } from "@yac/core";
 
 import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
@@ -111,9 +111,12 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
     try {
       this.loggerService.trace("getConversationUserRelationship called", { conversationId, userId }, this.constructor.name);
 
-      const conversationUserRelationship = await this.get<ConversationUserRelationship>({ Key: { pk: conversationId, sk: userId } }, "Conversation-User Relationship");
+      const { unreadMessages, ...rest } = await this.get<DynamoSetValues<ConversationUserRelationship, "unreadMessages">>({ Key: { pk: conversationId, sk: userId } }, "Conversation-User Relationship");
 
-      return conversationUserRelationship;
+      return {
+        ...rest,
+        ...(unreadMessages && { unreadMessages: unreadMessages.values }),
+      };
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversationUserRelationship", { error, conversationId, userId }, this.constructor.name);
 
@@ -125,9 +128,12 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
     try {
       this.loggerService.trace("updateConversationUserRelationship called", { conversationId, userId, update }, this.constructor.name);
 
-      const conversationUserRelationship = await this.partialUpdate<ConversationUserRelationship>(conversationId, userId, update);
+      const { unreadMessages, ...rest } = await this.partialUpdate<ConversationUserRelationship>(conversationId, userId, update) as DynamoSetValues<ConversationUserRelationship, "unreadMessages">;
 
-      return conversationUserRelationship;
+      return {
+        ...rest,
+        ...(unreadMessages && { unreadMessages: unreadMessages.values }),
+      };
     } catch (error: unknown) {
       this.loggerService.error("Error in updateConversationUserRelationship", { error, conversationId, userId, update }, this.constructor.name);
 
@@ -150,11 +156,12 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
     }
   }
 
-  public async getConversationsByUserId(userId: string): Promise<Conversation[]> {
+  public async getConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<Conversation>[], lastEvaluatedKey?: string; }> {
     try {
       this.loggerService.trace("getConversationsByUserId called", { userId }, this.constructor.name);
 
-      const { Items: conversationUserRelationships } = await this.query<ConversationUserRelationship>({
+      const { Items: conversationUserRelationships, LastEvaluatedKey } = await this.query<ConversationUserRelationship>({
+        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         IndexName: this.gsiOneIndexName,
         KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :time)",
         ExpressionAttributeNames: {
@@ -169,7 +176,12 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
 
       const conversations = await this.batchGet<Conversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
 
-      return conversations;
+      const conversationsWithRole = this.addRoleToConversations<Conversation>(conversationUserRelationships, conversations);
+
+      return {
+        conversations: conversationsWithRole,
+        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+      };
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversationsByUserId", { error, userId }, this.constructor.name);
 
@@ -177,65 +189,12 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
     }
   }
 
-  public async getDmConversationsByUserId(userId: string): Promise<DmConversation[]> {
-    try {
-      this.loggerService.trace("getDmConversationsByUserId called", { userId }, this.constructor.name);
-
-      const { Items: conversationUserRelationships } = await this.query<ConversationUserRelationship>({
-        IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :conversation)",
-        ExpressionAttributeNames: {
-          "#gsi1pk": "gsi1pk",
-          "#gsi1sk": "gsi1sk",
-        },
-        ExpressionAttributeValues: {
-          ":gsi1pk": userId,
-          ":conversation": KeyPrefix.DmConversation,
-        },
-      });
-
-      const conversations = await this.batchGet<DmConversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
-
-      return conversations;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getDmConversationsByUserId", { error, userId }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getChannelConversationsByUserId(userId: string): Promise<ChannelConversation[]> {
-    try {
-      this.loggerService.trace("getConversationsByUserId called", { userId }, this.constructor.name);
-
-      const { Items: conversationUserRelationships } = await this.query<ConversationUserRelationship>({
-        IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :conversation)",
-        ExpressionAttributeNames: {
-          "#gsi1pk": "gsi1pk",
-          "#gsi1sk": "gsi1sk",
-        },
-        ExpressionAttributeValues: {
-          ":gsi1pk": userId,
-          ":conversation": KeyPrefix.ChannelConversation,
-        },
-      });
-
-      const conversations = await this.batchGet<ChannelConversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
-
-      return conversations;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getConversationsByUserId", { error, userId }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getUnreadConversationsByUserId(userId: string): Promise<Conversation[]> {
+  public async getUnreadConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<Conversation>[], lastEvaluatedKey?: string; }> {
     try {
       this.loggerService.trace("getUnreadConversationsByUserId called", { userId }, this.constructor.name);
 
-      const { Items: conversationUserRelationships } = await this.query<ConversationUserRelationship>({
+      const { Items: conversationUserRelationships, LastEvaluatedKey } = await this.query<ConversationUserRelationship>({
+        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         IndexName: this.gsiOneIndexName,
         FilterExpression: "attribute_exists(unreadMessages)",
         KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :conversation)",
@@ -251,7 +210,12 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
 
       const conversations = await this.batchGet<Conversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
 
-      return conversations;
+      const conversationsWithRole = this.addRoleToConversations(conversationUserRelationships, conversations);
+
+      return {
+        conversations: conversationsWithRole,
+        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+      };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUnreadConversationsByUserId", { error, userId }, this.constructor.name);
 
@@ -259,11 +223,78 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
     }
   }
 
-  public async getConversationsByTeamId(userId: string): Promise<Conversation[]> {
+  public async getDmConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<DmConversation>[], lastEvaluatedKey?: string; }> {
+    try {
+      this.loggerService.trace("getDmConversationsByUserId called", { userId }, this.constructor.name);
+
+      const { Items: conversationUserRelationships, LastEvaluatedKey } = await this.query<ConversationUserRelationship>({
+        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+        IndexName: this.gsiOneIndexName,
+        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :conversation)",
+        ExpressionAttributeNames: {
+          "#gsi1pk": "gsi1pk",
+          "#gsi1sk": "gsi1sk",
+        },
+        ExpressionAttributeValues: {
+          ":gsi1pk": userId,
+          ":conversation": KeyPrefix.DmConversation,
+        },
+      });
+
+      const conversations = await this.batchGet<DmConversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
+
+      const conversationsWithRole = this.addRoleToConversations<DmConversation>(conversationUserRelationships, conversations);
+
+      return {
+        conversations: conversationsWithRole,
+        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+      };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getDmConversationsByUserId", { error, userId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getChannelConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<ChannelConversation>[]; lastEvaluatedKey?: string; }> {
+    try {
+      this.loggerService.trace("getChannelConversationsByUserId called", { userId }, this.constructor.name);
+
+      const { Items: conversationUserRelationships, LastEvaluatedKey } = await this.query<ConversationUserRelationship>({
+        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+        IndexName: this.gsiOneIndexName,
+        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :conversation)",
+        ExpressionAttributeNames: {
+          "#gsi1pk": "gsi1pk",
+          "#gsi1sk": "gsi1sk",
+        },
+        ExpressionAttributeValues: {
+          ":gsi1pk": userId,
+          ":conversation": KeyPrefix.ChannelConversation,
+        },
+      });
+
+      const conversations = await this.batchGet<ChannelConversation>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
+
+      const conversationsWithRole = this.addRoleToConversations<ChannelConversation>(conversationUserRelationships, conversations);
+
+      return {
+        conversations: conversationsWithRole,
+        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+      };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getChannelConversationsByUserId", { error, userId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getConversationsByTeamId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: Conversation[], lastEvaluatedKey?: string; }> {
     try {
       this.loggerService.trace("getConversationsByTeamId called", { userId }, this.constructor.name);
 
-      const { Items: teamConversationRelationships } = await this.query<TeamConversationRelationship>({
+      const { Items: teamConversationRelationships, LastEvaluatedKey } = await this.query<TeamConversationRelationship>({
+        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :conversation)",
         ExpressionAttributeNames: {
           "#pk": "pk",
@@ -277,9 +308,39 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2 impleme
 
       const conversations = await this.batchGet<Conversation>({ Keys: teamConversationRelationships.map((relationship) => ({ pk: relationship.conversationId, sk: relationship.conversationId })) });
 
-      return conversations;
+      return {
+        conversations,
+        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+      };
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversationsByUserId", { error, userId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private addRoleToConversations<T extends Conversation = Conversation>(conversationUserRelationships: ConversationUserRelationship[], conversations: T[]): WithRole<T>[] {
+    try {
+      this.loggerService.trace("addRoleToConversations called", { conversationUserRelationships, conversations }, this.constructor.name);
+
+      const conversationMap = conversations.reduce((acc: { [key: string]: T; }, conversation) => {
+        acc[conversation.id] = conversation;
+
+        return acc;
+      }, {});
+
+      const conversationsWithRole = conversationUserRelationships.map((relationship) => {
+        const conversation = conversationMap[relationship.conversationId];
+
+        return {
+          ...conversation,
+          role: relationship.role,
+        };
+      });
+
+      return conversationsWithRole;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addRoleToConversations", { error, conversationUserRelationships, conversations }, this.constructor.name);
 
       throw error;
     }
@@ -293,11 +354,11 @@ export interface ConversationRepositoryInterface {
   removeUserFromConversation(conversationId: string, userId: string): Promise<void>;
   getConversationUserRelationship(conversationId: string, userId: string): Promise<ConversationUserRelationship>;
   updateConversationUserRelationship(conversationId: string, userId: string, update: Partial<ConversationUserRelationship>): Promise<ConversationUserRelationship>;
-  getConversationsByUserId(userId: string): Promise<Conversation[]>;
-  getUnreadConversationsByUserId(userId: string): Promise<Conversation[]>;
-  getDmConversationsByUserId(userId: string): Promise<DmConversation[]>;
-  getChannelConversationsByUserId(userId: string): Promise<ChannelConversation[]>;
-  getConversationsByTeamId(teamId: string): Promise<Conversation[]>;
+  getConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<Conversation>[], lastEvaluatedKey?: string; }>;
+  getUnreadConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<Conversation>[], lastEvaluatedKey?: string; }>;
+  getDmConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<DmConversation>[], lastEvaluatedKey?: string; }>;
+  getChannelConversationsByUserId(userId: string, exclusiveStartKey?: string): Promise<{ conversations: WithRole<ChannelConversation>[]; lastEvaluatedKey?: string; }>;
+  getConversationsByTeamId(teamId: string, exclusiveStartKey?: string): Promise<{ conversations: Conversation[], lastEvaluatedKey?: string; }>;
 }
 
 type ConversationRepositoryConfigType = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
