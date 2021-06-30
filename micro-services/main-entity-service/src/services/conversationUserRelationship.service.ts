@@ -3,6 +3,7 @@ import { LoggerServiceInterface, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationUserRelationship } from "../models/conversation.user.relationship.model";
 import { ConversationUserRelationshipRepositoryInterface } from "../repositories/conversationUserRelationship.dynamo.repository";
+import { ConversationType } from "../enums/conversationType.enum";
 
 @injectable()
 export class ConversationUserRelationshipService implements ConversationUserRelationshipServiceInterface {
@@ -51,13 +52,13 @@ export class ConversationUserRelationshipService implements ConversationUserRela
     }
   }
 
-  public async addUnreadMessageToConversationUserRelationship(params: AddUnreadMessageToConversationUserRelationshipInput): Promise<AddUnreadMessageToConversationUserRelationshipOutput> {
+  public async addMessageToConversationUserRelationship(params: AddMessageToConversationUserRelationshipInput): Promise<AddMessageToConversationUserRelationshipOutput> {
     try {
-      this.loggerService.trace("addUnreadMessageToConversationUserRelationship called", { params }, this.constructor.name);
+      this.loggerService.trace("addMessageToConversationUserRelationship called", { params }, this.constructor.name);
 
-      const { conversationId, userId, messageId } = params;
+      const { conversationId, userId, messageId, sender } = params;
 
-      const { conversationUserRelationship } = await this.conversationUserRelationshipRepository.addUnreadMessageToConversationUserRelationship({ conversationId, userId, messageId });
+      const { conversationUserRelationship } = await this.conversationUserRelationshipRepository.addMessageToConversationUserRelationship({ conversationId, userId, messageId, sender });
 
       return { conversationUserRelationship };
     } catch (error: unknown) {
@@ -78,22 +79,6 @@ export class ConversationUserRelationshipService implements ConversationUserRela
       return { conversationUserRelationship };
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUnreadMessageFromConversationUserRelationship", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async updateConversationUserRelationshipUpdatedAt(params: UpdateConversationUserRelationshipUpdatedAtInput): Promise<UpdateConversationUserRelationshipUpdatedAtOutput> {
-    try {
-      this.loggerService.trace("updateConversationUserRelationshipUpdatedAt called", { params }, this.constructor.name);
-
-      const { conversationId, userId } = params;
-
-      const { conversationUserRelationship } = await this.conversationUserRelationshipRepository.updateConversationUserRelationshipUpdatedAt({ conversationId, userId });
-
-      return { conversationUserRelationship };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in updateConversationUserRelationshipUpdatedAt", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -133,9 +118,9 @@ export class ConversationUserRelationshipService implements ConversationUserRela
     try {
       this.loggerService.trace("getConversationUserRelationshipsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey } = params;
+      const { userId, type, unread, exclusiveStartKey } = params;
 
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipRepository.getConversationUserRelationshipsByUserId({ userId, exclusiveStartKey });
+      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipRepository.getConversationUserRelationshipsByUserId({ userId, type, unread, exclusiveStartKey });
 
       return { conversationUserRelationships, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -149,9 +134,8 @@ export class ConversationUserRelationshipService implements ConversationUserRela
 export interface ConversationUserRelationshipServiceInterface {
   createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput>;
   getConversationUserRelationship(params: GetConversationUserRelationshipInput): Promise<GetConversationUserRelationshipOutput>;
-  addUnreadMessageToConversationUserRelationship(params: AddUnreadMessageToConversationUserRelationshipInput): Promise<AddUnreadMessageToConversationUserRelationshipOutput>;
+  addMessageToConversationUserRelationship(params: AddMessageToConversationUserRelationshipInput): Promise<AddMessageToConversationUserRelationshipOutput>;
   removeUnreadMessageFromConversationUserRelationship(params: RemoveUnreadMessageFromConversationUserRelationshipInput): Promise<RemoveUnreadMessageFromConversationUserRelationshipOutput>;
-  updateConversationUserRelationshipUpdatedAt(params: UpdateConversationUserRelationshipUpdatedAtInput): Promise<UpdateConversationUserRelationshipUpdatedAtOutput>;
   deleteConversationUserRelationship(params: DeleteConversationUserRelationshipInput): Promise<DeleteConversationUserRelationshipOutput>;
   getConversationUserRelationshipsByConversationId(params: GetConversationUserRelationshipsByConversationIdInput): Promise<GetConversationUserRelationshipsByConversationIdOutput>;
   getConversationUserRelationshipsByUserId(params: GetConversationUserRelationshipsByUserIdInput): Promise<GetConversationUserRelationshipsByUserIdOutput>;
@@ -176,15 +160,6 @@ export interface GetConversationUserRelationshipOutput {
   conversationUserRelationship: ConversationUserRelationship;
 }
 
-export interface AddUnreadMessageToConversationUserRelationshipInput {
-  conversationId: string;
-  userId: string;
-  messageId: string;
-}
-export interface AddUnreadMessageToConversationUserRelationshipOutput {
-  conversationUserRelationship: ConversationUserRelationship;
-}
-
 export interface RemoveUnreadMessageFromConversationUserRelationshipInput {
   conversationId: string;
   userId: string;
@@ -192,15 +167,6 @@ export interface RemoveUnreadMessageFromConversationUserRelationshipInput {
 }
 
 export interface RemoveUnreadMessageFromConversationUserRelationshipOutput {
-  conversationUserRelationship: ConversationUserRelationship;
-}
-
-export interface UpdateConversationUserRelationshipUpdatedAtInput {
-  conversationId: string;
-  userId: string;
-}
-
-export interface UpdateConversationUserRelationshipUpdatedAtOutput {
   conversationUserRelationship: ConversationUserRelationship;
 }
 
@@ -223,10 +189,22 @@ export interface GetConversationUserRelationshipsByConversationIdOutput {
 
 export interface GetConversationUserRelationshipsByUserIdInput {
   userId: string;
+  unread?: boolean;
+  type?: ConversationType;
   exclusiveStartKey?: string;
 }
 
 export interface GetConversationUserRelationshipsByUserIdOutput {
   conversationUserRelationships: ConversationUserRelationship[];
   lastEvaluatedKey?: string;
+}
+
+export interface AddMessageToConversationUserRelationshipInput {
+  conversationId: string;
+  userId: string;
+  messageId: string;
+  sender?: boolean;
+}
+export interface AddMessageToConversationUserRelationshipOutput {
+  conversationUserRelationship: ConversationUserRelationship;
 }

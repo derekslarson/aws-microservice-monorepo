@@ -1,23 +1,21 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { UserServiceInterface } from "../services/user.service";
 import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
 import { Message } from "../models/message.model";
 import { MessageServiceInterface } from "../services/message.service";
 
 @injectable()
-export class ConversationMessageUserMediatorService implements ConversationMessageUserMediatorServiceInterface {
+export class ConversationMessageMediatorService implements ConversationMessageMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
-    @inject(TYPES.ConversationServiceInterface) private messageService: MessageServiceInterface,
+    @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
   ) {}
 
-  public async createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
+  public async sendMessage(params: SendMessageInput): Promise<SendMessageOutput> {
     try {
-      this.loggerService.trace("createMessage called", { params }, this.constructor.name);
+      this.loggerService.trace("sendMessage called", { params }, this.constructor.name);
 
       const { conversationId, from, transcript } = params;
 
@@ -33,17 +31,16 @@ export class ConversationMessageUserMediatorService implements ConversationMessa
 
       const { message } = await this.messageService.createMessage({ conversationId, from, transcript, seenAt });
 
-      await Promise.all(conversationUserRelationships.map((relationship) => {
-        if (relationship.userId === from) {
-          return this.conversationUserRelationshipService.updateConversationUserRelationshipUpdatedAt({ conversationId, userId: relationship.userId });
-        }
-
-        return this.conversationUserRelationshipService.addUnreadMessageToConversationUserRelationship({ conversationId, userId: relationship.userId, messageId: message.id });
-      }));
+      await Promise.all(conversationUserRelationships.map((relationship) => this.conversationUserRelationshipService.addMessageToConversationUserRelationship({
+        conversationId,
+        userId: relationship.userId,
+        messageId: message.id,
+        sender: relationship.userId === from,
+      })));
 
       return { message };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createMessage", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in sendMessage", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -57,7 +54,7 @@ export class ConversationMessageUserMediatorService implements ConversationMessa
 
       const { message } = await this.messageService.updateMessageSeenAt({ messageId, userId, seenAtValue: new Date().toISOString() });
 
-      await this.conversationUserRelationshipService.addUnreadMessageToConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
+      await this.conversationUserRelationshipService.removeUnreadMessageFromConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
 
       return { message };
     } catch (error: unknown) {
@@ -75,7 +72,7 @@ export class ConversationMessageUserMediatorService implements ConversationMessa
 
       const { message } = await this.messageService.updateMessageSeenAt({ messageId, userId, seenAtValue: null });
 
-      await this.conversationUserRelationshipService.removeUnreadMessageFromConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
+      await this.conversationUserRelationshipService.addMessageToConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
 
       return { message };
     } catch (error: unknown) {
@@ -84,21 +81,38 @@ export class ConversationMessageUserMediatorService implements ConversationMessa
       throw error;
     }
   }
+
+  public async markConversationRead(params: MarkConversationReadInput): Promise<MarkConversationReadOutput> {
+    try {
+      this.loggerService.trace("markConversationRead called", { params }, this.constructor.name);
+
+      const { userId, conversationId } = params;
+
+      const { conversationUserRelationship: { unreadMessages = [] } } = await this.conversationUserRelationshipService.getConversationUserRelationship({ conversationId, userId });
+
+      await Promise.all(unreadMessages.map((messageId) => this.markMessageRead({ userId, messageId })));
+    } catch (error: unknown) {
+      this.loggerService.error("Error in markConversationRead", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
-export interface ConversationMessageUserMediatorServiceInterface {
-  createMessage(params: CreateMessageInput): Promise<CreateMessageOutput>;
+export interface ConversationMessageMediatorServiceInterface {
+  sendMessage(params: SendMessageInput): Promise<SendMessageOutput>;
   markMessageRead(params: MarkMessageReadInput): Promise<MarkMessageReadOutput>;
   markMessageUnread(params: MarkMessageUnreadInput): Promise<MarkMessageUnreadOutput>;
+  markConversationRead(params: MarkConversationReadInput): Promise<MarkConversationReadOutput>;
 }
 
-export interface CreateMessageInput {
+export interface SendMessageInput {
   conversationId: string;
   from: string;
   transcript: string;
 }
 
-export interface CreateMessageOutput {
+export interface SendMessageOutput {
   message: Message;
 }
 
@@ -119,3 +133,10 @@ export interface MarkMessageUnreadInput {
 export interface MarkMessageUnreadOutput {
   message: Message;
 }
+
+export interface MarkConversationReadInput {
+  userId: string;
+  conversationId: string;
+}
+
+export type MarkConversationReadOutput = void;

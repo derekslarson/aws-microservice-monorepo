@@ -6,11 +6,13 @@ import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
 import { ConversationUserRelationship } from "../models/conversation.user.relationship.model";
-import { RawEntity } from "../../../core/src/types/raw.entity.type";
-
+import { RawEntity } from "../types/raw.entity.type";
+import { ConversationType } from "../enums/conversationType.enum";
 @injectable()
 export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepositoryV2<ConversationUserRelationshipWithSet> implements ConversationUserRelationshipRepositoryInterface {
   private gsiOneIndexName: string;
+
+  private gsiTwoIndexName: string;
 
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
@@ -19,6 +21,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
   ) {
     super(documentClientFactory, envConfig.tableNames.core, loggerService);
     this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
+    this.gsiTwoIndexName = envConfig.globalSecondaryIndexNames.two;
   }
 
   public async createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput> {
@@ -27,12 +30,16 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const { conversationUserRelationship } = params;
 
+      const isChannelConversation = conversationUserRelationship.conversationId.startsWith(KeyPrefix.ChannelConversation);
+
       const conversationUserRelationshipEntity: RawEntity<ConversationUserRelationship> = {
+        entityType: EntityType.ConversationUserRelationship,
         pk: conversationUserRelationship.conversationId,
         sk: conversationUserRelationship.userId,
         gsi1pk: conversationUserRelationship.userId,
         gsi1sk: `${KeyPrefix.Time}${conversationUserRelationship.updatedAt}`,
-        type: EntityType.ConversationUserRelationship,
+        gsi2pk: conversationUserRelationship.userId,
+        gsi2sk: `${isChannelConversation ? KeyPrefix.ChannelConversation : KeyPrefix.DmConversation}${KeyPrefix.Time}${conversationUserRelationship.updatedAt}`,
         ...conversationUserRelationship,
       };
 
@@ -67,29 +74,33 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     }
   }
 
-  public async addUnreadMessageToConversationUserRelationship(params: AddUnreadMessageToConversationUserRelationshipInput): Promise<AddUnreadMessageToConversationUserRelationshipOutput> {
+  public async addMessageToConversationUserRelationship(params: AddMessageToConversationUserRelationshipInput): Promise<AddMessageToConversationUserRelationshipOutput> {
     try {
       this.loggerService.trace("addUnreadMessageToConversationUserRelationship called", { params }, this.constructor.name);
 
-      const { conversationId, userId, messageId } = params;
+      const { conversationId, userId, messageId, sender } = params;
 
       const timestamp = new Date().toISOString();
+
+      const isChannelConversation = conversationId.startsWith(KeyPrefix.ChannelConversation);
 
       const conversationUserRelationshipWithSet = await this.update({
         Key: {
           pk: conversationId,
           sk: userId,
         },
-        UpdateExpression: "SET #updatedAt = :timestamp, #gsi1sk = :keyTimestamp ADD #unreadMessages = :messageIdSet",
+        UpdateExpression: `SET #updatedAt = :timestamp, #gsi1sk = :keyTimestamp, #gsi2sk = :keyTimestampTwo${sender ? "" : " ADD #unreadMessages = :messageIdSet"}`,
         ExpressionAttributeNames: {
           "#updatedAt": "updatedAt",
           "#gsi1sk": "gsi1sk",
-          "#unreadMessages": "unreadMessages",
+          "#gsi2sk": "gsi2sk",
+          ...(!sender && { "#unreadMessages": "unreadMessages" }),
         },
         ExpressionAttributeValues: {
           ":timestamp": timestamp,
           ":keyTimestamp": `${KeyPrefix.Time}${timestamp}`,
-          ":messageIdSet": this.documentClient.createSet([ messageId ]),
+          ":keyTimestampTwo": `${isChannelConversation ? KeyPrefix.ChannelConversation : KeyPrefix.DmConversation}${KeyPrefix.Time}${timestamp}`,
+          ...(!sender && { ":messageIdSet": this.documentClient.createSet([ messageId ]) }),
         },
       });
 
@@ -103,7 +114,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     }
   }
 
-  public async removeUnreadMessageFromConversationUserRelationship(params: AddUnreadMessageToConversationUserRelationshipInput): Promise<AddUnreadMessageToConversationUserRelationshipOutput> {
+  public async removeUnreadMessageFromConversationUserRelationship(params: RemoveUnreadMessageFromConversationUserRelationshipInput): Promise<RemoveUnreadMessageFromConversationUserRelationshipOutput> {
     try {
       this.loggerService.trace("removeUnreadMessageFromConversationUserRelationship called", { params }, this.constructor.name);
 
@@ -124,40 +135,6 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
       return { conversationUserRelationship };
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUnreadMessageFromConversationUserRelationship", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async updateConversationUserRelationshipUpdatedAt(params: UpdateConversationUserRelationshipUpdatedAtInput): Promise<UpdateConversationUserRelationshipUpdatedAtOutput> {
-    try {
-      this.loggerService.trace("updateConversationUserRelationshipUpdatedAt called", { params }, this.constructor.name);
-
-      const { conversationId, userId } = params;
-
-      const timestamp = new Date().toISOString();
-
-      const conversationUserRelationshipWithSet = await this.update({
-        Key: {
-          pk: conversationId,
-          sk: userId,
-        },
-        UpdateExpression: "SET #updatedAt = :timestamp, #gsi1sk = :keyTimestamp",
-        ExpressionAttributeNames: {
-          "#updatedAt": "updatedAt",
-          "#gsi1sk": "gsi1sk",
-        },
-        ExpressionAttributeValues: {
-          ":timestamp": timestamp,
-          ":keyTimestamp": `${KeyPrefix.Time}${timestamp}`,
-        },
-      });
-
-      const conversationUserRelationship = this.cleanseSet(conversationUserRelationshipWithSet);
-
-      return { conversationUserRelationship };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in updateConversationUserRelationshipUpdatedAt", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -216,19 +193,25 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     try {
       this.loggerService.trace("getConversationUserRelationshipsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey } = params;
+      const { userId, exclusiveStartKey, type, unread } = params;
+
+      const indexName = type ? this.gsiTwoIndexName : this.gsiOneIndexName;
+      const pk = type ? "gsi2pk" : "gsi1pk";
+      const sk = type ? "gsi2sk" : "gsi1sk";
+      const skPrefix = type ? `${type === ConversationType.Channel ? KeyPrefix.ChannelConversation : KeyPrefix.DmConversation}${KeyPrefix.Time}` : KeyPrefix.Time;
 
       const { Items: conversationUserRelationshipsWithSet, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
-        IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :time)",
+        ...(unread && { FilterExpression: "attribute_exists(unreadMessages)" }),
+        IndexName: indexName,
+        KeyConditionExpression: `#${pk} = :${pk} AND begins_with(#${sk}, :skPrefix)`,
         ExpressionAttributeNames: {
-          "#gsi1pk": "gsi1pk",
-          "#gsi1sk": "gsi1sk",
+          [`#${pk}`]: pk,
+          [`#${sk}`]: sk,
         },
         ExpressionAttributeValues: {
-          ":gsi1pk": userId,
-          ":time": KeyPrefix.Time,
+          [`:${pk}`]: userId,
+          ":skPrefix": skPrefix,
         },
       });
 
@@ -266,9 +249,8 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 export interface ConversationUserRelationshipRepositoryInterface {
   createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput>;
   getConversationUserRelationship(params: GetConversationUserRelationshipInput): Promise<GetConversationUserRelationshipOutput>;
-  addUnreadMessageToConversationUserRelationship(params: AddUnreadMessageToConversationUserRelationshipInput): Promise<AddUnreadMessageToConversationUserRelationshipOutput>;
+  addMessageToConversationUserRelationship(params: AddMessageToConversationUserRelationshipInput): Promise<AddMessageToConversationUserRelationshipOutput>;
   removeUnreadMessageFromConversationUserRelationship(params: RemoveUnreadMessageFromConversationUserRelationshipInput): Promise<RemoveUnreadMessageFromConversationUserRelationshipOutput>;
-  updateConversationUserRelationshipUpdatedAt(params: UpdateConversationUserRelationshipUpdatedAtInput): Promise<UpdateConversationUserRelationshipUpdatedAtOutput>;
   deleteConversationUserRelationship(params: DeleteConversationUserRelationshipInput): Promise<DeleteConversationUserRelationshipOutput>;
   getConversationUserRelationshipsByConversationId(params: GetConversationUserRelationshipsByConversationIdInput): Promise<GetConversationUserRelationshipsByConversationIdOutput>;
   getConversationUserRelationshipsByUserId(params: GetConversationUserRelationshipsByUserIdInput): Promise<GetConversationUserRelationshipsByUserIdOutput>;
@@ -294,14 +276,14 @@ export interface GetConversationUserRelationshipInput {
 export interface GetConversationUserRelationshipOutput {
   conversationUserRelationship: ConversationUserRelationship;
 }
-
-export interface AddUnreadMessageToConversationUserRelationshipInput {
+export interface AddMessageToConversationUserRelationshipInput {
   conversationId: string;
   userId: string;
   messageId: string;
+  sender?: boolean;
 }
 
-export interface AddUnreadMessageToConversationUserRelationshipOutput {
+export interface AddMessageToConversationUserRelationshipOutput {
   conversationUserRelationship: ConversationUserRelationship;
 }
 
@@ -314,16 +296,6 @@ export interface RemoveUnreadMessageFromConversationUserRelationshipInput {
 export interface RemoveUnreadMessageFromConversationUserRelationshipOutput {
   conversationUserRelationship: ConversationUserRelationship;
 }
-
-export interface UpdateConversationUserRelationshipUpdatedAtInput {
-  conversationId: string;
-  userId: string;
-}
-
-export interface UpdateConversationUserRelationshipUpdatedAtOutput {
-  conversationUserRelationship: ConversationUserRelationship;
-}
-
 export interface DeleteConversationUserRelationshipInput {
   conversationId: string;
   userId: string;
@@ -343,6 +315,8 @@ export interface GetConversationUserRelationshipsByConversationIdOutput {
 
 export interface GetConversationUserRelationshipsByUserIdInput {
   userId: string;
+  unread?: boolean;
+  type?: ConversationType;
   exclusiveStartKey?: string;
 }
 

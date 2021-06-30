@@ -179,7 +179,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
     try {
       this.loggerService.trace("cleanse called", { item }, this.constructor.name);
 
-      const { type, pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, ...rest } = item;
+      const { entityType, pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, ...rest } = item;
 
       return rest as unknown as CleansedEntity<T>;
     } catch (error: unknown) {

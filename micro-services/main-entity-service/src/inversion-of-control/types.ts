@@ -12,12 +12,8 @@ const TYPES = {
   TeamUserRelationshipServiceInterface: Symbol.for("TeamUserRelationshipServiceInterface"),
   TeamUserRelationshipRepositoryInterface: Symbol.for("TeamUserRelationshipRepositoryInterface"),
 
-  TeamConversationRelationshipServiceInterface: Symbol.for("TeamConversationRelationshipServiceInterface"),
-  TeamConversationRelationshipRepositoryInterface: Symbol.for("TeamConversationRelationshipRepositoryInterface"),
-
   ConversationUserMediatorServiceInterface: Symbol.for("ConversationUserMediatorServiceInterface"),
   TeamUserMediatorServiceInterface: Symbol.for("TeamUserMediatorServiceInterface"),
-  TeamConversationMediatorServiceInterface: Symbol.for("TeamConversationMediatorServiceInterface"),
 
   UserSignedUpProcessorServiceInterface: Symbol.for("UserSignedUpProcessorServiceInterface"),
   UserControllerInterface: Symbol.for("UserControllerInterface"),

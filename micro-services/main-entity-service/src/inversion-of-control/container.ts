@@ -17,8 +17,6 @@ import { ConversationService, ConversationServiceInterface } from "../services/c
 import { ConversationUserRelationshipService, ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
 import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } from "../services/teamUserRelationship.service";
 import { TeamUserRelationshipDynamoRepository, TeamUserRelationshipRepositoryInterface } from "../repositories/teamUserRelationship.dynamo.repository";
-import { TeamConversationRelationshipService, TeamConversationRelationshipServiceInterface } from "../services/teamConversationRelationship.service";
-import { TeamConversationRelationshipDynamoRepository, TeamConversationRelationshipRepositoryInterface } from "../repositories/teamConversationRelationship.dynamo.repository";
 import { ConversationUserMediatorService, ConversationUserMediatorServiceInterface } from "../mediator-services/conversation.user.mediator.service";
 import { TeamUserMediatorService, TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
 
@@ -37,9 +35,6 @@ try {
 
   container.bind<ConversationUserRelationshipServiceInterface>(TYPES.ConversationUserRelationshipServiceInterface).to(ConversationUserRelationshipService);
   container.bind<ConversationUserRelationshipRepositoryInterface>(TYPES.ConversationUserRelationshipRepositoryInterface).to(ConversationUserRelationshipDynamoRepository);
-
-  container.bind<TeamConversationRelationshipServiceInterface>(TYPES.TeamConversationRelationshipServiceInterface).to(TeamConversationRelationshipService);
-  container.bind<TeamConversationRelationshipRepositoryInterface>(TYPES.TeamConversationRelationshipRepositoryInterface).to(TeamConversationRelationshipDynamoRepository);
 
   container.bind<ConversationUserMediatorServiceInterface>(TYPES.ConversationUserMediatorServiceInterface).to(ConversationUserMediatorService);
   container.bind<TeamUserMediatorServiceInterface>(TYPES.TeamUserMediatorServiceInterface).to(TeamUserMediatorService);

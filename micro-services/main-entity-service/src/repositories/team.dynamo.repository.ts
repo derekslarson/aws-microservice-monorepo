@@ -1,13 +1,11 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, WithRole } from "@yac/core";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/core";
 
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
-import { TeamConversationRelationship } from "../models/team.conversation.relationship.model";
 import { Team } from "../models/team.model";
-import { TeamUserRelationship } from "../models/team.user.relationship.model";
 import { RawEntity } from "../types/raw.entity.type";
 
 @injectable()
@@ -27,7 +25,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
       const { team } = params;
 
       const teamEntity: RawEntity<Team> = {
-        type: EntityType.Team,
+        entityType: EntityType.Team,
         pk: team.id,
         sk: team.id,
         ...team,
@@ -272,52 +270,3 @@ export interface GetTeamsInput {
 export interface GetTeamsOutput {
   teams: Team[];
 }
-
-export interface CreateTeamUserRelationshipInput {
-  teamUserRelationship: TeamUserRelationship;
-}
-
-export interface CreateTeamUserRelationshipOutput {
-  teamUserRelationship: TeamUserRelationship;
-}
-
-export interface GetTeamUserRelationshipInput {
-  teamId: string;
-  userId: string;
-}
-
-export interface GetTeamUserRelationshipOutput {
-  teamUserRelationship: TeamUserRelationship;
-}
-
-export interface DeleteTeamUserRelationshipInput {
-  teamId: string;
-  userId: string;
-}
-
-export type DeleteTeamUserRelationshipOutput = void;
-
-export interface GetTeamsByUserIdInput {
-  userId: string;
-  exclusiveStartKey?: string;
-}
-
-export interface GetTeamsByUserIdOutput {
-  teams: WithRole<Team>[];
-  lastEvaluatedKey?: string;
-}
-
-export interface CreateTeamConversationRelationshipInput {
-  teamConversationRelationship: TeamConversationRelationship;
-}
-
-export interface CreateTeamConversationRelationshipOutput {
-  teamConversationRelationship: TeamConversationRelationship;
-}
-
-export interface DeleteTeamConversationRelationshipInput {
-  teamId: string;
-  conversationId: string;
-}
-
-export type DeleteTeamConversationRelationshipOutput = void;

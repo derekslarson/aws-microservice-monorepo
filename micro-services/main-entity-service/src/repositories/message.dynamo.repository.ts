@@ -31,7 +31,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
       const { message } = params;
 
       const messageEntity: RawEntity<Message> = {
-        type: EntityType.Message,
+        entityType: EntityType.Message,
         pk: message.id,
         sk: message.id,
         gsi1pk: message.conversationId,

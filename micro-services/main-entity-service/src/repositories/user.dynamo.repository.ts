@@ -6,7 +6,7 @@ import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { User } from "../models/user.model";
 import { EntityType } from "../enums/entityType.enum";
-import { RawEntity } from "../../../core/src/types/raw.entity.type";
+import { RawEntity } from "../types/raw.entity.type";
 
 @injectable()
 export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implements UserRepositoryInterface {
@@ -25,7 +25,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
       const { user } = params;
 
       const userEntity: RawEntity<User> = {
-        type: EntityType.User,
+        entityType: EntityType.User,
         pk: user.id,
         sk: user.id,
         ...user,

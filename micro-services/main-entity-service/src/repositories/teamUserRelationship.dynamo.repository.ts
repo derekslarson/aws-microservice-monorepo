@@ -29,7 +29,7 @@ export class TeamUserRelationshipDynamoRepository extends BaseDynamoRepositoryV2
       const { teamUserRelationship } = params;
 
       const teamUserRelationshipEntity: RawEntity<TeamUserRelationship> = {
-        type: EntityType.TeamUserRelationship,
+        entityType: EntityType.TeamUserRelationship,
         pk: teamUserRelationship.teamId,
         sk: teamUserRelationship.userId,
         gsi1pk: teamUserRelationship.userId,

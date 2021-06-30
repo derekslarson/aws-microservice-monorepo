@@ -24,10 +24,11 @@ export class ConversationService implements ConversationServiceInterface {
 
       const conversation: DmConversation = {
         id: conversationId,
-        conversationType: ConversationType.DM,
+        type: ConversationType.DM,
+
       };
 
-      await this.conversationRepository.createDmConversation({ conversation });
+      await this.conversationRepository.createConversation({ conversation });
 
       return { conversation };
     } catch (error: unknown) {
@@ -41,7 +42,7 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createChannelConversation called", { params }, this.constructor.name);
 
-      const { name, createdBy } = params;
+      const { name, createdBy, teamId } = params;
 
       const conversationId = `${KeyPrefix.ChannelConversation}${this.idService.generateId()}`;
 
@@ -49,10 +50,11 @@ export class ConversationService implements ConversationServiceInterface {
         id: conversationId,
         name,
         createdBy,
-        conversationType: ConversationType.Channel,
+        type: ConversationType.Channel,
+        ...(teamId && { teamId }),
       };
 
-      await this.conversationRepository.createChannelConversation({ conversation });
+      await this.conversationRepository.createConversation({ conversation });
 
       return { conversation };
     } catch (error: unknown) {
@@ -97,6 +99,22 @@ export class ConversationService implements ConversationServiceInterface {
       return { conversations: sortedConversations };
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversations", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getConversationsByTeamId(params: GetConversationsByTeamIdInput): Promise<GetConversationsByTeamIdOutput> {
+    try {
+      this.loggerService.trace("getConversationsByTeamId called", { params }, this.constructor.name);
+
+      const { teamId, exclusiveStartKey } = params;
+
+      const { conversations, lastEvaluatedKey } = await this.conversationRepository.getConversationsByTeamId({ teamId, exclusiveStartKey });
+
+      return { conversations, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getConversationsByTeamId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -204,6 +222,7 @@ export interface ConversationServiceInterface {
   createChannelConversation(params: CreateChannelConversationInput): Promise<CreateChannelConversationOutput>;
   getConversation(params: GetConversationInput): Promise<GetConversationOutput>;
   getConversations(params: GetConversationsInput): Promise<GetConversationsOutput>;
+  getConversationsByTeamId(params: GetConversationsByTeamIdInput): Promise<GetConversationsByTeamIdOutput>;
   // addUserToConversation(addUserToConversationInput: AddUserToConversationInput): Promise<AddUserToConversationOutput>;
   // removeUserFromConversation(removeUserFromConversationInput: RemoveUserFromConversationInput): Promise<RemoveUserFromConversationOutput>;
   // getConversationsByUserId(getConversationsByUserIdInput: GetConversationsByUserIdInput): Promise<GetConversationsByUserIdOutput>;
@@ -223,6 +242,7 @@ export interface CreateDmConversationOutput {
 export interface CreateChannelConversationInput {
   name: string;
   createdBy: string;
+  teamId?: string;
 }
 
 export interface CreateChannelConversationOutput {
@@ -243,6 +263,16 @@ export interface GetConversationsInput {
 
 export interface GetConversationsOutput {
   conversations: Conversation[];
+}
+
+export interface GetConversationsByTeamIdInput {
+  teamId: string;
+  exclusiveStartKey?: string;
+}
+
+export interface GetConversationsByTeamIdOutput {
+  conversations: Conversation[];
+  lastEvaluatedKey?: string;
 }
 
 // export interface AddUserToConversationInput {
