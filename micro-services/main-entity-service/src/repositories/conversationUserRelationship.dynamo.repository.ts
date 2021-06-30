@@ -67,6 +67,102 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     }
   }
 
+  public async addUnreadMessageToConversationUserRelationship(params: AddUnreadMessageToConversationUserRelationshipInput): Promise<AddUnreadMessageToConversationUserRelationshipOutput> {
+    try {
+      this.loggerService.trace("addUnreadMessageToConversationUserRelationship called", { params }, this.constructor.name);
+
+      const { conversationId, userId, messageId } = params;
+
+      const timestamp = new Date().toISOString();
+
+      const conversationUserRelationshipWithSet = await this.update({
+        Key: {
+          pk: conversationId,
+          sk: userId,
+        },
+        UpdateExpression: "SET #updatedAt = :timestamp, #gsi1sk = :keyTimestamp ADD #unreadMessages = :messageIdSet",
+        ExpressionAttributeNames: {
+          "#updatedAt": "updatedAt",
+          "#gsi1sk": "gsi1sk",
+          "#unreadMessages": "unreadMessages",
+        },
+        ExpressionAttributeValues: {
+          ":timestamp": timestamp,
+          ":keyTimestamp": `${KeyPrefix.Time}${timestamp}`,
+          ":messageIdSet": this.documentClient.createSet([ messageId ]),
+        },
+      });
+
+      const conversationUserRelationship = this.cleanseSet(conversationUserRelationshipWithSet);
+
+      return { conversationUserRelationship };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addUnreadMessageToConversationUserRelationship", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async removeUnreadMessageFromConversationUserRelationship(params: AddUnreadMessageToConversationUserRelationshipInput): Promise<AddUnreadMessageToConversationUserRelationshipOutput> {
+    try {
+      this.loggerService.trace("removeUnreadMessageFromConversationUserRelationship called", { params }, this.constructor.name);
+
+      const { conversationId, userId, messageId } = params;
+
+      const conversationUserRelationshipWithSet = await this.update({
+        Key: {
+          pk: conversationId,
+          sk: userId,
+        },
+        UpdateExpression: "DELETE #unreadMessages = :messageIdSet",
+        ExpressionAttributeNames: { "#unreadMessages": "unreadMessages" },
+        ExpressionAttributeValues: { ":messageIdSet": this.documentClient.createSet([ messageId ]) },
+      });
+
+      const conversationUserRelationship = this.cleanseSet(conversationUserRelationshipWithSet);
+
+      return { conversationUserRelationship };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in removeUnreadMessageFromConversationUserRelationship", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async updateConversationUserRelationshipUpdatedAt(params: UpdateConversationUserRelationshipUpdatedAtInput): Promise<UpdateConversationUserRelationshipUpdatedAtOutput> {
+    try {
+      this.loggerService.trace("updateConversationUserRelationshipUpdatedAt called", { params }, this.constructor.name);
+
+      const { conversationId, userId } = params;
+
+      const timestamp = new Date().toISOString();
+
+      const conversationUserRelationshipWithSet = await this.update({
+        Key: {
+          pk: conversationId,
+          sk: userId,
+        },
+        UpdateExpression: "SET #updatedAt = :timestamp, #gsi1sk = :keyTimestamp",
+        ExpressionAttributeNames: {
+          "#updatedAt": "updatedAt",
+          "#gsi1sk": "gsi1sk",
+        },
+        ExpressionAttributeValues: {
+          ":timestamp": timestamp,
+          ":keyTimestamp": `${KeyPrefix.Time}${timestamp}`,
+        },
+      });
+
+      const conversationUserRelationship = this.cleanseSet(conversationUserRelationshipWithSet);
+
+      return { conversationUserRelationship };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateConversationUserRelationshipUpdatedAt", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async deleteConversationUserRelationship(params: DeleteConversationUserRelationshipInput): Promise<DeleteConversationUserRelationshipOutput> {
     try {
       this.loggerService.trace("deleteConversationUserRelationship called", { params }, this.constructor.name);
@@ -170,6 +266,9 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 export interface ConversationUserRelationshipRepositoryInterface {
   createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput>;
   getConversationUserRelationship(params: GetConversationUserRelationshipInput): Promise<GetConversationUserRelationshipOutput>;
+  addUnreadMessageToConversationUserRelationship(params: AddUnreadMessageToConversationUserRelationshipInput): Promise<AddUnreadMessageToConversationUserRelationshipOutput>;
+  removeUnreadMessageFromConversationUserRelationship(params: RemoveUnreadMessageFromConversationUserRelationshipInput): Promise<RemoveUnreadMessageFromConversationUserRelationshipOutput>;
+  updateConversationUserRelationshipUpdatedAt(params: UpdateConversationUserRelationshipUpdatedAtInput): Promise<UpdateConversationUserRelationshipUpdatedAtOutput>;
   deleteConversationUserRelationship(params: DeleteConversationUserRelationshipInput): Promise<DeleteConversationUserRelationshipOutput>;
   getConversationUserRelationshipsByConversationId(params: GetConversationUserRelationshipsByConversationIdInput): Promise<GetConversationUserRelationshipsByConversationIdOutput>;
   getConversationUserRelationshipsByUserId(params: GetConversationUserRelationshipsByUserIdInput): Promise<GetConversationUserRelationshipsByUserIdOutput>;
@@ -193,6 +292,35 @@ export interface GetConversationUserRelationshipInput {
 }
 
 export interface GetConversationUserRelationshipOutput {
+  conversationUserRelationship: ConversationUserRelationship;
+}
+
+export interface AddUnreadMessageToConversationUserRelationshipInput {
+  conversationId: string;
+  userId: string;
+  messageId: string;
+}
+
+export interface AddUnreadMessageToConversationUserRelationshipOutput {
+  conversationUserRelationship: ConversationUserRelationship;
+}
+
+export interface RemoveUnreadMessageFromConversationUserRelationshipInput {
+  conversationId: string;
+  userId: string;
+  messageId: string;
+}
+
+export interface RemoveUnreadMessageFromConversationUserRelationshipOutput {
+  conversationUserRelationship: ConversationUserRelationship;
+}
+
+export interface UpdateConversationUserRelationshipUpdatedAtInput {
+  conversationId: string;
+  userId: string;
+}
+
+export interface UpdateConversationUserRelationshipUpdatedAtOutput {
   conversationUserRelationship: ConversationUserRelationship;
 }
 

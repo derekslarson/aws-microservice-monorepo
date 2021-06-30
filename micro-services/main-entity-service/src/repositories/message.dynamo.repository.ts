@@ -70,6 +70,33 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     }
   }
 
+  public async updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
+    try {
+      this.loggerService.trace("updateMessageSeenAt called", { params }, this.constructor.name);
+
+      const { messageId, userId, seenAtValue } = params;
+
+      const message = await this.update({
+        Key: {
+          pk: messageId,
+          sk: messageId,
+        },
+        UpdateExpression: "SET #seenAt.#userId = :seenAtValue",
+        ExpressionAttributeNames: {
+          "#seenAt": "seenAt",
+          "#userId": userId,
+        },
+        ExpressionAttributeValues: { ":seenAtValue": seenAtValue },
+      });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMessageSeenAt", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput> {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
@@ -136,6 +163,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 export interface MessageRepositoryInterface {
   createMessage(params: CreateMessageInput): Promise<CreateMessageOutput>;
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
+  updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
 }
@@ -155,6 +183,16 @@ export interface GetMessageInput {
 }
 
 export interface GetMessageOutput {
+  message: Message;
+}
+
+export interface UpdateMessageSeenAtInput {
+  messageId: string;
+  userId: string;
+  seenAtValue: string | null;
+}
+
+export interface UpdateMessageSeenAtOutput {
   message: Message;
 }
 

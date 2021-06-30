@@ -59,6 +59,24 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
+  protected async update(params: Omit<DynamoDB.DocumentClient.UpdateItemInput, "TableName" | "ReturnValues">): Promise<CleansedEntity<T>> {
+    try {
+      this.loggerService.trace("update called", { params }, this.constructor.name);
+
+      const { Attributes } = await this.documentClient.update({
+        TableName: this.tableName,
+        ReturnValues: "ALL_NEW",
+        ...params,
+      }).promise();
+
+      return this.cleanse(Attributes as RawEntity<T>);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in update", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   protected async query(params: Omit<DynamoDB.DocumentClient.QueryInput, "TableName">): Promise<{ Items: CleansedEntity<T>[]; LastEvaluatedKey?: DynamoDB.DocumentClient.Key; }> {
     try {
       this.loggerService.trace("query called", { params }, this.constructor.name);

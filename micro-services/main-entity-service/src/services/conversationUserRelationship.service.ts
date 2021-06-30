@@ -51,6 +51,54 @@ export class ConversationUserRelationshipService implements ConversationUserRela
     }
   }
 
+  public async addUnreadMessageToConversationUserRelationship(params: AddUnreadMessageToConversationUserRelationshipInput): Promise<AddUnreadMessageToConversationUserRelationshipOutput> {
+    try {
+      this.loggerService.trace("addUnreadMessageToConversationUserRelationship called", { params }, this.constructor.name);
+
+      const { conversationId, userId, messageId } = params;
+
+      const { conversationUserRelationship } = await this.conversationUserRelationshipRepository.addUnreadMessageToConversationUserRelationship({ conversationId, userId, messageId });
+
+      return { conversationUserRelationship };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addUnreadMessageToConversationUserRelationship", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async removeUnreadMessageFromConversationUserRelationship(params: RemoveUnreadMessageFromConversationUserRelationshipInput): Promise<RemoveUnreadMessageFromConversationUserRelationshipOutput> {
+    try {
+      this.loggerService.trace("removeUnreadMessageFromConversationUserRelationship called", { params }, this.constructor.name);
+
+      const { conversationId, userId, messageId } = params;
+
+      const { conversationUserRelationship } = await this.conversationUserRelationshipRepository.removeUnreadMessageFromConversationUserRelationship({ conversationId, userId, messageId });
+
+      return { conversationUserRelationship };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in removeUnreadMessageFromConversationUserRelationship", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async updateConversationUserRelationshipUpdatedAt(params: UpdateConversationUserRelationshipUpdatedAtInput): Promise<UpdateConversationUserRelationshipUpdatedAtOutput> {
+    try {
+      this.loggerService.trace("updateConversationUserRelationshipUpdatedAt called", { params }, this.constructor.name);
+
+      const { conversationId, userId } = params;
+
+      const { conversationUserRelationship } = await this.conversationUserRelationshipRepository.updateConversationUserRelationshipUpdatedAt({ conversationId, userId });
+
+      return { conversationUserRelationship };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateConversationUserRelationshipUpdatedAt", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async deleteConversationUserRelationship(params: DeleteConversationUserRelationshipInput): Promise<DeleteConversationUserRelationshipOutput> {
     try {
       this.loggerService.trace("removeUserFromConversation called", { params }, this.constructor.name);
@@ -101,6 +149,9 @@ export class ConversationUserRelationshipService implements ConversationUserRela
 export interface ConversationUserRelationshipServiceInterface {
   createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput>;
   getConversationUserRelationship(params: GetConversationUserRelationshipInput): Promise<GetConversationUserRelationshipOutput>;
+  addUnreadMessageToConversationUserRelationship(params: AddUnreadMessageToConversationUserRelationshipInput): Promise<AddUnreadMessageToConversationUserRelationshipOutput>;
+  removeUnreadMessageFromConversationUserRelationship(params: RemoveUnreadMessageFromConversationUserRelationshipInput): Promise<RemoveUnreadMessageFromConversationUserRelationshipOutput>;
+  updateConversationUserRelationshipUpdatedAt(params: UpdateConversationUserRelationshipUpdatedAtInput): Promise<UpdateConversationUserRelationshipUpdatedAtOutput>;
   deleteConversationUserRelationship(params: DeleteConversationUserRelationshipInput): Promise<DeleteConversationUserRelationshipOutput>;
   getConversationUserRelationshipsByConversationId(params: GetConversationUserRelationshipsByConversationIdInput): Promise<GetConversationUserRelationshipsByConversationIdOutput>;
   getConversationUserRelationshipsByUserId(params: GetConversationUserRelationshipsByUserIdInput): Promise<GetConversationUserRelationshipsByUserIdOutput>;
@@ -122,6 +173,34 @@ export interface GetConversationUserRelationshipInput {
 }
 
 export interface GetConversationUserRelationshipOutput {
+  conversationUserRelationship: ConversationUserRelationship;
+}
+
+export interface AddUnreadMessageToConversationUserRelationshipInput {
+  conversationId: string;
+  userId: string;
+  messageId: string;
+}
+export interface AddUnreadMessageToConversationUserRelationshipOutput {
+  conversationUserRelationship: ConversationUserRelationship;
+}
+
+export interface RemoveUnreadMessageFromConversationUserRelationshipInput {
+  conversationId: string;
+  userId: string;
+  messageId: string;
+}
+
+export interface RemoveUnreadMessageFromConversationUserRelationshipOutput {
+  conversationUserRelationship: ConversationUserRelationship;
+}
+
+export interface UpdateConversationUserRelationshipUpdatedAtInput {
+  conversationId: string;
+  userId: string;
+}
+
+export interface UpdateConversationUserRelationshipUpdatedAtOutput {
   conversationUserRelationship: ConversationUserRelationship;
 }
 

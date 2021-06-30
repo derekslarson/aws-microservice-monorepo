@@ -7,6 +7,8 @@ import { UserServiceInterface } from "../services/user.service";
 import { UsersGetByTeamIdPathParametersDto } from "../dtos/users.getByTeamId.dto";
 import { TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
 import { UserGetPathParametersDto } from "../dtos/user.get.dto";
+import { ConversationUserMediatorServiceInterface } from "../mediator-services/conversation.user.mediator.service";
+import { UsersGetByConversationIdPathParametersDto } from "../dtos/users.getByConversationId.dto";
 
 @injectable()
 export class UserController extends BaseController implements UserControllerInterface {
@@ -14,9 +16,26 @@ export class UserController extends BaseController implements UserControllerInte
     @inject(TYPES.ValidationServiceInterface) private validationService: ValidationServiceInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamUserMediatorServiceInterface) private teamUserMediatorService: TeamUserMediatorServiceInterface,
+    @inject(TYPES.ConversationUserMediatorServiceInterface) private conversationUserMediatorService: ConversationUserMediatorServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
   ) {
     super();
+  }
+
+  public async getUser(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getUser called", { request }, this.constructor.name);
+
+      const { userId } = await this.validationService.validate(UserGetPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
+
+      const { user } = await this.userService.getUser({ userId });
+
+      return this.generateSuccessResponse({ user });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersByTeamId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
   }
 
   public async getUsersByTeamId(request: Request): Promise<Response> {
@@ -43,17 +62,25 @@ export class UserController extends BaseController implements UserControllerInte
     }
   }
 
-  public async getUser(request: Request): Promise<Response> {
+  public async getUsersByConversationId(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("getUser called", { request }, this.constructor.name);
+      this.loggerService.trace("getUsersByConversationId called", { request }, this.constructor.name);
 
-      const { userId } = await this.validationService.validate(UserGetPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
+      const authUserId = this.getUserIdFromRequestWithJwt(request);
 
-      const { user } = await this.userService.getUser({ userId });
+      const { conversationId } = await this.validationService.validate(UsersGetByConversationIdPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
 
-      return this.generateSuccessResponse({ user });
+      const { isConversationMember } = await this.conversationUserMediatorService.isConversationMember({ conversationId, userId: authUserId });
+
+      if (!isConversationMember) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { users, lastEvaluatedKey } = await this.conversationUserMediatorService.getUsersByConversationId({ conversationId });
+
+      return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByTeamId", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in getUsersByConversationId", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -62,5 +89,6 @@ export class UserController extends BaseController implements UserControllerInte
 
 export interface UserControllerInterface {
   getUsersByTeamId(request: Request): Promise<Response>;
+  getUsersByConversationId(request: Request): Promise<Response>;
   getUser(request: Request): Promise<Response>;
 }

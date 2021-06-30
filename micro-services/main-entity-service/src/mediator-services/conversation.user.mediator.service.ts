@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, WithRole } from "@yac/core";
+import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationUserRelationship } from "../models/conversation.user.relationship.model";
 import { User } from "../models/user.model";
@@ -60,11 +60,51 @@ export class ConversationUserMediatorService implements ConversationUserMediator
       throw error;
     }
   }
+
+  public async isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput> {
+    try {
+      this.loggerService.trace("isConversationMember called", { params }, this.constructor.name);
+
+      const { conversationId, userId } = params;
+
+      await this.conversationUserRelationshipService.getConversationUserRelationship({ conversationId, userId });
+
+      return { isConversationMember: true };
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        return { isConversationMember: false };
+      }
+      this.loggerService.error("Error in isConversationMember", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async isConversationAdmin(params: IsConversationAdminInput): Promise<IsConversationAdminOutput> {
+    try {
+      this.loggerService.trace("isConversationAdmin called", { params }, this.constructor.name);
+
+      const { conversationId, userId } = params;
+
+      const { conversationUserRelationship } = await this.conversationUserRelationshipService.getConversationUserRelationship({ conversationId, userId });
+
+      return { isConversationAdmin: conversationUserRelationship.role === Role.Admin };
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        return { isConversationAdmin: false };
+      }
+      this.loggerService.error("Error in isConversationAdmin", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface ConversationUserMediatorServiceInterface {
   getUsersByConversationId(params: GetUsersByConversationIdInput): Promise<GetUsersByConversationIdOutput>;
   getConversationsByUserId(params: GetConversationsByUserIdInput): Promise<GetConversationsByUserIdOutput>;
+  isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
+  isConversationAdmin(params: IsConversationAdminInput): Promise<IsConversationAdminOutput>;
 }
 
 export interface GetUsersByConversationIdInput {
@@ -85,4 +125,22 @@ export interface GetConversationsByUserIdInput {
 export interface GetConversationsByUserIdOutput {
   conversations: WithRole<Conversation>[];
   lastEvaluatedKey?: string;
+}
+
+export interface IsConversationMemberInput {
+  conversationId: string;
+  userId: string;
+}
+
+export interface IsConversationMemberOutput {
+  isConversationMember: boolean;
+}
+
+export interface IsConversationAdminInput {
+  conversationId: string;
+  userId: string;
+}
+
+export interface IsConversationAdminOutput {
+  isConversationAdmin: boolean;
 }
