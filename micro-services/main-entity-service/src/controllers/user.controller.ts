@@ -3,17 +3,18 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, ForbiddenError } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { UsersGetByTeamIdPathParametersDto } from "../models/user/users.getByTeamId.input.model";
-import { TeamServiceInterface } from "../services/team.service";
 import { UserServiceInterface } from "../services/user.service";
+import { UsersGetByTeamIdPathParametersDto } from "../dtos/users.getByTeamId.dto";
+import { TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
+import { UserGetPathParametersDto } from "../dtos/user.get.dto";
 
 @injectable()
 export class UserController extends BaseController implements UserControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceInterface) private validationService: ValidationServiceInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
-    @inject(TYPES.TeamServiceInterface) private userService: UserServiceInterface,
+    @inject(TYPES.TeamUserMediatorServiceInterface) private teamUserMediatorService: TeamUserMediatorServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
   ) {
     super();
   }
@@ -26,15 +27,31 @@ export class UserController extends BaseController implements UserControllerInte
 
       const { teamId } = await this.validationService.validate(UsersGetByTeamIdPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
 
-      const isTeamMember = await this.teamService.isTeamMember(teamId, authUserId);
+      const { isTeamMember } = await this.teamUserMediatorService.isTeamMember({ teamId, userId: authUserId });
 
       if (!isTeamMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const users = await this.userService.getUsersByTeamId(teamId);
+      const { users, lastEvaluatedKey } = await this.teamUserMediatorService.getUsersByTeamId({ teamId });
 
-      return this.generateSuccessResponse({ users });
+      return this.generateSuccessResponse({ users, lastEvaluatedKey });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersByTeamId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async getUser(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getUser called", { request }, this.constructor.name);
+
+      const { userId } = await this.validationService.validate(UserGetPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
+
+      const { user } = await this.userService.getUser({ userId });
+
+      return this.generateSuccessResponse({ user });
     } catch (error: unknown) {
       this.loggerService.error("Error in getUsersByTeamId", { error, request }, this.constructor.name);
 
@@ -45,4 +62,5 @@ export class UserController extends BaseController implements UserControllerInte
 
 export interface UserControllerInterface {
   getUsersByTeamId(request: Request): Promise<Response>;
+  getUser(request: Request): Promise<Response>;
 }

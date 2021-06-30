@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/core";
+import { IdServiceInterface, LoggerServiceInterface, Role, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamRepositoryInterface } from "../repositories/team.dynamo.repository";
 import { Team } from "../models/team.model";
