@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/core";
+import { IdServiceInterface, LoggerServiceInterface, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationRepositoryInterface } from "../repositories/conversation.dynamo.repository";
 import { ChannelConversation, Conversation, DmConversation } from "../models/conversation.model";
@@ -14,11 +14,11 @@ export class ConversationService implements ConversationServiceInterface {
     @inject(TYPES.ConversationRepositoryInterface) private conversationRepository: ConversationRepositoryInterface,
   ) {}
 
-  public async createDmConversation(createDmConversationInput: CreateDmConversationInput): Promise<CreateDmConversationOutput> {
+  public async createDmConversation(params: CreateDmConversationInput): Promise<CreateDmConversationOutput> {
     try {
-      this.loggerService.trace("createDmConversation called", { createDmConversationInput }, this.constructor.name);
+      this.loggerService.trace("createDmConversation called", { params }, this.constructor.name);
 
-      const { userId, friendId } = createDmConversationInput;
+      const { userId, friendId } = params;
 
       const conversationId = `${KeyPrefix.DmConversation}${[ userId, friendId ].sort().join("-")}`;
 
@@ -29,21 +29,19 @@ export class ConversationService implements ConversationServiceInterface {
 
       await this.conversationRepository.createDmConversation({ conversation });
 
-      await Promise.all([ userId, friendId ].map((id) => this.addUserToConversation({ conversationId, userId: id, role: Role.Admin })));
-
       return { conversation };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createDmConversation", { error, createDmConversationInput }, this.constructor.name);
+      this.loggerService.error("Error in createDmConversation", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async createChannelConversation(createChannelConversationInput: CreateChannelConversationInput): Promise<CreateChannelConversationOutput> {
+  public async createChannelConversation(params: CreateChannelConversationInput): Promise<CreateChannelConversationOutput> {
     try {
-      this.loggerService.trace("createChannelConversation called", { createChannelConversationInput }, this.constructor.name);
+      this.loggerService.trace("createChannelConversation called", { params }, this.constructor.name);
 
-      const { name, createdBy } = createChannelConversationInput;
+      const { name, createdBy } = params;
 
       const conversationId = `${KeyPrefix.ChannelConversation}${this.idService.generateId()}`;
 
@@ -56,121 +54,161 @@ export class ConversationService implements ConversationServiceInterface {
 
       await this.conversationRepository.createChannelConversation({ conversation });
 
-      await this.addUserToConversation({ conversationId, userId: createdBy, role: Role.Admin });
+      return { conversation };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in createChannelConversation", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getConversation(params: GetConversationInput): Promise<GetConversationOutput> {
+    try {
+      this.loggerService.trace("getConversation called", { params }, this.constructor.name);
+
+      const { conversationId } = params;
+
+      const { conversation } = await this.conversationRepository.getConversation({ conversationId });
 
       return { conversation };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createChannelConversation", { error, createChannelConversationInput }, this.constructor.name);
+      this.loggerService.error("Error in getConversation", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async addUserToConversation(addUserToConversationInput: AddUserToConversationInput): Promise<AddUserToConversationOutput> {
+  public async getConversations(params: GetConversationsInput): Promise<GetConversationsOutput> {
     try {
-      this.loggerService.trace("addUserToConversation called", { addUserToConversationInput }, this.constructor.name);
+      this.loggerService.trace("getConversations called", { params }, this.constructor.name);
 
-      const { conversationId, userId, role } = addUserToConversationInput;
+      const { conversationIds } = params;
 
-      const conversationUserRelationship: ConversationUserRelationship = {
-        conversationId,
-        userId,
-        role,
-        muted: false,
-        updatedAt: new Date().toISOString(),
-      };
+      const { conversations } = await this.conversationRepository.getConversations({ conversationIds });
 
-      await this.conversationRepository.createConversationUserRelationship({ conversationUserRelationship });
+      const conversationMap = conversations.reduce((acc: { [key: string]: Conversation; }, conversation) => {
+        acc[conversation.id] = conversation;
 
-      return { conversationUserRelationship };
+        return acc;
+      }, {});
+
+      const sortedConversations = conversationIds.map((conversationId) => conversationMap[conversationId]);
+
+      return { conversations: sortedConversations };
     } catch (error: unknown) {
-      this.loggerService.error("Error in addUserToConversation", { error, addUserToConversationInput }, this.constructor.name);
+      this.loggerService.error("Error in getConversations", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async removeUserFromConversation(removeUserFromConversationInput: RemoveUserFromConversationInput): Promise<RemoveUserFromConversationOutput> {
-    try {
-      this.loggerService.trace("removeUserFromConversation called", { removeUserFromConversationInput }, this.constructor.name);
+  // public async addUserToConversation(addUserToConversationInput: AddUserToConversationInput): Promise<AddUserToConversationOutput> {
+  //   try {
+  //     this.loggerService.trace("addUserToConversation called", { addUserToConversationInput }, this.constructor.name);
 
-      const { conversationId, userId } = removeUserFromConversationInput;
+  //     const { conversationId, userId, role } = addUserToConversationInput;
 
-      await this.conversationRepository.deleteConversationUserRelationship({ conversationId, userId });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in removeUserFromConversation", { error, removeUserFromConversationInput }, this.constructor.name);
+  //     const conversationUserRelationship: ConversationUserRelationship = {
+  //       conversationId,
+  //       userId,
+  //       role,
+  //       muted: false,
+  //       updatedAt: new Date().toISOString(),
+  //     };
 
-      throw error;
-    }
-  }
+  //     await this.conversationRepository.createConversationUserRelationship({ conversationUserRelationship });
 
-  public async getConversationsByUserId(getConversationsByUserIdInput: GetConversationsByUserIdInput): Promise<GetConversationsByUserIdOutput> {
-    try {
-      this.loggerService.trace("getConversationsByUserId called", { getConversationsByUserIdInput }, this.constructor.name);
+  //     return { conversationUserRelationship };
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in addUserToConversation", { error, addUserToConversationInput }, this.constructor.name);
 
-      const { userId, exclusiveStartKey } = getConversationsByUserIdInput;
+  //     throw error;
+  //   }
+  // }
 
-      const { conversations, lastEvaluatedKey } = await this.conversationRepository.getConversationsByUserId({ userId, exclusiveStartKey });
+  // public async removeUserFromConversation(removeUserFromConversationInput: RemoveUserFromConversationInput): Promise<RemoveUserFromConversationOutput> {
+  //   try {
+  //     this.loggerService.trace("removeUserFromConversation called", { removeUserFromConversationInput }, this.constructor.name);
 
-      return { conversations, lastEvaluatedKey };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getConversationsByUserId", { error, getConversationsByUserIdInput }, this.constructor.name);
+  //     const { conversationId, userId } = removeUserFromConversationInput;
 
-      throw error;
-    }
-  }
+  //     await this.conversationRepository.deleteConversationUserRelationship({ conversationId, userId });
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in removeUserFromConversation", { error, removeUserFromConversationInput }, this.constructor.name);
 
-  public async isConversationMember(isConversationMemberInput: IsConversationMemberInput): Promise<IsConversationMemberOutput> {
-    try {
-      this.loggerService.trace("isConversationMember called", { isConversationMemberInput }, this.constructor.name);
+  //     throw error;
+  //   }
+  // }
 
-      const { conversationId, userId } = isConversationMemberInput;
+  // public async getConversationsByUserId(getConversationsByUserIdInput: GetConversationsByUserIdInput): Promise<GetConversationsByUserIdOutput> {
+  //   try {
+  //     this.loggerService.trace("getConversationsByUserId called", { getConversationsByUserIdInput }, this.constructor.name);
 
-      await this.conversationRepository.getConversationUserRelationship({ conversationId, userId });
+  //     const { userId, exclusiveStartKey } = getConversationsByUserIdInput;
 
-      return { isConversationMember: true };
-    } catch (error: unknown) {
-      if (error instanceof NotFoundError) {
-        return { isConversationMember: false };
-      }
+  //     const { conversations, lastEvaluatedKey } = await this.conversationRepository.getConversationsByUserId({ userId, exclusiveStartKey });
 
-      this.loggerService.error("Error in isConversationMember", { error, isConversationMemberInput }, this.constructor.name);
+  //     return { conversations, lastEvaluatedKey };
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in getConversationsByUserId", { error, getConversationsByUserIdInput }, this.constructor.name);
 
-      throw error;
-    }
-  }
+  //     throw error;
+  //   }
+  // }
 
-  public async isConversationAdmin(isConversationAdminInput: IsConversationAdminInput): Promise<IsConversationAdminOutput> {
-    try {
-      this.loggerService.trace("isConversationAdmin called", { isConversationAdminInput }, this.constructor.name);
+  // public async isConversationMember(isConversationMemberInput: IsConversationMemberInput): Promise<IsConversationMemberOutput> {
+  //   try {
+  //     this.loggerService.trace("isConversationMember called", { isConversationMemberInput }, this.constructor.name);
 
-      const { conversationId, userId } = isConversationAdminInput;
+  //     const { conversationId, userId } = isConversationMemberInput;
 
-      const { conversationUserRelationship } = await this.conversationRepository.getConversationUserRelationship({ conversationId, userId });
+  //     await this.conversationRepository.getConversationUserRelationship({ conversationId, userId });
 
-      const isConversationAdmin = conversationUserRelationship.role === Role.Admin;
+  //     return { isConversationMember: true };
+  //   } catch (error: unknown) {
+  //     if (error instanceof NotFoundError) {
+  //       return { isConversationMember: false };
+  //     }
 
-      return { isConversationAdmin };
-    } catch (error: unknown) {
-      if (error instanceof NotFoundError) {
-        return { isConversationAdmin: false };
-      }
+  //     this.loggerService.error("Error in isConversationMember", { error, isConversationMemberInput }, this.constructor.name);
 
-      this.loggerService.error("Error in isConversationAdmin", { error, isConversationAdminInput }, this.constructor.name);
+  //     throw error;
+  //   }
+  // }
 
-      throw error;
-    }
-  }
+  // public async isConversationAdmin(isConversationAdminInput: IsConversationAdminInput): Promise<IsConversationAdminOutput> {
+  //   try {
+  //     this.loggerService.trace("isConversationAdmin called", { isConversationAdminInput }, this.constructor.name);
+
+  //     const { conversationId, userId } = isConversationAdminInput;
+
+  //     const { conversationUserRelationship } = await this.conversationRepository.getConversationUserRelationship({ conversationId, userId });
+
+  //     const isConversationAdmin = conversationUserRelationship.role === Role.Admin;
+
+  //     return { isConversationAdmin };
+  //   } catch (error: unknown) {
+  //     if (error instanceof NotFoundError) {
+  //       return { isConversationAdmin: false };
+  //     }
+
+  //     this.loggerService.error("Error in isConversationAdmin", { error, isConversationAdminInput }, this.constructor.name);
+
+  //     throw error;
+  //   }
+  // }
 }
 
 export interface ConversationServiceInterface {
-  createDmConversation(createDmConversationInput: CreateDmConversationInput): Promise<CreateDmConversationOutput>;
-  createChannelConversation(createChannelConversationInput: CreateChannelConversationInput): Promise<CreateChannelConversationOutput>;
-  addUserToConversation(addUserToConversationInput: AddUserToConversationInput): Promise<AddUserToConversationOutput>;
-  removeUserFromConversation(removeUserFromConversationInput: RemoveUserFromConversationInput): Promise<RemoveUserFromConversationOutput>;
-  getConversationsByUserId(getConversationsByUserIdInput: GetConversationsByUserIdInput): Promise<GetConversationsByUserIdOutput>;
-  isConversationMember(isConversationMemberInput: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
-  isConversationAdmin(isConversationAdminInput: IsConversationAdminInput): Promise<IsConversationAdminOutput>;
+  createDmConversation(params: CreateDmConversationInput): Promise<CreateDmConversationOutput>;
+  createChannelConversation(params: CreateChannelConversationInput): Promise<CreateChannelConversationOutput>;
+  getConversation(params: GetConversationInput): Promise<GetConversationOutput>;
+  getConversations(params: GetConversationsInput): Promise<GetConversationsOutput>;
+  // addUserToConversation(addUserToConversationInput: AddUserToConversationInput): Promise<AddUserToConversationOutput>;
+  // removeUserFromConversation(removeUserFromConversationInput: RemoveUserFromConversationInput): Promise<RemoveUserFromConversationOutput>;
+  // getConversationsByUserId(getConversationsByUserIdInput: GetConversationsByUserIdInput): Promise<GetConversationsByUserIdOutput>;
+  // isConversationMember(isConversationMemberInput: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
+  // isConversationAdmin(isConversationAdminInput: IsConversationAdminInput): Promise<IsConversationAdminOutput>;
 }
 
 export interface CreateDmConversationInput {
@@ -191,47 +229,63 @@ export interface CreateChannelConversationOutput {
   conversation: ChannelConversation;
 }
 
-export interface AddUserToConversationInput {
-  conversationId: string;
-  userId: string;
-  role: Role;
-}
-
-export interface AddUserToConversationOutput {
-  conversationUserRelationship: ConversationUserRelationship;
-}
-
-export interface RemoveUserFromConversationInput {
-  conversationId: string;
-  userId: string;
-}
-
-export type RemoveUserFromConversationOutput = void;
-
-export interface GetConversationsByUserIdInput {
-  userId: string;
-  exclusiveStartKey?: string;
-}
-
-export interface GetConversationsByUserIdOutput {
-  conversations: WithRole<Conversation>[];
-  lastEvaluatedKey?: string;
-}
-
-export interface IsConversationMemberInput {
-  userId: string;
+export interface GetConversationInput {
   conversationId: string;
 }
 
-export interface IsConversationMemberOutput {
-  isConversationMember: boolean;
+export interface GetConversationOutput {
+  conversation: Conversation;
 }
 
-export interface IsConversationAdminInput {
-  userId: string;
-  conversationId: string;
+export interface GetConversationsInput {
+  conversationIds: string[];
 }
 
-export interface IsConversationAdminOutput {
-  isConversationAdmin: boolean;
+export interface GetConversationsOutput {
+  conversations: Conversation[];
 }
+
+// export interface AddUserToConversationInput {
+//   conversationId: string;
+//   userId: string;
+//   role: Role;
+// }
+
+// export interface AddUserToConversationOutput {
+//   conversationUserRelationship: ConversationUserRelationship;
+// }
+
+// export interface RemoveUserFromConversationInput {
+//   conversationId: string;
+//   userId: string;
+// }
+
+// export type RemoveUserFromConversationOutput = void;
+
+// export interface GetConversationsByUserIdInput {
+//   userId: string;
+//   exclusiveStartKey?: string;
+// }
+
+// export interface GetConversationsByUserIdOutput {
+//   conversations: WithRole<Conversation>[];
+//   lastEvaluatedKey?: string;
+// }
+
+// export interface IsConversationMemberInput {
+//   userId: string;
+//   conversationId: string;
+// }
+
+// export interface IsConversationMemberOutput {
+//   isConversationMember: boolean;
+// }
+
+// export interface IsConversationAdminInput {
+//   userId: string;
+//   conversationId: string;
+// }
+
+// export interface IsConversationAdminOutput {
+//   isConversationAdmin: boolean;
+// }

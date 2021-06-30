@@ -4,7 +4,6 @@ import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServi
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { UserServiceInterface } from "./user.service";
-import { UserCreationInput } from "../models/user/user.creation.input.model";
 
 @injectable()
 export class UserSignedUpProcessorService implements SnsProcessorServiceInterface {
@@ -36,12 +35,7 @@ export class UserSignedUpProcessorService implements SnsProcessorServiceInterfac
 
       const message = record.message as unknown as UserSignedUpSnsMessage;
 
-      const userCreationInput: UserCreationInput = {
-        id: message.id,
-        email: message.email,
-      };
-
-      await this.userService.createUser(userCreationInput);
+      await this.userService.createUser({ rawId: message.id, email: message.email });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

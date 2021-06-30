@@ -1,36 +1,30 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, WithRole } from "@yac/core";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, WithRole } from "@yac/core";
 
-import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
 import { TeamConversationRelationship } from "../models/team.conversation.relationship.model";
 import { Team } from "../models/team.model";
 import { TeamUserRelationship } from "../models/team.user.relationship.model";
+import { RawEntity } from "../types/raw.entity.type";
 
 @injectable()
-export class TeamDynamoRepository extends BaseDynamoRepositoryV2 implements TeamRepositoryInterface {
-  private gsiOneIndexName: string;
-
+export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implements TeamRepositoryInterface {
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
-    @inject(TYPES.IdServiceInterface) idService: IdServiceInterface,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: TeamRepositoryConfigType,
+    @inject(TYPES.EnvConfigInterface) envConfig: TeamRepositoryConfig,
   ) {
-    super(documentClientFactory, envConfig.tableNames.core, idService, loggerService);
-
-    this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
+    super(documentClientFactory, envConfig.tableNames.core, loggerService);
   }
 
-  public async createTeam(createTeamInput: CreateTeamInput): Promise<CreateTeamOutput> {
+  public async createTeam(params: CreateTeamInput): Promise<CreateTeamOutput> {
     try {
-      this.loggerService.trace("createTeam called", { createTeamInput }, this.constructor.name);
+      this.loggerService.trace("createTeam called", { params }, this.constructor.name);
 
-      const { team } = createTeamInput;
+      const { team } = params;
 
       const teamEntity: RawEntity<Team> = {
         type: EntityType.Team,
@@ -43,189 +37,217 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2 implements Team
 
       return { team };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createTeam", { error, createTeamInput }, this.constructor.name);
+      this.loggerService.error("Error in createTeam", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getTeamsByUserId(getTeamsByUserIdInput: GetTeamsByUserIdInput): Promise<GetTeamsByUserIdOutput> {
+  public async getTeam(params: GetTeamInput): Promise<GetTeamOutput> {
     try {
-      this.loggerService.trace("getTeamsByUserId called", { getTeamsByUserIdInput }, this.constructor.name);
+      this.loggerService.trace("getTeam called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey } = getTeamsByUserIdInput;
+      const { teamId } = params;
 
-      const { Items: teamUserRelationships, LastEvaluatedKey } = await this.query<TeamUserRelationship>({
-        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
-        IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :team)",
-        ExpressionAttributeNames: {
-          "#gsi1pk": "gsi1pk",
-          "#gsi1sk": "gsi1sk",
-        },
-        ExpressionAttributeValues: {
-          ":gsi1pk": userId,
-          ":team": KeyPrefix.Team,
-        },
-      });
+      const team = await this.get({ Key: { pk: teamId, sk: teamId } });
 
-      const teams = await this.batchGet<Team>({ Keys: teamUserRelationships.map((relationship) => ({ pk: relationship.teamId, sk: relationship.teamId })) });
-
-      const teamsWithRole = this.addRoleToTeams(teamUserRelationships, teams);
-
-      return {
-        teams: teamsWithRole,
-        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
-      };
+      return { team };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getTeamsByUserId", { error, getTeamsByUserIdInput }, this.constructor.name);
+      this.loggerService.error("Error in getTeam", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async createTeamUserRelationship(createTeamUserRelationshipInput: CreateTeamUserRelationshipInput): Promise<CreateTeamUserRelationshipOutput> {
+  public async getTeams(params: GetTeamsInput): Promise<GetTeamsOutput> {
     try {
-      this.loggerService.trace("createTeamUserRelationship called", { createTeamUserRelationshipInput }, this.constructor.name);
+      this.loggerService.trace("getTeams called", { params }, this.constructor.name);
 
-      const { teamUserRelationship } = createTeamUserRelationshipInput;
+      const { teamIds } = params;
 
-      const teamUserRelationshipEntity: RawEntity<TeamUserRelationship> = {
-        type: EntityType.TeamUserRelationship,
-        pk: teamUserRelationship.teamId,
-        sk: teamUserRelationship.userId,
-        gsi1pk: teamUserRelationship.userId,
-        gsi1sk: teamUserRelationship.teamId,
-        ...teamUserRelationship,
-      };
+      const teams = await this.batchGet({ Keys: teamIds.map((teamId) => ({ pk: teamId, sk: teamId })) });
 
-      await this.documentClient.put({
-        TableName: this.tableName,
-        Item: teamUserRelationshipEntity,
-      }).promise();
-
-      return { teamUserRelationship };
+      return { teams };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createTeamUserRelationship", { error, createTeamUserRelationshipInput }, this.constructor.name);
+      this.loggerService.error("Error in getTeams", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getTeamUserRelationship(getTeamUserRelationshipInput: GetTeamUserRelationshipInput): Promise<GetTeamUserRelationshipOutput> {
-    try {
-      this.loggerService.trace("getTeamUserRelationship called", { getTeamUserRelationshipInput }, this.constructor.name);
+  // public async getTeamsByUserId(params: GetTeamsByUserIdInput): Promise<GetTeamsByUserIdOutput> {
+  //   try {
+  //     this.loggerService.trace("getTeamsByUserId called", { params }, this.constructor.name);
 
-      const { teamId, userId } = getTeamUserRelationshipInput;
+  //     const { userId, exclusiveStartKey } = params;
 
-      const teamUserRelationship = await this.get<TeamUserRelationship>({ Key: { pk: teamId, sk: userId } }, "Team-User Relationship");
+  //     const { Items: teamUserRelationships, LastEvaluatedKey } = await this.query<TeamUserRelationship>({
+  //       ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+  //       IndexName: this.gsiOneIndexName,
+  //       KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :team)",
+  //       ExpressionAttributeNames: {
+  //         "#gsi1pk": "gsi1pk",
+  //         "#gsi1sk": "gsi1sk",
+  //       },
+  //       ExpressionAttributeValues: {
+  //         ":gsi1pk": userId,
+  //         ":team": KeyPrefix.Team,
+  //       },
+  //     });
 
-      return { teamUserRelationship };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getTeamUserRelationship", { error, getTeamUserRelationshipInput }, this.constructor.name);
+  //     const teams = await this.batchGet<Team>({ Keys: teamUserRelationships.map((relationship) => ({ pk: relationship.teamId, sk: relationship.teamId })) });
 
-      throw error;
-    }
-  }
+  //     const teamsWithRole = this.addRoleToTeams(teamUserRelationships, teams);
 
-  public async deleteTeamUserRelationship(deleteTeamUserRelationshipInput: DeleteTeamUserRelationshipInput): Promise<DeleteTeamUserRelationshipOutput> {
-    try {
-      this.loggerService.trace("deleteTeamUserRelationship called", { deleteTeamUserRelationshipInput }, this.constructor.name);
+  //     return {
+  //       teams: teamsWithRole,
+  //       ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+  //     };
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in getTeamsByUserId", { error, params }, this.constructor.name);
 
-      const { teamId, userId } = deleteTeamUserRelationshipInput;
-      await this.documentClient.delete({
-        TableName: this.tableName,
-        Key: { pk: teamId, sk: userId },
-      }).promise();
-    } catch (error: unknown) {
-      this.loggerService.error("Error in deleteTeamUserRelationship", { error, deleteTeamUserRelationshipInput }, this.constructor.name);
+  //     throw error;
+  //   }
+  // }
 
-      throw error;
-    }
-  }
+  // public async createTeamUserRelationship(params: CreateTeamUserRelationshipInput): Promise<CreateTeamUserRelationshipOutput> {
+  //   try {
+  //     this.loggerService.trace("createTeamUserRelationship called", { params }, this.constructor.name);
 
-  public async createTeamConversationRelationship(createTeamConversationRelationshipInput: CreateTeamConversationRelationshipInput): Promise<CreateTeamConversationRelationshipOutput> {
-    try {
-      this.loggerService.trace("createTeamConversationRelationship called", { createTeamConversationRelationshipInput }, this.constructor.name);
+  //     const { teamUserRelationship } = params;
 
-      const { teamConversationRelationship } = createTeamConversationRelationshipInput;
+  //     const teamUserRelationshipEntity: RawEntity<TeamUserRelationship> = {
+  //       type: EntityType.TeamUserRelationship,
+  //       pk: teamUserRelationship.teamId,
+  //       sk: teamUserRelationship.userId,
+  //       gsi1pk: teamUserRelationship.userId,
+  //       gsi1sk: teamUserRelationship.teamId,
+  //       ...teamUserRelationship,
+  //     };
 
-      const teamConversationRelationshipEntity: RawEntity<TeamConversationRelationship> = {
-        type: EntityType.TeamConversationRelationship,
-        pk: teamConversationRelationship.teamId,
-        sk: teamConversationRelationship.conversationId,
-        ...teamConversationRelationship,
-      };
+  //     await this.documentClient.put({
+  //       TableName: this.tableName,
+  //       Item: teamUserRelationshipEntity,
+  //     }).promise();
 
-      await this.documentClient.put({
-        TableName: this.tableName,
-        Item: teamConversationRelationshipEntity,
-      }).promise();
+  //     return { teamUserRelationship };
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in createTeamUserRelationship", { error, params }, this.constructor.name);
 
-      return { teamConversationRelationship };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in createTeamConversationRelationship", { error, createTeamConversationRelationshipInput }, this.constructor.name);
+  //     throw error;
+  //   }
+  // }
 
-      throw error;
-    }
-  }
+  // public async getTeamUserRelationship(params: GetTeamUserRelationshipInput): Promise<GetTeamUserRelationshipOutput> {
+  //   try {
+  //     this.loggerService.trace("getTeamUserRelationship called", { params }, this.constructor.name);
 
-  public async deleteTeamConversationRelationship(deleteTeamConversationRelationshipInput: DeleteTeamConversationRelationshipInput): Promise<DeleteTeamConversationRelationshipOutput> {
-    try {
-      this.loggerService.trace("deleteTeamConversationRelationship called", { deleteTeamConversationRelationshipInput }, this.constructor.name);
+  //     const { teamId, userId } = params;
 
-      const { teamId, conversationId } = deleteTeamConversationRelationshipInput;
+  //     const teamUserRelationship = await this.get<TeamUserRelationship>({ Key: { pk: teamId, sk: userId } }, "Team-User Relationship");
 
-      await this.documentClient.delete({
-        TableName: this.tableName,
-        Key: { pk: teamId, sk: conversationId },
-      }).promise();
-    } catch (error: unknown) {
-      this.loggerService.error("Error in deleteTeamConversationRelationship", { error, deleteTeamConversationRelationshipInput }, this.constructor.name);
+  //     return { teamUserRelationship };
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in getTeamUserRelationship", { error, params }, this.constructor.name);
 
-      throw error;
-    }
-  }
+  //     throw error;
+  //   }
+  // }
 
-  private addRoleToTeams(teamUserRelationships: TeamUserRelationship[], teams: Team[]): WithRole<Team>[] {
-    try {
-      this.loggerService.trace("addRoleToTeams called", { teamUserRelationships, teams }, this.constructor.name);
+  // public async deleteTeamUserRelationship(params: DeleteTeamUserRelationshipInput): Promise<DeleteTeamUserRelationshipOutput> {
+  //   try {
+  //     this.loggerService.trace("deleteTeamUserRelationship called", { params }, this.constructor.name);
 
-      const teamMap = teams.reduce((acc: { [key: string]: Team; }, team) => {
-        acc[team.id] = team;
+  //     const { teamId, userId } = params;
+  //     await this.documentClient.delete({
+  //       TableName: this.tableName,
+  //       Key: { pk: teamId, sk: userId },
+  //     }).promise();
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in deleteTeamUserRelationship", { error, params }, this.constructor.name);
 
-        return acc;
-      }, {});
+  //     throw error;
+  //   }
+  // }
 
-      const teamsWithRole = teamUserRelationships.map((relationship) => {
-        const team = teamMap[relationship.teamId];
+  // public async createTeamConversationRelationship(params: CreateTeamConversationRelationshipInput): Promise<CreateTeamConversationRelationshipOutput> {
+  //   try {
+  //     this.loggerService.trace("createTeamConversationRelationship called", { params }, this.constructor.name);
 
-        return {
-          ...team,
-          role: relationship.role,
-        };
-      });
+  //     const { teamConversationRelationship } = params;
 
-      return teamsWithRole;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in addRoleToTeams", { error, teamUserRelationships, teams }, this.constructor.name);
+  //     const teamConversationRelationshipEntity: RawEntity<TeamConversationRelationship> = {
+  //       type: EntityType.TeamConversationRelationship,
+  //       pk: teamConversationRelationship.teamId,
+  //       sk: teamConversationRelationship.conversationId,
+  //       ...teamConversationRelationship,
+  //     };
 
-      throw error;
-    }
-  }
+  //     await this.documentClient.put({
+  //       TableName: this.tableName,
+  //       Item: teamConversationRelationshipEntity,
+  //     }).promise();
+
+  //     return { teamConversationRelationship };
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in createTeamConversationRelationship", { error, params }, this.constructor.name);
+
+  //     throw error;
+  //   }
+  // }
+
+  // public async deleteTeamConversationRelationship(params: DeleteTeamConversationRelationshipInput): Promise<DeleteTeamConversationRelationshipOutput> {
+  //   try {
+  //     this.loggerService.trace("deleteTeamConversationRelationship called", { params }, this.constructor.name);
+
+  //     const { teamId, conversationId } = params;
+
+  //     await this.documentClient.delete({
+  //       TableName: this.tableName,
+  //       Key: { pk: teamId, sk: conversationId },
+  //     }).promise();
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in deleteTeamConversationRelationship", { error, params }, this.constructor.name);
+
+  //     throw error;
+  //   }
+  // }
+
+  // private addRoleToTeams(teamUserRelationships: TeamUserRelationship[], teams: Team[]): WithRole<Team>[] {
+  //   try {
+  //     this.loggerService.trace("addRoleToTeams called", { teamUserRelationships, teams }, this.constructor.name);
+
+  //     const teamMap = teams.reduce((acc: { [key: string]: Team; }, team) => {
+  //       acc[team.id] = team;
+
+  //       return acc;
+  //     }, {});
+
+  //     const teamsWithRole = teamUserRelationships.map((relationship) => {
+  //       const team = teamMap[relationship.teamId];
+
+  //       return {
+  //         ...team,
+  //         role: relationship.role,
+  //       };
+  //     });
+
+  //     return teamsWithRole;
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in addRoleToTeams", { error, teamUserRelationships, teams }, this.constructor.name);
+
+  //     throw error;
+  //   }
+  // }
 }
 
 export interface TeamRepositoryInterface {
-  createTeam(createTeamInput: CreateTeamInput): Promise<CreateTeamOutput>;
-  getTeamsByUserId(getTeamsByUserIdInput: GetTeamsByUserIdInput): Promise<GetTeamsByUserIdOutput>;
-  createTeamUserRelationship(createTeamUserRelationshipInput: CreateTeamUserRelationshipInput): Promise<CreateTeamUserRelationshipOutput>;
-  getTeamUserRelationship(getTeamUserRelationshipInput: GetTeamUserRelationshipInput): Promise<GetTeamUserRelationshipOutput>;
-  deleteTeamUserRelationship(deleteTeamUserRelationshipInput: DeleteTeamUserRelationshipInput): Promise<DeleteTeamUserRelationshipOutput>;
-  createTeamConversationRelationship(createTeamConversationRelationshipInput: CreateTeamConversationRelationshipInput): Promise<CreateTeamConversationRelationshipOutput>;
-  deleteTeamConversationRelationship(deleteTeamConversationRelationshipInput: DeleteTeamConversationRelationshipInput): Promise<DeleteTeamConversationRelationshipOutput>;
+  createTeam(params: CreateTeamInput): Promise<CreateTeamOutput>;
+  getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
+  getTeams(params: GetTeamsInput): Promise<GetTeamsOutput>;
 }
 
-type TeamRepositoryConfigType = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
+type TeamRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
 
 export interface CreateTeamInput {
   team: Team;
@@ -233,6 +255,22 @@ export interface CreateTeamInput {
 
 export interface CreateTeamOutput {
   team: Team;
+}
+
+export interface GetTeamInput {
+  teamId: string;
+}
+
+export interface GetTeamOutput {
+  team: Team;
+}
+
+export interface GetTeamsInput {
+  teamIds: string[];
+}
+
+export interface GetTeamsOutput {
+  teams: Team[];
 }
 
 export interface CreateTeamUserRelationshipInput {

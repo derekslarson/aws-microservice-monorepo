@@ -1,1 +1,4 @@
-export type CleansedEntity<T> = Omit<T, "type" | "pk" | "sk" | "gsi1pk" | "gsi1sk" | "gsi2pk" | "gsi2sk">;
+import DynamoDB from "aws-sdk/clients/dynamodb";
+import { RawEntity } from "./raw.entity.type";
+
+export type CleansedEntity<T = DynamoDB.DocumentClient.AttributeMap> = Exclude<T, RawEntity<T>>;

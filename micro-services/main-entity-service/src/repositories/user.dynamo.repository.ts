@@ -1,39 +1,34 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, WithRole } from "@yac/core";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/core";
 
-import { RawEntity } from "@yac/core/src/types/raw.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { User } from "../models/user.model";
-import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
-import { TeamUserRelationship } from "../models/team.user.relationship.model";
-import { ConversationUserRelationship } from "../models/conversation.user.relationship.model";
+import { RawEntity } from "../../../core/src/types/raw.entity.type";
 
 @injectable()
-export class UserDynamoRepository extends BaseDynamoRepositoryV2 implements UserRepositoryInterface {
+export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implements UserRepositoryInterface {
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
-    @inject(TYPES.IdServiceInterface) idService: IdServiceInterface,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: UserRepositoryConfigType,
+    @inject(TYPES.EnvConfigInterface) envConfig: UserRepositoryConfig,
   ) {
-    super(documentClientFactory, envConfig.tableNames.core, idService, loggerService);
+    super(documentClientFactory, envConfig.tableNames.core, loggerService);
   }
 
-  public async createUser(user: User): Promise<User> {
+  public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
     try {
-      this.loggerService.trace("createUser called", { user }, this.constructor.name);
+      this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const id = `${KeyPrefix.User}${user.id}`;
+      const { user } = params;
 
       const userEntity: RawEntity<User> = {
         type: EntityType.User,
-        pk: id,
-        sk: id,
-        id,
-        email: user.email,
+        pk: user.id,
+        sk: user.id,
+        ...user,
       };
 
       await this.documentClient.put({
@@ -41,139 +36,180 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2 implements User
         Item: userEntity,
       }).promise();
 
-      return this.cleanse(userEntity);
+      return { user };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createUser", { error, user }, this.constructor.name);
+      this.loggerService.error("Error in createUser", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getUser(userId: string): Promise<User> {
+  public async getUser(params: GetUserInput): Promise<GetUserOutput> {
     try {
-      this.loggerService.trace("getUser called", { userId }, this.constructor.name);
+      this.loggerService.trace("getUser called", { params }, this.constructor.name);
 
-      const user = await this.get<User>({ Key: { pk: userId, sk: userId } }, "User");
+      const { userId } = params;
 
-      return user;
+      const user = await this.get({ Key: { pk: userId, sk: userId } }, "User");
+
+      return { user };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getUser", { error, userId }, this.constructor.name);
+      this.loggerService.error("Error in getUser", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getUsersByTeamId(teamId: string, exclusiveStartKey?: string): Promise<{ users: WithRole<User>[]; lastEvaluatedKey?: string; }> {
+  public async getUsers(params: GetUsersInput): Promise<GetUsersOutput> {
     try {
-      this.loggerService.trace("getUsersByTeamId called", { teamId }, this.constructor.name);
+      this.loggerService.trace("getUsers called", { params }, this.constructor.name);
 
-      const { Items: teamUserRelationships, LastEvaluatedKey } = await this.query<TeamUserRelationship>({
-        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
-        KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
-        ExpressionAttributeNames: {
-          "#pk": "pk",
-          "#sk": "sk",
-        },
-        ExpressionAttributeValues: {
-          ":pk": teamId,
-          ":user": KeyPrefix.User,
-        },
-      });
+      const { userIds } = params;
 
-      const unsortedUsers = await this.batchGet<User>({ Keys: teamUserRelationships.map((relationship) => ({ pk: relationship.userId, sk: relationship.userId })) });
+      const users = await this.batchGet({ Keys: userIds.map((userId) => ({ pk: userId, sk: userId })) });
 
-      const usersWithRole = this.addRoleToUsers(teamUserRelationships, unsortedUsers);
-
-      return {
-        users: usersWithRole,
-        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
-      };
+      return { users };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByTeamId", { error, teamId }, this.constructor.name);
+      this.loggerService.error("Error in getUsers", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getUsersByConversationId(conversationId: string, exclusiveStartKey?: string): Promise<{ users: WithRole<User>[]; lastEvaluatedKey?: string; }> {
-    try {
-      this.loggerService.trace("getUsersByConversationId called", { conversationId }, this.constructor.name);
+  // public async getUsersByTeamId(teamId: string, exclusiveStartKey?: string): Promise<{ users: WithRole<User>[]; lastEvaluatedKey?: string; }> {
+  //   try {
+  //     this.loggerService.trace("getUsersByTeamId called", { teamId }, this.constructor.name);
 
-      const { Items: conversationUserRelationships, LastEvaluatedKey } = await this.query<ConversationUserRelationship>({
-        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
-        KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
-        ExpressionAttributeNames: {
-          "#pk": "pk",
-          "#sk": "sk",
-        },
-        ExpressionAttributeValues: {
-          ":pk": conversationId,
-          ":user": KeyPrefix.User,
-        },
-      });
+  //     const { Items: teamUserRelationships, LastEvaluatedKey } = await this.query<TeamUserRelationship>({
+  //       ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+  //       KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
+  //       ExpressionAttributeNames: {
+  //         "#pk": "pk",
+  //         "#sk": "sk",
+  //       },
+  //       ExpressionAttributeValues: {
+  //         ":pk": teamId,
+  //         ":user": KeyPrefix.User,
+  //       },
+  //     });
 
-      const unsortedUsers = await this.batchGet<User>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.userId, sk: relationship.userId })) });
+  //     const unsortedUsers = await this.batchGet<User>({ Keys: teamUserRelationships.map((relationship) => ({ pk: relationship.userId, sk: relationship.userId })) });
 
-      const usersWithRole = this.addRoleToUsers(conversationUserRelationships, unsortedUsers);
+  //     const usersWithRole = this.addRoleToUsers(teamUserRelationships, unsortedUsers);
 
-      return {
-        users: usersWithRole,
-        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
-      };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByConversationId", { error, conversationId }, this.constructor.name);
+  //     return {
+  //       users: usersWithRole,
+  //       ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+  //     };
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in getUsersByTeamId", { error, teamId }, this.constructor.name);
 
-      throw error;
-    }
-  }
+  //     throw error;
+  //   }
+  // }
 
-  private addRoleToUsers(relationships: Array<ConversationUserRelationship | TeamUserRelationship>, users: User[]): WithRole<User>[] {
-    try {
-      this.loggerService.trace("addRoleToUsers called", { relationships, users }, this.constructor.name);
+  // public async getUsersByConversationId(conversationId: string, exclusiveStartKey?: string): Promise<{ users: WithRole<User>[]; lastEvaluatedKey?: string; }> {
+  //   try {
+  //     this.loggerService.trace("getUsersByConversationId called", { conversationId }, this.constructor.name);
 
-      const userMap = users.reduce((acc: { [key: string]: User; }, user) => {
-        acc[user.id] = user;
+  //     const { Items: conversationUserRelationships, LastEvaluatedKey } = await this.query<ConversationUserRelationship>({
+  //       ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+  //       KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
+  //       ExpressionAttributeNames: {
+  //         "#pk": "pk",
+  //         "#sk": "sk",
+  //       },
+  //       ExpressionAttributeValues: {
+  //         ":pk": conversationId,
+  //         ":user": KeyPrefix.User,
+  //       },
+  //     });
 
-        return acc;
-      }, {});
+  //     const unsortedUsers = await this.batchGet<User>({ Keys: conversationUserRelationships.map((relationship) => ({ pk: relationship.userId, sk: relationship.userId })) });
 
-      const usersWithRole = relationships.map((relationship) => {
-        const relationshipId = this.isConversationUserRelationship(relationship) ? relationship.conversationId : relationship.teamId;
+  //     const usersWithRole = this.addRoleToUsers(conversationUserRelationships, unsortedUsers);
 
-        const user = userMap[relationshipId];
+  //     return {
+  //       users: usersWithRole,
+  //       ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+  //     };
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in getUsersByConversationId", { error, conversationId }, this.constructor.name);
 
-        return {
-          ...user,
-          role: relationship.role,
-        };
-      });
+  //     throw error;
+  //   }
+  // }
 
-      return usersWithRole;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in addRoleToUsers", { error, relationships, users }, this.constructor.name);
+  // private addRoleToUsers(relationships: Array<ConversationUserRelationship | TeamUserRelationship>, users: User[]): WithRole<User>[] {
+  //   try {
+  //     this.loggerService.trace("addRoleToUsers called", { relationships, users }, this.constructor.name);
 
-      throw error;
-    }
-  }
+  //     const userMap = users.reduce((acc: { [key: string]: User; }, user) => {
+  //       acc[user.id] = user;
 
-  private isConversationUserRelationship(relationship: ConversationUserRelationship | TeamUserRelationship): relationship is ConversationUserRelationship {
-    try {
-      this.loggerService.trace("addRoleToUsers called", { relationship }, this.constructor.name);
+  //       return acc;
+  //     }, {});
 
-      return !!(relationship as ConversationUserRelationship).conversationId;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in addRoleToUsers", { error, relationship }, this.constructor.name);
+  //     const usersWithRole = relationships.map((relationship) => {
+  //       const relationshipId = this.isConversationUserRelationship(relationship) ? relationship.conversationId : relationship.teamId;
 
-      throw error;
-    }
-  }
+  //       const user = userMap[relationshipId];
+
+  //       return {
+  //         ...user,
+  //         role: relationship.role,
+  //       };
+  //     });
+
+  //     return usersWithRole;
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in addRoleToUsers", { error, relationships, users }, this.constructor.name);
+
+  //     throw error;
+  //   }
+  // }
+
+  // private isConversationUserRelationship(relationship: ConversationUserRelationship | TeamUserRelationship): relationship is ConversationUserRelationship {
+  //   try {
+  //     this.loggerService.trace("addRoleToUsers called", { relationship }, this.constructor.name);
+
+  //     return !!(relationship as ConversationUserRelationship).conversationId;
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in addRoleToUsers", { error, relationship }, this.constructor.name);
+
+  //     throw error;
+  //   }
+  // }
 }
 
 export interface UserRepositoryInterface {
-  createUser(user: User): Promise<User>;
-  getUser(userId: string): Promise<User>;
-  getUsersByTeamId(teamId: string, exclusiveStartKey?: string): Promise<{ users: WithRole<User>[]; lastEvaluatedKey?: string; }>;
-  getUsersByConversationId(teamId: string, exclusiveStartKey?: string): Promise<{ users: WithRole<User>[]; lastEvaluatedKey?: string; }>;
+  createUser(params: CreateUserInput): Promise<CreateUserOutput>;
+  getUser(params: GetUserInput): Promise<GetUserOutput>;
+  getUsers(params: GetUsersInput): Promise<GetUsersOutput>;
 }
 
-type UserRepositoryConfigType = Pick<EnvConfigInterface, "tableNames">;
+type UserRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
+
+export interface CreateUserInput {
+  user: User;
+}
+
+export interface CreateUserOutput {
+  user: User;
+}
+
+export interface GetUserInput {
+  userId: string;
+}
+
+export interface GetUserOutput {
+  user: User;
+}
+
+export interface GetUsersInput {
+  userIds: string[];
+}
+
+export interface GetUsersOutput {
+  users: User[];
+}

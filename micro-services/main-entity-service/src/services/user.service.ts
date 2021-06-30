@@ -3,59 +3,73 @@ import { LoggerServiceInterface, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface } from "../repositories/user.dynamo.repository";
 import { User } from "../models/user.model";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
 export class UserService implements UserServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
-  ) {
-  }
+  ) {}
 
-  public async createUser(createUserInput: CreateUserInput): Promise<CreateUserOutput> {
+  public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
     try {
-      this.loggerService.trace("createUser called", { createUserInput }, this.constructor.name);
+      this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const {} = createUserInput;
+      const { rawId, email } = params;
+
+      const userId = `${KeyPrefix.User}${rawId}`;
 
       const user: User = {
-        id: userCreationInput.id,
-        email: userCreationInput.email,
+        id: userId,
+        email,
       };
 
-      const createdUser = await this.userRepository.createUser(user);
+      await this.userRepository.createUser({ user });
 
-      return createdUser;
+      return { user };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createUser", { error, createUserInput }, this.constructor.name);
+      this.loggerService.error("Error in createUser", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getUsersByTeamId(getUsersByTeamIdInput: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput> {
+  public async getUser(params: GetUserInput): Promise<GetUserOutput> {
     try {
-      this.loggerService.trace("getUsersByTeamId called", { teamId }, this.constructor.name);
+      this.loggerService.trace("getUser called", { params }, this.constructor.name);
 
-      const { users } = await this.userRepository.getUsersByTeamId(teamId);
+      const { userId } = params;
 
-      return users;
+      const { user } = await this.userRepository.getUser({ userId });
+
+      return { user };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByTeamId", { error, teamId }, this.constructor.name);
+      this.loggerService.error("Error in getUser", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getUsersByConversationId(getUsersByConversationIdInput: GetUsersByConversationIdInput): Promise<GetUsersByConversationIdOutput> {
+  public async getUsers(params: GetUsersInput): Promise<GetUsersOutput> {
     try {
-      this.loggerService.trace("getUsersByConversationId called", { conversationId }, this.constructor.name);
+      this.loggerService.trace("getUsers called", { params }, this.constructor.name);
 
-      const { users } = await this.userRepository.getUsersByConversationId(conversationId);
+      const { userIds } = params;
 
-      return users;
+      const { users } = await this.userRepository.getUsers({ userIds });
+
+      const userMap = users.reduce((acc: { [key: string]: User; }, user) => {
+        acc[user.id] = user;
+
+        return acc;
+      }, {});
+
+      const sortedUsers = userIds.map((userId) => userMap[userId]);
+
+      return { users: sortedUsers };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByConversationId", { error, conversationId }, this.constructor.name);
+      this.loggerService.error("Error in getUsers", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -63,18 +77,34 @@ export class UserService implements UserServiceInterface {
 }
 
 export interface UserServiceInterface {
-  createUser(createUserInput: CreateUserInput): Promise<CreateUserOutput>;
-  getUsersByTeamId(getUsersByTeamIdInput: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput>;
-  getUsersByConversationId(getUsersByConversationIdInput: GetUsersByConversationIdInput): Promise<GetUsersByConversationIdOutput>;
+  createUser(params: CreateUserInput): Promise<CreateUserOutput>;
+  getUser(params: GetUserInput): Promise<GetUserOutput>;
+  getUsers(params: GetUsersInput): Promise<GetUsersOutput>;
 }
 
 export interface CreateUserInput {
-  id: string;
+  rawId: string;
   email: string;
 }
 
 export interface CreateUserOutput {
   user: User;
+}
+
+export interface GetUserInput {
+  userId: string;
+}
+
+export interface GetUserOutput {
+  user: User;
+}
+
+export interface GetUsersInput {
+  userIds: string[];
+}
+
+export interface GetUsersOutput {
+  users: User[];
 }
 
 export interface GetUsersByTeamIdInput {

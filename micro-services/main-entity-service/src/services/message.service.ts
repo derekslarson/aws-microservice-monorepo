@@ -1,86 +1,90 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/core";
+import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageRepositoryInterface } from "../repositories/message.dynamo.repository";
-import { Message } from "../models/message/message.model";
+import { Message } from "../models/message.model";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
     @inject(TYPES.MessageRepositoryInterface) private messageRepository: MessageRepositoryInterface,
   ) {}
 
-  public async createMessage(messageCreationInput: Omit<Message, "id" | "seenAt" | "sentAt" | "reactions" | "hasReplies">): Promise<Message> {
+  public async createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
     try {
-      this.loggerService.trace("createMessage called", { messageCreationInput }, this.constructor.name);
+      this.loggerService.trace("createMessage called", { params }, this.constructor.name);
 
-      const messageCreationBody: Omit<Message, "id" | "seenAt"> = {
-        ...messageCreationInput,
+      const { conversationId, from, transcript, seenAt } = params;
+
+      const messageId = `${KeyPrefix.Message}${this.idService.generateId()}`;
+
+      const message: Message = {
+        id: messageId,
+        conversationId,
+        from,
+        transcript,
+        seenAt,
         sentAt: new Date().toISOString(),
         reactions: {},
         hasReplies: false,
       };
 
-      const message = await this.messageRepository.createMessage(messageCreationBody);
+      await this.messageRepository.createMessage({ message });
 
-      return message;
+      return { message };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createMessage", { error, messageCreationInput }, this.constructor.name);
+      this.loggerService.error("Error in createMessage", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getMessage(messageId: string): Promise<Message> {
+  public async getMessage(params: GetMessageInput): Promise<GetMessageOutput> {
     try {
-      this.loggerService.trace("getMessage called", { messageId }, this.constructor.name);
+      this.loggerService.trace("getMessage called", { params }, this.constructor.name);
 
-      const message = await this.messageRepository.getMessage(messageId);
+      const { messageId } = params;
 
-      return message;
+      const { message } = await this.messageRepository.getMessage({ messageId });
+
+      return { message };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getMessage", { error, messageId }, this.constructor.name);
+      this.loggerService.error("Error in getMessage", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async updateMessage(messageId: string, update: Partial<Message>): Promise<void> {
+  public async getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput> {
     try {
-      this.loggerService.trace("updateMessage called", { messageId, update }, this.constructor.name);
+      this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
 
-      await this.messageRepository.updateMessage(messageId, update);
+      const { conversationId, exclusiveStartKey } = params;
+
+      const { messages, lastEvaluatedKey } = await this.messageRepository.getMessagesByConversationId({ conversationId, exclusiveStartKey });
+
+      return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
-      this.loggerService.error("Error in updateMessage", { error, messageId, update }, this.constructor.name);
+      this.loggerService.error("Error in getMessagesByConversationId", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getMessagesByConversationId(userId: string): Promise<Message[]> {
+  public async getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput> {
     try {
-      this.loggerService.trace("getMessagesByConversationId called", { userId }, this.constructor.name);
+      this.loggerService.trace("getRepliesByMessageId called", { params }, this.constructor.name);
 
-      const { messages } = await this.messageRepository.getMessagesByConversationId(userId);
+      const { messageId, exclusiveStartKey } = params;
 
-      return messages;
+      const { replies, lastEvaluatedKey } = await this.messageRepository.getRepliesByMessageId({ messageId, exclusiveStartKey });
+
+      return { replies, lastEvaluatedKey };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getMessagesByConversationId", { error, userId }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getRepliesByMessageId(userId: string): Promise<Message[]> {
-    try {
-      this.loggerService.trace("getRepliesByMessageId called", { userId }, this.constructor.name);
-
-      const { replies } = await this.messageRepository.getRepliesByMessageId(userId);
-
-      return replies;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getRepliesByMessageId", { error, userId }, this.constructor.name);
+      this.loggerService.error("Error in getRepliesByMessageId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -88,9 +92,47 @@ export class MessageService implements MessageServiceInterface {
 }
 
 export interface MessageServiceInterface {
-  createMessage(messageCreationInput: Omit<Message, "id" | "sentAt" | "reactions" | "hasReplies">): Promise<Message>;
-  updateMessage(messageId: string, update: Partial<Message>): Promise<void>;
-  getMessage(messageId: string): Promise<Message>;
-  getMessagesByConversationId(userId: string): Promise<Message[]>;
-  getRepliesByMessageId(userId: string): Promise<Message[]>;
+  createMessage(params: CreateMessageInput): Promise<CreateMessageOutput>;
+  getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
+  getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
+  getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
+}
+
+export interface CreateMessageInput {
+  conversationId: string;
+  from: string;
+  transcript: string;
+  seenAt: { [key: string]: string | null; }
+}
+
+export interface CreateMessageOutput {
+  message: Message;
+}
+
+export interface GetMessageInput {
+  messageId: string;
+}
+
+export interface GetMessageOutput {
+  message: Message;
+}
+
+export interface GetMessagesByConversationIdInput {
+  conversationId: string;
+  exclusiveStartKey?: string;
+}
+
+export interface GetMessagesByConversationIdOutput {
+  messages: Message[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetRepliesByMessageIdInput {
+  messageId: string;
+  exclusiveStartKey?: string;
+}
+
+export interface GetRepliesByMessageIdOutput {
+  replies: Message[];
+  lastEvaluatedKey?: string;
 }

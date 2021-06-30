@@ -12,14 +12,13 @@ export class TeamService implements TeamServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
     @inject(TYPES.TeamRepositoryInterface) private teamRepository: TeamRepositoryInterface,
-  ) {
-  }
+  ) {}
 
-  public async createTeam(createTeamInput: CreateTeamInput): Promise<CreateTeamOutput> {
+  public async createTeam(params: CreateTeamInput): Promise<CreateTeamOutput> {
     try {
-      this.loggerService.trace("createTeam called", { createTeamInput }, this.constructor.name);
+      this.loggerService.trace("createTeam called", { params }, this.constructor.name);
 
-      const { name, createdBy } = createTeamInput;
+      const { name, createdBy } = params;
 
       const teamId = `${KeyPrefix.Team}${this.idService.generateId()}`;
 
@@ -31,118 +30,153 @@ export class TeamService implements TeamServiceInterface {
 
       await this.teamRepository.createTeam({ team });
 
-      await this.addUserToTeam({ teamId, userId: createdBy, role: Role.Admin });
+      return { team };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in createTeam", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getTeam(params: GetTeamInput): Promise<GetTeamOutput> {
+    try {
+      this.loggerService.trace("getTeam called", { params }, this.constructor.name);
+
+      const { teamId } = params;
+
+      const { team } = await this.teamRepository.getTeam({ teamId });
 
       return { team };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createTeam", { error, createTeamInput }, this.constructor.name);
+      this.loggerService.error("Error in getTeam", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async addUserToTeam(addUserToTeamInput: AddUserToTeamInput): Promise<AddUserToTeamOutput> {
+  public async getTeams(params: GetTeamsInput): Promise<GetTeamsOutput> {
     try {
-      this.loggerService.trace("addUserToTeam called", { addUserToTeamInput }, this.constructor.name);
+      this.loggerService.trace("getTeam called", { params }, this.constructor.name);
 
-      const { teamId, userId, role } = addUserToTeamInput;
+      const { teamIds } = params;
 
-      const teamUserRelationship: TeamUserRelationship = {
-        teamId,
-        userId,
-        role,
-      };
+      const { teams } = await this.teamRepository.getTeams({ teamIds });
 
-      await this.teamRepository.createTeamUserRelationship({ teamUserRelationship });
+      const teamMap = teams.reduce((acc: { [key: string]: Team; }, team) => {
+        acc[team.id] = team;
 
-      return { teamUserRelationship };
+        return acc;
+      }, {});
+
+      const sortedTeams = teamIds.map((teamId) => teamMap[teamId]);
+
+      return { teams: sortedTeams };
     } catch (error: unknown) {
-      this.loggerService.error("Error in addUserToTeam", { error, addUserToTeamInput }, this.constructor.name);
+      this.loggerService.error("Error in getTeam", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async removeUserFromTeam(removeUserFromTeamInput: RemoveUserFromTeamInput): Promise<RemoveUserFromTeamOutput> {
-    try {
-      this.loggerService.trace("removeUserFromTeam called", { removeUserFromTeamInput }, this.constructor.name);
+  // public async addUserToTeam(addUserToTeamInput: AddUserToTeamInput): Promise<AddUserToTeamOutput> {
+  //   try {
+  //     this.loggerService.trace("addUserToTeam called", { addUserToTeamInput }, this.constructor.name);
 
-      const { teamId, userId } = removeUserFromTeamInput;
+  //     const { teamId, userId, role } = addUserToTeamInput;
 
-      await this.teamRepository.deleteTeamUserRelationship({ teamId, userId });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in removeUserFromTeam", { error, removeUserFromTeamInput }, this.constructor.name);
+  //     const teamUserRelationship: TeamUserRelationship = {
+  //       teamId,
+  //       userId,
+  //       role,
+  //     };
 
-      throw error;
-    }
-  }
+  //     await this.teamRepository.createTeamUserRelationship({ teamUserRelationship });
 
-  public async getTeamsByUserId(getTeamsByUserIdInput: GetTeamsByUserIdInput): Promise<GetTeamsByUserIdOutput> {
-    try {
-      this.loggerService.trace("getTeamsByUserId called", { getTeamsByUserIdInput }, this.constructor.name);
+  //     return { teamUserRelationship };
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in addUserToTeam", { error, addUserToTeamInput }, this.constructor.name);
 
-      const { userId } = getTeamsByUserIdInput;
+  //     throw error;
+  //   }
+  // }
 
-      const { teams, lastEvaluatedKey } = await this.teamRepository.getTeamsByUserId({ userId });
+  // public async removeUserFromTeam(removeUserFromTeamInput: RemoveUserFromTeamInput): Promise<RemoveUserFromTeamOutput> {
+  //   try {
+  //     this.loggerService.trace("removeUserFromTeam called", { removeUserFromTeamInput }, this.constructor.name);
 
-      return { teams, lastEvaluatedKey };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getTeamsByUserId", { error, getTeamsByUserIdInput }, this.constructor.name);
+  //     const { teamId, userId } = removeUserFromTeamInput;
 
-      throw error;
-    }
-  }
+  //     await this.teamRepository.deleteTeamUserRelationship({ teamId, userId });
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in removeUserFromTeam", { error, removeUserFromTeamInput }, this.constructor.name);
 
-  public async isTeamMember(isTeamMemberInput: IsTeamMemberInput): Promise<IsTeamMemberOutput> {
-    try {
-      this.loggerService.trace("isTeamMember called", { isTeamMemberInput }, this.constructor.name);
+  //     throw error;
+  //   }
+  // }
 
-      const { teamId, userId } = isTeamMemberInput;
+  // public async getTeamsByUserId(getTeamsByUserIdInput: GetTeamsByUserIdInput): Promise<GetTeamsByUserIdOutput> {
+  //   try {
+  //     this.loggerService.trace("getTeamsByUserId called", { getTeamsByUserIdInput }, this.constructor.name);
 
-      await this.teamRepository.getTeamUserRelationship({ teamId, userId });
+  //     const { userId } = getTeamsByUserIdInput;
 
-      return { isTeamMember: true };
-    } catch (error: unknown) {
-      if (error instanceof NotFoundError) {
-        return { isTeamMember: false };
-      }
+  //     const { teams, lastEvaluatedKey } = await this.teamRepository.getTeamsByUserId({ userId });
 
-      this.loggerService.error("Error in isTeamMember", { error, isTeamMemberInput }, this.constructor.name);
+  //     return { teams, lastEvaluatedKey };
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in getTeamsByUserId", { error, getTeamsByUserIdInput }, this.constructor.name);
 
-      throw error;
-    }
-  }
+  //     throw error;
+  //   }
+  // }
 
-  public async isTeamAdmin(isTeamAdminInput: IsTeamAdminInput): Promise<IsTeamAdminOutput> {
-    try {
-      this.loggerService.trace("isTeamAdmin called", { isTeamAdminInput }, this.constructor.name);
+  // public async isTeamMember(isTeamMemberInput: IsTeamMemberInput): Promise<IsTeamMemberOutput> {
+  //   try {
+  //     this.loggerService.trace("isTeamMember called", { isTeamMemberInput }, this.constructor.name);
 
-      const { teamId, userId } = isTeamAdminInput;
+  //     const { teamId, userId } = isTeamMemberInput;
 
-      const { teamUserRelationship } = await this.teamRepository.getTeamUserRelationship({ teamId, userId });
+  //     await this.teamRepository.getTeamUserRelationship({ teamId, userId });
 
-      const isTeamAdmin = teamUserRelationship.role === Role.Admin;
+  //     return { isTeamMember: true };
+  //   } catch (error: unknown) {
+  //     if (error instanceof NotFoundError) {
+  //       return { isTeamMember: false };
+  //     }
 
-      return { isTeamAdmin };
-    } catch (error: unknown) {
-      if (error instanceof NotFoundError) {
-        return { isTeamAdmin: false };
-      }
+  //     this.loggerService.error("Error in isTeamMember", { error, isTeamMemberInput }, this.constructor.name);
 
-      this.loggerService.error("Error in isTeamAdmin", { error, isTeamAdminInput }, this.constructor.name);
+  //     throw error;
+  //   }
+  // }
 
-      throw error;
-    }
-  }
+  // public async isTeamAdmin(isTeamAdminInput: IsTeamAdminInput): Promise<IsTeamAdminOutput> {
+  //   try {
+  //     this.loggerService.trace("isTeamAdmin called", { isTeamAdminInput }, this.constructor.name);
+
+  //     const { teamId, userId } = isTeamAdminInput;
+
+  //     const { teamUserRelationship } = await this.teamRepository.getTeamUserRelationship({ teamId, userId });
+
+  //     const isTeamAdmin = teamUserRelationship.role === Role.Admin;
+
+  //     return { isTeamAdmin };
+  //   } catch (error: unknown) {
+  //     if (error instanceof NotFoundError) {
+  //       return { isTeamAdmin: false };
+  //     }
+
+  //     this.loggerService.error("Error in isTeamAdmin", { error, isTeamAdminInput }, this.constructor.name);
+
+  //     throw error;
+  //   }
+  // }
 }
 
 export interface TeamServiceInterface {
-  createTeam(createTeamInput: CreateTeamInput): Promise<CreateTeamOutput>;
-  addUserToTeam(addUserToTeamInput: AddUserToTeamInput): Promise<AddUserToTeamOutput>;
-  removeUserFromTeam(removeUserFromTeamInput: RemoveUserFromTeamInput): Promise<RemoveUserFromTeamOutput>;
-  getTeamsByUserId(getTeamsByUserIdInput: GetTeamsByUserIdInput): Promise<GetTeamsByUserIdOutput>;
-  isTeamMember(isTeamMemberInput: IsTeamMemberInput): Promise<IsTeamMemberOutput>;
-  isTeamAdmin(isTeamAdminInput: IsTeamAdminInput): Promise<IsTeamAdminOutput>;
+  createTeam(params: CreateTeamInput): Promise<CreateTeamOutput>;
+  getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
+  getTeams(params: GetTeamsInput): Promise<GetTeamsOutput>;
 }
 
 export interface CreateTeamInput {
@@ -152,6 +186,22 @@ export interface CreateTeamInput {
 
 export interface CreateTeamOutput {
   team: Team;
+}
+
+export interface GetTeamInput {
+  teamId: string;
+}
+
+export interface GetTeamOutput {
+  team: Team;
+}
+
+export interface GetTeamsInput {
+  teamIds: string[];
+}
+
+export interface GetTeamsOutput {
+  teams: Team[];
 }
 
 export interface AddUserToTeamInput {

@@ -3,7 +3,6 @@ import DynamoDB from "aws-sdk/clients/dynamodb";
 import { injectable, unmanaged } from "inversify";
 import { LoggerServiceInterface } from "../services/logger.service";
 import { DocumentClientFactory } from "../factories/documentClient.factory";
-import { IdServiceInterface } from "../services/id.service";
 import { RecursivePartial } from "../types/recursivePartial.type";
 import { RawEntity } from "../types/raw.entity.type";
 import { CleansedEntity } from "../types/cleansed.entity.type";
@@ -11,20 +10,19 @@ import { NotFoundError } from "../errors/notFound.error";
 import { BadRequestError } from "../errors";
 
 @injectable()
-export abstract class BaseDynamoRepositoryV2 {
+export abstract class BaseDynamoRepositoryV2<T> {
   protected documentClient: DynamoDB.DocumentClient;
 
   constructor(
   @unmanaged() documentClientFactory: DocumentClientFactory,
     @unmanaged() protected tableName: string,
-    @unmanaged() protected idService: IdServiceInterface,
     @unmanaged() protected loggerService: LoggerServiceInterface,
   ) {
     this.tableName = tableName;
     this.documentClient = documentClientFactory();
   }
 
-  protected async partialUpdate<U = DynamoDB.DocumentClient.AttributeMap>(pk: string, sk: string, update: RecursivePartial<U>): Promise<CleansedEntity<U>> {
+  protected async partialUpdate(pk: string, sk: string, update: RecursivePartial<CleansedEntity<T>>): Promise<CleansedEntity<T>> {
     try {
       this.loggerService.trace("partialUpdate called", { update }, this.constructor.name);
 
@@ -32,7 +30,7 @@ export abstract class BaseDynamoRepositoryV2 {
 
       const { Attributes } = await this.documentClient.update(updateItemInput).promise();
 
-      return this.cleanse(Attributes as RawEntity<U>);
+      return this.cleanse(Attributes as RawEntity<T>);
     } catch (error: unknown) {
       this.loggerService.error("Error in partialUpdate", { error, update }, this.constructor.name);
 
@@ -40,7 +38,7 @@ export abstract class BaseDynamoRepositoryV2 {
     }
   }
 
-  protected async get<U = DynamoDB.DocumentClient.AttributeMap>(params: Omit<DynamoDB.DocumentClient.GetItemInput, "TableName">, entityType = "Entity"): Promise<CleansedEntity<U>> {
+  protected async get(params: Omit<DynamoDB.DocumentClient.GetItemInput, "TableName">, entityType = "Entity"): Promise<CleansedEntity<T>> {
     try {
       this.loggerService.trace("get called", { params }, this.constructor.name);
 
@@ -53,7 +51,7 @@ export abstract class BaseDynamoRepositoryV2 {
         throw new NotFoundError(`${entityType} not found.`);
       }
 
-      return this.cleanse(Item as RawEntity<U>);
+      return this.cleanse(Item as RawEntity<T>);
     } catch (error: unknown) {
       this.loggerService.error("Error in get", { error, params }, this.constructor.name);
 
@@ -61,7 +59,7 @@ export abstract class BaseDynamoRepositoryV2 {
     }
   }
 
-  protected async query<U = DynamoDB.DocumentClient.AttributeMap>(params: Omit<DynamoDB.DocumentClient.QueryInput, "TableName">): Promise<{ Items: CleansedEntity<U>[]; LastEvaluatedKey?: DynamoDB.DocumentClient.Key; }> {
+  protected async query(params: Omit<DynamoDB.DocumentClient.QueryInput, "TableName">): Promise<{ Items: CleansedEntity<T>[]; LastEvaluatedKey?: DynamoDB.DocumentClient.Key; }> {
     try {
       this.loggerService.trace("query called", { params }, this.constructor.name);
 
@@ -70,7 +68,7 @@ export abstract class BaseDynamoRepositoryV2 {
         ...params,
       }).promise();
 
-      const cleansedItems = (response.Items || []).map((item) => this.cleanse(item as RawEntity<U>));
+      const cleansedItems = (response.Items || []).map((item) => this.cleanse(item as RawEntity<T>));
 
       return { Items: cleansedItems, LastEvaluatedKey: response.LastEvaluatedKey };
     } catch (error: unknown) {
@@ -80,7 +78,7 @@ export abstract class BaseDynamoRepositoryV2 {
     }
   }
 
-  protected async batchGet<U = DynamoDB.DocumentClient.AttributeMap>(keysAndAttributes: DynamoDB.DocumentClient.KeysAndAttributes, prevFetchedItems: RawEntity<U>[] = [], backoff = 200, maxBackoff = 800): Promise<CleansedEntity<U>[]> {
+  protected async batchGet(keysAndAttributes: DynamoDB.DocumentClient.KeysAndAttributes, prevFetchedItems: RawEntity<T>[] = [], backoff = 200, maxBackoff = 800): Promise<CleansedEntity<T>[]> {
     try {
       this.loggerService.trace("batchGet called", { keysAndAttributes, prevFetchedItems, backoff, maxBackoff }, this.constructor.name);
 
@@ -88,12 +86,12 @@ export abstract class BaseDynamoRepositoryV2 {
 
       const batchGetResponses = await Promise.all(chunkedKeyList.map((chunk) => this.documentClient.batchGet({ RequestItems: { [this.tableName]: { ...keysAndAttributes, Keys: chunk } } }).promise()));
 
-      const { fetchedItems, unprocessedKeys } = batchGetResponses.reduce((acc: { fetchedItems: RawEntity<U>[]; unprocessedKeys: DynamoDB.DocumentClient.KeyList; }, batchGetResponse) => {
+      const { fetchedItems, unprocessedKeys } = batchGetResponses.reduce((acc: { fetchedItems: RawEntity<T>[]; unprocessedKeys: DynamoDB.DocumentClient.KeyList; }, batchGetResponse) => {
         const items = batchGetResponse.Responses?.[this.tableName];
         const unprocessed = batchGetResponse.UnprocessedKeys?.[this.tableName]?.Keys;
 
         if (items) {
-          acc.fetchedItems.push(...items as RawEntity<U>[]);
+          acc.fetchedItems.push(...items as RawEntity<T>[]);
         }
 
         if (unprocessed) {
@@ -159,10 +157,18 @@ export abstract class BaseDynamoRepositoryV2 {
     }
   }
 
-  protected cleanse<U>(item: RawEntity<U>): CleansedEntity<U> {
-    const { type, pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, ...rest } = item;
+  protected cleanse(item: RawEntity<T>): CleansedEntity<T> {
+    try {
+      this.loggerService.trace("cleanse called", { item }, this.constructor.name);
 
-    return rest;
+      const { type, pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, ...rest } = item;
+
+      return rest as unknown as CleansedEntity<T>;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in cleanse", { error, item }, this.constructor.name);
+
+      throw error;
+    }
   }
 
   protected encodeLastEvaluatedKey(key: DynamoDB.DocumentClient.Key): string {

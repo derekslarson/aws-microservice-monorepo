@@ -10,8 +10,17 @@ import { UserService, UserServiceInterface } from "../services/user.service";
 import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
 import { UserSignedUpProcessorService } from "../services/userSignedUp.processor.service";
 import { ConversationDynamoRepository, ConversationRepositoryInterface } from "../repositories/conversation.dynamo.repository";
+import { ConversationUserRelationshipDynamoRepository, ConversationUserRelationshipRepositoryInterface } from "../repositories/conversationUserRelationship.dynamo.repository";
 import { MessageDynamoRepository, MessageRepositoryInterface } from "../repositories/message.dynamo.repository";
 import { MessageService, MessageServiceInterface } from "../services/message.service";
+import { ConversationService, ConversationServiceInterface } from "../services/conversation.service";
+import { ConversationUserRelationshipService, ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
+import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } from "../services/teamUserRelationship.service";
+import { TeamUserRelationshipDynamoRepository, TeamUserRelationshipRepositoryInterface } from "../repositories/teamUserRelationship.dynamo.repository";
+import { TeamConversationRelationshipService, TeamConversationRelationshipServiceInterface } from "../services/teamConversationRelationship.service";
+import { TeamConversationRelationshipDynamoRepository, TeamConversationRelationshipRepositoryInterface } from "../repositories/teamConversationRelationship.dynamo.repository";
+import { ConversationUserMediatorService, ConversationUserMediatorServiceInterface } from "../mediator-services/conversation.user.mediator.service";
+import { TeamUserMediatorService, TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
 
 const container = new Container();
 
@@ -20,7 +29,20 @@ try {
 
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
 
+  container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
   container.bind<ConversationRepositoryInterface>(TYPES.ConversationRepositoryInterface).to(ConversationDynamoRepository);
+
+  container.bind<TeamUserRelationshipServiceInterface>(TYPES.TeamUserRelationshipServiceInterface).to(TeamUserRelationshipService);
+  container.bind<TeamUserRelationshipRepositoryInterface>(TYPES.TeamUserRelationshipRepositoryInterface).to(TeamUserRelationshipDynamoRepository);
+
+  container.bind<ConversationUserRelationshipServiceInterface>(TYPES.ConversationUserRelationshipServiceInterface).to(ConversationUserRelationshipService);
+  container.bind<ConversationUserRelationshipRepositoryInterface>(TYPES.ConversationUserRelationshipRepositoryInterface).to(ConversationUserRelationshipDynamoRepository);
+
+  container.bind<TeamConversationRelationshipServiceInterface>(TYPES.TeamConversationRelationshipServiceInterface).to(TeamConversationRelationshipService);
+  container.bind<TeamConversationRelationshipRepositoryInterface>(TYPES.TeamConversationRelationshipRepositoryInterface).to(TeamConversationRelationshipDynamoRepository);
+
+  container.bind<ConversationUserMediatorServiceInterface>(TYPES.ConversationUserMediatorServiceInterface).to(ConversationUserMediatorService);
+  container.bind<TeamUserMediatorServiceInterface>(TYPES.TeamUserMediatorServiceInterface).to(TeamUserMediatorService);
 
   container.bind<UserControllerInterface>(TYPES.UserControllerInterface).to(UserController);
   container.bind<UserServiceInterface>(TYPES.UserServiceInterface).to(UserService);

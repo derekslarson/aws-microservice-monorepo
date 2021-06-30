@@ -6,6 +6,19 @@ const TYPES = {
   ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
   ConversationRepositoryInterface: Symbol.for("ConversationRepositoryInterface"),
 
+  ConversationUserRelationshipServiceInterface: Symbol.for("ConversationUserRelationshipServiceInterface"),
+  ConversationUserRelationshipRepositoryInterface: Symbol.for("ConversationUserRelationshipRepositoryInterface"),
+
+  TeamUserRelationshipServiceInterface: Symbol.for("TeamUserRelationshipServiceInterface"),
+  TeamUserRelationshipRepositoryInterface: Symbol.for("TeamUserRelationshipRepositoryInterface"),
+
+  TeamConversationRelationshipServiceInterface: Symbol.for("TeamConversationRelationshipServiceInterface"),
+  TeamConversationRelationshipRepositoryInterface: Symbol.for("TeamConversationRelationshipRepositoryInterface"),
+
+  ConversationUserMediatorServiceInterface: Symbol.for("ConversationUserMediatorServiceInterface"),
+  TeamUserMediatorServiceInterface: Symbol.for("TeamUserMediatorServiceInterface"),
+  TeamConversationMediatorServiceInterface: Symbol.for("TeamConversationMediatorServiceInterface"),
+
   UserSignedUpProcessorServiceInterface: Symbol.for("UserSignedUpProcessorServiceInterface"),
   UserControllerInterface: Symbol.for("UserControllerInterface"),
   UserServiceInterface: Symbol.for("UserServiceInterface"),
