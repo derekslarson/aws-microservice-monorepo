@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import { injectable } from "inversify";
+import { Details, ValidationError } from "runtypes";
 import {
   Body,
   SuccessResponse,
@@ -30,7 +31,7 @@ export abstract class BaseController {
       throw new ForbiddenError("Forbidden");
     }
 
-    return `USER-${rawUserId as string}`;
+    return `user-${rawUserId as string}`;
   }
 
   protected generateSuccessResponse(body: Body | string, headers: Record<string, string> = {}, cookies: string[] = []): SuccessResponse {
@@ -76,6 +77,10 @@ export abstract class BaseController {
       return this.generateForbiddenResponse(error.message);
     }
 
+    if (error instanceof ValidationError) {
+      return this.generateBadRequestResponse(error.message, error.details);
+    }
+
     if (error instanceof RequestValidationError) {
       return this.generateBadRequestResponse(error.message, error.validationErrors);
     }
@@ -109,7 +114,7 @@ export abstract class BaseController {
     };
   }
 
-  private generateBadRequestResponse(errorMessage: string, validationErrors?: Array<{ property: string, value: unknown; issues: string[]; }>): BadRequestResponse {
+  private generateBadRequestResponse(errorMessage: string, validationErrors?: Array<Record<string, unknown>> | Details): BadRequestResponse {
     const body = {
       message: errorMessage,
       ...(validationErrors && { validationErrors }),

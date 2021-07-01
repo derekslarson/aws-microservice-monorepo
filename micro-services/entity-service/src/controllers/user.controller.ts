@@ -1,19 +1,19 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, ForbiddenError } from "@yac/core";
+import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserServiceInterface } from "../services/user.service";
-import { UsersGetByTeamIdPathParametersDto } from "../dtos/users.getByTeamId.dto";
+import { GetUsersByTeamIdRequestDto } from "../dtos/users.getByTeamId.dto";
 import { TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
-import { UserGetPathParametersDto } from "../dtos/user.get.dto";
+import { GetUserRequestDto } from "../dtos/user.get.dto";
 import { ConversationUserMediatorServiceInterface } from "../mediator-services/conversation.user.mediator.service";
-import { UsersGetByConversationIdPathParametersDto } from "../dtos/users.getByConversationId.dto";
+import { GetUsersByConversationIdRequestDto } from "../dtos/users.getByConversationId.dto";
 
 @injectable()
 export class UserController extends BaseController implements UserControllerInterface {
   constructor(
-    @inject(TYPES.ValidationServiceInterface) private validationService: ValidationServiceInterface,
+    @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamUserMediatorServiceInterface) private teamUserMediatorService: TeamUserMediatorServiceInterface,
     @inject(TYPES.ConversationUserMediatorServiceInterface) private conversationUserMediatorService: ConversationUserMediatorServiceInterface,
@@ -26,7 +26,7 @@ export class UserController extends BaseController implements UserControllerInte
     try {
       this.loggerService.trace("getUser called", { request }, this.constructor.name);
 
-      const { userId } = await this.validationService.validate(UserGetPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
+      const { pathParameters: { userId } } = this.validationService.validate(GetUserRequestDto, request);
 
       const { user } = await this.userService.getUser({ userId });
 
@@ -44,7 +44,7 @@ export class UserController extends BaseController implements UserControllerInte
 
       const authUserId = this.getUserIdFromRequestWithJwt(request);
 
-      const { teamId } = await this.validationService.validate(UsersGetByTeamIdPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
+      const { pathParameters: { teamId } } = this.validationService.validate(GetUsersByTeamIdRequestDto, request);
 
       const { isTeamMember } = await this.teamUserMediatorService.isTeamMember({ teamId, userId: authUserId });
 
@@ -68,7 +68,7 @@ export class UserController extends BaseController implements UserControllerInte
 
       const authUserId = this.getUserIdFromRequestWithJwt(request);
 
-      const { conversationId } = await this.validationService.validate(UsersGetByConversationIdPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
+      const { pathParameters: { conversationId } } = this.validationService.validate(GetUsersByConversationIdRequestDto, request);
 
       const { isConversationMember } = await this.conversationUserMediatorService.isConversationMember({ conversationId, userId: authUserId });
 

@@ -1,19 +1,19 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, ForbiddenError } from "@yac/core";
+import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamServiceInterface } from "../services/team.service";
-import { TeamCreationBodyDto, TeamCreationPathParametersDto } from "../dtos/team.creation.dto";
-import { TeamAddUserBodyDto, TeamAddUserPathParametersDto } from "../dtos/team.addUser.dto";
-import { TeamRemoveUserPathParametersDto } from "../dtos/team.removeUser.dto";
-import { TeamsGetByUserIdPathParametersDto } from "../dtos/teams.getByUserId.dto";
+import { AddUserToTeamDto } from "../dtos/team.addUser.dto";
+import { RemoveUserFromTeamDto } from "../dtos/team.removeUser.dto";
 import { TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
-import { TeamGetPathParametersDto } from "../dtos/team.get.dto";
+import { GetTeamRequestDto } from "../dtos/team.get.dto";
+import { CreateTeamRequestDto } from "../dtos/team.creation.dto";
+import { GetTeamsByUserIdRequestDto } from "../dtos/teams.getByUserId.dto";
 @injectable()
 export class TeamController extends BaseController implements TeamControllerInterface {
   constructor(
-    @inject(TYPES.ValidationServiceInterface) private validationService: ValidationServiceInterface,
+    @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
     @inject(TYPES.TeamUserMediatorServiceInterface) private teamUserMediatorService: TeamUserMediatorServiceInterface,
@@ -27,10 +27,10 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const authUserId = this.getUserIdFromRequestWithJwt(request);
 
-      const [ { userId }, { name } ] = await Promise.all([
-        this.validationService.validate(TeamCreationPathParametersDto, RequestPortion.PathParameters, request.pathParameters),
-        this.validationService.validate(TeamCreationBodyDto, RequestPortion.Body, request.body),
-      ]);
+      const {
+        pathParameters: { userId },
+        body: { name },
+      } = this.validationService.validate(CreateTeamRequestDto, request);
 
       if (authUserId !== userId) {
         throw new ForbiddenError("Forbidden");
@@ -52,7 +52,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const authUserId = this.getUserIdFromRequestWithJwt(request);
 
-      const { teamId } = await this.validationService.validate(TeamGetPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
+      const { pathParameters: { teamId } } = this.validationService.validate(GetTeamRequestDto, request);
 
       const { isTeamMember } = await this.teamUserMediatorService.isTeamMember({ teamId, userId: authUserId });
 
@@ -76,10 +76,10 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const authUserId = this.getUserIdFromRequestWithJwt(request);
 
-      const [ { teamId }, { userId, role } ] = await Promise.all([
-        this.validationService.validate(TeamAddUserPathParametersDto, RequestPortion.PathParameters, request.pathParameters),
-        this.validationService.validate(TeamAddUserBodyDto, RequestPortion.Body, request.body),
-      ]);
+      const {
+        pathParameters: { teamId },
+        body: { userId, role },
+      } = this.validationService.validate(AddUserToTeamDto, request);
 
       const { isTeamAdmin } = await this.teamUserMediatorService.isTeamAdmin({ teamId, userId: authUserId });
 
@@ -103,7 +103,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const authUserId = this.getUserIdFromRequestWithJwt(request);
 
-      const { teamId, userId } = await this.validationService.validate(TeamRemoveUserPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
+      const { pathParameters: { teamId, userId } } = this.validationService.validate(RemoveUserFromTeamDto, request);
 
       const { isTeamAdmin } = await this.teamUserMediatorService.isTeamAdmin({ teamId, userId: authUserId });
 
@@ -127,7 +127,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const authUserId = this.getUserIdFromRequestWithJwt(request);
 
-      const { userId } = await this.validationService.validate(TeamsGetByUserIdPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
+      const { pathParameters: { userId } } = this.validationService.validate(GetTeamsByUserIdRequestDto, request);
 
       if (authUserId !== userId) {
         throw new ForbiddenError("Forbidden");

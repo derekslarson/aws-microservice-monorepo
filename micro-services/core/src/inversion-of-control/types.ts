@@ -10,6 +10,7 @@ const TYPES = {
   LoggerServiceInterface: Symbol.for("LoggerServiceInterface"),
   UserSignedUpSnsServiceInterface: Symbol.for("UserSignedUpSnsServiceInterface"),
   ValidationServiceInterface: Symbol.for("ValidationServiceInterface"),
+  ValidationServiceV2Interface: Symbol.for("ValidationServiceV2Interface"),
 
   DynamoProcessorServicesInterface: Symbol.for("DynamoProcessorServicesInterface"),
   SnsProcessorServicesInterface: Symbol.for("SnsProcessorServicesInterface"),
