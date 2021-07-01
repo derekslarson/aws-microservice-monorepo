@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface, Role } from "@yac/core";
+import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationRepositoryInterface } from "../repositories/conversation.dynamo.repository";
 import { ChannelConversation, Conversation, DmConversation } from "../models/conversation.model";
@@ -18,14 +18,15 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createDmConversation called", { params }, this.constructor.name);
 
-      const { userId, friendId } = params;
+      const { members, teamId } = params;
 
-      const conversationId = `${KeyPrefix.DmConversation}${[ userId, friendId ].sort().join("-")}`;
+      const conversationId = `${KeyPrefix.DmConversation}${members.sort().join("-")}`;
 
       const conversation: DmConversation = {
         id: conversationId,
         type: ConversationType.DM,
-
+        createdAt: new Date().toISOString(),
+        ...(teamId && { teamId }),
       };
 
       await this.conversationRepository.createConversation({ conversation });
@@ -51,6 +52,7 @@ export class ConversationService implements ConversationServiceInterface {
         name,
         createdBy,
         type: ConversationType.Channel,
+        createdAt: new Date().toISOString(),
         ...(teamId && { teamId }),
       };
 
@@ -231,8 +233,8 @@ export interface ConversationServiceInterface {
 }
 
 export interface CreateDmConversationInput {
-  userId: string;
-  friendId: string;
+  members: [string, string];
+  teamId?: string;
 }
 
 export interface CreateDmConversationOutput {

@@ -119,6 +119,9 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       { scopeName: "team.read", scopeDescription: "Read teams" },
       { scopeName: "team.write", scopeDescription: "Write teams" },
       { scopeName: "team.delete", scopeDescription: "Delete teams" },
+      { scopeName: "conversation.read", scopeDescription: "Read conversations" },
+      { scopeName: "conversation.write", scopeDescription: "Write conversations" },
+      { scopeName: "conversation.delete", scopeDescription: "Delete conversations" },
     ];
 
     new Cognito.UserPoolResourceServer(this, `ResourceServer_${id}`, {

@@ -1,4 +1,3 @@
-// eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
@@ -42,11 +41,12 @@ export class UserController extends BaseController implements UserControllerInte
     try {
       this.loggerService.trace("getUsersByTeamId called", { request }, this.constructor.name);
 
-      const authUserId = this.getUserIdFromRequestWithJwt(request);
+      const {
+        jwtId,
+        pathParameters: { teamId },
+      } = this.validationService.validate(GetUsersByTeamIdRequestDto, request, true);
 
-      const { pathParameters: { teamId } } = this.validationService.validate(GetUsersByTeamIdRequestDto, request);
-
-      const { isTeamMember } = await this.teamUserMediatorService.isTeamMember({ teamId, userId: authUserId });
+      const { isTeamMember } = await this.teamUserMediatorService.isTeamMember({ teamId, userId: jwtId });
 
       if (!isTeamMember) {
         throw new ForbiddenError("Forbidden");
@@ -66,11 +66,12 @@ export class UserController extends BaseController implements UserControllerInte
     try {
       this.loggerService.trace("getUsersByConversationId called", { request }, this.constructor.name);
 
-      const authUserId = this.getUserIdFromRequestWithJwt(request);
+      const {
+        jwtId,
+        pathParameters: { conversationId },
+      } = this.validationService.validate(GetUsersByConversationIdRequestDto, request, true);
 
-      const { pathParameters: { conversationId } } = this.validationService.validate(GetUsersByConversationIdRequestDto, request);
-
-      const { isConversationMember } = await this.conversationUserMediatorService.isConversationMember({ conversationId, userId: authUserId });
+      const { isConversationMember } = await this.conversationUserMediatorService.isConversationMember({ conversationId, userId: jwtId });
 
       if (!isConversationMember) {
         throw new ForbiddenError("Forbidden");

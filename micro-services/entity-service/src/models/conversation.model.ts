@@ -3,6 +3,7 @@ import { ConversationType } from "../enums/conversationType.enum";
 export interface Conversation {
   id: string;
   type: ConversationType;
+  createdAt: string;
   teamId?: string;
 }
 

@@ -7,13 +7,13 @@ import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import {
   Environment,
   generateExportNames,
-  GlobalSecondaryIndex,
   LogLevel,
   RouteProps,
 } from "@yac/core";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/core/infra/stacks/yac.http.service.stack";
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as SNS from "@aws-cdk/aws-sns";
+import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacEntityServiceStack extends YacHttpServiceStack {
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
@@ -88,10 +88,31 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       ],
     });
 
+    // User Handlers
+    const getUserHandler = new Lambda.Function(this, `GetUser_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getUser"),
+      handler: "getUser.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const getUsersByTeamIdHandler = new Lambda.Function(this, `GetUsersByTeamId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getUsersByTeamId"),
       handler: "getUsersByTeamId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getUsersByConversationIdHandler = new Lambda.Function(this, `GetUsersByConversationId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getUsersByConversationId"),
+      handler: "getUsersByConversationId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
@@ -103,6 +124,16 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/createTeam"),
       handler: "createTeam.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getTeamHandler = new Lambda.Function(this, `GetTeam_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getTeam"),
+      handler: "getTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
@@ -139,24 +170,73 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const routes: RouteProps[] = [
+    // Conversation Handlers
+    const createConversationHandler = new Lambda.Function(this, `CreateConversation_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/createConversation"),
+      handler: "createConversation.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getConversationHandler = new Lambda.Function(this, `GetConversation_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getConversation"),
+      handler: "getConversation.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const addUserToConversationHandler = new Lambda.Function(this, `AddUserToConversation_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/addUserToConversation"),
+      handler: "addUserToConversation.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const removeUserFromConversationHandler = new Lambda.Function(this, `RemoveUserFromConversation_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/removeUserFromConversation"),
+      handler: "removeUserFromConversation.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getConversationsByUserIdHandler = new Lambda.Function(this, `GetConversationsByUserId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getConversationsByUserId"),
+      handler: "getConversationsByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getConversationsByTeamIdHandler = new Lambda.Function(this, `GetConversationsByTeamId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getConversationsByTeamId"),
+      handler: "getConversationsByTeamId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const userRoutes: RouteProps[] = [
       {
-        path: "/users/{userId}/teams",
+        path: "/users/{userId}",
         method: ApiGatewayV2.HttpMethod.GET,
-        handler: getTeamsByUserIdHandler,
-        authorizationScopes: [ "yac/user.read", "yac/team.read" ],
-      },
-      {
-        path: "/teams",
-        method: ApiGatewayV2.HttpMethod.POST,
-        handler: createTeamHandler,
-        authorizationScopes: [ "yac/team.write" ],
-      },
-      {
-        path: "/teams/{teamId}/users",
-        method: ApiGatewayV2.HttpMethod.POST,
-        handler: addUserToTeamHandler,
-        authorizationScopes: [ "yac/team.write" ],
+        handler: getUserHandler,
+        authorizationScopes: [ "yac/team.read" ],
       },
       {
         path: "/teams/{teamId}/users",
@@ -165,11 +245,89 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         authorizationScopes: [ "yac/team.read", "yac/user.read" ],
       },
       {
+        path: "/conversations/{conversationId}/users",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getUsersByConversationIdHandler,
+        authorizationScopes: [ "yac/conversation.read", "yac/user.read" ],
+      },
+    ];
+
+    const teamRoutes: RouteProps[] = [
+      {
+        path: "users/{userId}/teams",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: createTeamHandler,
+        authorizationScopes: [ "yac/team.write" ],
+      },
+      {
+        path: "/teams/{teamId}",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getTeamHandler,
+        authorizationScopes: [ "yac/team.read" ],
+      },
+      {
+        path: "/users/{userId}/teams",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getTeamsByUserIdHandler,
+        authorizationScopes: [ "yac/team.read" ],
+      },
+      {
+        path: "/teams/{teamId}/users",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: addUserToTeamHandler,
+        authorizationScopes: [ "yac/team.write" ],
+      },
+      {
         path: "/teams/{teamId}/users/{userId}",
         method: ApiGatewayV2.HttpMethod.DELETE,
         handler: removeUserFromTeamHandler,
         authorizationScopes: [ "yac/team.write" ],
       },
+    ];
+
+    const conversationRoutes: RouteProps[] = [
+      {
+        path: "users/{userId}/conversations",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: createConversationHandler,
+        authorizationScopes: [ "yac/conversation.write" ],
+      },
+      {
+        path: "/conversations/{conversationId}",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getConversationHandler,
+        authorizationScopes: [ "yac/conversation.read" ],
+      },
+      {
+        path: "/users/{userId}/conversations",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getConversationsByUserIdHandler,
+        authorizationScopes: [ "yac/user.read", "yac/conversation.read" ],
+      },
+      {
+        path: "/teams/{teamId}/conversations",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getConversationsByTeamIdHandler,
+        authorizationScopes: [ "yac/team.read", "yac/conversation.read" ],
+      },
+      {
+        path: "/conversations/{conversationId}/users",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: addUserToConversationHandler,
+        authorizationScopes: [ "yac/conversation.write" ],
+      },
+      {
+        path: "/conversations/{conversationId}/users/{userId}",
+        method: ApiGatewayV2.HttpMethod.DELETE,
+        handler: removeUserFromConversationHandler,
+        authorizationScopes: [ "yac/conversation.write" ],
+      },
+    ];
+
+    const routes: RouteProps[] = [
+      ...userRoutes,
+      ...teamRoutes,
+      ...conversationRoutes,
     ];
 
     routes.forEach((route) => this.httpApi.addRoute(route));

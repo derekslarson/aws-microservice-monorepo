@@ -5,6 +5,7 @@ import { RuntypeBase } from "runtypes/lib/runtype";
 import { TYPES } from "../inversion-of-control/types";
 import { LoggerServiceInterface } from "./logger.service";
 import { Request } from "../models/http/request.model";
+import { ForbiddenError } from "../errors";
 
 @injectable()
 export class ValidationServiceV2 implements ValidationServiceV2Interface {
@@ -12,9 +13,21 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
   ) {}
 
-  public validate<T, U extends Request>(dto: RuntypeBase<T>, request: U): T {
+  public validate<T, U extends boolean>(dto: RuntypeBase<T>, request: Request, getUserIdFromJwt?: U): ValidatedRequest<T, U> {
     try {
       this.loggerService.trace("validate called", { dto, request }, this.constructor.name);
+
+      let jwtId: string | undefined;
+
+      if (getUserIdFromJwt) {
+        const rawUserId = request.requestContext.authorizer?.jwt.claims.sub;
+
+        if (!rawUserId) {
+          throw new ForbiddenError("Forbidden");
+        }
+
+        jwtId = `user-${rawUserId as string}`;
+      }
 
       let parsedBody: unknown;
 
@@ -36,7 +49,12 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
 
       const validatedRequest = dto.check(parsedRequest);
 
-      return validatedRequest;
+      if (jwtId) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        return { ...validatedRequest, jwtId } as ValidatedRequest<T, U>;
+      }
+
+      return validatedRequest as ValidatedRequest<T, U>;
     } catch (error: unknown) {
       this.loggerService.error("Error in validate", { error, dto, request }, this.constructor.name);
 
@@ -49,6 +67,8 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
   }
 }
 
+type ValidatedRequest<T, U extends boolean> = U extends true ? (T & { jwtId: string; }) : T;
+
 export interface ValidationServiceV2Interface {
-  validate<T, U extends Request>(dto: RuntypeBase<T>, request: U): T
+  validate<T, U extends Request, V extends boolean>(dto: RuntypeBase<T>, request: U, getUserIdFromJwt?: V): ValidatedRequest<T, V>
 }

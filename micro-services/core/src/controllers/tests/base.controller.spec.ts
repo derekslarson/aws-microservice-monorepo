@@ -8,15 +8,10 @@ import { UnauthorizedError } from "../../errors/unauthorized.error";
 import { RequestValidationError } from "../../errors/request.validation.error";
 import { RequestPortion } from "../../enums/request.portion.enum";
 import { BadRequestError } from "../../errors/badRequest.error";
-import { Request } from "../../models/http/request.model";
 import { generateMockRequest } from "../../test-support/generateMockRequest";
 
 // Need to extend the abstract class and expose its protected methods in order to test them
 class TestController extends BaseController {
-  public getUserIdFromRequestWithJwt(request: Request) {
-    return super.getUserIdFromRequestWithJwt(request);
-  }
-
   public generateSuccessResponse(body: Body | string, headers?: Record<string, string>, cookies?: string[]) {
     return super.generateSuccessResponse(body, headers, cookies);
   }
@@ -50,55 +45,6 @@ describe("BaseController", () => {
     spyOn(JSON, "stringify").and.callThrough();
 
     testController = new TestController();
-  });
-
-  describe("getUserIdFromRequestWithJwt", () => {
-    const mockRawUserId = "mockUserId";
-    describe("under normal conditions", () => {
-      const mockRequest = generateMockRequest();
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      mockRequest.requestContext.authorizer?.jwt.claims.sub = mockRawUserId;
-
-      it("returns the sub claim in the request context's jwt, formatted correctly", () => {
-        const userId = testController.getUserIdFromRequestWithJwt(mockRequest);
-
-        expect(userId).toBe(`USER-${mockRawUserId}`);
-      });
-    });
-
-    describe("under error conditons", () => {
-      describe("when the request doesn't have an authorizer prop", () => {
-        const mockRequest = generateMockRequest();
-        delete mockRequest.requestContext.authorizer;
-
-        it("throws a forbidden error", () => {
-          try {
-            testController.getUserIdFromRequestWithJwt(mockRequest);
-
-            fail("Expected to throw");
-          } catch (error) {
-            expect(error).toBeInstanceOf(ForbiddenError);
-            expect((error as ForbiddenError).message).toBe("Forbidden");
-          }
-        });
-      });
-
-      describe("when the jwt token doesn't contain a sub claim", () => {
-        const mockRequest = generateMockRequest();
-
-        it("throws a forbidden error", () => {
-          try {
-            testController.getUserIdFromRequestWithJwt(mockRequest);
-
-            fail("Expected to throw");
-          } catch (error) {
-            expect(error).toBeInstanceOf(ForbiddenError);
-            expect((error as ForbiddenError).message).toBe("Forbidden");
-          }
-        });
-      });
-    });
   });
 
   describe("generateSuccessResponse", () => {
