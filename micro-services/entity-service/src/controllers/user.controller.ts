@@ -3,11 +3,11 @@ import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserServiceInterface } from "../services/user.service";
-import { GetUsersByTeamIdRequestDto } from "../dtos/users.getByTeamId.dto";
 import { TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
-import { GetUserRequestDto } from "../dtos/user.get.dto";
 import { ConversationUserMediatorServiceInterface } from "../mediator-services/conversation.user.mediator.service";
-import { GetUsersByConversationIdRequestDto } from "../dtos/users.getByConversationId.dto";
+import { GetUserDto } from "../dtos/getUser.dto";
+import { GetUsersByTeamIdDto } from "../dtos/getUsersByTeamId.dto";
+import { GetUsersByConversationIdDto } from "../dtos/getUsersByConversationId.dto";
 
 @injectable()
 export class UserController extends BaseController implements UserControllerInterface {
@@ -25,7 +25,7 @@ export class UserController extends BaseController implements UserControllerInte
     try {
       this.loggerService.trace("getUser called", { request }, this.constructor.name);
 
-      const { pathParameters: { userId } } = this.validationService.validate(GetUserRequestDto, request);
+      const { pathParameters: { userId } } = this.validationService.validate({ dto: GetUserDto, request, getUserIdFromJwt: true });
 
       const { user } = await this.userService.getUser({ userId });
 
@@ -44,7 +44,7 @@ export class UserController extends BaseController implements UserControllerInte
       const {
         jwtId,
         pathParameters: { teamId },
-      } = this.validationService.validate(GetUsersByTeamIdRequestDto, request, true);
+      } = this.validationService.validate({ dto: GetUsersByTeamIdDto, request, getUserIdFromJwt: true });
 
       const { isTeamMember } = await this.teamUserMediatorService.isTeamMember({ teamId, userId: jwtId });
 
@@ -69,7 +69,7 @@ export class UserController extends BaseController implements UserControllerInte
       const {
         jwtId,
         pathParameters: { conversationId },
-      } = this.validationService.validate(GetUsersByConversationIdRequestDto, request, true);
+      } = this.validationService.validate({ dto: GetUsersByConversationIdDto, request, getUserIdFromJwt: true });
 
       const { isConversationMember } = await this.conversationUserMediatorService.isConversationMember({ conversationId, userId: jwtId });
 
@@ -94,7 +94,7 @@ export class UserController extends BaseController implements UserControllerInte
       const {
         jwtId,
         pathParameters: { conversationId },
-      } = this.validationService.validate(GetUsersByConversationIdRequestDto, request, true);
+      } = this.validationService.validate({ dto: GetUsersByConversationIdDto, request, getUserIdFromJwt: true });
 
       const { isConversationMember } = await this.conversationUserMediatorService.isConversationMember({ conversationId, userId: jwtId });
 

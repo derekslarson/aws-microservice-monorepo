@@ -1,11 +1,12 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { Failcode, ValidationError } from "runtypes";
-import { RuntypeBase } from "runtypes/lib/runtype";
+import { Runtype } from "runtypes/lib/runtype";
 import { TYPES } from "../inversion-of-control/types";
 import { LoggerServiceInterface } from "./logger.service";
 import { Request } from "../models/http/request.model";
 import { ForbiddenError } from "../errors";
+import { ValidatedRequest } from "../types/validatedRequest.type";
 
 @injectable()
 export class ValidationServiceV2 implements ValidationServiceV2Interface {
@@ -13,9 +14,11 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
   ) {}
 
-  public validate<T, U extends boolean>(dto: RuntypeBase<T>, request: Request, getUserIdFromJwt?: U): ValidatedRequest<T, U> {
+  public validate<T extends ValidatedRequest, U extends boolean>(params: ValidateInput<T, U>): ValidateOutput<T, U> {
     try {
-      this.loggerService.trace("validate called", { dto, request }, this.constructor.name);
+      this.loggerService.trace("validate called", { params }, this.constructor.name);
+
+      const { dto, request, getUserIdFromJwt } = params;
 
       let jwtId: string | undefined;
 
@@ -51,12 +54,12 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
 
       if (jwtId) {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return { ...validatedRequest, jwtId } as ValidatedRequest<T, U>;
+        return { ...validatedRequest, jwtId } as ValidateOutput<T, U>;
       }
 
-      return validatedRequest as ValidatedRequest<T, U>;
+      return validatedRequest as ValidateOutput<T, U>;
     } catch (error: unknown) {
-      this.loggerService.error("Error in validate", { error, dto, request }, this.constructor.name);
+      this.loggerService.error("Error in validate", { error, params }, this.constructor.name);
 
       if (error instanceof ValidationError) {
         throw error;
@@ -67,8 +70,14 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
   }
 }
 
-type ValidatedRequest<T, U extends boolean> = U extends true ? (T & { jwtId: string; }) : T;
-
 export interface ValidationServiceV2Interface {
-  validate<T, U extends Request, V extends boolean>(dto: RuntypeBase<T>, request: U, getUserIdFromJwt?: V): ValidatedRequest<T, V>
+  validate<T extends ValidatedRequest, U extends boolean>(params: ValidateInput<T, U>): ValidateOutput<T, U>
 }
+
+export interface ValidateInput<T extends ValidatedRequest, U extends boolean> {
+  dto: Runtype<T>;
+  request: Request;
+  getUserIdFromJwt?: U;
+}
+
+export type ValidateOutput<T extends ValidatedRequest, U extends boolean> = U extends true ? (T & { jwtId: string; }) : T;

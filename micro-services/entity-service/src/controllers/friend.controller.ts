@@ -3,10 +3,10 @@ import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserServiceInterface } from "../services/user.service";
-import { GetUsersByTeamIdRequestDto } from "../dtos/users.getByTeamId.dto";
+import { GetUsersByTeamIdRequestDto } from "../dtos/getUsersByTeamId.dto";
 import { TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
 import { ConversationUserMediatorServiceInterface } from "../mediator-services/conversation.user.mediator.service";
-import { GetUsersByConversationIdRequestDto } from "../dtos/users.getByConversationId.dto";
+import { GetUsersByConversationIdRequestDto } from "../dtos/getUsersByConversationId.dto";
 
 @injectable()
 export class FriendController extends BaseController implements FriendControllerInterface {
