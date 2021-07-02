@@ -62,9 +62,9 @@ export class UserController extends BaseController implements UserControllerInte
     }
   }
 
-  public async getUsersByConversationId(request: Request): Promise<Response> {
+  public async getUsersByGroupId(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("getUsersByConversationId called", { request }, this.constructor.name);
+      this.loggerService.trace("getUsersByGroupId called", { request }, this.constructor.name);
 
       const {
         jwtId,
@@ -86,10 +86,36 @@ export class UserController extends BaseController implements UserControllerInte
       return this.generateErrorResponse(error);
     }
   }
+
+  public async getUsersByMeetingId(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getUsersByMeetingId called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { conversationId },
+      } = this.validationService.validate(GetUsersByConversationIdRequestDto, request, true);
+
+      const { isConversationMember } = await this.conversationUserMediatorService.isConversationMember({ conversationId, userId: jwtId });
+
+      if (!isConversationMember) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { users, lastEvaluatedKey } = await this.conversationUserMediatorService.getUsersByConversationId({ conversationId });
+
+      return this.generateSuccessResponse({ users, lastEvaluatedKey });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersByMeetingId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
 }
 
 export interface UserControllerInterface {
-  getUsersByTeamId(request: Request): Promise<Response>;
-  getUsersByConversationId(request: Request): Promise<Response>;
   getUser(request: Request): Promise<Response>;
+  getUsersByTeamId(request: Request): Promise<Response>;
+  getUsersByGroupId(request: Request): Promise<Response>;
+  getUsersByMeetingId(request: Request): Promise<Response>;
 }

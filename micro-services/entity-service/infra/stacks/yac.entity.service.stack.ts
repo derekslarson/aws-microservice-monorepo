@@ -88,7 +88,6 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       ],
     });
 
-    // User Handlers
     const getUserHandler = new Lambda.Function(this, `GetUser_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getUser"),
@@ -109,10 +108,20 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const getUsersByConversationIdHandler = new Lambda.Function(this, `GetUsersByConversationId_${id}`, {
+    const getUsersByGroupIdHandler = new Lambda.Function(this, `GetUsersByGroupId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getUsersByConversationId"),
-      handler: "getUsersByConversationId.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/getUsersByGroupId"),
+      handler: "getUsersByGroupId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getUsersByMeetingIdHandler = new Lambda.Function(this, `GetUsersByMeetingId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getUsersByMeetingId"),
+      handler: "getUsersByMeetingId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
@@ -170,61 +179,205 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    // Friend Handlers
+    const addUserAsFriendHandler = new Lambda.Function(this, `AddUserAsFriend_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/addUserAsFriend"),
+      handler: "addUserAsFriend.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const removeUserAsFriendHandler = new Lambda.Function(this, `RemoveUserAsFriend_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/removeUserAsFriend"),
+      handler: "removeUserAsFriend.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getFriendsByUserIdHandler = new Lambda.Function(this, `GetFriendsByUserId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getFriendsByUserId"),
+      handler: "getFriendsByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    // Group Handlers
+    const createGroupHandler = new Lambda.Function(this, `CreateGroup_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/createGroup"),
+      handler: "createGroup.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getGroupHandler = new Lambda.Function(this, `GetGroup_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getGroup"),
+      handler: "getGroup.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const addUserToGroupHandler = new Lambda.Function(this, `AddUserToGroup_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/addUserToGroup"),
+      handler: "addUserToGroup.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const removeUserFromGroupHandler = new Lambda.Function(this, `RemoveUserFromGroup_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/removeUserFromGroup"),
+      handler: "removeUserFromGroup.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getGroupsByUserIdHandler = new Lambda.Function(this, `GetGroupsByUserId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getGroupsByUserId"),
+      handler: "getGroupsByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getGroupsByTeamIdHandler = new Lambda.Function(this, `GetGroupsByTeamId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getGroupsByTeamId"),
+      handler: "getGroupsByTeamId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    // Meeting Handlers
+    const createMeetingHandler = new Lambda.Function(this, `CreateMeeting_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/createMeeting"),
+      handler: "createMeeting.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getMeetingHandler = new Lambda.Function(this, `GetMeeting_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getMeeting"),
+      handler: "getMeeting.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const addUserToMeetingHandler = new Lambda.Function(this, `AddUserToMeeting_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/addUserToMeeting"),
+      handler: "addUserToMeeting.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const removeUserFromMeetingHandler = new Lambda.Function(this, `RemoveUserFromMeeting_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/removeUserFromMeeting"),
+      handler: "removeUserFromMeeting.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getMeetingsByUserIdHandler = new Lambda.Function(this, `GetMeetingsByUserId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getMeetingsByUserId"),
+      handler: "getMeetingsByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getMeetingsByTeamIdHandler = new Lambda.Function(this, `GetMeetingsByTeamId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getGroupsByTeamId"),
+      handler: "getMeetingsByTeamId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    // Meeting Handlers
+    const createMessageHandler = new Lambda.Function(this, `CreateMessage_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/createMessage"),
+      handler: "createMessage.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getMessageHandler = new Lambda.Function(this, `GetMessage_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getMessage"),
+      handler: "getMessage.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const updateMessageByUserIdHandler = new Lambda.Function(this, `UpdateMessageByUserId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateMessageByUserId"),
+      handler: "updateMessageByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getMessagesByConversationIdHandler = new Lambda.Function(this, `GetMessagesByConversationId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByConversationId"),
+      handler: "getMessagesByConversationId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     // Conversation Handlers
-    const createConversationHandler = new Lambda.Function(this, `CreateConversation_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/createConversation"),
-      handler: "createConversation.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
-    const getConversationHandler = new Lambda.Function(this, `GetConversation_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getConversation"),
-      handler: "getConversation.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
-    const addUserToConversationHandler = new Lambda.Function(this, `AddUserToConversation_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/addUserToConversation"),
-      handler: "addUserToConversation.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
-    const removeUserFromConversationHandler = new Lambda.Function(this, `RemoveUserFromConversation_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/removeUserFromConversation"),
-      handler: "removeUserFromConversation.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
     const getConversationsByUserIdHandler = new Lambda.Function(this, `GetConversationsByUserId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getConversationsByUserId"),
       handler: "getConversationsByUserId.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
-    const getConversationsByTeamIdHandler = new Lambda.Function(this, `GetConversationsByTeamId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getConversationsByTeamId"),
-      handler: "getConversationsByTeamId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
@@ -245,10 +398,16 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         authorizationScopes: [ "yac/team.read", "yac/user.read" ],
       },
       {
-        path: "/conversations/{conversationId}/users",
+        path: "/groups/{groupId}/users",
         method: ApiGatewayV2.HttpMethod.GET,
-        handler: getUsersByConversationIdHandler,
-        authorizationScopes: [ "yac/conversation.read", "yac/user.read" ],
+        handler: getUsersByGroupIdHandler,
+        authorizationScopes: [ "yac/group.read", "yac/user.read" ],
+      },
+      {
+        path: "/meetings/{meetingId}/users",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getUsersByMeetingIdHandler,
+        authorizationScopes: [ "yac/meeting.read", "yac/user.read" ],
       },
     ];
 
@@ -285,48 +444,153 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       },
     ];
 
-    const conversationRoutes: RouteProps[] = [
+    const friendRoutes: RouteProps[] = [
       {
-        path: "users/{userId}/conversations",
+        path: "users/{userId}/friends",
         method: ApiGatewayV2.HttpMethod.POST,
-        handler: createConversationHandler,
-        authorizationScopes: [ "yac/conversation.write" ],
+        handler: addUserAsFriendHandler,
+        authorizationScopes: [ "yac/friend.write" ],
       },
       {
-        path: "/conversations/{conversationId}",
+        path: "users/{userId}/friends",
         method: ApiGatewayV2.HttpMethod.GET,
-        handler: getConversationHandler,
-        authorizationScopes: [ "yac/conversation.read" ],
+        handler: getFriendsByUserIdHandler,
+        authorizationScopes: [ "yac/user.read", "yac/friend.read" ],
       },
+      {
+        path: "users/{userId}/friends/{friendId}",
+        method: ApiGatewayV2.HttpMethod.DELETE,
+        handler: removeUserAsFriendHandler,
+        authorizationScopes: [ "yac/friend.delete" ],
+      },
+    ];
+
+    const groupRoutes: RouteProps[] = [
+      {
+        path: "users/{userId}/groups",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: createGroupHandler,
+        authorizationScopes: [ "yac/group.write" ],
+      },
+      {
+        path: "/groups/{groupId}",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getGroupHandler,
+        authorizationScopes: [ "yac/group.read" ],
+      },
+      {
+        path: "users/{userId}/groups",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getGroupsByUserIdHandler,
+        authorizationScopes: [ "yac/user.read", "yac/group.read" ],
+      },
+      {
+        path: "/teams/{teamId}/groups",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getGroupsByTeamIdHandler,
+        authorizationScopes: [ "yac/team.read", "yac/group.read" ],
+      },
+      {
+        path: "/groups/{groupId}/users",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: addUserToGroupHandler,
+        authorizationScopes: [ "yac/group.write" ],
+      },
+      {
+        path: "/groups/{groupId}/users/{userId}",
+        method: ApiGatewayV2.HttpMethod.DELETE,
+        handler: removeUserFromGroupHandler,
+        authorizationScopes: [ "yac/group.write" ],
+      },
+    ];
+
+    const meetingRoutes: RouteProps[] = [
+      {
+        path: "users/{userId}/meetings",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: createMeetingHandler,
+        authorizationScopes: [ "yac/meeting.write" ],
+      },
+      {
+        path: "meetings/{meetingId}",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getMeetingHandler,
+        authorizationScopes: [ "yac/meeting.read" ],
+      },
+      {
+        path: "/meeting/{meetingId}/users",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: addUserToMeetingHandler,
+        authorizationScopes: [ "yac/meeting.write" ],
+      },
+      {
+        path: "/meeting/{meetingId}/users/{userId}",
+        method: ApiGatewayV2.HttpMethod.DELETE,
+        handler: removeUserFromMeetingHandler,
+        authorizationScopes: [ "yac/meeting.write" ],
+      },
+      {
+        path: "users/{userId}/meetings",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getMeetingsByUserIdHandler,
+        authorizationScopes: [ "yac/user.read", "yac/meeting.read" ],
+      },
+      {
+        path: "/teams/{teamId}/meetings",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getMeetingsByTeamIdHandler,
+        authorizationScopes: [ "yac/team.read", "yac/group.read" ],
+      },
+    ];
+
+    const messageRoutes: RouteProps[] = [
+      {
+        path: "/conversations/{conversationId}/messages",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: createMessageHandler,
+        authorizationScopes: [ "yac/message.write" ],
+      },
+      {
+        path: "/conversations/{conversationId}/messages",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getMessagesByConversationIdHandler,
+        authorizationScopes: [ "yac/conversation.read", "yac/message.read" ],
+      },
+      {
+        path: "/messages/{messageId}",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getMessageHandler,
+        authorizationScopes: [ "yac/message.read" ],
+      },
+      // body params:
+      // seen: <boolean>
+      {
+        path: "/users/{userId}/messages/{messageId}",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: updateMessageByUserIdHandler,
+        authorizationScopes: [ "yac/message.write" ],
+      },
+    ];
+
+    const conversationRoutes: RouteProps[] = [
+      // query params:
+      // type=<all | friend | group | meeting>
+      // unread=<boolean>
       {
         path: "/users/{userId}/conversations",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getConversationsByUserIdHandler,
         authorizationScopes: [ "yac/user.read", "yac/conversation.read" ],
       },
-      {
-        path: "/teams/{teamId}/conversations",
-        method: ApiGatewayV2.HttpMethod.GET,
-        handler: getConversationsByTeamIdHandler,
-        authorizationScopes: [ "yac/team.read", "yac/conversation.read" ],
-      },
-      {
-        path: "/conversations/{conversationId}/users",
-        method: ApiGatewayV2.HttpMethod.POST,
-        handler: addUserToConversationHandler,
-        authorizationScopes: [ "yac/conversation.write" ],
-      },
-      {
-        path: "/conversations/{conversationId}/users/{userId}",
-        method: ApiGatewayV2.HttpMethod.DELETE,
-        handler: removeUserFromConversationHandler,
-        authorizationScopes: [ "yac/conversation.write" ],
-      },
     ];
 
     const routes: RouteProps[] = [
       ...userRoutes,
       ...teamRoutes,
+      ...friendRoutes,
+      ...groupRoutes,
+      ...meetingRoutes,
+      ...messageRoutes,
       ...conversationRoutes,
     ];
 

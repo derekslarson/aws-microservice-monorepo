@@ -3,29 +3,37 @@ import { TYPES as CORE_TYPES } from "@yac/core";
 const TYPES = {
   ...CORE_TYPES,
 
-  ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
-  ConversationRepositoryInterface: Symbol.for("ConversationRepositoryInterface"),
+  // Controllers
+  ConversationControllerInterface: Symbol.for("ConversationControllerInterface"),
+  FriendControllerInterface: Symbol.for("FriendControllerInterface"),
+  GroupControllerInterface: Symbol.for("GroupControllerInterface"),
+  MeetingControllerInterface: Symbol.for("MeetingControllerInterface"),
+  MessageControllerInterface: Symbol.for("MessageControllerInterface"),
+  TeamControllerInterface: Symbol.for("TeamControllerInterface"),
+  UserControllerInterface: Symbol.for("UserControllerInterface"),
 
-  ConversationUserRelationshipServiceInterface: Symbol.for("ConversationUserRelationshipServiceInterface"),
-  ConversationUserRelationshipRepositoryInterface: Symbol.for("ConversationUserRelationshipRepositoryInterface"),
-
-  TeamUserRelationshipServiceInterface: Symbol.for("TeamUserRelationshipServiceInterface"),
-  TeamUserRelationshipRepositoryInterface: Symbol.for("TeamUserRelationshipRepositoryInterface"),
-
+  // Mediator Services
   ConversationUserMediatorServiceInterface: Symbol.for("ConversationUserMediatorServiceInterface"),
   TeamUserMediatorServiceInterface: Symbol.for("TeamUserMediatorServiceInterface"),
 
+  // Processor Services
   UserSignedUpProcessorServiceInterface: Symbol.for("UserSignedUpProcessorServiceInterface"),
-  UserControllerInterface: Symbol.for("UserControllerInterface"),
-  UserServiceInterface: Symbol.for("UserServiceInterface"),
-  UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
 
-  TeamControllerInterface: Symbol.for("TeamControllerInterface"),
-  TeamServiceInterface: Symbol.for("TeamServiceInterface"),
-  TeamRepositoryInterface: Symbol.for("TeamRepositoryInterface"),
-
+  // Services
+  ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
+  ConversationUserRelationshipServiceInterface: Symbol.for("ConversationUserRelationshipServiceInterface"),
   MessageServiceInterface: Symbol.for("MessageServiceInterface"),
+  TeamServiceInterface: Symbol.for("TeamServiceInterface"),
+  TeamUserRelationshipServiceInterface: Symbol.for("TeamUserRelationshipServiceInterface"),
+  UserServiceInterface: Symbol.for("UserServiceInterface"),
+
+  // Repositories
+  ConversationRepositoryInterface: Symbol.for("ConversationRepositoryInterface"),
+  ConversationUserRelationshipRepositoryInterface: Symbol.for("ConversationUserRelationshipRepositoryInterface"),
   MessageRepositoryInterface: Symbol.for("MessageRepositoryInterface"),
+  TeamRepositoryInterface: Symbol.for("TeamRepositoryInterface"),
+  TeamUserRelationshipRepositoryInterface: Symbol.for("TeamUserRelationshipRepositoryInterface"),
+  UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
 };
 
 export { TYPES };
