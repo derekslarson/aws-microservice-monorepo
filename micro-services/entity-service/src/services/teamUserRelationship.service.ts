@@ -1,8 +1,7 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamUserRelationship } from "../models/team.user.relationship.model";
-import { TeamUserRelationshipRepositoryInterface } from "../repositories/teamUserRelationship.dynamo.repository";
+import { TeamUserRelationshipRepositoryInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../repositories/teamUserRelationship.dynamo.repository";
 
 @injectable()
 export class TeamUserRelationshipService implements TeamUserRelationshipServiceInterface {
@@ -17,7 +16,7 @@ export class TeamUserRelationshipService implements TeamUserRelationshipServiceI
 
       const { teamId, userId, role } = params;
 
-      const teamUserRelationship: TeamUserRelationship = {
+      const teamUserRelationship: TeamUserRelationshipEntity = {
         teamId,
         userId,
         role,
@@ -104,6 +103,7 @@ export interface TeamUserRelationshipServiceInterface {
   getTeamUserRelationshipsByUserId(params: GetTeamUserRelationshipsByUserIdInput): Promise<GetTeamUserRelationshipsByUserIdOutput>;
 }
 
+export type TeamUserRelationship = TeamUserRelationshipEntity;
 export interface CreateTeamUserRelationshipInput {
   teamId: string;
   userId: string;

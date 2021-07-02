@@ -3,7 +3,6 @@ import { injectable, inject } from "inversify";
 import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/core";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { Message } from "../models/message.model";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
 import { RawEntity } from "../types/raw.entity.type";
@@ -169,6 +168,18 @@ export interface MessageRepositoryInterface {
 }
 
 type MessageRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  from: string;
+  transcript: string;
+  sentAt: string;
+  seenAt: { [key: string]: string | null };
+  reactions: { [key: string]: number };
+  hasReplies: boolean;
+  replyTo?: string;
+}
 
 export interface CreateMessageInput {
   message: Message;

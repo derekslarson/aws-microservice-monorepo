@@ -1,13 +1,13 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, DynamoSetValues } from "@yac/core";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, DynamoSetValues, Role } from "@yac/core";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
-import { ConversationUserRelationship } from "../models/conversation.user.relationship.model";
 import { RawEntity } from "../types/raw.entity.type";
 import { ConversationType } from "../enums/conversationType.enum";
+
 @injectable()
 export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepositoryV2<ConversationUserRelationshipWithSet> implements ConversationUserRelationshipRepositoryInterface {
   private gsiOneIndexName: string;
@@ -259,6 +259,16 @@ export interface ConversationUserRelationshipRepositoryInterface {
 type ConversationUserRelationshipWithSet = DynamoSetValues<ConversationUserRelationship, "unreadMessages">;
 
 type ConversationUserRelationshipConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
+
+export interface ConversationUserRelationship {
+  conversationId: string;
+  userId: string;
+  role: Role;
+  muted: boolean;
+  updatedAt: string;
+  unreadMessages?: string[];
+  recentMessageId?: string;
+}
 
 export interface CreateConversationUserRelationshipInput {
   conversationUserRelationship: ConversationUserRelationship;

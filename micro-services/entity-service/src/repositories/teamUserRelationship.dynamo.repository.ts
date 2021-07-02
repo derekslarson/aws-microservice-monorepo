@@ -1,11 +1,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/core";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, Role } from "@yac/core";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
-import { TeamUserRelationship } from "../models/team.user.relationship.model";
 import { RawEntity } from "../types/raw.entity.type";
 
 @injectable()
@@ -153,6 +152,12 @@ export interface TeamUserRelationshipRepositoryInterface {
 }
 
 type TeamUserRelationshipRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
+
+export interface TeamUserRelationship {
+  teamId: string;
+  userId: string;
+  role: Role;
+}
 
 export interface CreateTeamUserRelationshipInput {
   teamUserRelationship: TeamUserRelationship;

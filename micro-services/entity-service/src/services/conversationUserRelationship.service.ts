@@ -1,8 +1,7 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationUserRelationship } from "../models/conversation.user.relationship.model";
-import { ConversationUserRelationshipRepositoryInterface } from "../repositories/conversationUserRelationship.dynamo.repository";
+import { ConversationUserRelationshipRepositoryInterface, ConversationUserRelationship as ConversationUserRelationshipEntity } from "../repositories/conversationUserRelationship.dynamo.repository";
 import { ConversationType } from "../enums/conversationType.enum";
 
 @injectable()
@@ -18,7 +17,7 @@ export class ConversationUserRelationshipService implements ConversationUserRela
 
       const { conversationId, userId, role } = params;
 
-      const conversationUserRelationship: ConversationUserRelationship = {
+      const conversationUserRelationship: ConversationUserRelationshipEntity = {
         conversationId,
         userId,
         role,
@@ -141,6 +140,7 @@ export interface ConversationUserRelationshipServiceInterface {
   getConversationUserRelationshipsByUserId(params: GetConversationUserRelationshipsByUserIdInput): Promise<GetConversationUserRelationshipsByUserIdOutput>;
 }
 
+export type ConversationUserRelationship = ConversationUserRelationshipEntity;
 export interface CreateConversationUserRelationshipInput {
   conversationId: string;
   userId: string;

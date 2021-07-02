@@ -1,12 +1,9 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { User } from "../models/user.model";
-import { UserServiceInterface } from "../services/user.service";
-import { TeamServiceInterface } from "../services/team.service";
-import { TeamUserRelationshipServiceInterface } from "../services/teamUserRelationship.service";
-import { Team } from "../models/team.model";
-import { TeamUserRelationship } from "../models/team.user.relationship.model";
+import { UserServiceInterface, User as UserEntity } from "../services/user.service";
+import { TeamServiceInterface, Team as TeamEntity } from "../services/team.service";
+import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../services/teamUserRelationship.service";
 
 @injectable()
 export class TeamUserMediatorService implements TeamUserMediatorServiceInterface {
@@ -25,9 +22,11 @@ export class TeamUserMediatorService implements TeamUserMediatorServiceInterface
 
       const { team } = await this.teamService.createTeam({ name, createdBy });
 
-      await this.teamUserRelationshipService.createTeamUserRelationship({ teamId: team.id, userId: createdBy, role: Role.Admin });
+      const { teamUserRelationship } = await this.teamUserRelationshipService.createTeamUserRelationship({ teamId: team.id, userId: createdBy, role: Role.Admin });
 
-      return { team };
+      const teamWithRole = { ...team, role: teamUserRelationship.role };
+
+      return { team: teamWithRole };
     } catch (error: unknown) {
       this.loggerService.error("Error in createTeam", { error, params }, this.constructor.name);
 
@@ -158,6 +157,10 @@ export interface TeamUserMediatorServiceInterface {
   isTeamAdmin(params: IsTeamAdminInput): Promise<IsTeamAdminOutput>;
 }
 
+export type Team = WithRole<TeamEntity>;
+export type User = WithRole<UserEntity>;
+export type TeamUserRelationship = TeamUserRelationshipEntity;
+
 export interface CreateTeamInput {
   name: string;
   createdBy: string;
@@ -189,7 +192,7 @@ export interface GetUsersByTeamIdInput {
 }
 
 export interface GetUsersByTeamIdOutput {
-  users: WithRole<User>[];
+  users: User[];
   lastEvaluatedKey?: string;
 }
 
@@ -199,7 +202,7 @@ export interface GetTeamsByUserIdInput {
 }
 
 export interface GetTeamsByUserIdOutput {
-  teams: WithRole<Team>[];
+  teams: Team[];
   lastEvaluatedKey?: string;
 }
 

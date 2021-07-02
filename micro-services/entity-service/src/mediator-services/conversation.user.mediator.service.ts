@@ -1,11 +1,9 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { User } from "../models/user.model";
-import { UserServiceInterface } from "../services/user.service";
-import { ConversationServiceInterface } from "../services/conversation.service";
+import { UserServiceInterface, User as UserEntity } from "../services/user.service";
+import { ConversationServiceInterface, Conversation as ConversationEntity } from "../services/conversation.service";
 import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
-import { Conversation } from "../models/conversation.model";
 
 @injectable()
 export class ConversationUserMediatorService implements ConversationUserMediatorServiceInterface {
@@ -106,13 +104,15 @@ export interface ConversationUserMediatorServiceInterface {
   isConversationAdmin(params: IsConversationAdminInput): Promise<IsConversationAdminOutput>;
 }
 
+export type User = WithRole<UserEntity>;
+export type Conversation = WithRole<ConversationEntity>;
 export interface GetUsersByConversationIdInput {
   conversationId: string;
   exclusiveStartKey?: string;
 }
 
 export interface GetUsersByConversationIdOutput {
-  users: WithRole<User>[];
+  users: User[];
   lastEvaluatedKey?: string;
 }
 
@@ -122,7 +122,7 @@ export interface GetConversationsByUserIdInput {
 }
 
 export interface GetConversationsByUserIdOutput {
-  conversations: WithRole<Conversation>[];
+  conversations: Conversation[];
   lastEvaluatedKey?: string;
 }
 

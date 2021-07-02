@@ -5,7 +5,6 @@ import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface }
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
-import { Team } from "../models/team.model";
 import { RawEntity } from "../types/raw.entity.type";
 
 @injectable()
@@ -246,6 +245,12 @@ export interface TeamRepositoryInterface {
 }
 
 type TeamRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
+
+export interface Team {
+  id: string;
+  createdBy: string;
+  name: string;
+}
 
 export interface CreateTeamInput {
   team: Team;

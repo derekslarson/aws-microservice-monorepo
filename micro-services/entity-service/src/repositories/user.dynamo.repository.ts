@@ -4,7 +4,6 @@ import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface }
 
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { User } from "../models/user.model";
 import { EntityType } from "../enums/entityType.enum";
 import { RawEntity } from "../types/raw.entity.type";
 
@@ -189,6 +188,11 @@ export interface UserRepositoryInterface {
 }
 
 type UserRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
+
+export interface User {
+  id: string;
+  email: string;
+}
 
 export interface CreateUserInput {
   user: User;

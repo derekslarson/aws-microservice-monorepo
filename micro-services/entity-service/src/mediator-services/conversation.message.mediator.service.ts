@@ -2,8 +2,7 @@ import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
-import { Message } from "../models/message.model";
-import { MessageServiceInterface } from "../services/message.service";
+import { MessageServiceInterface, Message as MessageEntity } from "../services/message.service";
 
 @injectable()
 export class ConversationMessageMediatorService implements ConversationMessageMediatorServiceInterface {
@@ -106,6 +105,7 @@ export interface ConversationMessageMediatorServiceInterface {
   markConversationRead(params: MarkConversationReadInput): Promise<MarkConversationReadOutput>;
 }
 
+export type Message = MessageEntity;
 export interface SendMessageInput {
   conversationId: string;
   from: string;

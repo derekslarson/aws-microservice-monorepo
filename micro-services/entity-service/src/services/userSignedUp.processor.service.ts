@@ -33,7 +33,7 @@ export class UserSignedUpProcessorService implements SnsProcessorServiceInterfac
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const message = record.message as unknown as UserSignedUpSnsMessage;
+      const { message } = record;
 
       await this.userService.createUser({ rawId: message.id, email: message.email });
     } catch (error: unknown) {

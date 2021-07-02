@@ -1,8 +1,7 @@
 import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { MessageRepositoryInterface } from "../repositories/message.dynamo.repository";
-import { Message } from "../models/message.model";
+import { MessageRepositoryInterface, Message as MessageEntity } from "../repositories/message.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
@@ -21,7 +20,7 @@ export class MessageService implements MessageServiceInterface {
 
       const messageId = `${KeyPrefix.Message}${this.idService.generateId()}`;
 
-      const message: Message = {
+      const message: MessageEntity = {
         id: messageId,
         conversationId,
         from,
@@ -114,6 +113,8 @@ export interface MessageServiceInterface {
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
 }
+
+export type Message = MessageEntity;
 
 export interface CreateMessageInput {
   conversationId: string;

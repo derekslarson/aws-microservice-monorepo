@@ -1,12 +1,8 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Role, WithRole } from "@yac/core";
+import { LoggerServiceInterface, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { User } from "../models/user.model";
-import { Team } from "../models/team.model";
-import { TeamUserRelationship } from "../models/team.user.relationship.model";
 import { ConversationServiceInterface } from "../services/conversation.service";
 import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
-
 @injectable()
 export class FriendshipMediatorService implements FriendshipMediatorServiceInterface {
   constructor(
@@ -62,58 +58,4 @@ export interface CreateFriendshipInput {
 
 export interface CreateFriendshipOutput {
   friendship: Friendship;
-}
-
-export interface AddUserToTeamInput {
-  teamId: string;
-  userId: string;
-  role: Role;
-}
-
-export interface AddUserToTeamOutput {
-  teamUserRelationship: TeamUserRelationship;
-}
-
-export interface RemoveUserFromTeamInput {
-  teamId: string;
-  userId: string;
-}
-
-export type RemoveUserFromTeamOutput = void;
-export interface GetUsersByTeamIdInput {
-  teamId: string;
-  exclusiveStartKey?: string;
-}
-
-export interface GetUsersByTeamIdOutput {
-  users: WithRole<User>[];
-  lastEvaluatedKey?: string;
-}
-
-export interface GetTeamsByUserIdInput {
-  userId: string;
-  exclusiveStartKey?: string;
-}
-
-export interface GetTeamsByUserIdOutput {
-  teams: WithRole<Team>[];
-  lastEvaluatedKey?: string;
-}
-
-export interface IsTeamMemberInput {
-  teamId: string;
-  userId: string;
-}
-
-export interface IsTeamMemberOutput {
-  isTeamMember: boolean;
-}
-
-export interface IsTeamAdminInput {
-  teamId: string;
-  userId: string;
-}
-
-export interface IsTeamAdminOutput {
-  isTeamAdmin: boolean;
 }
