@@ -3,8 +3,9 @@ export enum EntityType {
   Team = "TEAM",
   TeamUserRelationship = "TEAM_USER_RELATIONSHIP",
   TeamConversationRelationship = "TEAM_CONVERSATION_RELATIONSHIP",
-  DmConversation = "DM_CONVERSATION",
-  ChannelConversation = "CHANNEL_CONVERSATION",
+  FriendConversation = "FRIEND_CONVERSATION",
+  GroupConversation = "GROUP_CONVERSATION",
+  MeetingConversation = "MEETING_CONVERSATION",
   ConversationUserRelationship = "CONVERSATION_USER_RELATIONSHIP",
   Message = "MESSAGE",
 }

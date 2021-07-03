@@ -13,17 +13,17 @@ export class ConversationService implements ConversationServiceInterface {
     @inject(TYPES.ConversationRepositoryInterface) private conversationRepository: ConversationRepositoryInterface,
   ) {}
 
-  public async createDmConversation(params: CreateDmConversationInput): Promise<CreateDmConversationOutput> {
+  public async createFriendConversation(params: CreateFriendConversationInput): Promise<CreateFriendConversationOutput> {
     try {
-      this.loggerService.trace("createDmConversation called", { params }, this.constructor.name);
+      this.loggerService.trace("createFriendConversation called", { params }, this.constructor.name);
 
       const { members, teamId } = params;
 
-      const conversationId = `${KeyPrefix.DmConversation}${members.sort().join("-")}`;
+      const conversationId = `${KeyPrefix.FriendConversation}${members.sort().join("-")}`;
 
-      const conversation: DmConversation = {
+      const conversation: FriendConversation = {
         id: conversationId,
-        type: ConversationType.DM,
+        type: ConversationType.Friend,
         createdAt: new Date().toISOString(),
         ...(teamId && { teamId }),
       };
@@ -32,25 +32,25 @@ export class ConversationService implements ConversationServiceInterface {
 
       return { conversation };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createDmConversation", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in createFriendConversation", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async createChannelConversation(params: CreateChannelConversationInput): Promise<CreateChannelConversationOutput> {
+  public async createGroupConversation(params: CreateGroupConversationInput): Promise<CreateGroupConversationOutput> {
     try {
-      this.loggerService.trace("createChannelConversation called", { params }, this.constructor.name);
+      this.loggerService.trace("createGroupConversation called", { params }, this.constructor.name);
 
       const { name, createdBy, teamId } = params;
 
-      const conversationId = `${KeyPrefix.ChannelConversation}${this.idService.generateId()}`;
+      const conversationId = `${KeyPrefix.GroupConversation}${this.idService.generateId()}`;
 
-      const conversation: ChannelConversation = {
+      const conversation: GroupConversation = {
         id: conversationId,
         name,
         createdBy,
-        type: ConversationType.Channel,
+        type: ConversationType.Group,
         createdAt: new Date().toISOString(),
         ...(teamId && { teamId }),
       };
@@ -59,7 +59,35 @@ export class ConversationService implements ConversationServiceInterface {
 
       return { conversation };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createChannelConversation", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in createGroupConversation", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async createMeetingConversation(params: CreateMeetingConversationInput): Promise<CreateMeetingConversationOutput> {
+    try {
+      this.loggerService.trace("createMeetingConversation called", { params }, this.constructor.name);
+
+      const { name, createdBy, teamId, dueDate } = params;
+
+      const conversationId = `${KeyPrefix.MeetingConversation}${this.idService.generateId()}`;
+
+      const conversation: MeetingConversation = {
+        id: conversationId,
+        name,
+        createdBy,
+        dueDate,
+        type: ConversationType.Meeting,
+        createdAt: new Date().toISOString(),
+        ...(teamId && { teamId }),
+      };
+
+      await this.conversationRepository.createConversation({ conversation });
+
+      return { conversation };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in createMeetingConversation", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -123,41 +151,59 @@ export class ConversationService implements ConversationServiceInterface {
 }
 
 export interface ConversationServiceInterface {
-  createDmConversation(params: CreateDmConversationInput): Promise<CreateDmConversationOutput>;
-  createChannelConversation(params: CreateChannelConversationInput): Promise<CreateChannelConversationOutput>;
+  createFriendConversation(params: CreateFriendConversationInput): Promise<CreateFriendConversationOutput>;
+  createGroupConversation(params: CreateGroupConversationInput): Promise<CreateGroupConversationOutput>;
+  createMeetingConversation(params: CreateMeetingConversationInput): Promise<CreateMeetingConversationOutput>;
   getConversation(params: GetConversationInput): Promise<GetConversationOutput>;
   getConversations(params: GetConversationsInput): Promise<GetConversationsOutput>;
   getConversationsByTeamId(params: GetConversationsByTeamIdInput): Promise<GetConversationsByTeamIdOutput>;
 }
 
 export type Conversation = ConversationEntity;
-export interface ChannelConversation extends ConversationEntity {
-  type: ConversationType.Channel;
+
+export interface FriendConversation extends ConversationEntity {
+  type: ConversationType.Friend;
+}
+export interface GroupConversation extends ConversationEntity {
+  type: ConversationType.Group;
   createdBy: string;
   name: string;
 }
 
-export interface DmConversation extends ConversationEntity {
-  type: ConversationType.DM;
+export interface MeetingConversation extends Omit<GroupConversation, "type"> {
+  type: ConversationType.Meeting;
+  dueDate: string;
+  outcomes?: string;
 }
 
-export interface CreateDmConversationInput {
+export interface CreateFriendConversationInput {
   members: [string, string];
   teamId?: string;
 }
 
-export interface CreateDmConversationOutput {
-  conversation: DmConversation;
+export interface CreateFriendConversationOutput {
+  conversation: FriendConversation;
 }
 
-export interface CreateChannelConversationInput {
+export interface CreateGroupConversationInput {
   name: string;
   createdBy: string;
   teamId?: string;
 }
 
-export interface CreateChannelConversationOutput {
-  conversation: ChannelConversation;
+export interface CreateGroupConversationOutput {
+  conversation: GroupConversation;
+}
+
+export interface CreateMeetingConversationInput {
+  name: string;
+  createdBy: string;
+  dueDate: string;
+  teamId?: string;
+}
+
+export interface CreateMeetingConversationOutput {
+  conversation: MeetingConversation;
 }
 
 export interface GetConversationInput {

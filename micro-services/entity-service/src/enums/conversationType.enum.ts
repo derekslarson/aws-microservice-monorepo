@@ -1,5 +1,5 @@
 export enum ConversationType {
-  DM = "dm",
-  Channel = "channel",
+  Friend = "friend",
+  Group = "group",
   Meeting = "meeting",
 }

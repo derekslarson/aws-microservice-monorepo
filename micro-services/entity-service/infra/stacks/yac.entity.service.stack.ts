@@ -566,7 +566,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       // seen: <boolean>
       {
         path: "/users/{userId}/messages/{messageId}",
-        method: ApiGatewayV2.HttpMethod.GET,
+        method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateMessageByUserIdHandler,
         authorizationScopes: [ "yac/message.write" ],
       },

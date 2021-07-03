@@ -30,8 +30,6 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const { conversationUserRelationship } = params;
 
-      const isChannelConversation = conversationUserRelationship.conversationId.startsWith(KeyPrefix.ChannelConversation);
-
       const conversationUserRelationshipEntity: RawEntity<ConversationUserRelationship> = {
         entityType: EntityType.ConversationUserRelationship,
         pk: conversationUserRelationship.conversationId,
@@ -39,7 +37,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
         gsi1pk: conversationUserRelationship.userId,
         gsi1sk: `${KeyPrefix.Time}${conversationUserRelationship.updatedAt}`,
         gsi2pk: conversationUserRelationship.userId,
-        gsi2sk: `${isChannelConversation ? KeyPrefix.ChannelConversation : KeyPrefix.DmConversation}${KeyPrefix.Time}${conversationUserRelationship.updatedAt}`,
+        gsi2sk: `${this.getGsi2skPrefixById(conversationUserRelationship.conversationId)}${conversationUserRelationship.updatedAt}`,
         ...conversationUserRelationship,
       };
 
@@ -82,8 +80,6 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const timestamp = new Date().toISOString();
 
-      const isChannelConversation = conversationId.startsWith(KeyPrefix.ChannelConversation);
-
       const conversationUserRelationshipWithSet = await this.update({
         Key: {
           pk: conversationId,
@@ -99,7 +95,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
         ExpressionAttributeValues: {
           ":timestamp": timestamp,
           ":keyTimestamp": `${KeyPrefix.Time}${timestamp}`,
-          ":keyTimestampTwo": `${isChannelConversation ? KeyPrefix.ChannelConversation : KeyPrefix.DmConversation}${KeyPrefix.Time}${timestamp}`,
+          ":keyTimestampTwo": `${this.getGsi2skPrefixById(conversationId)}${timestamp}`,
           ...(!sender && { ":messageIdSet": this.documentClient.createSet([ messageId ]) }),
         },
       });
@@ -198,7 +194,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
       const indexName = type ? this.gsiTwoIndexName : this.gsiOneIndexName;
       const pk = type ? "gsi2pk" : "gsi1pk";
       const sk = type ? "gsi2sk" : "gsi1sk";
-      const skPrefix = type ? `${type === ConversationType.Channel ? KeyPrefix.ChannelConversation : KeyPrefix.DmConversation}${KeyPrefix.Time}` : KeyPrefix.Time;
+      const skPrefix = type ? this.getGsi2skPrefixByType(type) : KeyPrefix.Time;
 
       const { Items: conversationUserRelationshipsWithSet, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
@@ -223,6 +219,46 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
       };
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversationUserRelationshipsByUserId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private getGsi2skPrefixById(conversationId: string): string {
+    try {
+      this.loggerService.trace("getGsi2skPrefixById called", { conversationId }, this.constructor.name);
+
+      if (conversationId.startsWith(KeyPrefix.FriendConversation)) {
+        return `${KeyPrefix.Time}${KeyPrefix.FriendConversation}`;
+      }
+
+      if (conversationId.startsWith(KeyPrefix.GroupConversation)) {
+        return `${KeyPrefix.Time}${KeyPrefix.GroupConversation}`;
+      }
+
+      return `${KeyPrefix.Time}${KeyPrefix.MeetingConversation}`;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGsi2skPrefixById", { error, conversationId }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private getGsi2skPrefixByType(conversationType: ConversationType): string {
+    try {
+      this.loggerService.trace("getGsi2skPrefixByType called", { conversationType }, this.constructor.name);
+
+      if (conversationType === ConversationType.Friend) {
+        return `${KeyPrefix.Time}${KeyPrefix.FriendConversation}`;
+      }
+
+      if (conversationType === ConversationType.Group) {
+        return `${KeyPrefix.Time}${KeyPrefix.GroupConversation}`;
+      }
+
+      return `${KeyPrefix.Time}${KeyPrefix.MeetingConversation}`;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGsi2skPrefixByType", { error, conversationType }, this.constructor.name);
 
       throw error;
     }

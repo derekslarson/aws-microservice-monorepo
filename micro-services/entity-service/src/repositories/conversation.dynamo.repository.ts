@@ -28,8 +28,14 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
       const { conversation } = params;
 
+      const entityTypeMap = {
+        [ConversationType.Friend]: EntityType.FriendConversation,
+        [ConversationType.Group]: EntityType.GroupConversation,
+        [ConversationType.Meeting]: EntityType.MeetingConversation,
+      };
+
       const conversationEntity: RawEntity<Conversation> = {
-        entityType: conversation.type === ConversationType.DM ? EntityType.DmConversation : EntityType.ChannelConversation,
+        entityType: entityTypeMap[conversation.type],
         pk: conversation.id,
         sk: conversation.id,
         ...(conversation.teamId && { gsi1pk: conversation.teamId, gsi1sk: conversation.id }),
