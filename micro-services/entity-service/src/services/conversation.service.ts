@@ -38,6 +38,24 @@ export class ConversationService implements ConversationServiceInterface {
     }
   }
 
+  public async getFriendConversationByMemberIds(params: GetFriendConversationsByMemberIdsInput): Promise<GetFriendConversationsByMemberIdsOutput> {
+    try {
+      this.loggerService.trace("getFriendConversationByMemberIds called", { params }, this.constructor.name);
+
+      const { members } = params;
+
+      const conversationId = `${KeyPrefix.FriendConversation}${members.sort().join("-")}`;
+
+      const { conversation } = await this.conversationRepository.getConversation({ conversationId });
+
+      return { conversation: conversation as FriendConversation };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getFriendConversationByMemberIds", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async createGroupConversation(params: CreateGroupConversationInput): Promise<CreateGroupConversationOutput> {
     try {
       this.loggerService.trace("createGroupConversation called", { params }, this.constructor.name);
@@ -109,6 +127,20 @@ export class ConversationService implements ConversationServiceInterface {
     }
   }
 
+  public async deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput> {
+    try {
+      this.loggerService.trace("deleteConversation called", { params }, this.constructor.name);
+
+      const { conversationId } = params;
+
+      await this.conversationRepository.deleteConversation({ conversationId });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deleteConversation", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getConversations(params: GetConversationsInput): Promise<GetConversationsOutput> {
     try {
       this.loggerService.trace("getConversations called", { params }, this.constructor.name);
@@ -152,9 +184,11 @@ export class ConversationService implements ConversationServiceInterface {
 
 export interface ConversationServiceInterface {
   createFriendConversation(params: CreateFriendConversationInput): Promise<CreateFriendConversationOutput>;
+  getFriendConversationByMemberIds(params: GetFriendConversationsByMemberIdsInput): Promise<GetFriendConversationsByMemberIdsOutput>;
   createGroupConversation(params: CreateGroupConversationInput): Promise<CreateGroupConversationOutput>;
   createMeetingConversation(params: CreateMeetingConversationInput): Promise<CreateMeetingConversationOutput>;
   getConversation(params: GetConversationInput): Promise<GetConversationOutput>;
+  deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput>;
   getConversations(params: GetConversationsInput): Promise<GetConversationsOutput>;
   getConversationsByTeamId(params: GetConversationsByTeamIdInput): Promise<GetConversationsByTeamIdOutput>;
 }
@@ -231,3 +265,17 @@ export interface GetConversationsByTeamIdOutput {
   conversations: Conversation[];
   lastEvaluatedKey?: string;
 }
+
+export interface GetFriendConversationsByMemberIdsInput {
+  members: [string, string];
+}
+
+export interface GetFriendConversationsByMemberIdsOutput {
+  conversation: FriendConversation;
+}
+
+export interface DeleteConversationInput {
+  conversationId: string;
+}
+
+export type DeleteConversationOutput = void;

@@ -24,6 +24,7 @@ import { MeetingController, MeetingControllerInterface } from "../controllers/me
 import { GroupController, GroupControllerInterface } from "../controllers/group.controller";
 import { FriendController, FriendControllerInterface } from "../controllers/friend.controller";
 import { ConversationController, ConversationControllerInterface } from "../controllers/conversation.controller";
+import { FriendshipMediatorService, FriendshipMediatorServiceInterface } from "../mediator-services/friendship.mediator.service";
 
 const container = new Container();
 
@@ -44,6 +45,7 @@ try {
 
   // Mediator Services
   container.bind<ConversationUserMediatorServiceInterface>(TYPES.ConversationUserMediatorServiceInterface).to(ConversationUserMediatorService);
+  container.bind<FriendshipMediatorServiceInterface>(TYPES.FriendshipMediatorServiceInterface).to(FriendshipMediatorService);
   container.bind<TeamUserMediatorServiceInterface>(TYPES.TeamUserMediatorServiceInterface).to(TeamUserMediatorService);
 
   // Processor Services

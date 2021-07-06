@@ -72,6 +72,23 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
     }
   }
 
+  public async deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput> {
+    try {
+      this.loggerService.trace("deleteConversation called", { params }, this.constructor.name);
+
+      const { conversationId } = params;
+
+      await this.documentClient.delete({
+        TableName: this.tableName,
+        Key: { pk: conversationId, sk: conversationId },
+      }).promise();
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deleteConversation", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getConversations(params: GetConversationsInput): Promise<GetConversationsOutput> {
     try {
       this.loggerService.trace("getConversations called", { params }, this.constructor.name);
@@ -123,6 +140,7 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 export interface ConversationRepositoryInterface {
   createConversation(params: CreateConversationInput): Promise<CreateConversationOutput>;
   getConversation(params: GetConversationInput): Promise<GetConversationOutput>;
+  deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput>;
   getConversations(params: GetConversationsInput): Promise<GetConversationsOutput>;
   getConversationsByTeamId(params: GetConversationsByTeamIdInput): Promise<GetConversationsByTeamIdOutput>;
 }
@@ -149,6 +167,12 @@ export interface GetConversationInput {
 export interface GetConversationOutput {
   conversation: Conversation;
 }
+
+export interface DeleteConversationInput {
+  conversationId: string;
+}
+
+export type DeleteConversationOutput = void;
 
 export interface GetConversationsInput {
   conversationIds: string[];

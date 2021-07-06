@@ -14,6 +14,7 @@ const TYPES = {
 
   // Mediator Services
   ConversationUserMediatorServiceInterface: Symbol.for("ConversationUserMediatorServiceInterface"),
+  FriendshipMediatorServiceInterface: Symbol.for("FriendshipMediatorServiceInterface"),
   TeamUserMediatorServiceInterface: Symbol.for("TeamUserMediatorServiceInterface"),
 
   // Processor Services

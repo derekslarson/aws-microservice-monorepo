@@ -2,20 +2,17 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { UserServiceInterface } from "../services/user.service";
-import { GetUsersByTeamIdRequestDto } from "../dtos/getUsersByTeamId.dto";
-import { TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
-import { ConversationUserMediatorServiceInterface } from "../mediator-services/conversation.user.mediator.service";
-import { GetUsersByConversationIdRequestDto } from "../dtos/getUsersByConversationId.dto";
+import { AddUserAsFriendDto } from "../dtos/addUserAsFriend.dto";
+import { FriendshipMediatorService } from "../mediator-services/friendship.mediator.service";
+import { RemoveUserAsFriendDto } from "../dtos/removeUserAsFriend.dto";
+import { GetFriendsByuserIdDto } from "../dtos/getFriendsByUserId.dto";
 
 @injectable()
 export class FriendController extends BaseController implements FriendControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.TeamUserMediatorServiceInterface) private teamUserMediatorService: TeamUserMediatorServiceInterface,
-    @inject(TYPES.ConversationUserMediatorServiceInterface) private conversationUserMediatorService: ConversationUserMediatorServiceInterface,
-    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
+    @inject(TYPES.UserServiceInterface) private friendshipService: FriendshipMediatorService,
   ) {
     super();
   }
@@ -26,18 +23,17 @@ export class FriendController extends BaseController implements FriendController
 
       const {
         jwtId,
-        pathParameters: { conversationId },
-      } = this.validationService.validate(GetUsersByConversationIdRequestDto, request, true);
+        pathParameters: { userId },
+        body: { friendId },
+      } = this.validationService.validate({ dto: AddUserAsFriendDto, request, getUserIdFromJwt: true });
 
-      const { isConversationMember } = await this.conversationUserMediatorService.isConversationMember({ conversationId, userId: jwtId });
-
-      if (!isConversationMember) {
+      if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.conversationUserMediatorService.getUsersByConversationId({ conversationId });
+      const { friendship } = await this.friendshipService.createFriendship({ members: [ userId, friendId ] });
 
-      return this.generateSuccessResponse({ users, lastEvaluatedKey });
+      return this.generateCreatedResponse({ friendship });
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserAsFriend", { error, request }, this.constructor.name);
 
@@ -51,18 +47,16 @@ export class FriendController extends BaseController implements FriendController
 
       const {
         jwtId,
-        pathParameters: { teamId },
-      } = this.validationService.validate(GetUsersByTeamIdRequestDto, request, true);
+        pathParameters: { userId, friendId },
+      } = this.validationService.validate({ dto: RemoveUserAsFriendDto, request, getUserIdFromJwt: true });
 
-      const { isTeamMember } = await this.teamUserMediatorService.isTeamMember({ teamId, userId: jwtId });
-
-      if (!isTeamMember) {
+      if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.teamUserMediatorService.getUsersByTeamId({ teamId });
+      await this.friendshipService.deleteFriendship({ members: [ userId, friendId ] });
 
-      return this.generateSuccessResponse({ users, lastEvaluatedKey });
+      return this.generateSuccessResponse({ message: "User removed as friend" });
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserAsFriend", { error, request }, this.constructor.name);
 
@@ -76,18 +70,16 @@ export class FriendController extends BaseController implements FriendController
 
       const {
         jwtId,
-        pathParameters: { conversationId },
-      } = this.validationService.validate(GetUsersByConversationIdRequestDto, request, true);
+        pathParameters: { userId },
+      } = this.validationService.validate({ dto: GetFriendsByuserIdDto, request, getUserIdFromJwt: true });
 
-      const { isConversationMember } = await this.conversationUserMediatorService.isConversationMember({ conversationId, userId: jwtId });
-
-      if (!isConversationMember) {
+      if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.conversationUserMediatorService.getUsersByConversationId({ conversationId });
+      const { friends } = await this.friendshipService.getFriendsByUserId({ userId });
 
-      return this.generateSuccessResponse({ users, lastEvaluatedKey });
+      return this.generateSuccessResponse({ friends });
     } catch (error: unknown) {
       this.loggerService.error("Error in getFriendsByUserId", { error, request }, this.constructor.name);
 
