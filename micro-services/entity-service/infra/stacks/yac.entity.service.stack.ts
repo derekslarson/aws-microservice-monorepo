@@ -383,10 +383,10 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const getMessagesByFriendIdHandler = new Lambda.Function(this, `GetMessagesByFriendId_${id}`, {
+    const getMessagesByUserAndFriendIdsHandler = new Lambda.Function(this, `GetMessagesByUserAndFriendIds_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByFriendId"),
-      handler: "getMessagesByFriendId.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByUserAndFriendIds"),
+      handler: "getMessagesByUserAndFriendIds.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
@@ -593,7 +593,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       {
         path: "/users/{userId}/friends/{friendId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
-        handler: getMessagesByFriendIdHandler,
+        handler: getMessagesByUserAndFriendIdsHandler,
         authorizationScopes: [ "yac/friend.read", "yac/message.read" ],
       },
       {
