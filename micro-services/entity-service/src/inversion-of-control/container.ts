@@ -17,14 +17,17 @@ import { ConversationService, ConversationServiceInterface } from "../services/c
 import { ConversationUserRelationshipService, ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
 import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } from "../services/teamUserRelationship.service";
 import { TeamUserRelationshipDynamoRepository, TeamUserRelationshipRepositoryInterface } from "../repositories/teamUserRelationship.dynamo.repository";
-import { ConversationUserMediatorService, ConversationUserMediatorServiceInterface } from "../mediator-services/conversation.user.mediator.service";
-import { TeamUserMediatorService, TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
+import { ConversationMediatorService, ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
+import { TeamMediatorService, TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { MessageController, MessageControllerInterface } from "../controllers/message.controller";
 import { MeetingController, MeetingControllerInterface } from "../controllers/meeting.controller";
 import { GroupController, GroupControllerInterface } from "../controllers/group.controller";
 import { FriendController, FriendControllerInterface } from "../controllers/friend.controller";
 import { ConversationController, ConversationControllerInterface } from "../controllers/conversation.controller";
 import { FriendshipMediatorService, FriendshipMediatorServiceInterface } from "../mediator-services/friendship.mediator.service";
+import { GroupMediatorService, GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
+import { MeetingMediatorService, MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
+import { MessageMediatorService, MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
 
 const container = new Container();
 
@@ -44,9 +47,12 @@ try {
   container.bind<UserControllerInterface>(TYPES.UserControllerInterface).to(UserController);
 
   // Mediator Services
-  container.bind<ConversationUserMediatorServiceInterface>(TYPES.ConversationUserMediatorServiceInterface).to(ConversationUserMediatorService);
+  container.bind<ConversationMediatorServiceInterface>(TYPES.ConversationMediatorServiceInterface).to(ConversationMediatorService);
   container.bind<FriendshipMediatorServiceInterface>(TYPES.FriendshipMediatorServiceInterface).to(FriendshipMediatorService);
-  container.bind<TeamUserMediatorServiceInterface>(TYPES.TeamUserMediatorServiceInterface).to(TeamUserMediatorService);
+  container.bind<GroupMediatorServiceInterface>(TYPES.GroupMediatorServiceInterface).to(GroupMediatorService);
+  container.bind<MeetingMediatorServiceInterface>(TYPES.MeetingMediatorServiceInterface).to(MeetingMediatorService);
+  container.bind<MessageMediatorServiceInterface>(TYPES.MessageMediatorServiceInterface).to(MessageMediatorService);
+  container.bind<TeamMediatorServiceInterface>(TYPES.TeamMediatorServiceInterface).to(TeamMediatorService);
 
   // Processor Services
   container.bind<SnsProcessorServiceInterface>(TYPES.UserSignedUpProcessorServiceInterface).to(UserSignedUpProcessorService);

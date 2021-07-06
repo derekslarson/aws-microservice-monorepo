@@ -1,10 +1,12 @@
-import { Role } from "@yac/core";
-import { Literal, Record, String, Union } from "runtypes";
+import { Record } from "runtypes";
+import { Role } from "../runtypes/role.runtype";
+import { TeamId } from "../runtypes/teamId.runtype";
+import { UserId } from "../runtypes/userId.runtype";
 
 export const AddUserToTeamDto = Record({
-  pathParameters: Record({ teamId: String }),
+  pathParameters: Record({ teamId: TeamId }),
   body: Record({
-    userId: String,
-    role: Union(Literal(Role.SuperAdmin), Literal(Role.Admin), Literal(Role.User)),
+    userId: UserId,
+    role: Role,
   }),
 });

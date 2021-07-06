@@ -3,6 +3,9 @@ import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageRepositoryInterface, Message as MessageEntity } from "../repositories/message.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
+import { UserId } from "../types/userId.type";
+import { ConversationId } from "../types/conversationId.type";
+import { MessageId } from "../types/messageId.type";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
@@ -18,7 +21,7 @@ export class MessageService implements MessageServiceInterface {
 
       const { conversationId, from, transcript, seenAt } = params;
 
-      const messageId = `${KeyPrefix.Message}${this.idService.generateId()}`;
+      const messageId: MessageId = `${KeyPrefix.Message}${this.idService.generateId()}`;
 
       const message: MessageEntity = {
         id: messageId,
@@ -117,8 +120,8 @@ export interface MessageServiceInterface {
 export type Message = MessageEntity;
 
 export interface CreateMessageInput {
-  conversationId: string;
-  from: string;
+  conversationId: ConversationId;
+  from: UserId;
   transcript: string;
   seenAt: { [key: string]: string | null; }
 }
@@ -128,7 +131,7 @@ export interface CreateMessageOutput {
 }
 
 export interface GetMessageInput {
-  messageId: string;
+  messageId: MessageId;
 }
 
 export interface GetMessageOutput {
@@ -136,8 +139,8 @@ export interface GetMessageOutput {
 }
 
 export interface UpdateMessageSeenAtInput {
-  messageId: string;
-  userId: string;
+  messageId: MessageId;
+  userId: UserId;
   seenAtValue: string | null;
 }
 
@@ -146,7 +149,7 @@ export interface UpdateMessageSeenAtOutput {
 }
 
 export interface GetMessagesByConversationIdInput {
-  conversationId: string;
+  conversationId: ConversationId;
   exclusiveStartKey?: string;
 }
 
@@ -156,7 +159,7 @@ export interface GetMessagesByConversationIdOutput {
 }
 
 export interface GetRepliesByMessageIdInput {
-  messageId: string;
+  messageId: MessageId;
   exclusiveStartKey?: string;
 }
 

@@ -6,6 +6,8 @@ import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
 import { RawEntity } from "../types/raw.entity.type";
+import { TeamId } from "../types/teamId.type";
+import { UserId } from "../types/userId.type";
 
 @injectable()
 export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implements TeamRepositoryInterface {
@@ -247,8 +249,8 @@ export interface TeamRepositoryInterface {
 type TeamRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
 
 export interface Team {
-  id: string;
-  createdBy: string;
+  id: TeamId;
+  createdBy: UserId;
   name: string;
 }
 
@@ -261,7 +263,7 @@ export interface CreateTeamOutput {
 }
 
 export interface GetTeamInput {
-  teamId: string;
+  teamId: TeamId;
 }
 
 export interface GetTeamOutput {
@@ -269,7 +271,7 @@ export interface GetTeamOutput {
 }
 
 export interface GetTeamsInput {
-  teamIds: string[];
+  teamIds: TeamId[];
 }
 
 export interface GetTeamsOutput {

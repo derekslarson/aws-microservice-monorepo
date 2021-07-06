@@ -13,9 +13,12 @@ const TYPES = {
   UserControllerInterface: Symbol.for("UserControllerInterface"),
 
   // Mediator Services
-  ConversationUserMediatorServiceInterface: Symbol.for("ConversationUserMediatorServiceInterface"),
+  ConversationMediatorServiceInterface: Symbol.for("ConversationMediatorServiceInterface"),
   FriendshipMediatorServiceInterface: Symbol.for("FriendshipMediatorServiceInterface"),
-  TeamUserMediatorServiceInterface: Symbol.for("TeamUserMediatorServiceInterface"),
+  GroupMediatorServiceInterface: Symbol.for("GroupMediatorServiceInterface"),
+  MeetingMediatorServiceInterface: Symbol.for("MeetingMediatorServiceInterface"),
+  MessageMediatorServiceInterface: Symbol.for("MessageMediatorServiceInterface"),
+  TeamMediatorServiceInterface: Symbol.for("TeamMediatorServiceInterface"),
 
   // Processor Services
   UserSignedUpProcessorServiceInterface: Symbol.for("UserSignedUpProcessorServiceInterface"),

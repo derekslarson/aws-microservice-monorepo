@@ -1,3 +1,4 @@
-import { Record, String } from "runtypes";
+import { Record } from "runtypes";
+import { UserId } from "../runtypes/userId.runtype";
 
-export const RemoveUserAsFriendDto = Record({ pathParameters: Record({ userId: String, friendId: String }) });
+export const RemoveUserAsFriendDto = Record({ pathParameters: Record({ userId: UserId, friendId: UserId }) });

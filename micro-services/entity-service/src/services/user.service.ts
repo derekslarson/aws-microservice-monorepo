@@ -3,6 +3,7 @@ import { LoggerServiceInterface, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface, User as UserEntity } from "../repositories/user.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
+import { UserId } from "../types/userId.type";
 
 @injectable()
 export class UserService implements UserServiceInterface {
@@ -17,7 +18,7 @@ export class UserService implements UserServiceInterface {
 
       const { rawId, email } = params;
 
-      const userId = `${KeyPrefix.User}${rawId}`;
+      const userId: UserId = `${KeyPrefix.User}${rawId}`;
 
       const user: UserEntity = {
         id: userId,
@@ -92,7 +93,7 @@ export interface CreateUserOutput {
 }
 
 export interface GetUserInput {
-  userId: string;
+  userId: UserId;
 }
 
 export interface GetUserOutput {

@@ -6,6 +6,7 @@ import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
 import { RawEntity } from "../types/raw.entity.type";
+import { UserId } from "../types/userId.type";
 
 @injectable()
 export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implements UserRepositoryInterface {
@@ -190,7 +191,7 @@ export interface UserRepositoryInterface {
 type UserRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
 
 export interface User {
-  id: string;
+  id: UserId;
   email: string;
 }
 
@@ -203,7 +204,7 @@ export interface CreateUserOutput {
 }
 
 export interface GetUserInput {
-  userId: string;
+  userId: UserId;
 }
 
 export interface GetUserOutput {

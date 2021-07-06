@@ -2,20 +2,20 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamServiceInterface } from "../services/team.service";
-import { AddUserToTeamDto } from "../dtos/team.addUser.dto";
-import { RemoveUserFromTeamDto } from "../dtos/team.removeUser.dto";
-import { TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
-import { GetTeamRequestDto } from "../dtos/team.get.dto";
-import { CreateTeamRequestDto } from "../dtos/team.create.dto";
-import { GetTeamsByUserIdRequestDto } from "../dtos/teams.getByUserId.dto";
+import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
+import { CreateGroupDto } from "../dtos/createGroup.dto";
+import { GetGroupDto } from "../dtos/getGroup.dto";
+import { AddUserToGroupDto } from "../dtos/addUserToGroup.dto";
+import { RemoveUserFromGroupDto } from "../dtos/removeUserFromGroup.dto";
+import { GetGroupsByUserIdDto } from "../dtos/getGroupsByUserId.dto";
+import { GetGroupsByTeamIdDto } from "../dtos/getGroupsByTeamId.dto";
+import { GetUsersByGroupIdDto } from "../dtos/getUsersByGroupId.dto";
 @injectable()
 export class GroupController extends BaseController implements GroupControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
-    @inject(TYPES.TeamUserMediatorServiceInterface) private teamUserMediatorService: TeamUserMediatorServiceInterface,
+    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
   ) {
     super();
   }
@@ -27,16 +27,18 @@ export class GroupController extends BaseController implements GroupControllerIn
       const {
         jwtId,
         pathParameters: { userId },
-        body: { name },
-      } = this.validationService.validate(CreateTeamRequestDto, request, true);
+        body: { name, teamId },
+      } = this.validationService.validate({ dto: CreateGroupDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { team } = await this.teamUserMediatorService.createTeam({ name, createdBy: userId });
+      // add validation for teamAdmin if teamId truthy
 
-      return this.generateCreatedResponse({ team });
+      const { group } = await this.groupMediatorService.createGroup({ name, createdBy: userId, teamId });
+
+      return this.generateCreatedResponse({ group });
     } catch (error: unknown) {
       this.loggerService.error("Error in createGroup", { error, request }, this.constructor.name);
 
@@ -50,18 +52,18 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       const {
         jwtId,
-        pathParameters: { teamId },
-      } = this.validationService.validate(GetTeamRequestDto, request, true);
+        pathParameters: { groupId },
+      } = this.validationService.validate({ dto: GetGroupDto, request, getUserIdFromJwt: true });
 
-      const { isTeamMember } = await this.teamUserMediatorService.isTeamMember({ teamId, userId: jwtId });
+      const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
 
-      if (!isTeamMember) {
+      if (!isGroupMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { team } = await this.teamService.getTeam({ teamId });
+      const { group } = await this.groupMediatorService.getGroup({ groupId });
 
-      return this.generateSuccessResponse({ team });
+      return this.generateSuccessResponse({ group });
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroup", { error, request }, this.constructor.name);
 
@@ -75,19 +77,19 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       const {
         jwtId,
-        pathParameters: { teamId },
+        pathParameters: { groupId },
         body: { userId, role },
-      } = this.validationService.validate(AddUserToTeamDto, request, true);
+      } = this.validationService.validate({ dto: AddUserToGroupDto, request, getUserIdFromJwt: true });
 
-      const { isTeamAdmin } = await this.teamUserMediatorService.isTeamAdmin({ teamId, userId: jwtId });
+      const { isGroupAdmin } = await this.groupMediatorService.isGroupAdmin({ groupId, userId: jwtId });
 
-      if (!isTeamAdmin) {
+      if (!isGroupAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.teamUserMediatorService.addUserToTeam({ teamId, userId, role });
+      const { membership } = await this.groupMediatorService.addUserToGroup({ groupId, userId, role });
 
-      return this.generateSuccessResponse({ message: "user added to team" });
+      return this.generateSuccessResponse({ membership });
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToGroup", { error, request }, this.constructor.name);
 
@@ -101,18 +103,18 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       const {
         jwtId,
-        pathParameters: { teamId, userId },
-      } = this.validationService.validate(RemoveUserFromTeamDto, request, true);
+        pathParameters: { groupId, userId },
+      } = this.validationService.validate({ dto: RemoveUserFromGroupDto, request, getUserIdFromJwt: true });
 
-      const { isTeamAdmin } = await this.teamUserMediatorService.isTeamAdmin({ teamId, userId: jwtId });
+      const { isGroupAdmin } = await this.groupMediatorService.isGroupAdmin({ groupId, userId: jwtId });
 
-      if (!isTeamAdmin) {
+      if (!isGroupAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.teamUserMediatorService.removeUserFromTeam({ teamId, userId });
+      await this.groupMediatorService.removeUserFromGroup({ groupId, userId });
 
-      return this.generateSuccessResponse({ message: "user removed from team" });
+      return this.generateSuccessResponse({ message: "User removed from group" });
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromGroup", { error, request }, this.constructor.name);
 
@@ -127,15 +129,15 @@ export class GroupController extends BaseController implements GroupControllerIn
       const {
         jwtId,
         pathParameters: { userId },
-      } = this.validationService.validate(GetTeamsByUserIdRequestDto, request, true);
+      } = this.validationService.validate({ dto: GetGroupsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamUserMediatorService.getTeamsByUserId({ userId });
+      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByUserId({ userId });
 
-      return this.generateSuccessResponse({ teams, lastEvaluatedKey });
+      return this.generateSuccessResponse({ groups, lastEvaluatedKey });
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroupsByUserId", { error, request }, this.constructor.name);
 
@@ -147,20 +149,40 @@ export class GroupController extends BaseController implements GroupControllerIn
     try {
       this.loggerService.trace("getGroupsByTeamId called", { request }, this.constructor.name);
 
+      const { pathParameters: { teamId } } = this.validationService.validate({ dto: GetGroupsByTeamIdDto, request, getUserIdFromJwt: true });
+
+      // add teamMembership validaton
+
+      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByTeamId({ teamId });
+
+      return this.generateSuccessResponse({ groups, lastEvaluatedKey });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGroupsByTeamId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async getUsersByGroupId(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getUsersByGroupId called", { request }, this.constructor.name);
+
       const {
         jwtId,
-        pathParameters: { userId },
-      } = this.validationService.validate(GetTeamsByUserIdRequestDto, request, true);
+        pathParameters: { groupId },
+      } = this.validationService.validate({ dto: GetUsersByGroupIdDto, request, getUserIdFromJwt: true });
 
-      if (jwtId !== userId) {
+      const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
+
+      if (!isGroupMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamUserMediatorService.getTeamsByUserId({ userId });
+      const { users, lastEvaluatedKey } = await this.groupMediatorService.getUsersByGroupId({ groupId });
 
-      return this.generateSuccessResponse({ teams, lastEvaluatedKey });
+      return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {
-      this.loggerService.error("Error in getGroupsByTeamId", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in getUsersByConversationId", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -174,4 +196,5 @@ export interface GroupControllerInterface {
   removeUserFromGroup(request: Request): Promise<Response>;
   getGroupsByUserId(request: Request): Promise<Response>;
   getGroupsByTeamId(request: Request): Promise<Response>;
+  getUsersByGroupId(request: Request): Promise<Response>
 }

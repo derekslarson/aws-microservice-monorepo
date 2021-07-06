@@ -2,16 +2,14 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamServiceInterface } from "../services/team.service";
-import { TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
-import { GetTeamsByUserIdRequestDto } from "../dtos/teams.getByUserId.dto";
+import { GetConversationsByUserIdDto } from "../dtos/getConversationsByUserId.dto";
+import { ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
 @injectable()
 export class ConversationController extends BaseController implements ConversationControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
-    @inject(TYPES.TeamUserMediatorServiceInterface) private teamUserMediatorService: TeamUserMediatorServiceInterface,
+    @inject(TYPES.ConversationMediatorServiceInterface) private conversationMediatorService: ConversationMediatorServiceInterface,
   ) {
     super();
   }
@@ -23,15 +21,15 @@ export class ConversationController extends BaseController implements Conversati
       const {
         jwtId,
         pathParameters: { userId },
-      } = this.validationService.validate(GetTeamsByUserIdRequestDto, request, true);
+      } = this.validationService.validate({ dto: GetConversationsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamUserMediatorService.getTeamsByUserId({ userId });
+      const { conversations, lastEvaluatedKey } = await this.conversationMediatorService.getConversationsByUserId({ userId });
 
-      return this.generateSuccessResponse({ teams, lastEvaluatedKey });
+      return this.generateSuccessResponse({ conversations, lastEvaluatedKey });
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversationsByUserId", { error, request }, this.constructor.name);
 

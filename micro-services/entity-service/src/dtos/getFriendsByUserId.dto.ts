@@ -1,3 +1,4 @@
-import { Record, String } from "runtypes";
+import { Record } from "runtypes";
+import { UserId } from "../runtypes/userId.runtype";
 
-export const GetFriendsByuserIdDto = Record({ pathParameters: Record({ userId: String }) });
+export const GetFriendsByuserIdDto = Record({ pathParameters: Record({ userId: UserId }) });

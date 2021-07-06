@@ -333,10 +333,30 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
     });
 
     // Meeting Handlers
-    const createMessageHandler = new Lambda.Function(this, `CreateMessage_${id}`, {
+    const createFriendMessageHandler = new Lambda.Function(this, `CreateFriendMessage_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/createMessage"),
-      handler: "createMessage.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/createFriendMessage"),
+      handler: "createFriendMessage.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const createGroupMessageHandler = new Lambda.Function(this, `CreateGroupMessage_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/createGroupMessage"),
+      handler: "createGroupMessage.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const createMeetingMessageHandler = new Lambda.Function(this, `CreateMeetingMessage_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/createMeetingMessage"),
+      handler: "createMeetingMessage.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
@@ -363,10 +383,30 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const getMessagesByConversationIdHandler = new Lambda.Function(this, `GetMessagesByConversationId_${id}`, {
+    const getMessagesByFriendIdHandler = new Lambda.Function(this, `GetMessagesByFriendId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByConversationId"),
-      handler: "getMessagesByConversationId.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByFriendId"),
+      handler: "getMessagesByFriendId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getMessagesByGroupIdHandler = new Lambda.Function(this, `GetMessagesByGroupId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByGroupId"),
+      handler: "getMessagesByGroupId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getMessagesByMeetingIdHandler = new Lambda.Function(this, `GetMessagesByMeetingId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByMeetingId"),
+      handler: "getMessagesByMeetingId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
@@ -545,17 +585,42 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
 
     const messageRoutes: RouteProps[] = [
       {
-        path: "/conversations/{conversationId}/messages",
+        path: "/users/{userId}/friends/{friendId}/messages",
         method: ApiGatewayV2.HttpMethod.POST,
-        handler: createMessageHandler,
+        handler: createFriendMessageHandler,
         authorizationScopes: [ "yac/message.write" ],
       },
       {
-        path: "/conversations/{conversationId}/messages",
+        path: "/users/{userId}/friends/{friendId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
-        handler: getMessagesByConversationIdHandler,
+        handler: getMessagesByFriendIdHandler,
+        authorizationScopes: [ "yac/friend.read", "yac/message.read" ],
+      },
+      {
+        path: "/groups/{groupId}/messages",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: createGroupMessageHandler,
+        authorizationScopes: [ "yac/message.write" ],
+      },
+      {
+        path: "/groups/{groupId}/messages",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getMessagesByGroupIdHandler,
         authorizationScopes: [ "yac/conversation.read", "yac/message.read" ],
       },
+      {
+        path: "/meetings/{meetingId}/messages",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: createMeetingMessageHandler,
+        authorizationScopes: [ "yac/message.write" ],
+      },
+      {
+        path: "/meetings/{meetingId}/messages",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getMessagesByMeetingIdHandler,
+        authorizationScopes: [ "yac/conversation.read", "yac/message.read" ],
+      },
+
       {
         path: "/messages/{messageId}",
         method: ApiGatewayV2.HttpMethod.GET,

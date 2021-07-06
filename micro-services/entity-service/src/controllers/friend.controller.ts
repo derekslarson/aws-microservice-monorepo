@@ -12,7 +12,7 @@ export class FriendController extends BaseController implements FriendController
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.UserServiceInterface) private friendshipService: FriendshipMediatorService,
+    @inject(TYPES.FriendshipMediatorServiceInterface) private friendshipMediatorService: FriendshipMediatorService,
   ) {
     super();
   }
@@ -31,7 +31,7 @@ export class FriendController extends BaseController implements FriendController
         throw new ForbiddenError("Forbidden");
       }
 
-      const { friendship } = await this.friendshipService.createFriendship({ members: [ userId, friendId ] });
+      const { friendship } = await this.friendshipMediatorService.createFriendship({ userIds: [ userId, friendId ] });
 
       return this.generateCreatedResponse({ friendship });
     } catch (error: unknown) {
@@ -54,7 +54,7 @@ export class FriendController extends BaseController implements FriendController
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.friendshipService.deleteFriendship({ members: [ userId, friendId ] });
+      await this.friendshipMediatorService.deleteFriendship({ userIds: [ userId, friendId ] });
 
       return this.generateSuccessResponse({ message: "User removed as friend" });
     } catch (error: unknown) {
@@ -77,7 +77,7 @@ export class FriendController extends BaseController implements FriendController
         throw new ForbiddenError("Forbidden");
       }
 
-      const { friends } = await this.friendshipService.getFriendsByUserId({ userId });
+      const { friends } = await this.friendshipMediatorService.getFriendsByUserId({ userId });
 
       return this.generateSuccessResponse({ friends });
     } catch (error: unknown) {

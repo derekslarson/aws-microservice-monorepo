@@ -6,6 +6,8 @@ import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
 import { RawEntity } from "../types/raw.entity.type";
+import { TeamId } from "../types/teamId.type";
+import { UserId } from "../types/userId.type";
 
 @injectable()
 export class TeamUserRelationshipDynamoRepository extends BaseDynamoRepositoryV2<TeamUserRelationship> implements TeamUserRelationshipRepositoryInterface {
@@ -154,8 +156,8 @@ export interface TeamUserRelationshipRepositoryInterface {
 type TeamUserRelationshipRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
 export interface TeamUserRelationship {
-  teamId: string;
-  userId: string;
+  teamId: TeamId;
+  userId: UserId;
   role: Role;
 }
 
@@ -168,8 +170,8 @@ export interface CreateTeamUserRelationshipOutput {
 }
 
 export interface GetTeamUserRelationshipInput {
-  teamId: string;
-  userId: string;
+  teamId: TeamId;
+  userId: UserId;
 }
 
 export interface GetTeamUserRelationshipOutput {
@@ -177,14 +179,14 @@ export interface GetTeamUserRelationshipOutput {
 }
 
 export interface DeleteTeamUserRelationshipInput {
-  teamId: string;
-  userId: string;
+  teamId: TeamId;
+  userId: UserId;
 }
 
 export type DeleteTeamUserRelationshipOutput = void;
 
 export interface GetTeamUserRelationshipsByTeamIdInput {
-  teamId: string;
+  teamId: TeamId;
   exclusiveStartKey?: string;
 }
 
@@ -194,7 +196,7 @@ export interface GetTeamUserRelationshipsByTeamIdOutput {
 }
 
 export interface GetTeamUserRelationshipsByUserIdInput {
-  userId: string;
+  userId: UserId;
   exclusiveStartKey?: string;
 }
 

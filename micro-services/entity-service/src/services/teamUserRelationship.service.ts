@@ -2,6 +2,8 @@ import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamUserRelationshipRepositoryInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../repositories/teamUserRelationship.dynamo.repository";
+import { TeamId } from "../types/teamId.type";
+import { UserId } from "../types/userId.type";
 
 @injectable()
 export class TeamUserRelationshipService implements TeamUserRelationshipServiceInterface {
@@ -105,8 +107,8 @@ export interface TeamUserRelationshipServiceInterface {
 
 export type TeamUserRelationship = TeamUserRelationshipEntity;
 export interface CreateTeamUserRelationshipInput {
-  teamId: string;
-  userId: string;
+  teamId: TeamId;
+  userId: UserId;
   role: Role;
 }
 
@@ -115,8 +117,8 @@ export interface CreateTeamUserRelationshipOutput {
 }
 
 export interface GetTeamUserRelationshipInput {
-  teamId: string;
-  userId: string;
+  teamId: TeamId;
+  userId: UserId;
 }
 
 export interface GetTeamUserRelationshipOutput {
@@ -124,14 +126,14 @@ export interface GetTeamUserRelationshipOutput {
 }
 
 export interface DeleteTeamUserRelationshipInput {
-  teamId: string;
-  userId: string;
+  teamId: TeamId;
+  userId: UserId;
 }
 
 export type DeleteTeamUserRelationshipOutput = void;
 
 export interface GetTeamUserRelationshipsByTeamIdInput {
-  teamId: string;
+  teamId: TeamId;
   exclusiveStartKey?: string;
 }
 
@@ -141,7 +143,7 @@ export interface GetTeamUserRelationshipsByTeamIdOutput {
 }
 
 export interface GetTeamUserRelationshipsByUserIdInput {
-  userId: string;
+  userId: UserId;
   exclusiveStartKey?: string;
 }
 

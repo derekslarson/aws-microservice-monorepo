@@ -5,17 +5,17 @@ import { TYPES } from "../inversion-of-control/types";
 import { TeamServiceInterface } from "../services/team.service";
 import { AddUserToTeamDto } from "../dtos/team.addUser.dto";
 import { RemoveUserFromTeamDto } from "../dtos/team.removeUser.dto";
-import { TeamUserMediatorServiceInterface } from "../mediator-services/team.user.mediator.service";
+import { TeamUserMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GetTeamRequestDto } from "../dtos/team.get.dto";
 import { CreateTeamRequestDto } from "../dtos/team.create.dto";
 import { GetTeamsByUserIdRequestDto } from "../dtos/teams.getByUserId.dto";
+import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
 @injectable()
 export class MessageController extends BaseController implements MessageControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
-    @inject(TYPES.TeamUserMediatorServiceInterface) private teamUserMediatorService: TeamUserMediatorServiceInterface,
+    @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
   ) {
     super();
   }
@@ -28,15 +28,15 @@ export class MessageController extends BaseController implements MessageControll
         jwtId,
         pathParameters: { userId },
         body: { name },
-      } = this.validationService.validate(CreateTeamRequestDto, request, true);
+      } = this.validationService.validate({ dto: CreateMessageDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { team } = await this.teamUserMediatorService.createTeam({ name, createdBy: userId });
+      const { message } = await this.messageMediatorService.createMessage({ name, createdBy: userId });
 
-      return this.generateCreatedResponse({ team });
+      return this.generateCreatedResponse({ message });
     } catch (error: unknown) {
       this.loggerService.error("Error in createMessage", { error, request }, this.constructor.name);
 

@@ -10,14 +10,14 @@ const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceI
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
-    loggerService.trace("getMessagesByConversationId called", { event }, "getMessagesByConversationId handler");
+    loggerService.trace("getMessagesByMeetingId called", { event }, "getMessagesByMeetingId handler");
 
-    const response = await messageController.getMessagesByConversationId(event);
+    const response = await messageController.getMessagesByMeetingId(event);
 
     return response;
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
-    loggerService.error("Catastrophic error in getMessagesByConversationId handler", { error, event }, "getMessagesByConversationId handler");
+    loggerService.error("Catastrophic error in getMessagesByMeetingId handler", { error, event }, "getMessagesByMeetingId handler");
 
     return generateInternalServerErrorResponse(error);
   }

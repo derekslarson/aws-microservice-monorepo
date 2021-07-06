@@ -4,6 +4,7 @@ import { TYPES } from "../inversion-of-control/types";
 import { ConversationServiceInterface } from "../services/conversation.service";
 import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
 import { UserServiceInterface, User } from "../services/user.service";
+import { UserId } from "../types/userId.type";
 @injectable()
 export class FriendshipMediatorService implements FriendshipMediatorServiceInterface {
   constructor(
@@ -17,19 +18,18 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
     try {
       this.loggerService.trace("createFriendship called", { params }, this.constructor.name);
 
-      const { members } = params;
+      const { userIds } = params;
 
-      const { conversation } = await this.conversationService.createFriendConversation({ members });
+      const { conversation } = await this.conversationService.createFriendConversation({ userIds });
 
-      await Promise.all(members.map((userId) => this.conversationUserRelationshipService.createConversationUserRelationship({
+      await Promise.all(userIds.map((userId) => this.conversationUserRelationshipService.createConversationUserRelationship({
         userId,
         conversationId: conversation.id,
         role: Role.Admin,
       })));
 
       const friendship: Friendship = {
-        conversationId: conversation.id,
-        members,
+        userIds,
         createdAt: conversation.createdAt,
         updatedAt: conversation.createdAt,
       };
@@ -46,11 +46,11 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
     try {
       this.loggerService.trace("deleteFriendship called", { params }, this.constructor.name);
 
-      const { members } = params;
+      const { userIds } = params;
 
-      const { conversation } = await this.conversationService.getFriendConversationByMemberIds({ members });
+      const { conversation } = await this.conversationService.getFriendConversationByUserIds({ userIds });
 
-      await Promise.all(members.map((userId) => this.conversationUserRelationshipService.deleteConversationUserRelationship({
+      await Promise.all(userIds.map((userId) => this.conversationUserRelationshipService.deleteConversationUserRelationship({
         userId,
         conversationId: conversation.id,
       })));
@@ -93,14 +93,13 @@ export interface FriendshipMediatorServiceInterface {
 }
 
 export interface Friendship {
-  conversationId: string;
-  members: [string, string];
+  userIds: [UserId, UserId];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateFriendshipInput {
-  members: [string, string];
+  userIds: [UserId, UserId];
 }
 
 export interface CreateFriendshipOutput {
@@ -108,13 +107,13 @@ export interface CreateFriendshipOutput {
 }
 
 export interface DeleteFriendshipInput {
-  members: [string, string];
+  userIds: [UserId, UserId];
 }
 
 export type DeleteFriendshipOutput = void;
 
 export interface GetFriendsByUserIdInput {
-  userId: string;
+  userId: UserId;
 }
 
 export interface GetFriendsByUserIdOutput {

@@ -1,6 +1,7 @@
-import { Record, String } from "runtypes";
+import { Record } from "runtypes";
+import { UserId } from "../runtypes/userId.runtype";
 
 export const AddUserAsFriendDto = Record({
-  pathParameters: Record({ userId: String }),
-  body: Record({ friendId: String }),
+  pathParameters: Record({ userId: UserId }),
+  body: Record({ friendId: UserId }),
 });

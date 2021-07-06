@@ -7,6 +7,8 @@ import { EntityType } from "../enums/entityType.enum";
 import { RawEntity } from "../types/raw.entity.type";
 import { ConversationType } from "../enums/conversationType.enum";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
+import { TeamId } from "../types/teamId.type";
+import { ConversationId } from "../types/conversationId.type";
 
 @injectable()
 export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Conversation> implements ConversationRepositoryInterface {
@@ -148,7 +150,7 @@ export interface ConversationRepositoryInterface {
 type ConversationRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
 export interface Conversation {
-  id: string;
+  id: ConversationId;
   type: ConversationType;
   createdAt: string;
   teamId?: string;
@@ -161,7 +163,7 @@ export interface CreateConversationOutput {
   conversation: Conversation;
 }
 export interface GetConversationInput {
-  conversationId: string;
+  conversationId: ConversationId;
 }
 
 export interface GetConversationOutput {
@@ -169,7 +171,7 @@ export interface GetConversationOutput {
 }
 
 export interface DeleteConversationInput {
-  conversationId: string;
+  conversationId: ConversationId;
 }
 
 export type DeleteConversationOutput = void;
@@ -183,7 +185,7 @@ export interface GetConversationsOutput {
 }
 
 export interface GetConversationsByTeamIdInput {
-  teamId: string;
+  teamId: TeamId;
   exclusiveStartKey?: string;
 }
 

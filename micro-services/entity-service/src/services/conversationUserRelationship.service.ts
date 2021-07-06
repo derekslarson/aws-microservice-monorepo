@@ -3,6 +3,9 @@ import { LoggerServiceInterface, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationUserRelationshipRepositoryInterface, ConversationUserRelationship as ConversationUserRelationshipEntity } from "../repositories/conversationUserRelationship.dynamo.repository";
 import { ConversationType } from "../enums/conversationType.enum";
+import { ConversationId } from "../types/conversationId.type";
+import { UserId } from "../types/userId.type";
+import { MessageId } from "../types/messageId.type";
 
 @injectable()
 export class ConversationUserRelationshipService implements ConversationUserRelationshipServiceInterface {
@@ -142,8 +145,8 @@ export interface ConversationUserRelationshipServiceInterface {
 
 export type ConversationUserRelationship = ConversationUserRelationshipEntity;
 export interface CreateConversationUserRelationshipInput {
-  conversationId: string;
-  userId: string;
+  conversationId: ConversationId;
+  userId: UserId;
   role: Role;
 }
 
@@ -152,8 +155,8 @@ export interface CreateConversationUserRelationshipOutput {
 }
 
 export interface GetConversationUserRelationshipInput {
-  conversationId: string;
-  userId: string;
+  conversationId: ConversationId;
+  userId: UserId;
 }
 
 export interface GetConversationUserRelationshipOutput {
@@ -161,9 +164,9 @@ export interface GetConversationUserRelationshipOutput {
 }
 
 export interface RemoveUnreadMessageFromConversationUserRelationshipInput {
-  conversationId: string;
-  userId: string;
-  messageId: string;
+  conversationId: ConversationId;
+  userId: UserId;
+  messageId: MessageId;
 }
 
 export interface RemoveUnreadMessageFromConversationUserRelationshipOutput {
@@ -171,14 +174,14 @@ export interface RemoveUnreadMessageFromConversationUserRelationshipOutput {
 }
 
 export interface DeleteConversationUserRelationshipInput {
-  conversationId: string;
-  userId: string;
+  conversationId: ConversationId;
+  userId: UserId;
 }
 
 export type DeleteConversationUserRelationshipOutput = void;
 
 export interface GetConversationUserRelationshipsByConversationIdInput {
-  conversationId: string;
+  conversationId: ConversationId;
   exclusiveStartKey?: string;
 }
 
@@ -188,7 +191,7 @@ export interface GetConversationUserRelationshipsByConversationIdOutput {
 }
 
 export interface GetConversationUserRelationshipsByUserIdInput {
-  userId: string;
+  userId: UserId;
   unread?: boolean;
   type?: ConversationType;
   exclusiveStartKey?: string;
@@ -200,9 +203,9 @@ export interface GetConversationUserRelationshipsByUserIdOutput {
 }
 
 export interface AddMessageToConversationUserRelationshipInput {
-  conversationId: string;
-  userId: string;
-  messageId: string;
+  conversationId: ConversationId;
+  userId: UserId;
+  messageId: MessageId;
   sender?: boolean;
 }
 export interface AddMessageToConversationUserRelationshipOutput {

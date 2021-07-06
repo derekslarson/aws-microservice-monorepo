@@ -4,6 +4,12 @@ import { TYPES } from "../inversion-of-control/types";
 import { ConversationRepositoryInterface, Conversation as ConversationEntity } from "../repositories/conversation.dynamo.repository";
 import { ConversationType } from "../enums/conversationType.enum";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
+import { FriendConvoId } from "../types/friendConvoId.type";
+import { GroupId } from "../types/groupId.type";
+import { MeetingId } from "../types/meetingId.type";
+import { UserId } from "../types/userId.type";
+import { TeamId } from "../types/teamId.type";
+import { ConversationId } from "../types/conversationId.type";
 
 @injectable()
 export class ConversationService implements ConversationServiceInterface {
@@ -17,9 +23,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createFriendConversation called", { params }, this.constructor.name);
 
-      const { members, teamId } = params;
+      const { userIds, teamId } = params;
 
-      const conversationId = `${KeyPrefix.FriendConversation}${members.sort().join("-")}`;
+      const conversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${userIds.sort().join("-")}`;
 
       const conversation: FriendConversation = {
         id: conversationId,
@@ -38,19 +44,19 @@ export class ConversationService implements ConversationServiceInterface {
     }
   }
 
-  public async getFriendConversationByMemberIds(params: GetFriendConversationsByMemberIdsInput): Promise<GetFriendConversationsByMemberIdsOutput> {
+  public async getFriendConversationByUserIds(params: GetFriendConversationsByUserIdsInput): Promise<GetFriendConversationsByUserIdsOutput> {
     try {
-      this.loggerService.trace("getFriendConversationByMemberIds called", { params }, this.constructor.name);
+      this.loggerService.trace("getFriendConversationByUserIds called", { params }, this.constructor.name);
 
-      const { members } = params;
+      const { userIds } = params;
 
-      const conversationId = `${KeyPrefix.FriendConversation}${members.sort().join("-")}`;
+      const conversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${userIds.sort().join("-")}`;
 
       const { conversation } = await this.conversationRepository.getConversation({ conversationId });
 
       return { conversation: conversation as FriendConversation };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getFriendConversationByMemberIds", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getFriendConversationByUserIds", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -62,7 +68,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { name, createdBy, teamId } = params;
 
-      const conversationId = `${KeyPrefix.GroupConversation}${this.idService.generateId()}`;
+      const conversationId: GroupId = `${KeyPrefix.GroupConversation}${this.idService.generateId()}`;
 
       const conversation: GroupConversation = {
         id: conversationId,
@@ -89,7 +95,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { name, createdBy, teamId, dueDate } = params;
 
-      const conversationId = `${KeyPrefix.MeetingConversation}${this.idService.generateId()}`;
+      const conversationId: MeetingId = `${KeyPrefix.MeetingConversation}${this.idService.generateId()}`;
 
       const conversation: MeetingConversation = {
         id: conversationId,
@@ -184,7 +190,7 @@ export class ConversationService implements ConversationServiceInterface {
 
 export interface ConversationServiceInterface {
   createFriendConversation(params: CreateFriendConversationInput): Promise<CreateFriendConversationOutput>;
-  getFriendConversationByMemberIds(params: GetFriendConversationsByMemberIdsInput): Promise<GetFriendConversationsByMemberIdsOutput>;
+  getFriendConversationByUserIds(params: GetFriendConversationsByUserIdsInput): Promise<GetFriendConversationsByUserIdsOutput>;
   createGroupConversation(params: CreateGroupConversationInput): Promise<CreateGroupConversationOutput>;
   createMeetingConversation(params: CreateMeetingConversationInput): Promise<CreateMeetingConversationOutput>;
   getConversation(params: GetConversationInput): Promise<GetConversationOutput>;
@@ -196,23 +202,26 @@ export interface ConversationServiceInterface {
 export type Conversation = ConversationEntity;
 
 export interface FriendConversation extends ConversationEntity {
+  id: FriendConvoId;
   type: ConversationType.Friend;
 }
 export interface GroupConversation extends ConversationEntity {
+  id: GroupId;
   type: ConversationType.Group;
-  createdBy: string;
+  createdBy: UserId;
   name: string;
 }
 
-export interface MeetingConversation extends Omit<GroupConversation, "type"> {
+export interface MeetingConversation extends Omit<GroupConversation, "type" | "id"> {
+  id: MeetingId;
   type: ConversationType.Meeting;
   dueDate: string;
   outcomes?: string;
 }
 
 export interface CreateFriendConversationInput {
-  members: [string, string];
-  teamId?: string;
+  userIds: [UserId, UserId];
+  teamId?: TeamId;
 }
 
 export interface CreateFriendConversationOutput {
@@ -221,8 +230,8 @@ export interface CreateFriendConversationOutput {
 
 export interface CreateGroupConversationInput {
   name: string;
-  createdBy: string;
-  teamId?: string;
+  createdBy: UserId;
+  teamId?: TeamId;
 }
 
 export interface CreateGroupConversationOutput {
@@ -231,9 +240,9 @@ export interface CreateGroupConversationOutput {
 
 export interface CreateMeetingConversationInput {
   name: string;
-  createdBy: string;
+  createdBy: UserId;
   dueDate: string;
-  teamId?: string;
+  teamId?: TeamId;
 }
 
 export interface CreateMeetingConversationOutput {
@@ -241,7 +250,7 @@ export interface CreateMeetingConversationOutput {
 }
 
 export interface GetConversationInput {
-  conversationId: string;
+  conversationId: ConversationId;
 }
 
 export interface GetConversationOutput {
@@ -249,7 +258,7 @@ export interface GetConversationOutput {
 }
 
 export interface GetConversationsInput {
-  conversationIds: string[];
+  conversationIds: ConversationId[];
 }
 
 export interface GetConversationsOutput {
@@ -257,7 +266,7 @@ export interface GetConversationsOutput {
 }
 
 export interface GetConversationsByTeamIdInput {
-  teamId: string;
+  teamId: TeamId;
   exclusiveStartKey?: string;
 }
 
@@ -266,16 +275,16 @@ export interface GetConversationsByTeamIdOutput {
   lastEvaluatedKey?: string;
 }
 
-export interface GetFriendConversationsByMemberIdsInput {
-  members: [string, string];
+export interface GetFriendConversationsByUserIdsInput {
+  userIds: [UserId, UserId];
 }
 
-export interface GetFriendConversationsByMemberIdsOutput {
+export interface GetFriendConversationsByUserIdsOutput {
   conversation: FriendConversation;
 }
 
 export interface DeleteConversationInput {
-  conversationId: string;
+  conversationId: ConversationId;
 }
 
 export type DeleteConversationOutput = void;

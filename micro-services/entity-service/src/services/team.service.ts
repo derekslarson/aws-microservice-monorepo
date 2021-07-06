@@ -3,6 +3,8 @@ import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamRepositoryInterface, Team as TeamEntity } from "../repositories/team.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
+import { TeamId } from "../types/teamId.type";
+import { UserId } from "../types/userId.type";
 
 @injectable()
 export class TeamService implements TeamServiceInterface {
@@ -18,7 +20,7 @@ export class TeamService implements TeamServiceInterface {
 
       const { name, createdBy } = params;
 
-      const teamId = `${KeyPrefix.Team}${this.idService.generateId()}`;
+      const teamId: TeamId = `${KeyPrefix.Team}${this.idService.generateId()}`;
 
       const team: TeamEntity = {
         id: teamId,
@@ -87,7 +89,7 @@ export interface TeamServiceInterface {
 
 export interface CreateTeamInput {
   name: string;
-  createdBy: string;
+  createdBy: UserId;
 }
 
 export interface CreateTeamOutput {
@@ -95,7 +97,7 @@ export interface CreateTeamOutput {
 }
 
 export interface GetTeamInput {
-  teamId: string;
+  teamId: TeamId;
 }
 
 export interface GetTeamOutput {
@@ -103,7 +105,7 @@ export interface GetTeamOutput {
 }
 
 export interface GetTeamsInput {
-  teamIds: string[];
+  teamIds: TeamId[];
 }
 
 export interface GetTeamsOutput {

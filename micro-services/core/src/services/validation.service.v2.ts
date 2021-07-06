@@ -20,7 +20,7 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
 
       const { dto, request, getUserIdFromJwt } = params;
 
-      let jwtId: string | undefined;
+      let jwtId: `user-${string}` | undefined;
 
       if (getUserIdFromJwt) {
         const rawUserId = request.requestContext.authorizer?.jwt.claims.sub;
@@ -29,7 +29,7 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
           throw new ForbiddenError("Forbidden");
         }
 
-        jwtId = `user-${rawUserId as string}`;
+        jwtId = `user-${rawUserId as string}` as `user-${string}`;
       }
 
       let parsedBody: unknown;
@@ -80,4 +80,4 @@ export interface ValidateInput<T extends ValidatedRequest, U extends boolean> {
   getUserIdFromJwt?: U;
 }
 
-export type ValidateOutput<T extends ValidatedRequest, U extends boolean> = U extends true ? (T & { jwtId: string; }) : T;
+export type ValidateOutput<T extends ValidatedRequest, U extends boolean> = U extends true ? (T & { jwtId: `user-${string}`; }) : T;

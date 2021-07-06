@@ -4,9 +4,11 @@ import { TYPES } from "../inversion-of-control/types";
 import { UserServiceInterface, User as UserEntity } from "../services/user.service";
 import { TeamServiceInterface, Team as TeamEntity } from "../services/team.service";
 import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../services/teamUserRelationship.service";
+import { UserId } from "../types/userId.type";
+import { TeamId } from "../types/teamId.type";
 
 @injectable()
-export class TeamUserMediatorService implements TeamUserMediatorServiceInterface {
+export class TeamMediatorService implements TeamMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
@@ -29,6 +31,22 @@ export class TeamUserMediatorService implements TeamUserMediatorServiceInterface
       return { team: teamWithRole };
     } catch (error: unknown) {
       this.loggerService.error("Error in createTeam", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getTeam(params: GetTeamInput): Promise<GetTeamOutput> {
+    try {
+      this.loggerService.trace("getTeam called", { params }, this.constructor.name);
+
+      const { teamId } = params;
+
+      const { team } = await this.teamService.getTeam({ teamId });
+
+      return { team };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getTeam", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -147,8 +165,9 @@ export class TeamUserMediatorService implements TeamUserMediatorServiceInterface
   }
 }
 
-export interface TeamUserMediatorServiceInterface {
+export interface TeamMediatorServiceInterface {
   createTeam(params: CreateTeamInput): Promise<CreateTeamOutput>;
+  getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
   addUserToTeam(params: AddUserToTeamInput): Promise<AddUserToTeamOutput>;
   removeUserFromTeam(params: RemoveUserFromTeamInput): Promise<RemoveUserFromTeamOutput>;
   getUsersByTeamId(params: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput>;
@@ -157,22 +176,30 @@ export interface TeamUserMediatorServiceInterface {
   isTeamAdmin(params: IsTeamAdminInput): Promise<IsTeamAdminOutput>;
 }
 
-export type Team = WithRole<TeamEntity>;
-export type User = WithRole<UserEntity>;
+export type Team = TeamEntity;
+export type User = UserEntity;
 export type TeamUserRelationship = TeamUserRelationshipEntity;
 
 export interface CreateTeamInput {
   name: string;
-  createdBy: string;
+  createdBy: UserId;
 }
 
 export interface CreateTeamOutput {
   team: Team;
 }
 
+export interface GetTeamInput {
+  teamId: TeamId;
+}
+
+export interface GetTeamOutput {
+  team: Team;
+}
+
 export interface AddUserToTeamInput {
-  teamId: string;
-  userId: string;
+  teamId: TeamId;
+  userId: UserId;
   role: Role;
 }
 
@@ -181,34 +208,34 @@ export interface AddUserToTeamOutput {
 }
 
 export interface RemoveUserFromTeamInput {
-  teamId: string;
-  userId: string;
+  teamId: TeamId;
+  userId: UserId;
 }
 
 export type RemoveUserFromTeamOutput = void;
 export interface GetUsersByTeamIdInput {
-  teamId: string;
+  teamId: TeamId;
   exclusiveStartKey?: string;
 }
 
 export interface GetUsersByTeamIdOutput {
-  users: User[];
+  users: WithRole<User>[];
   lastEvaluatedKey?: string;
 }
 
 export interface GetTeamsByUserIdInput {
-  userId: string;
+  userId: UserId;
   exclusiveStartKey?: string;
 }
 
 export interface GetTeamsByUserIdOutput {
-  teams: Team[];
+  teams: WithRole<Team>[];
   lastEvaluatedKey?: string;
 }
 
 export interface IsTeamMemberInput {
-  teamId: string;
-  userId: string;
+  teamId: TeamId;
+  userId: UserId;
 }
 
 export interface IsTeamMemberOutput {
@@ -216,8 +243,8 @@ export interface IsTeamMemberOutput {
 }
 
 export interface IsTeamAdminInput {
-  teamId: string;
-  userId: string;
+  teamId: TeamId;
+  userId: UserId;
 }
 
 export interface IsTeamAdminOutput {
