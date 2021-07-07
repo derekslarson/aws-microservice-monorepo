@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
-import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
 import { CreateFriendMessageDto } from "../dtos/createFriendMessage.dto";
@@ -10,6 +9,8 @@ import { CreateMeetingMessageDto } from "../dtos/createMeetingMessage.dto";
 import { GetMessagesByUserAndFriendIdsDto } from "../dtos/getMessagesByUserAndFriendIds.dto";
 import { GetMessagesByByGroupIdDto } from "../dtos/getMessagesByGroupid.dto";
 import { GetMessagesByByMeetingIdDto } from "../dtos/getMessagesByMeetingId.dto";
+import { GetMessageDto } from "../dtos/getMessage.dto";
+import { UpdateMessageByUserIdDto } from "../dtos/updateMessageByUserId.dto";
 @injectable()
 export class MessageController extends BaseController implements MessageControllerInterface {
   constructor(
@@ -20,7 +21,7 @@ export class MessageController extends BaseController implements MessageControll
     super();
   }
 
-  public async createFriendMessage(request: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
+  public async createFriendMessage(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("createFriendMessage called", { request }, this.constructor.name);
 
@@ -44,7 +45,7 @@ export class MessageController extends BaseController implements MessageControll
     }
   }
 
-  public async createGroupMessage(request: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
+  public async createGroupMessage(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("createGroupMessage called", { request }, this.constructor.name);
 
@@ -66,7 +67,7 @@ export class MessageController extends BaseController implements MessageControll
     }
   }
 
-  public async createMeetingMessage(request: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
+  public async createMeetingMessage(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("createMeetingMessage called", { request }, this.constructor.name);
 
@@ -88,7 +89,7 @@ export class MessageController extends BaseController implements MessageControll
     }
   }
 
-  public async getMessagesByUserAndFriendIds(request: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
+  public async getMessagesByUserAndFriendIds(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("getMessagesByUserAndFriendIds called", { request }, this.constructor.name);
 
@@ -100,7 +101,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages } = await this.messageMediatorService.getMessagesByUserAndFriendIds({ userId, friendId, transcript });
+      const { messages } = await this.messageMediatorService.getMessagesByUserAndFriendIds({ userId, friendId });
 
       return this.generateSuccessResponse({ messages });
     } catch (error: unknown) {
@@ -110,20 +111,21 @@ export class MessageController extends BaseController implements MessageControll
     }
   }
 
-  public async getMessagesByGroupId(request: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
+  public async getMessagesByGroupId(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("getMessagesByGroupId called", { request }, this.constructor.name);
 
       const {
         jwtId,
         pathParameters: { groupId },
+        queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetMessagesByByGroupIdDto, request, getUserIdFromJwt: true });
 
       // add group membership validation
 
-      const { messages } = await this.messageMediatorService.getMessagesByGroupId({ groupId });
+      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByGroupId({ groupId, exclusiveStartKey });
 
-      return this.generateSuccessResponse({ messages });
+      return this.generateSuccessResponse({ messages, lastEvaluatedKey });
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByGroupId", { error, request }, this.constructor.name);
 
@@ -131,18 +133,19 @@ export class MessageController extends BaseController implements MessageControll
     }
   }
 
-  public async getMessagesByMeetingId(request: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
+  public async getMessagesByMeetingId(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("getMessagesByMeetingId called", { request }, this.constructor.name);
 
       const {
         jwtId,
         pathParameters: { meetingId },
+        queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetMessagesByByMeetingIdDto, request, getUserIdFromJwt: true });
 
-      // add group membership validation
+      // add meeting membership validation
 
-      const { messages } = await this.messageMediatorService.getMessagesByMeetingId({ meetingId });
+      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByMeetingId({ meetingId, exclusiveStartKey });
 
       return this.generateSuccessResponse({ messages });
     } catch (error: unknown) {
@@ -158,18 +161,14 @@ export class MessageController extends BaseController implements MessageControll
 
       const {
         jwtId,
-        pathParameters: { teamId },
-      } = this.validationService.validate(GetTeamRequestDto, request, true);
+        pathParameters: { messageId },
+      } = this.validationService.validate({ dto: GetMessageDto, request, getUserIdFromJwt: true });
 
-      const { isTeamMember } = await this.teamUserMediatorService.isTeamMember({ teamId, userId: jwtId });
+      // add conversation member validation
 
-      if (!isTeamMember) {
-        throw new ForbiddenError("Forbidden");
-      }
+      const { message } = await this.messageMediatorService.getMessage({ messageId });
 
-      const { team } = await this.teamService.getTeam({ teamId });
-
-      return this.generateSuccessResponse({ team });
+      return this.generateSuccessResponse({ message });
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessage", { error, request }, this.constructor.name);
 
@@ -183,41 +182,21 @@ export class MessageController extends BaseController implements MessageControll
 
       const {
         jwtId,
-        pathParameters: { userId },
-      } = this.validationService.validate(GetTeamsByUserIdRequestDto, request, true);
+        pathParameters: { userId, messageId },
+        body,
+      } = this.validationService.validate({ dto: UpdateMessageByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamUserMediatorService.getTeamsByUserId({ userId });
+      // add conversation member validation
 
-      return this.generateSuccessResponse({ teams, lastEvaluatedKey });
+      const { message } = await this.messageMediatorService.updateMessageByUserId({ userId, messageId, updates: body });
+
+      return this.generateSuccessResponse({ message });
     } catch (error: unknown) {
       this.loggerService.error("Error in updateMessageByUserId", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
-  }
-
-  public async getMessagesByConversationId(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("getMessagesByConversationId called", { request }, this.constructor.name);
-
-      const {
-        jwtId,
-        pathParameters: { userId },
-      } = this.validationService.validate(GetTeamsByUserIdRequestDto, request, true);
-
-      if (jwtId !== userId) {
-        throw new ForbiddenError("Forbidden");
-      }
-
-      const { teams, lastEvaluatedKey } = await this.teamUserMediatorService.getTeamsByUserId({ userId });
-
-      return this.generateSuccessResponse({ teams, lastEvaluatedKey });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getMessagesByConversationId", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -233,5 +212,4 @@ export interface MessageControllerInterface {
   getMessagesByMeetingId(request: Request): Promise<Response>;
   getMessage(request: Request): Promise<Response>;
   updateMessageByUserId(request: Request): Promise<Response>;
-  getMessagesByConversationId(request: Request): Promise<Response>;
 }

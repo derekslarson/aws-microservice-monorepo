@@ -21,13 +21,19 @@ export class ConversationController extends BaseController implements Conversati
       const {
         jwtId,
         pathParameters: { userId },
+        queryStringParameters: { exclusiveStartKey, type, unread },
       } = this.validationService.validate({ dto: GetConversationsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { conversations, lastEvaluatedKey } = await this.conversationMediatorService.getConversationsByUserId({ userId });
+      const { conversations, lastEvaluatedKey } = await this.conversationMediatorService.getConversationsByUserId({
+        userId,
+        exclusiveStartKey,
+        type,
+        unread,
+      });
 
       return this.generateSuccessResponse({ conversations, lastEvaluatedKey });
     } catch (error: unknown) {

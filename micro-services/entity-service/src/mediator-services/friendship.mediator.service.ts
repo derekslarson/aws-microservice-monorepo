@@ -67,15 +67,15 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
     try {
       this.loggerService.trace("getFriendsByUserId called", { params }, this.constructor.name);
 
-      const { userId } = params;
+      const { userId, exclusiveStartKey } = params;
 
-      const { conversationUserRelationships } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId });
+      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId, exclusiveStartKey });
 
       const userIds = conversationUserRelationships.map((relationship) => relationship.userId);
 
       const { users } = await this.userService.getUsers({ userIds });
 
-      return { friends: users };
+      return { friends: users, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getFriendsByUserId", { error, params }, this.constructor.name);
 
@@ -114,8 +114,10 @@ export type DeleteFriendshipOutput = void;
 
 export interface GetFriendsByUserIdInput {
   userId: UserId;
+  exclusiveStartKey?: string;
 }
 
 export interface GetFriendsByUserIdOutput {
   friends: Friend[];
+  lastEvaluatedKey?: string;
 }

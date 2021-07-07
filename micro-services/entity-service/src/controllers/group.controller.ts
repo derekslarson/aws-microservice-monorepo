@@ -129,13 +129,14 @@ export class GroupController extends BaseController implements GroupControllerIn
       const {
         jwtId,
         pathParameters: { userId },
+        queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetGroupsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByUserId({ userId });
+      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByUserId({ userId, exclusiveStartKey });
 
       return this.generateSuccessResponse({ groups, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -149,11 +150,14 @@ export class GroupController extends BaseController implements GroupControllerIn
     try {
       this.loggerService.trace("getGroupsByTeamId called", { request }, this.constructor.name);
 
-      const { pathParameters: { teamId } } = this.validationService.validate({ dto: GetGroupsByTeamIdDto, request, getUserIdFromJwt: true });
+      const {
+        pathParameters: { teamId },
+        queryStringParameters: { exclusiveStartKey },
+      } = this.validationService.validate({ dto: GetGroupsByTeamIdDto, request, getUserIdFromJwt: true });
 
       // add teamMembership validaton
 
-      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByTeamId({ teamId });
+      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByTeamId({ teamId, exclusiveStartKey });
 
       return this.generateSuccessResponse({ groups, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -170,6 +174,7 @@ export class GroupController extends BaseController implements GroupControllerIn
       const {
         jwtId,
         pathParameters: { groupId },
+        queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetUsersByGroupIdDto, request, getUserIdFromJwt: true });
 
       const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
@@ -178,7 +183,7 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.groupMediatorService.getUsersByGroupId({ groupId });
+      const { users, lastEvaluatedKey } = await this.groupMediatorService.getUsersByGroupId({ groupId, exclusiveStartKey });
 
       return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {

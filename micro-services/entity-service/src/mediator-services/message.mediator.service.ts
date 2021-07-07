@@ -69,6 +69,22 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
+  public async getMessage(params: GetMessageInput): Promise<GetMessageOutput> {
+    try {
+      this.loggerService.trace("getMessage called", { params }, this.constructor.name);
+
+      const { messageId } = params;
+
+      const { message } = await this.messageService.getMessage({ messageId });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getMessagesByUserAndFriendIds(params: GetMessagesByUserAndFriendIdsInput): Promise<GetMessagesByUserAndFriendIdsOutput> {
     try {
       this.loggerService.trace("getMessagesByUserAndFriendIds called", { params }, this.constructor.name);
@@ -119,7 +135,35 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
-  public async markMessageRead(params: MarkMessageReadInput): Promise<MarkMessageReadOutput> {
+  public async updateMessageByUserId(params: UpdateMessageByUserIdInput): Promise<UpdateMessageByUserIdOutput> {
+    try {
+      this.loggerService.trace("updateMessageByUserId called", { params }, this.constructor.name);
+
+      const { messageId, userId, updates } = params;
+
+      if ("seen" in updates && updates.seen) {
+        const { message } = await this.markMessageRead({ userId, messageId });
+
+        return { message };
+      }
+
+      if ("seen" in updates && !updates.seen) {
+        const { message } = await this.markMessageUnread({ userId, messageId });
+
+        return { message };
+      }
+
+      const { message } = await this.getMessage({ messageId });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMessageByUserId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private async markMessageRead(params: MarkMessageReadInput): Promise<MarkMessageReadOutput> {
     try {
       this.loggerService.trace("markMessageRead called", { params }, this.constructor.name);
 
@@ -137,7 +181,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
-  public async markMessageUnread(params: MarkMessageUnreadInput): Promise<MarkMessageUnreadOutput> {
+  private async markMessageUnread(params: MarkMessageUnreadInput): Promise<MarkMessageUnreadOutput> {
     try {
       this.loggerService.trace("markMessageUnread called", { params }, this.constructor.name);
 
@@ -155,7 +199,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
-  public async markConversationRead(params: MarkConversationReadInput): Promise<MarkConversationReadOutput> {
+  private async markConversationRead(params: MarkConversationReadInput): Promise<MarkConversationReadOutput> {
     try {
       this.loggerService.trace("markConversationRead called", { params }, this.constructor.name);
 
@@ -225,12 +269,11 @@ export interface MessageMediatorServiceInterface {
   createFriendMessage(params: CreateFriendMessageInput): Promise<CreateFriendMessageOutput>;
   createGroupMessage(params: CreateGroupMessageInput): Promise<CreateGroupMessageOutput>;
   createMeetingMessage(params: CreateMeetingMessageInput): Promise<CreateMeetingMessageOutput>;
+  getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
   getMessagesByUserAndFriendIds(params: GetMessagesByUserAndFriendIdsInput): Promise<GetMessagesByUserAndFriendIdsOutput>;
   getMessagesByGroupId(params: GetMessagesByGroupIdInput): Promise<GetMessagesByGroupIdOutput>;
   getMessagesByMeetingId(params: GetMessagesByMeetingIdInput): Promise<GetMessagesByMeetingIdOutput>;
-  markMessageRead(params: MarkMessageReadInput): Promise<MarkMessageReadOutput>;
-  markMessageUnread(params: MarkMessageUnreadInput): Promise<MarkMessageUnreadOutput>;
-  markConversationRead(params: MarkConversationReadInput): Promise<MarkConversationReadOutput>;
+  updateMessageByUserId(params: UpdateMessageByUserIdInput): Promise<UpdateMessageByUserIdOutput>;
 }
 
 export type Message = MessageEntity;
@@ -265,6 +308,14 @@ export interface CreateMeetingMessageOutput {
   message: Message;
 }
 
+export interface GetMessageInput {
+  messageId: MessageId;
+}
+
+export interface GetMessageOutput {
+  message: Message;
+}
+
 export interface GetMessagesByUserAndFriendIdsInput {
   userId: UserId;
   friendId: UserId;
@@ -296,30 +347,17 @@ export interface GetMessagesByMeetingIdOutput {
   lastEvaluatedKey?: string;
 }
 
-export interface MarkMessageReadInput {
+export interface UpdateMessageByUserIdInput {
   userId: UserId;
   messageId: MessageId;
+  updates: {
+    seen?: boolean;
+  }
 }
 
-export interface MarkMessageReadOutput {
+export interface UpdateMessageByUserIdOutput {
   message: Message;
 }
-
-export interface MarkMessageUnreadInput {
-  userId: UserId;
-  messageId: MessageId;
-}
-
-export interface MarkMessageUnreadOutput {
-  message: Message;
-}
-
-export interface MarkConversationReadInput {
-  userId: UserId;
-  conversationId: ConversationId;
-}
-
-export type MarkConversationReadOutput = void;
 
 interface CreateMessageInput {
   conversationId: ConversationId;
@@ -340,3 +378,28 @@ interface GetMessagesByConversationIdOutput {
   messages: Message[];
   lastEvaluatedKey?: string;
 }
+
+interface MarkMessageReadInput {
+  userId: UserId;
+  messageId: MessageId;
+}
+
+interface MarkMessageReadOutput {
+  message: Message;
+}
+
+interface MarkMessageUnreadInput {
+  userId: UserId;
+  messageId: MessageId;
+}
+
+interface MarkMessageUnreadOutput {
+  message: Message;
+}
+
+interface MarkConversationReadInput {
+  userId: UserId;
+  conversationId: ConversationId;
+}
+
+type MarkConversationReadOutput = void;

@@ -129,13 +129,14 @@ export class TeamController extends BaseController implements TeamControllerInte
       const {
         jwtId,
         pathParameters: { userId },
+        queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetTeamsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByUserId({ userId });
+      const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByUserId({ userId, exclusiveStartKey });
 
       return this.generateSuccessResponse({ teams, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -152,6 +153,7 @@ export class TeamController extends BaseController implements TeamControllerInte
       const {
         jwtId,
         pathParameters: { teamId },
+        queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetUsersByTeamIdDto, request, getUserIdFromJwt: true });
 
       const { isTeamMember } = await this.teamMediatorService.isTeamMember({ teamId, userId: jwtId });
@@ -160,7 +162,7 @@ export class TeamController extends BaseController implements TeamControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.teamMediatorService.getUsersByTeamId({ teamId });
+      const { users, lastEvaluatedKey } = await this.teamMediatorService.getUsersByTeamId({ teamId, exclusiveStartKey });
 
       return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {

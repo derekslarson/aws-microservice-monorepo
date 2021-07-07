@@ -1,4 +1,7 @@
-import { Record } from "runtypes";
+import { Optional, Record, String } from "runtypes";
 import { UserId } from "../runtypes/userId.runtype";
 
-export const GetTeamsByUserIdDto = Record({ pathParameters: Record({ userId: UserId }) });
+export const GetTeamsByUserIdDto = Record({
+  pathParameters: Record({ userId: UserId }),
+  queryStringParameters: Record({ exclusiveStartKey: Optional(String) }),
+});

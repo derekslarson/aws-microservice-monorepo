@@ -129,13 +129,14 @@ export class MeetingController extends BaseController implements MeetingControll
       const {
         jwtId,
         pathParameters: { userId },
+        queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetMeetingsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByUserId({ userId });
+      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByUserId({ userId, exclusiveStartKey });
 
       return this.generateSuccessResponse({ meetings, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -149,11 +150,14 @@ export class MeetingController extends BaseController implements MeetingControll
     try {
       this.loggerService.trace("getMeetingsByTeamId called", { request }, this.constructor.name);
 
-      const { pathParameters: { teamId } } = this.validationService.validate({ dto: GetMeetingsByTeamIdDto, request, getUserIdFromJwt: true });
+      const {
+        pathParameters: { teamId },
+        queryStringParameters: { exclusiveStartKey },
+      } = this.validationService.validate({ dto: GetMeetingsByTeamIdDto, request, getUserIdFromJwt: true });
 
       // add teamMembership validaton
 
-      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByTeamId({ teamId });
+      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByTeamId({ teamId, exclusiveStartKey });
 
       return this.generateSuccessResponse({ meetings, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -170,6 +174,7 @@ export class MeetingController extends BaseController implements MeetingControll
       const {
         jwtId,
         pathParameters: { meetingId },
+        queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetUsersByMeetingIdDto, request, getUserIdFromJwt: true });
 
       const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
@@ -178,7 +183,7 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.meetingMediatorService.getUsersByMeetingId({ meetingId });
+      const { users, lastEvaluatedKey } = await this.meetingMediatorService.getUsersByMeetingId({ meetingId, exclusiveStartKey });
 
       return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {

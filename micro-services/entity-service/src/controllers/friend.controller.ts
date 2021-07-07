@@ -71,15 +71,16 @@ export class FriendController extends BaseController implements FriendController
       const {
         jwtId,
         pathParameters: { userId },
+        queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetFriendsByuserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { friends } = await this.friendshipMediatorService.getFriendsByUserId({ userId });
+      const { friends, lastEvaluatedKey } = await this.friendshipMediatorService.getFriendsByUserId({ userId, exclusiveStartKey });
 
-      return this.generateSuccessResponse({ friends });
+      return this.generateSuccessResponse({ friends, lastEvaluatedKey });
     } catch (error: unknown) {
       this.loggerService.error("Error in getFriendsByUserId", { error, request }, this.constructor.name);
 

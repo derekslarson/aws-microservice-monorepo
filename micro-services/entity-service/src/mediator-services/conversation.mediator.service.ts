@@ -4,6 +4,7 @@ import { TYPES } from "../inversion-of-control/types";
 import { ConversationServiceInterface, Conversation as ConversationEntity } from "../services/conversation.service";
 import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
 import { UserId } from "../types/userId.type";
+import { ConversationType } from "../enums/conversationType.enum";
 
 @injectable()
 export class ConversationMediatorService implements ConversationMediatorServiceInterface {
@@ -17,9 +18,9 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
     try {
       this.loggerService.trace("getConversationsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey } = params;
+      const { userId, type, unread, exclusiveStartKey } = params;
 
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId, exclusiveStartKey });
+      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId, exclusiveStartKey, type, unread });
 
       const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
 
@@ -44,6 +45,8 @@ export type Conversation = ConversationEntity;
 
 export interface GetConversationsByUserIdInput {
   userId: UserId;
+  type?: ConversationType;
+  unread?: boolean;
   exclusiveStartKey?: string;
 }
 
