@@ -21,7 +21,7 @@ export class MessageService implements MessageServiceInterface {
 
       const { conversationId, from, transcript, seenAt } = params;
 
-      const messageId: MessageId = `${KeyPrefix.Message}${this.idService.generateId()}`;
+      const messageId = `${KeyPrefix.Message}${this.idService.generateId()}` as MessageId;
 
       const message: MessageEntity = {
         id: messageId,

@@ -18,7 +18,7 @@ export class UserService implements UserServiceInterface {
 
       const { rawId, email } = params;
 
-      const userId: UserId = `${KeyPrefix.User}${rawId}`;
+      const userId = `${KeyPrefix.User}${rawId}` as UserId;
 
       const user: UserEntity = {
         id: userId,

@@ -66,8 +66,8 @@ export abstract class BaseController {
       return this.generateForbiddenResponse(error.message);
     }
 
-    if (error instanceof ValidationError) {
-      return this.generateBadRequestResponse(error.message, error.details);
+    if (error instanceof ValidationError || (error as Error).name === "ValidationError") {
+      return this.generateBadRequestResponse("Error validating request", (error as ValidationError).details);
     }
 
     if (error instanceof RequestValidationError) {

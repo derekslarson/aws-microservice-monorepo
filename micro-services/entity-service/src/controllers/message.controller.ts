@@ -7,7 +7,7 @@ import { CreateFriendMessageDto } from "../dtos/createFriendMessage.dto";
 import { CreateGroupMessageDto } from "../dtos/createGroupMessage.dto";
 import { CreateMeetingMessageDto } from "../dtos/createMeetingMessage.dto";
 import { GetMessagesByUserAndFriendIdsDto } from "../dtos/getMessagesByUserAndFriendIds.dto";
-import { GetMessagesByByGroupIdDto } from "../dtos/getMessagesByGroupid.dto";
+import { GetMessagesByByGroupIdDto } from "../dtos/getMessagesByGroupId.dto";
 import { GetMessagesByByMeetingIdDto } from "../dtos/getMessagesByMeetingId.dto";
 import { GetMessageDto } from "../dtos/getMessage.dto";
 import { UpdateMessageByUserIdDto } from "../dtos/updateMessageByUserId.dto";

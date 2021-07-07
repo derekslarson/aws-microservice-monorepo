@@ -9,7 +9,6 @@ import { GetTeamDto } from "../dtos/getTeam.dto";
 import { AddUserToTeamDto } from "../dtos/addUserToTeam.dto";
 import { RemoveUserFromTeamDto } from "../dtos/removeUserFromTeam.dto";
 import { GetTeamsByUserIdDto } from "../dtos/getTeamsByUserId.dto";
-import { GetUsersByTeamIdDto } from "../dtos/getUsersByTeamId.dto";
 
 @injectable()
 export class TeamController extends BaseController implements TeamControllerInterface {

@@ -46,6 +46,8 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
       }
 
       const parsedRequest = {
+        pathParameters: {},
+        queryStringParameters: {},
         ...request,
         body: parsedBody,
       };

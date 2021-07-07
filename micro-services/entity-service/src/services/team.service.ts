@@ -20,7 +20,7 @@ export class TeamService implements TeamServiceInterface {
 
       const { name, createdBy } = params;
 
-      const teamId: TeamId = `${KeyPrefix.Team}${this.idService.generateId()}`;
+      const teamId = `${KeyPrefix.Team}${this.idService.generateId()}` as TeamId;
 
       const team: TeamEntity = {
         id: teamId,

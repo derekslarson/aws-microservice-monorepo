@@ -25,7 +25,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { userIds, teamId } = params;
 
-      const conversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${userIds.sort().join("-")}`;
+      const conversationId = `${KeyPrefix.FriendConversation}${userIds.sort().join("-")}` as FriendConvoId;
 
       const conversation: FriendConversation = {
         id: conversationId,
@@ -50,7 +50,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { userIds } = params;
 
-      const conversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${userIds.sort().join("-")}`;
+      const conversationId = `${KeyPrefix.FriendConversation}${userIds.sort().join("-")}` as FriendConvoId;
 
       const { conversation } = await this.conversationRepository.getConversation({ conversationId });
 
@@ -68,7 +68,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { name, createdBy, teamId } = params;
 
-      const conversationId: GroupId = `${KeyPrefix.GroupConversation}${this.idService.generateId()}`;
+      const conversationId = `${KeyPrefix.GroupConversation}${this.idService.generateId()}` as GroupId;
 
       const conversation: GroupConversation = {
         id: conversationId,
@@ -95,7 +95,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { name, createdBy, teamId, dueDate } = params;
 
-      const conversationId: MeetingId = `${KeyPrefix.MeetingConversation}${this.idService.generateId()}`;
+      const conversationId = `${KeyPrefix.MeetingConversation}${this.idService.generateId()}` as MeetingId;
 
       const conversation: MeetingConversation = {
         id: conversationId,

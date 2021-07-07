@@ -199,21 +199,21 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
-  private async markConversationRead(params: MarkConversationReadInput): Promise<MarkConversationReadOutput> {
-    try {
-      this.loggerService.trace("markConversationRead called", { params }, this.constructor.name);
+  // private async markConversationRead(params: MarkConversationReadInput): Promise<MarkConversationReadOutput> {
+  //   try {
+  //     this.loggerService.trace("markConversationRead called", { params }, this.constructor.name);
 
-      const { userId, conversationId } = params;
+  //     const { userId, conversationId } = params;
 
-      const { conversationUserRelationship: { unreadMessages = [] } } = await this.conversationUserRelationshipService.getConversationUserRelationship({ conversationId, userId });
+  //     const { conversationUserRelationship: { unreadMessages = [] } } = await this.conversationUserRelationshipService.getConversationUserRelationship({ conversationId, userId });
 
-      await Promise.all(unreadMessages.map((messageId) => this.markMessageRead({ userId, messageId })));
-    } catch (error: unknown) {
-      this.loggerService.error("Error in markConversationRead", { error, params }, this.constructor.name);
+  //     await Promise.all(unreadMessages.map((messageId) => this.markMessageRead({ userId, messageId })));
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in markConversationRead", { error, params }, this.constructor.name);
 
-      throw error;
-    }
-  }
+  //     throw error;
+  //   }
+  // }
 
   private async createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
     try {
@@ -397,9 +397,9 @@ interface MarkMessageUnreadOutput {
   message: Message;
 }
 
-interface MarkConversationReadInput {
-  userId: UserId;
-  conversationId: ConversationId;
-}
+// interface MarkConversationReadInput {
+//   userId: UserId;
+//   conversationId: ConversationId;
+// }
 
-type MarkConversationReadOutput = void;
+// type MarkConversationReadOutput = void;

@@ -63,7 +63,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
 
     const coreTableFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "dynamodb:*" ],
-      resources: [ coreTable.tableArn ],
+      resources: [ coreTable.tableArn, `${coreTable.tableArn}/*` ],
     });
 
     // Environment Variables
@@ -72,6 +72,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       CORE_TABLE_NAME: coreTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
       GSI_TWO_INDEX_NAME: GlobalSecondaryIndex.Two,
+      USER_SIGNED_UP_SNS_TOPIC_ARN: userSignedUpSnsTopicArn,
     };
 
     // User Handlers
@@ -453,7 +454,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
 
     const teamRoutes: RouteProps[] = [
       {
-        path: "users/{userId}/teams",
+        path: "/users/{userId}/teams",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createTeamHandler,
         authorizationScopes: [ "yac/team.write" ],
@@ -486,19 +487,19 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
 
     const friendRoutes: RouteProps[] = [
       {
-        path: "users/{userId}/friends",
+        path: "/users/{userId}/friends",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: addUserAsFriendHandler,
         authorizationScopes: [ "yac/friend.write" ],
       },
       {
-        path: "users/{userId}/friends",
+        path: "/users/{userId}/friends",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getFriendsByUserIdHandler,
         authorizationScopes: [ "yac/user.read", "yac/friend.read" ],
       },
       {
-        path: "users/{userId}/friends/{friendId}",
+        path: "/users/{userId}/friends/{friendId}",
         method: ApiGatewayV2.HttpMethod.DELETE,
         handler: removeUserAsFriendHandler,
         authorizationScopes: [ "yac/friend.delete" ],
@@ -507,7 +508,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
 
     const groupRoutes: RouteProps[] = [
       {
-        path: "users/{userId}/groups",
+        path: "/users/{userId}/groups",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createGroupHandler,
         authorizationScopes: [ "yac/group.write" ],
@@ -519,7 +520,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         authorizationScopes: [ "yac/group.read" ],
       },
       {
-        path: "users/{userId}/groups",
+        path: "/users/{userId}/groups",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getGroupsByUserIdHandler,
         authorizationScopes: [ "yac/user.read", "yac/group.read" ],
@@ -546,13 +547,13 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
 
     const meetingRoutes: RouteProps[] = [
       {
-        path: "users/{userId}/meetings",
+        path: "/users/{userId}/meetings",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createMeetingHandler,
         authorizationScopes: [ "yac/meeting.write" ],
       },
       {
-        path: "meetings/{meetingId}",
+        path: "/meetings/{meetingId}",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingHandler,
         authorizationScopes: [ "yac/meeting.read" ],
@@ -570,7 +571,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         authorizationScopes: [ "yac/meeting.write" ],
       },
       {
-        path: "users/{userId}/meetings",
+        path: "/users/{userId}/meetings",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingsByUserIdHandler,
         authorizationScopes: [ "yac/user.read", "yac/meeting.read" ],
@@ -627,8 +628,6 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         handler: getMessageHandler,
         authorizationScopes: [ "yac/message.read" ],
       },
-      // body params:
-      // seen: <boolean>
       {
         path: "/users/{userId}/messages/{messageId}",
         method: ApiGatewayV2.HttpMethod.PATCH,
@@ -638,9 +637,6 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
     ];
 
     const conversationRoutes: RouteProps[] = [
-      // query params:
-      // type=<all | friend | group | meeting>
-      // unread=<boolean>
       {
         path: "/users/{userId}/conversations",
         method: ApiGatewayV2.HttpMethod.GET,
