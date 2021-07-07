@@ -1,7 +1,6 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { UserServiceInterface, User } from "../services/user.service";
 import { ConversationServiceInterface, GroupConversation } from "../services/conversation.service";
 import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
 import { UserId } from "../types/userId.type";
@@ -13,7 +12,6 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
-    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
   ) {}
 
@@ -126,31 +124,6 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
     }
   }
 
-  public async getUsersByGroupId(params: GetUsersByGroupIdInput): Promise<GetUsersByGroupIdOutput> {
-    try {
-      this.loggerService.trace("getUsersByGroupId called", { params }, this.constructor.name);
-
-      const { groupId, exclusiveStartKey } = params;
-
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByConversationId({
-        conversationId: groupId,
-        exclusiveStartKey,
-      });
-
-      const userIds = conversationUserRelationships.map((relationship) => relationship.userId);
-
-      const { users } = await this.userService.getUsers({ userIds });
-
-      const usersWithRoles: WithRole<User>[] = users.map((user, i) => ({ ...user, role: conversationUserRelationships[i].role }));
-
-      return { users: usersWithRoles, lastEvaluatedKey };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByGroupId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
   public async getGroupsByUserId(params: GetGroupsByUserIdInput): Promise<GetGroupsByUserIdOutput> {
     try {
       this.loggerService.trace("getGroupsByUserId called", { params }, this.constructor.name);
@@ -246,7 +219,6 @@ export interface GroupMediatorServiceInterface {
   deleteGroup(params: DeleteGroupInput): Promise<DeleteGroupOutput>;
   addUserToGroup(params: AddUserToGroupInput): Promise<AddUserToGroupOutput>;
   removeUserFromGroup(params: RemoveUserFromGroupInput): Promise<RemoveUserFromGroupOutput>;
-  getUsersByGroupId(params: GetUsersByGroupIdInput): Promise<GetUsersByGroupIdOutput>;
   getGroupsByUserId(params: GetGroupsByUserIdInput): Promise<GetGroupsByUserIdOutput>;
   getGroupsByTeamId(params: GetGroupsByTeamIdInput): Promise<GetGroupsByTeamIdOutput>;
   isGroupMember(params: IsGroupMemberInput): Promise<IsGroupMemberOutput>;
@@ -296,16 +268,6 @@ export interface RemoveUserFromGroupInput {
 }
 
 export type RemoveUserFromGroupOutput = void;
-
-export interface GetUsersByGroupIdInput {
-  groupId: GroupId;
-  exclusiveStartKey?: string;
-}
-
-export interface GetUsersByGroupIdOutput {
-  users: WithRole<User>[];
-  lastEvaluatedKey?: string;
-}
 
 export interface GetGroupsByUserIdInput {
   userId: UserId;

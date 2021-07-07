@@ -1,10 +1,11 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, WithRole } from "@yac/core";
+import { LoggerServiceInterface, NotFoundError, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationServiceInterface, Conversation as ConversationEntity } from "../services/conversation.service";
 import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
 import { UserId } from "../types/userId.type";
 import { ConversationType } from "../enums/conversationType.enum";
+import { ConversationId } from "../types/conversationId.type";
 
 @injectable()
 export class ConversationMediatorService implements ConversationMediatorServiceInterface {
@@ -35,10 +36,33 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       throw error;
     }
   }
+
+  public async isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput> {
+    try {
+      this.loggerService.trace("isConversationMember called", { params }, this.constructor.name);
+
+      const { conversationId, userId } = params;
+
+      await this.conversationUserRelationshipService.getConversationUserRelationship({
+        conversationId,
+        userId,
+      });
+
+      return { isConversationMember: true };
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        return { isConversationMember: false };
+      }
+      this.loggerService.error("Error in isConversationMember", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface ConversationMediatorServiceInterface {
   getConversationsByUserId(params: GetConversationsByUserIdInput): Promise<GetConversationsByUserIdOutput>;
+  isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
 }
 
 export type Conversation = ConversationEntity;
@@ -53,4 +77,13 @@ export interface GetConversationsByUserIdInput {
 export interface GetConversationsByUserIdOutput {
   conversations: WithRole<Conversation>[];
   lastEvaluatedKey?: string;
+}
+
+export interface IsConversationMemberInput {
+  conversationId: ConversationId;
+  userId: UserId;
+}
+
+export interface IsConversationMemberOutput {
+  isConversationMember: boolean;
 }

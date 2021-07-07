@@ -9,13 +9,14 @@ import { AddUserToMeetingDto } from "../dtos/addUserToMeeting.dto";
 import { RemoveUserFromMeetingDto } from "../dtos/removeUserFromMeeting.dto";
 import { GetMeetingsByUserIdDto } from "../dtos/getMeetingsByUserId.dto";
 import { GetMeetingsByTeamIdDto } from "../dtos/getMeetingsByTeamId.dto";
-import { GetUsersByMeetingIdDto } from "../dtos/getUsersByMeetingId.dto";
+import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 @injectable()
 export class MeetingController extends BaseController implements MeetingControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
+    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
   ) {
     super();
   }
@@ -34,7 +35,13 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      // add validation for teamAdmin if teamId truthy
+      if (teamId) {
+        const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId });
+
+        if (!isTeamAdmin) {
+          throw new ForbiddenError("Forbidden");
+        }
+      }
 
       const { meeting } = await this.meetingMediatorService.createMeeting({ name, createdBy: userId, dueDate, teamId });
 
@@ -151,43 +158,22 @@ export class MeetingController extends BaseController implements MeetingControll
       this.loggerService.trace("getMeetingsByTeamId called", { request }, this.constructor.name);
 
       const {
+        jwtId,
         pathParameters: { teamId },
         queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetMeetingsByTeamIdDto, request, getUserIdFromJwt: true });
 
-      // add teamMembership validaton
+      const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
+
+      if (!isTeamAdmin) {
+        throw new ForbiddenError("Forbidden");
+      }
 
       const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByTeamId({ teamId, exclusiveStartKey });
 
       return this.generateSuccessResponse({ meetings, lastEvaluatedKey });
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingsByTeamId", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
-  }
-
-  public async getUsersByMeetingId(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("getUsersByMeetingId called", { request }, this.constructor.name);
-
-      const {
-        jwtId,
-        pathParameters: { meetingId },
-        queryStringParameters: { exclusiveStartKey },
-      } = this.validationService.validate({ dto: GetUsersByMeetingIdDto, request, getUserIdFromJwt: true });
-
-      const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
-
-      if (!isMeetingMember) {
-        throw new ForbiddenError("Forbidden");
-      }
-
-      const { users, lastEvaluatedKey } = await this.meetingMediatorService.getUsersByMeetingId({ meetingId, exclusiveStartKey });
-
-      return this.generateSuccessResponse({ users, lastEvaluatedKey });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByMeetingId", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -201,5 +187,4 @@ export interface MeetingControllerInterface {
   removeUserFromMeeting(request: Request): Promise<Response>;
   getMeetingsByUserId(request: Request): Promise<Response>;
   getMeetingsByTeamId(request: Request): Promise<Response>;
-  getUsersByMeetingId(request: Request): Promise<Response>
 }

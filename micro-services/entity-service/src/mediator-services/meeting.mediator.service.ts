@@ -1,7 +1,6 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { UserServiceInterface, User } from "../services/user.service";
 import { ConversationServiceInterface, MeetingConversation } from "../services/conversation.service";
 import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
 import { UserId } from "../types/userId.type";
@@ -13,7 +12,6 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
-    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
   ) {}
 
@@ -127,31 +125,6 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
     }
   }
 
-  public async getUsersByMeetingId(params: GetUsersByMeetingIdInput): Promise<GetUsersByMeetingIdOutput> {
-    try {
-      this.loggerService.trace("getUsersByMeetingId called", { params }, this.constructor.name);
-
-      const { meetingId, exclusiveStartKey } = params;
-
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByConversationId({
-        conversationId: meetingId,
-        exclusiveStartKey,
-      });
-
-      const userIds = conversationUserRelationships.map((relationship) => relationship.userId);
-
-      const { users } = await this.userService.getUsers({ userIds });
-
-      const usersWithRoles: WithRole<User>[] = users.map((user, i) => ({ ...user, role: conversationUserRelationships[i].role }));
-
-      return { users: usersWithRoles, lastEvaluatedKey };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByMeetingId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
   public async getMeetingsByUserId(params: GetMeetingsByUserIdInput): Promise<GetMeetingsByUserIdOutput> {
     try {
       this.loggerService.trace("getMeetingsByUserId called", { params }, this.constructor.name);
@@ -247,7 +220,6 @@ export interface MeetingMediatorServiceInterface {
   deleteMeeting(params: DeleteMeetingInput): Promise<DeleteMeetingOutput>;
   addUserToMeeting(params: AddUserToMeetingInput): Promise<AddUserToMeetingOutput>;
   removeUserFromMeeting(params: RemoveUserFromMeetingInput): Promise<RemoveUserFromMeetingOutput>;
-  getUsersByMeetingId(params: GetUsersByMeetingIdInput): Promise<GetUsersByMeetingIdOutput>;
   getMeetingsByUserId(params: GetMeetingsByUserIdInput): Promise<GetMeetingsByUserIdOutput>;
   getMeetingsByTeamId(params: GetMeetingsByTeamIdInput): Promise<GetMeetingsByTeamIdOutput>;
   isMeetingMember(params: IsMeetingMemberInput): Promise<IsMeetingMemberOutput>;
@@ -298,16 +270,6 @@ export interface RemoveUserFromMeetingInput {
 }
 
 export type RemoveUserFromMeetingOutput = void;
-
-export interface GetUsersByMeetingIdInput {
-  meetingId: MeetingId;
-  exclusiveStartKey?: string;
-}
-
-export interface GetUsersByMeetingIdOutput {
-  users: WithRole<User>[];
-  lastEvaluatedKey?: string;
-}
 
 export interface GetMeetingsByUserIdInput {
   userId: UserId;

@@ -11,12 +11,18 @@ import { GetMessagesByByGroupIdDto } from "../dtos/getMessagesByGroupid.dto";
 import { GetMessagesByByMeetingIdDto } from "../dtos/getMessagesByMeetingId.dto";
 import { GetMessageDto } from "../dtos/getMessage.dto";
 import { UpdateMessageByUserIdDto } from "../dtos/updateMessageByUserId.dto";
+import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
+import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
+import { ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
 @injectable()
 export class MessageController extends BaseController implements MessageControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
+    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
+    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
+    @inject(TYPES.ConversationMediatorServiceInterface) private conversationMediatorService: ConversationMediatorServiceInterface,
   ) {
     super();
   }
@@ -55,7 +61,11 @@ export class MessageController extends BaseController implements MessageControll
         body: { transcript },
       } = this.validationService.validate({ dto: CreateGroupMessageDto, request, getUserIdFromJwt: true });
 
-      // add group membership validation
+      const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
+
+      if (!isGroupMember) {
+        throw new ForbiddenError("Forbidden");
+      }
 
       const { message } = await this.messageMediatorService.createGroupMessage({ groupId, from: jwtId, transcript });
 
@@ -77,7 +87,11 @@ export class MessageController extends BaseController implements MessageControll
         body: { transcript },
       } = this.validationService.validate({ dto: CreateMeetingMessageDto, request, getUserIdFromJwt: true });
 
-      // add group membership validation
+      const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
+
+      if (!isMeetingMember) {
+        throw new ForbiddenError("Forbidden");
+      }
 
       const { message } = await this.messageMediatorService.createMeetingMessage({ meetingId, from: jwtId, transcript });
 
@@ -97,6 +111,7 @@ export class MessageController extends BaseController implements MessageControll
         jwtId,
         pathParameters: { userId, friendId },
       } = this.validationService.validate({ dto: GetMessagesByUserAndFriendIdsDto, request, getUserIdFromJwt: true });
+
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
@@ -121,7 +136,11 @@ export class MessageController extends BaseController implements MessageControll
         queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetMessagesByByGroupIdDto, request, getUserIdFromJwt: true });
 
-      // add group membership validation
+      const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
+
+      if (!isGroupMember) {
+        throw new ForbiddenError("Forbidden");
+      }
 
       const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByGroupId({ groupId, exclusiveStartKey });
 
@@ -143,11 +162,15 @@ export class MessageController extends BaseController implements MessageControll
         queryStringParameters: { exclusiveStartKey },
       } = this.validationService.validate({ dto: GetMessagesByByMeetingIdDto, request, getUserIdFromJwt: true });
 
-      // add meeting membership validation
+      const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
+
+      if (!isMeetingMember) {
+        throw new ForbiddenError("Forbidden");
+      }
 
       const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByMeetingId({ meetingId, exclusiveStartKey });
 
-      return this.generateSuccessResponse({ messages });
+      return this.generateSuccessResponse({ messages, lastEvaluatedKey });
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByMeetingId", { error, request }, this.constructor.name);
 
@@ -164,9 +187,13 @@ export class MessageController extends BaseController implements MessageControll
         pathParameters: { messageId },
       } = this.validationService.validate({ dto: GetMessageDto, request, getUserIdFromJwt: true });
 
-      // add conversation member validation
-
       const { message } = await this.messageMediatorService.getMessage({ messageId });
+
+      const { isConversationMember } = await this.conversationMediatorService.isConversationMember({ conversationId: message.conversationId, userId: jwtId });
+
+      if (!isConversationMember) {
+        throw new ForbiddenError("Forbidden");
+      }
 
       return this.generateSuccessResponse({ message });
     } catch (error: unknown) {
@@ -190,11 +217,17 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      // add conversation member validation
+      const { message } = await this.messageMediatorService.getMessage({ messageId });
 
-      const { message } = await this.messageMediatorService.updateMessageByUserId({ userId, messageId, updates: body });
+      const { isConversationMember } = await this.conversationMediatorService.isConversationMember({ conversationId: message.conversationId, userId: jwtId });
 
-      return this.generateSuccessResponse({ message });
+      if (!isConversationMember) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { message: updatedMessage } = await this.messageMediatorService.updateMessageByUserId({ userId, messageId, updates: body });
+
+      return this.generateSuccessResponse({ message: updatedMessage });
     } catch (error: unknown) {
       this.loggerService.error("Error in updateMessageByUserId", { error, request }, this.constructor.name);
 

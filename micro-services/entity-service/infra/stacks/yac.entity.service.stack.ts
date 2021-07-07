@@ -429,7 +429,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUserHandler,
-        authorizationScopes: [ "yac/team.read" ],
+        authorizationScopes: [ "yac/user.read" ],
       },
       {
         path: "/teams/{teamId}/users",
@@ -579,7 +579,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         path: "/teams/{teamId}/meetings",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingsByTeamIdHandler,
-        authorizationScopes: [ "yac/team.read", "yac/group.read" ],
+        authorizationScopes: [ "yac/team.read", "yac/meeting.read" ],
       },
     ];
 
@@ -606,7 +606,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         path: "/groups/{groupId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessagesByGroupIdHandler,
-        authorizationScopes: [ "yac/conversation.read", "yac/message.read" ],
+        authorizationScopes: [ "yac/group.read", "yac/message.read" ],
       },
       {
         path: "/meetings/{meetingId}/messages",
@@ -618,7 +618,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         path: "/meetings/{meetingId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessagesByMeetingIdHandler,
-        authorizationScopes: [ "yac/conversation.read", "yac/message.read" ],
+        authorizationScopes: [ "yac/meeting.read", "yac/message.read" ],
       },
 
       {

@@ -28,6 +28,7 @@ import { FriendshipMediatorService, FriendshipMediatorServiceInterface } from ".
 import { GroupMediatorService, GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { MeetingMediatorService, MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { MessageMediatorService, MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
+import { UserMediatorService, UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 
 const container = new Container();
 
@@ -53,6 +54,7 @@ try {
   container.bind<MeetingMediatorServiceInterface>(TYPES.MeetingMediatorServiceInterface).to(MeetingMediatorService);
   container.bind<MessageMediatorServiceInterface>(TYPES.MessageMediatorServiceInterface).to(MessageMediatorService);
   container.bind<TeamMediatorServiceInterface>(TYPES.TeamMediatorServiceInterface).to(TeamMediatorService);
+  container.bind<UserMediatorServiceInterface>(TYPES.UserMediatorServiceInterface).to(UserMediatorService);
 
   // Processor Services
   container.bind<SnsProcessorServiceInterface>(TYPES.UserSignedUpProcessorServiceInterface).to(UserSignedUpProcessorService);

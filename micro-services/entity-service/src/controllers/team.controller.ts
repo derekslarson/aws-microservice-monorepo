@@ -145,32 +145,6 @@ export class TeamController extends BaseController implements TeamControllerInte
       return this.generateErrorResponse(error);
     }
   }
-
-  public async getUsersByTeamId(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("getUsersByTeamId called", { request }, this.constructor.name);
-
-      const {
-        jwtId,
-        pathParameters: { teamId },
-        queryStringParameters: { exclusiveStartKey },
-      } = this.validationService.validate({ dto: GetUsersByTeamIdDto, request, getUserIdFromJwt: true });
-
-      const { isTeamMember } = await this.teamMediatorService.isTeamMember({ teamId, userId: jwtId });
-
-      if (!isTeamMember) {
-        throw new ForbiddenError("Forbidden");
-      }
-
-      const { users, lastEvaluatedKey } = await this.teamMediatorService.getUsersByTeamId({ teamId, exclusiveStartKey });
-
-      return this.generateSuccessResponse({ users, lastEvaluatedKey });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByTeamId", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
-  }
 }
 
 export interface TeamControllerInterface {
@@ -179,5 +153,4 @@ export interface TeamControllerInterface {
   addUserToTeam(request: Request): Promise<Response>;
   removeUserFromTeam(request: Request): Promise<Response>;
   getTeamsByUserId(request: Request): Promise<Response>;
-  getUsersByTeamId(request: Request): Promise<Response>
 }

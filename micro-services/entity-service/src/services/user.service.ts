@@ -77,6 +77,7 @@ export class UserService implements UserServiceInterface {
 }
 
 export type User = UserEntity;
+
 export interface UserServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;

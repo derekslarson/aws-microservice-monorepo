@@ -19,6 +19,7 @@ const TYPES = {
   MeetingMediatorServiceInterface: Symbol.for("MeetingMediatorServiceInterface"),
   MessageMediatorServiceInterface: Symbol.for("MessageMediatorServiceInterface"),
   TeamMediatorServiceInterface: Symbol.for("TeamMediatorServiceInterface"),
+  UserMediatorServiceInterface: Symbol.for("UserMediatorServiceInterface"),
 
   // Processor Services
   UserSignedUpProcessorServiceInterface: Symbol.for("UserSignedUpProcessorServiceInterface"),

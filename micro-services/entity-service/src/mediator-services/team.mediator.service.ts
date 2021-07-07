@@ -1,7 +1,6 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { UserServiceInterface, User as UserEntity } from "../services/user.service";
 import { TeamServiceInterface, Team as TeamEntity } from "../services/team.service";
 import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../services/teamUserRelationship.service";
 import { UserId } from "../types/userId.type";
@@ -11,7 +10,6 @@ import { TeamId } from "../types/teamId.type";
 export class TeamMediatorService implements TeamMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
     @inject(TYPES.TeamUserRelationshipServiceInterface) private teamUserRelationshipService: TeamUserRelationshipServiceInterface,
   ) {}
@@ -77,28 +75,6 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
       await this.teamUserRelationshipService.deleteTeamUserRelationship({ teamId, userId });
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromTeam", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getUsersByTeamId(params: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput> {
-    try {
-      this.loggerService.trace("getUsersByTeamId called", { params }, this.constructor.name);
-
-      const { teamId, exclusiveStartKey } = params;
-
-      const { teamUserRelationships, lastEvaluatedKey } = await this.teamUserRelationshipService.getTeamUserRelationshipsByTeamId({ teamId, exclusiveStartKey });
-
-      const userIds = teamUserRelationships.map((relationship) => relationship.userId);
-
-      const { users } = await this.userService.getUsers({ userIds });
-
-      const usersWithRoles = users.map((user, i) => ({ ...user, role: teamUserRelationships[i].role }));
-
-      return { users: usersWithRoles, lastEvaluatedKey };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByTeamId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -170,14 +146,12 @@ export interface TeamMediatorServiceInterface {
   getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
   addUserToTeam(params: AddUserToTeamInput): Promise<AddUserToTeamOutput>;
   removeUserFromTeam(params: RemoveUserFromTeamInput): Promise<RemoveUserFromTeamOutput>;
-  getUsersByTeamId(params: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput>;
   getTeamsByUserId(params: GetTeamsByUserIdInput): Promise<GetTeamsByUserIdOutput>;
   isTeamMember(params: IsTeamMemberInput): Promise<IsTeamMemberOutput>;
   isTeamAdmin(params: IsTeamAdminInput): Promise<IsTeamAdminOutput>;
 }
 
 export type Team = TeamEntity;
-export type User = UserEntity;
 export type TeamUserRelationship = TeamUserRelationshipEntity;
 
 export interface CreateTeamInput {
@@ -213,15 +187,6 @@ export interface RemoveUserFromTeamInput {
 }
 
 export type RemoveUserFromTeamOutput = void;
-export interface GetUsersByTeamIdInput {
-  teamId: TeamId;
-  exclusiveStartKey?: string;
-}
-
-export interface GetUsersByTeamIdOutput {
-  users: WithRole<User>[];
-  lastEvaluatedKey?: string;
-}
 
 export interface GetTeamsByUserIdInput {
   userId: UserId;

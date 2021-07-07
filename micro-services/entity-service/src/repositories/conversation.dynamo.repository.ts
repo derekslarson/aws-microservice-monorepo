@@ -153,7 +153,7 @@ export interface Conversation {
   id: ConversationId;
   type: ConversationType;
   createdAt: string;
-  teamId?: string;
+  teamId?: TeamId;
 }
 export interface CreateConversationInput {
   conversation: Conversation;
