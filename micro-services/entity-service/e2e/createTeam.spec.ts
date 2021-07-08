@@ -106,7 +106,7 @@ describe("POST /users/{user.id}/teams", () => {
         const headers = {};
 
         try {
-          await axios.post<{ team: Team; }>(`${baseUrl}/users/${user.id}/teams`, body, { headers });
+          await axios.post(`${baseUrl}/users/${user.id}/teams`, body, { headers });
 
           fail("Expected an error");
         } catch (error: unknown) {
@@ -118,21 +118,43 @@ describe("POST /users/{user.id}/teams", () => {
       });
     });
 
-    describe("when passed an invalid user.id in the path", () => {
+    describe("when passed an invalid userId in the path", () => {
       it("throws a 400 error with a valid structure", async () => {
         const name = generateRandomString(5);
         const body = { name };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post<{ team: Team; }>(`${baseUrl}/users/test/teams`, body, { headers });
+          await axios.post(`${baseUrl}/users/test/teams`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
-          expect(error.response?.data.message).toBe("Error validating request");
-          expect(error.response?.data.validationErrors.pathParameters.userId).toBe("Failed constraint check for string: Must be a user id");
+          expect(error.response?.data).toEqual({
+            message: "Error validating request",
+            validationErrors: { pathParameters: { userId: "Failed constraint check for string: Must be a user id" } },
+          });
+        }
+      });
+    });
+
+    describe("when passed an invalid body", () => {
+      it("throws a 400 error with a valid structure", async () => {
+        const body = {};
+        const headers = { Authorization: `Bearer ${accessToken}` };
+
+        try {
+          await axios.post(`${baseUrl}/users/${user.id}/teams`, body, { headers });
+
+          fail("Expected an error");
+        } catch (error) {
+          expect(error.response?.status).toBe(400);
+          expect(error.response?.statusText).toBe("Bad Request");
+          expect(error.response?.data).toEqual({
+            message: "Error validating request",
+            validationErrors: { body: { name: "Expected string, but was missing" } },
+          });
         }
       });
     });
