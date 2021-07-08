@@ -8,8 +8,10 @@
     "build:prod": "yarn clean && webpack --bail --config ../../config/webpack/webpack.config.release.js && yarn build:layer",
     "build:layer": "ts-node ../../config/layer/buildLayer.ts",
     "build:unit-tests": "yarn clean:unit-tests && tsc --project tsconfig.test.json",
+    "build:e2e-tests": "yarn clean:unit-tests && tsc --project tsconfig.e2e.test.json",
     "clean": "rm -rf ./dist",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
+    "clean:e2e-tests":  "rm -rf ./compiled_e2e_tests",
     "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",
     "synth:dev": "cdk synth --context environment=dev",
     "synth:stage": "cdk synth --context environment=stage",
@@ -21,6 +23,7 @@
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
     "nyc": "nyc node ../../config/jasmine/jasmine.runner.js",
     "nyc:coverage-report": "nyc node ../../config/jasmine/jasmine.runner.js --reporter html --reporter text -t coverage --report-dir coverage/summary",
+    "test:e2e": "yarn clean:e2e-tests && yarn build:e2e-tests && ts-node ./e2e/runner.ts",
     "test:unit": "yarn clean:unit-tests && yarn build:unit-tests && yarn nyc"
   },
   "devDependencies": {
@@ -62,6 +65,7 @@
   "dependencies": {
     "@yac/core": "0.1.0",
     "aws-sdk": "^2.783.0",
+    "axios": "^0.21.1",
     "inversify": "^5.0.1",
     "reflect-metadata": "^0.1.13",
     "runtypes": "^6.3.1",

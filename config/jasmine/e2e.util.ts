@@ -60,6 +60,10 @@ export function setEnvVars(vars: Record<string, string>): void {
   }
 }
 
+export function generateRandomString(length = 8): string {
+  return crypto.randomBytes(length / 2).toString("hex");
+}
+
 function createSecretHash(email: string): string {
   return crypto.createHmac("SHA256", process.env["yac-client-secret"] as string).update(`${email}${process.env["yac-client-id"] as string}`).digest("base64");
 }
@@ -169,7 +173,7 @@ export async function getAccessTokenByEmail(email: string): Promise<{ accessToke
 
 export async function createRandomUser(): Promise<{ id: string; email: string; }> {
   try {
-    const email = `${crypto.randomBytes(4).toString("hex")}@${crypto.randomBytes(4).toString("hex")}.com`;
+    const email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
 
     const { UserSub } = await cognito.signUp({
       ClientId: process.env["yac-client-id"] as string,
