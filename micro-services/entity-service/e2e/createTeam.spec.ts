@@ -7,7 +7,7 @@ import { Team } from "../src/mediator-services/team.mediator.service";
 import { EntityType } from "../src/enums/entityType.enum";
 import { User } from "../src/mediator-services/user.mediator.service";
 
-describe("POST /users/{user.id}/teams", () => {
+describe("POST /users/{userId}/teams", () => {
   const environment = process.env.environment as string;
   const baseUrl = `https://${environment}.yacchat.com/entity-service`;
 
