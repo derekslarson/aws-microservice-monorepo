@@ -6,6 +6,8 @@ import { UserId } from "../src/types/userId.type";
 
 describe("POST /users/{userId}/teams", () => {
   const environment = process.env.environment as string;
+  const baseUrl = `https://${environment}.yacchat.com/entity-service`;
+
   let jwt: string;
   let userId: UserId;
 
@@ -24,7 +26,7 @@ describe("POST /users/{userId}/teams", () => {
       const headers = { Authorization: `Bearer ${jwt}` };
 
       try {
-        const { data } = await axios.post<{ team: Team; }>(`https://${environment}.yacchat.com/entity-service/users/${userId}/teams`, body, { headers });
+        const { data } = await axios.post<{ team: Team; }>(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
         expect(data.team).toBeDefined();
         expect(data.team.id).toMatch(/team-.*/);

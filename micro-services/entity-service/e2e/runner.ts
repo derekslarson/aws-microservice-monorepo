@@ -5,7 +5,6 @@ import "reflect-metadata";
 import Jasmine from "jasmine";
 import { SpecReporter } from "jasmine-spec-reporter";
 import yargs from "yargs/yargs";
-
 import { hideBin } from "yargs/helpers";
 import { getSsmParameters, setEnvVars } from "../../../config/jasmine/e2e.util";
 
