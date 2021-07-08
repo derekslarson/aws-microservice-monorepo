@@ -2,10 +2,10 @@
 import jasmine from "jasmine";
 import axios, { AxiosError } from "axios";
 import { Role } from "@yac/core";
-import { createRandomUser, getAccessTokenByEmail, generateRandomString, documentClient } from "../../../config/jasmine/e2e.util";
-import { Team } from "../src/mediator-services/team.mediator.service";
-import { EntityType } from "../src/enums/entityType.enum";
-import { User } from "../src/mediator-services/user.mediator.service";
+import { createRandomUser, getAccessTokenByEmail, generateRandomString, documentClient } from "../../../../config/jasmine/e2e.util";
+import { Team } from "../../src/mediator-services/team.mediator.service";
+import { EntityType } from "../../src/enums/entityType.enum";
+import { User } from "../../src/mediator-services/user.mediator.service";
 
 describe("POST /users/{userId}/teams", () => {
   const environment = process.env.environment as string;
