@@ -218,7 +218,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "signUp.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement, userSignedUpSnsPublishPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -281,6 +281,16 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const postConfirmationHandler = new Lambda.Function(this, `PostConfirmationHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/postConfirmation"),
+      handler: "postConfirmation.handler",
+      environment: environmentVariables,
+      layers: [ dependencyLayer ],
+      initialPolicy: [ ...basePolicy, userSignedUpSnsPublishPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const defineAuthChallengeHandler = new Lambda.Function(this, `DefineAuthChallengeHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/defineAuthChallenge"),
@@ -313,6 +323,11 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       sourceArn: userPool.userPoolArn,
     });
 
+    postConfirmationHandler.addPermission(`UserPoolPostConfirmationPermission-${id}`, {
+      principal: new IAM.ServicePrincipal("cognito-idp.amazonaws.com"),
+      sourceArn: userPool.userPoolArn,
+    });
+
     defineAuthChallengeHandler.addPermission(`UserPoolDefineAuthChallengePermission-${id}`, {
       principal: new IAM.ServicePrincipal("cognito-idp.amazonaws.com"),
       sourceArn: userPool.userPoolArn,
@@ -338,6 +353,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
           UserPoolId: userPool.userPoolId,
           LambdaConfig: {
             PreSignUp: preSignUpHandler.functionArn,
+            PostConfirmation: postConfirmationHandler.functionArn,
             DefineAuthChallenge: defineAuthChallengeHandler.functionArn,
             CreateAuthChallenge: createAuthChallengeHandler.functionArn,
             VerifyAuthChallengeResponse: verifyAuthChallengeResponseHandler.functionArn,
@@ -427,6 +443,26 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     routes.forEach((route) => this.httpApi.addRoute(route));
     proxyRoutes.forEach((route) => this.httpApi.addProxyRoute(route));
+
+    new SSM.StringParameter(this, `YacClientIdSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/yac-client-id`,
+      stringValue: yacUserPoolClient.userPoolClientId,
+    });
+
+    new SSM.StringParameter(this, `YacClientSecretSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/yac-client-secret`,
+      stringValue: yacUserPoolClientSecret,
+    });
+
+    new SSM.StringParameter(this, `YacClientRedirectUriSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/yac-client-redirect-uri`,
+      stringValue: yacUserPoolClientRedirectUri,
+    });
+
+    new SSM.StringParameter(this, `UserPoolDomainUrlSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/user-pool-domain-url`,
+      stringValue: userPoolDomainUrl,
+    });
 
     new CDK.CfnOutput(this, `YacUserPoolClientId-${id}`, {
       exportName: ExportNames.YacUserPoolClientId,

@@ -79,7 +79,7 @@ describe("AuthenticationService", () => {
     crypto.randomDigits.and.returnValue(mockRandomDigits);
     crypto.createHmac.and.returnValue(hmac);
 
-    authenticationService = new AuthenticationService(mockConfig, loggerService, mailService, httpRequestService, userSignedUpSnsService, cognitoFactory, cryptoFactory);
+    authenticationService = new AuthenticationService(mockConfig, loggerService, mailService, httpRequestService, cognitoFactory, cryptoFactory);
   });
 
   describe("signUp", () => {

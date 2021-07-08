@@ -95,6 +95,11 @@ export class YacCoreServiceStack extends CDK.Stack {
       removalPolicy: CDK.RemovalPolicy.DESTROY,
     });
 
+    new SSM.StringParameter(this, `UserPoolIdSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/user-pool-id`,
+      stringValue: userPool.userPoolId,
+    });
+
     new CDK.CfnOutput(this, `${id}-CustomDomainNameExport`, {
       exportName: ExportNames.CustomDomainName,
       value: domainName.name,

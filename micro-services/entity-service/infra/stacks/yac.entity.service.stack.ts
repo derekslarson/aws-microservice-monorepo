@@ -4,6 +4,7 @@ import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import * as SSM from "@aws-cdk/aws-ssm";
 import {
   Environment,
   generateExportNames,
@@ -656,5 +657,10 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
     ];
 
     routes.forEach((route) => this.httpApi.addRoute(route));
+
+    new SSM.StringParameter(this, `UserPoolDomainUrlSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/core-table-name`,
+      stringValue: coreTable.tableName,
+    });
   }
 }
