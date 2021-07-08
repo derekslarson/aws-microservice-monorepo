@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import jasmine from "jasmine";
 import axios, { AxiosError } from "axios";
 import { Role } from "@yac/core";
 import { createRandomUser, getAccessTokenByEmail, generateRandomString, documentClient } from "../../../../config/jasmine/e2e.util";
@@ -15,8 +14,6 @@ describe("POST /users/{userId}/teams", () => {
   let accessToken: string;
 
   beforeAll(async () => {
-    (jasmine as any).DEFAULT_TIMEOUT_INTERVAL = 15000;
-
     user = await createRandomUser() as User;
 
     ({ accessToken } = await getAccessTokenByEmail(user.email));
@@ -118,10 +115,9 @@ describe("POST /users/{userId}/teams", () => {
       });
     });
 
-    describe("when passed an invalid userId in the path", () => {
+    describe("when passed invalid parameters", () => {
       it("throws a 400 error with a valid structure", async () => {
-        const name = generateRandomString(5);
-        const body = { name };
+        const body = {};
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
@@ -133,27 +129,10 @@ describe("POST /users/{userId}/teams", () => {
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
             message: "Error validating request",
-            validationErrors: { pathParameters: { userId: "Failed constraint check for string: Must be a user id" } },
-          });
-        }
-      });
-    });
-
-    describe("when passed an invalid body", () => {
-      it("throws a 400 error with a valid structure", async () => {
-        const body = {};
-        const headers = { Authorization: `Bearer ${accessToken}` };
-
-        try {
-          await axios.post(`${baseUrl}/users/${user.id}/teams`, body, { headers });
-
-          fail("Expected an error");
-        } catch (error) {
-          expect(error.response?.status).toBe(400);
-          expect(error.response?.statusText).toBe("Bad Request");
-          expect(error.response?.data).toEqual({
-            message: "Error validating request",
-            validationErrors: { body: { name: "Expected string, but was missing" } },
+            validationErrors: {
+              pathParameters: { userId: "Failed constraint check for string: Must be a user id" },
+              body: { name: "Expected string, but was missing" },
+            },
           });
         }
       });

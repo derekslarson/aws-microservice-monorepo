@@ -30,10 +30,10 @@ const necessaryParams = [
 
   setEnvVars(envVars);
 
-  const jasmine = new Jasmine({});
+  const jasmineInstance = new Jasmine({});
   const specReporter = new SpecReporter({ spec: { displayPending: true } });
 
-  jasmine.loadConfig({
+  jasmineInstance.loadConfig({
     spec_dir: "./compiled_e2e_tests",
     spec_files: [
       "**/*[sS]pec.js",
@@ -41,7 +41,8 @@ const necessaryParams = [
     helpers: [],
   });
 
-  jasmine.env.clearReporters();
-  jasmine.env.addReporter(specReporter as unknown as jasmine.Reporter);
-  jasmine.execute();
+  jasmineInstance.env.clearReporters();
+  jasmineInstance.env.addReporter(specReporter as unknown as jasmine.Reporter);
+  jasmine.DEFAULT_TIMEOUT_INTERVAL = 20000;
+  jasmineInstance.execute();
 })();

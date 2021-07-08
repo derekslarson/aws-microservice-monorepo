@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "include": [
-    "./e2e/*.spec.ts"
+    "./e2e/specs/*.spec.ts"
   ],
   "compilerOptions": {
     "outDir": "./compiled_e2e_tests",
