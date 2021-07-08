@@ -6,7 +6,7 @@ import axios from "axios";
 
 const ssm = new SSM({ region: "us-east-1" });
 const cognito = new CognitoIdentityServiceProvider({ region: "us-east-1" });
-const documentClient = new DynamoDB.DocumentClient({ region: "us-east-1" });
+export const documentClient = new DynamoDB.DocumentClient({ region: "us-east-1" });
 
 export async function getSsmParameters(environment: string, paramNames: string[]): Promise<Record<string, string>> {
   try {

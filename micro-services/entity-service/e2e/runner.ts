@@ -4,7 +4,17 @@
 import "reflect-metadata";
 import Jasmine from "jasmine";
 import { SpecReporter } from "jasmine-spec-reporter";
+import yargs from "yargs/yargs";
+
+import { hideBin } from "yargs/helpers";
 import { getSsmParameters, setEnvVars } from "../../../config/jasmine/e2e.util";
+
+const { argv } = yargs(hideBin(process.argv));
+const { environment } = argv as { environment?: string; };
+
+if (!environment) {
+  throw new Error("--environment is required");
+}
 
 const necessaryParams = [
   "secret",
@@ -17,9 +27,10 @@ const necessaryParams = [
 ];
 
 (async () => {
-  const ssmParameters = await getSsmParameters("dereklarson", necessaryParams);
+  const envVars = await getSsmParameters(environment, necessaryParams);
+  envVars.environment = environment;
 
-  setEnvVars(ssmParameters);
+  setEnvVars(envVars);
 
   const jasmine = new Jasmine({});
   const specReporter = new SpecReporter({ spec: { displayPending: true } });
@@ -32,7 +43,6 @@ const necessaryParams = [
     helpers: [],
   });
 
-  (jasmine as any).DEFAULT_TIMEOUT_INTERVAL = 15000;
   jasmine.env.clearReporters();
   jasmine.env.addReporter(specReporter as unknown as jasmine.Reporter);
   jasmine.execute();
