@@ -1,8 +1,8 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamServiceInterface, Team as TeamEntity } from "../services/team.service";
-import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../services/teamUserRelationship.service";
+import { TeamServiceInterface, Team as TeamEntity } from "../entity-services/team.service";
+import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 
@@ -84,9 +84,9 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
     try {
       this.loggerService.trace("getTeamsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey } = params;
+      const { userId, exclusiveStartKey, limit } = params;
 
-      const { teamUserRelationships, lastEvaluatedKey } = await this.teamUserRelationshipService.getTeamUserRelationshipsByUserId({ userId, exclusiveStartKey });
+      const { teamUserRelationships, lastEvaluatedKey } = await this.teamUserRelationshipService.getTeamUserRelationshipsByUserId({ userId, exclusiveStartKey, limit });
 
       const teamIds = teamUserRelationships.map((relationship) => relationship.teamId);
 
@@ -190,6 +190,7 @@ export type RemoveUserFromTeamOutput = void;
 
 export interface GetTeamsByUserIdInput {
   userId: UserId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

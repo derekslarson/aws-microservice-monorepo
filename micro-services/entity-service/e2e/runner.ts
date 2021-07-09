@@ -5,7 +5,7 @@ import Jasmine from "jasmine";
 import { SpecReporter } from "jasmine-spec-reporter";
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
-import { getSsmParameters, setEnvVars } from "../../../config/jasmine/e2e.util";
+import { createRandomUser, getAccessTokenByEmail, getSsmParameters, setEnvVars } from "../../../config/jasmine/e2e.util";
 
 const { argv } = yargs(hideBin(process.argv));
 const { environment } = argv as { environment?: string; };
@@ -25,10 +25,21 @@ const necessaryParams = [
 ];
 
 (async () => {
-  const envVars = await getSsmParameters(environment, necessaryParams);
-  envVars.environment = environment;
+  const initialEnvVals = await getSsmParameters(environment, necessaryParams);
+  initialEnvVals.environment = environment;
 
-  setEnvVars(envVars);
+  setEnvVars(initialEnvVals);
+
+  const { user } = await createRandomUser();
+  const { accessToken } = await getAccessTokenByEmail(user.email);
+
+  const userEnvVars = {
+    userId: user.id,
+    userEmail: user.email,
+    accessToken,
+  };
+
+  setEnvVars(userEnvVars);
 
   const jasmineInstance = new Jasmine({});
   const specReporter = new SpecReporter({ spec: { displayPending: true } });

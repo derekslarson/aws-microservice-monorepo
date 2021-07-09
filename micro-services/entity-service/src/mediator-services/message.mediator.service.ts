@@ -1,14 +1,14 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
-import { MessageServiceInterface, Message as MessageEntity } from "../services/message.service";
+import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
+import { MessageServiceInterface, Message as MessageEntity } from "../entity-services/message.service";
 import { ConversationId } from "../types/conversationId.type";
 import { UserId } from "../types/userId.type";
 import { MessageId } from "../types/messageId.type";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
-import { ConversationServiceInterface } from "../services/conversation.service";
+import { ConversationServiceInterface } from "../entity-services/conversation.service";
 
 @injectable()
 export class MessageMediatorService implements MessageMediatorServiceInterface {
@@ -89,11 +89,11 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("getMessagesByUserAndFriendIds called", { params }, this.constructor.name);
 
-      const { userId, friendId, exclusiveStartKey } = params;
+      const { userId, friendId, exclusiveStartKey, limit } = params;
 
       const { conversation } = await this.conversationService.getFriendConversationByUserIds({ userIds: [ userId, friendId ] });
 
-      const { messages, lastEvaluatedKey } = await this.getMessagesByConversationId({ conversationId: conversation.id, exclusiveStartKey });
+      const { messages, lastEvaluatedKey } = await this.getMessagesByConversationId({ conversationId: conversation.id, exclusiveStartKey, limit });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -107,9 +107,9 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("getMessagesByGroupId called", { params }, this.constructor.name);
 
-      const { groupId, exclusiveStartKey } = params;
+      const { groupId, exclusiveStartKey, limit } = params;
 
-      const { messages, lastEvaluatedKey } = await this.getMessagesByConversationId({ conversationId: groupId, exclusiveStartKey });
+      const { messages, lastEvaluatedKey } = await this.getMessagesByConversationId({ conversationId: groupId, exclusiveStartKey, limit });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -123,9 +123,9 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("getMessagesByMeetingId called", { params }, this.constructor.name);
 
-      const { meetingId, exclusiveStartKey } = params;
+      const { meetingId, exclusiveStartKey, limit } = params;
 
-      const { messages, lastEvaluatedKey } = await this.getMessagesByConversationId({ conversationId: meetingId, exclusiveStartKey });
+      const { messages, lastEvaluatedKey } = await this.getMessagesByConversationId({ conversationId: meetingId, exclusiveStartKey, limit });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -252,9 +252,9 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
 
-      const { conversationId, exclusiveStartKey } = params;
+      const { conversationId, exclusiveStartKey, limit } = params;
 
-      const { messages, lastEvaluatedKey } = await this.messageService.getMessagesByConversationId({ conversationId, exclusiveStartKey });
+      const { messages, lastEvaluatedKey } = await this.messageService.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -319,6 +319,7 @@ export interface GetMessageOutput {
 export interface GetMessagesByUserAndFriendIdsInput {
   userId: UserId;
   friendId: UserId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -329,6 +330,7 @@ export interface GetMessagesByUserAndFriendIdsOutput {
 
 export interface GetMessagesByGroupIdInput {
   groupId: GroupId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -339,6 +341,7 @@ export interface GetMessagesByGroupIdOutput {
 
 export interface GetMessagesByMeetingIdInput {
   meetingId: MeetingId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -371,6 +374,7 @@ interface CreateMessageOutput {
 
 interface GetMessagesByConversationIdInput {
   conversationId: ConversationId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

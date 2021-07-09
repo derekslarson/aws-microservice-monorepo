@@ -1,23 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios, { AxiosError } from "axios";
 import { Role } from "@yac/core";
-import { createRandomUser, getAccessTokenByEmail, generateRandomString, documentClient } from "../../../../config/jasmine/e2e.util";
+import { generateRandomString, documentClient } from "../../../../config/jasmine/e2e.util";
 import { Team } from "../../src/mediator-services/team.mediator.service";
 import { EntityType } from "../../src/enums/entityType.enum";
-import { User } from "../../src/mediator-services/user.mediator.service";
+import { UserId } from "../../src/types/userId.type";
 
-describe("POST /users/{userId}/teams", () => {
+describe("POST /users/{userId}/teams (Create Team)", () => {
   const environment = process.env.environment as string;
   const baseUrl = `https://${environment}.yacchat.com/entity-service`;
 
-  let user: User;
-  let accessToken: string;
-
-  beforeAll(async () => {
-    user = await createRandomUser() as User;
-
-    ({ accessToken } = await getAccessTokenByEmail(user.email));
-  });
+  const userId = process.env.userId as UserId;
+  const accessToken = process.env.accessToken as string;
 
   describe("under normal conditions", () => {
     it("returns a valid response", async () => {
@@ -26,13 +20,13 @@ describe("POST /users/{userId}/teams", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post<{ team: Team; }>(`${baseUrl}/users/${user.id}/teams`, body, { headers });
+        const { status, data } = await axios.post<{ team: Team; }>(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
         expect(status).toBe(201);
         expect(data.team).toBeDefined();
         expect(data.team.id).toMatch(/team-.*/);
         expect(data.team.name).toBe(name);
-        expect(data.team.createdBy).toBe(user.id);
+        expect(data.team.createdBy).toBe(userId);
       } catch (error) {
         fail(error);
       }
@@ -44,7 +38,7 @@ describe("POST /users/{userId}/teams", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { data } = await axios.post<{ team: Team; }>(`${baseUrl}/users/${user.id}/teams`, body, { headers });
+        const { data } = await axios.post<{ team: Team; }>(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
         const getTeamResponse = await documentClient.get({
           TableName: process.env["core-table-name"] as string,
@@ -59,7 +53,7 @@ describe("POST /users/{userId}/teams", () => {
         expect(team.sk).toBe(data.team.id);
         expect(team.id).toBe(data.team.id);
         expect(team.name).toBe(name);
-        expect(team.createdBy).toBe(user.id);
+        expect(team.createdBy).toBe(userId);
       } catch (error) {
         fail(error);
       }
@@ -71,11 +65,11 @@ describe("POST /users/{userId}/teams", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { data } = await axios.post<{ team: Team; }>(`${baseUrl}/users/${user.id}/teams`, body, { headers });
+        const { data } = await axios.post<{ team: Team; }>(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
         const getTeamUserRelationshipResponse = await documentClient.get({
           TableName: process.env["core-table-name"] as string,
-          Key: { pk: data.team.id, sk: user.id },
+          Key: { pk: data.team.id, sk: userId },
         }).promise();
 
         const teamUserRelationship = getTeamUserRelationshipResponse.Item as Record<string, unknown>;
@@ -83,11 +77,11 @@ describe("POST /users/{userId}/teams", () => {
         expect(teamUserRelationship).toBeDefined();
         expect(teamUserRelationship.entityType).toBe(EntityType.TeamUserRelationship);
         expect(teamUserRelationship.pk).toBe(data.team.id);
-        expect(teamUserRelationship.sk).toBe(user.id);
-        expect(teamUserRelationship.gsi1pk).toBe(user.id);
+        expect(teamUserRelationship.sk).toBe(userId);
+        expect(teamUserRelationship.gsi1pk).toBe(userId);
         expect(teamUserRelationship.gsi1sk).toBe(data.team.id);
         expect(teamUserRelationship.teamId).toBe(data.team.id);
-        expect(teamUserRelationship.userId).toBe(user.id);
+        expect(teamUserRelationship.userId).toBe(userId);
         expect(teamUserRelationship.role).toBe(Role.Admin);
       } catch (error) {
         fail(error);
@@ -103,7 +97,7 @@ describe("POST /users/{userId}/teams", () => {
         const headers = {};
 
         try {
-          await axios.post(`${baseUrl}/users/${user.id}/teams`, body, { headers });
+          await axios.post(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
           fail("Expected an error");
         } catch (error: unknown) {

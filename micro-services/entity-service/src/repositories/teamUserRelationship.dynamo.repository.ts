@@ -86,10 +86,11 @@ export class TeamUserRelationshipDynamoRepository extends BaseDynamoRepositoryV2
     try {
       this.loggerService.trace("getTeamUserRelationshipsByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, exclusiveStartKey } = params;
+      const { teamId, exclusiveStartKey, limit } = params;
 
       const { Items: teamUserRelationships, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+        Limit: limit ?? 25,
         KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
         ExpressionAttributeNames: {
           "#pk": "pk",
@@ -116,10 +117,11 @@ export class TeamUserRelationshipDynamoRepository extends BaseDynamoRepositoryV2
     try {
       this.loggerService.trace("getTeamUserRelationshipsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey } = params;
+      const { userId, exclusiveStartKey, limit } = params;
 
       const { Items: teamUserRelationships, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+        Limit: limit ?? 25,
         IndexName: this.gsiOneIndexName,
         KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :team)",
         ExpressionAttributeNames: {
@@ -193,6 +195,7 @@ export type DeleteTeamUserRelationshipOutput = void;
 
 export interface GetTeamUserRelationshipsByTeamIdInput {
   teamId: TeamId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -203,6 +206,7 @@ export interface GetTeamUserRelationshipsByTeamIdOutput {
 
 export interface GetTeamUserRelationshipsByUserIdInput {
   userId: UserId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

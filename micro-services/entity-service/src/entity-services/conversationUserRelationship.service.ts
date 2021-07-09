@@ -104,9 +104,9 @@ export class ConversationUserRelationshipService implements ConversationUserRela
     try {
       this.loggerService.trace("getConversationUserRelationshipsByConversationId called", { params }, this.constructor.name);
 
-      const { conversationId, exclusiveStartKey } = params;
+      const { conversationId, exclusiveStartKey, limit } = params;
 
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipRepository.getConversationUserRelationshipsByConversationId({ conversationId, exclusiveStartKey });
+      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipRepository.getConversationUserRelationshipsByConversationId({ conversationId, exclusiveStartKey, limit });
 
       return { conversationUserRelationships, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -120,9 +120,9 @@ export class ConversationUserRelationshipService implements ConversationUserRela
     try {
       this.loggerService.trace("getConversationUserRelationshipsByUserId called", { params }, this.constructor.name);
 
-      const { userId, type, unread, exclusiveStartKey } = params;
+      const { userId, type, unread, exclusiveStartKey, limit } = params;
 
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipRepository.getConversationUserRelationshipsByUserId({ userId, type, unread, exclusiveStartKey });
+      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipRepository.getConversationUserRelationshipsByUserId({ userId, type, unread, exclusiveStartKey, limit });
 
       return { conversationUserRelationships, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -182,6 +182,7 @@ export type DeleteConversationUserRelationshipOutput = void;
 
 export interface GetConversationUserRelationshipsByConversationIdInput {
   conversationId: ConversationId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -194,6 +195,7 @@ export interface GetConversationUserRelationshipsByUserIdInput {
   userId: UserId;
   unread?: boolean;
   type?: ConversationType;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

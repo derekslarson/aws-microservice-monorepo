@@ -1,13 +1,13 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { UserServiceInterface, User as UserEntity } from "../services/user.service";
-import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../services/teamUserRelationship.service";
+import { UserServiceInterface, User as UserEntity } from "../entity-services/user.service";
+import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
-import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
+import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
 
 @injectable()
 export class UserMediatorService implements UserMediatorServiceInterface {
@@ -38,9 +38,9 @@ export class UserMediatorService implements UserMediatorServiceInterface {
     try {
       this.loggerService.trace("getUsersByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, exclusiveStartKey } = params;
+      const { teamId, exclusiveStartKey, limit } = params;
 
-      const { teamUserRelationships, lastEvaluatedKey } = await this.teamUserRelationshipService.getTeamUserRelationshipsByTeamId({ teamId, exclusiveStartKey });
+      const { teamUserRelationships, lastEvaluatedKey } = await this.teamUserRelationshipService.getTeamUserRelationshipsByTeamId({ teamId, exclusiveStartKey, limit });
 
       const userIds = teamUserRelationships.map((relationship) => relationship.userId);
 
@@ -60,11 +60,12 @@ export class UserMediatorService implements UserMediatorServiceInterface {
     try {
       this.loggerService.trace("getUsersByGroupId called", { params }, this.constructor.name);
 
-      const { groupId, exclusiveStartKey } = params;
+      const { groupId, exclusiveStartKey, limit } = params;
 
       const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByConversationId({
         conversationId: groupId,
         exclusiveStartKey,
+        limit,
       });
 
       const userIds = conversationUserRelationships.map((relationship) => relationship.userId);
@@ -85,11 +86,12 @@ export class UserMediatorService implements UserMediatorServiceInterface {
     try {
       this.loggerService.trace("getUsersByMeetingId called", { params }, this.constructor.name);
 
-      const { meetingId, exclusiveStartKey } = params;
+      const { meetingId, exclusiveStartKey, limit } = params;
 
       const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByConversationId({
         conversationId: meetingId,
         exclusiveStartKey,
+        limit,
       });
 
       const userIds = conversationUserRelationships.map((relationship) => relationship.userId);
@@ -127,6 +129,7 @@ export interface GetUserOutput {
 
 export interface GetUsersByTeamIdInput {
   teamId: TeamId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -137,6 +140,7 @@ export interface GetUsersByTeamIdOutput {
 
 export interface GetUsersByGroupIdInput {
   groupId: GroupId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -147,6 +151,7 @@ export interface GetUsersByGroupIdOutput {
 
 export interface GetUsersByMeetingIdInput {
   meetingId: MeetingId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

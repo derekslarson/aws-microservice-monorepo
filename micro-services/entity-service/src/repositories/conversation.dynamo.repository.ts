@@ -105,10 +105,11 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
     try {
       this.loggerService.trace("getConversations called", { params }, this.constructor.name);
 
-      const { teamId, exclusiveStartKey } = params;
+      const { teamId, exclusiveStartKey, limit } = params;
 
       const { Items: conversations, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+        Limit: limit ?? 25,
         IndexName: this.gsiOneIndexName,
         KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :conversation)",
         ExpressionAttributeNames: {
@@ -211,6 +212,7 @@ export interface GetConversationsOutput {
 
 export interface GetConversationsByTeamIdInput {
   teamId: TeamId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

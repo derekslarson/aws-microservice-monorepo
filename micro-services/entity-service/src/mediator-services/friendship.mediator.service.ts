@@ -1,9 +1,9 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationServiceInterface } from "../services/conversation.service";
-import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
-import { UserServiceInterface, User } from "../services/user.service";
+import { ConversationServiceInterface } from "../entity-services/conversation.service";
+import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
+import { UserServiceInterface, User } from "../entity-services/user.service";
 import { UserId } from "../types/userId.type";
 @injectable()
 export class FriendshipMediatorService implements FriendshipMediatorServiceInterface {
@@ -67,9 +67,9 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
     try {
       this.loggerService.trace("getFriendsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey } = params;
+      const { userId, exclusiveStartKey, limit } = params;
 
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId, exclusiveStartKey });
+      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId, exclusiveStartKey, limit });
 
       const userIds = conversationUserRelationships.map((relationship) => relationship.userId);
 
@@ -114,6 +114,7 @@ export type DeleteFriendshipOutput = void;
 
 export interface GetFriendsByUserIdInput {
   userId: UserId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

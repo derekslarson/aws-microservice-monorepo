@@ -21,7 +21,7 @@ export class ConversationController extends BaseController implements Conversati
       const {
         jwtId,
         pathParameters: { userId },
-        queryStringParameters: { exclusiveStartKey, type, unread },
+        queryStringParameters: { exclusiveStartKey, type, unread, limit },
       } = this.validationService.validate({ dto: GetConversationsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
@@ -33,6 +33,7 @@ export class ConversationController extends BaseController implements Conversati
         exclusiveStartKey,
         type,
         unread,
+        limit,
       });
 
       return this.generateSuccessResponse({ conversations, lastEvaluatedKey });

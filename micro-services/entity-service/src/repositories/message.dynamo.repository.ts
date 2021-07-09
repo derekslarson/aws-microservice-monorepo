@@ -102,11 +102,12 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
 
-      const { conversationId, exclusiveStartKey } = params;
+      const { conversationId, exclusiveStartKey, limit } = params;
 
       const { Items: messages, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         IndexName: this.gsiOneIndexName,
+        Limit: limit ?? 25,
         KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :message)",
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
@@ -133,10 +134,11 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     try {
       this.loggerService.trace("getRepliesByMessageId called", { params }, this.constructor.name);
 
-      const { messageId, exclusiveStartKey } = params;
+      const { messageId, exclusiveStartKey, limit } = params;
 
       const { Items: replies, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+        Limit: limit ?? 25,
         IndexName: this.gsiTwoIndexName,
         KeyConditionExpression: "#gsi2pk = :gsi2pk AND begins_with(#gsi2sk, :reply)",
         ExpressionAttributeNames: {
@@ -222,6 +224,7 @@ export interface UpdateMessageSeenAtOutput {
 
 export interface GetMessagesByConversationIdInput {
   conversationId: ConversationId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -232,6 +235,7 @@ export interface GetMessagesByConversationIdOutput {
 
 export interface GetRepliesByMessageIdInput {
   messageId: MessageId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

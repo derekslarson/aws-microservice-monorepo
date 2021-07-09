@@ -5,7 +5,6 @@ import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
-import { RawEntity } from "../types/raw.entity.type";
 import { ConversationType } from "../enums/conversationType.enum";
 import { ConversationId } from "../types/conversationId.type";
 import { UserId } from "../types/userId.type";
@@ -38,9 +37,9 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
         pk: conversationUserRelationship.conversationId,
         sk: conversationUserRelationship.userId,
         gsi1pk: conversationUserRelationship.userId,
-        gsi1sk: `${KeyPrefix.Time}${conversationUserRelationship.updatedAt}`,
+        gsi1sk: `${KeyPrefix.Time}${conversationUserRelationship.updatedAt}` as Gsi1sk,
         gsi2pk: conversationUserRelationship.userId,
-        gsi2sk: `${this.getGsi2skPrefixById(conversationUserRelationship.conversationId)}${conversationUserRelationship.updatedAt}`,
+        gsi2sk: `${this.getGsi2skPrefixById(conversationUserRelationship.conversationId)}${conversationUserRelationship.updatedAt}` as Gsi2sk,
         ...conversationUserRelationship,
       };
 
@@ -160,10 +159,11 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     try {
       this.loggerService.trace("getConversationUserRelationshipsByConversationId called", { params }, this.constructor.name);
 
-      const { conversationId, exclusiveStartKey } = params;
+      const { conversationId, exclusiveStartKey, limit } = params;
 
       const { Items: conversationUserRelationshipsWithSet, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+        Limit: limit ?? 25,
         KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
         ExpressionAttributeNames: {
           "#pk": "pk",
@@ -192,7 +192,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     try {
       this.loggerService.trace("getConversationUserRelationshipsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey, type, unread } = params;
+      const { userId, exclusiveStartKey, type, unread, limit } = params;
 
       const indexName = type ? this.gsiTwoIndexName : this.gsiOneIndexName;
       const pk = type ? "gsi2pk" : "gsi1pk";
@@ -202,6 +202,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
       const { Items: conversationUserRelationshipsWithSet, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         ...(unread && { FilterExpression: "attribute_exists(unreadMessages)" }),
+        Limit: limit ?? 25,
         IndexName: indexName,
         KeyConditionExpression: `#${pk} = :${pk} AND begins_with(#${sk}, :skPrefix)`,
         ExpressionAttributeNames: {
@@ -227,19 +228,19 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     }
   }
 
-  private getGsi2skPrefixById(conversationId: string): Gsi2sk {
+  private getGsi2skPrefixById(conversationId: string): Gsi2skPrefix {
     try {
       this.loggerService.trace("getGsi2skPrefixById called", { conversationId }, this.constructor.name);
 
       if (conversationId.startsWith(KeyPrefix.FriendConversation)) {
-        return `${KeyPrefix.Time}${KeyPrefix.FriendConversation}`;
+        return `${KeyPrefix.Time}${KeyPrefix.FriendConversation}` as Gsi2skPrefix;
       }
 
       if (conversationId.startsWith(KeyPrefix.GroupConversation)) {
-        return `${KeyPrefix.Time}${KeyPrefix.GroupConversation}`;
+        return `${KeyPrefix.Time}${KeyPrefix.GroupConversation}` as Gsi2skPrefix;
       }
 
-      return `${KeyPrefix.Time}${KeyPrefix.MeetingConversation}`;
+      return `${KeyPrefix.Time}${KeyPrefix.MeetingConversation}` as Gsi2skPrefix;
     } catch (error: unknown) {
       this.loggerService.error("Error in getGsi2skPrefixById", { error, conversationId }, this.constructor.name);
 
@@ -247,19 +248,19 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     }
   }
 
-  private getGsi2skPrefixByType(conversationType: ConversationType): Gsi2sk {
+  private getGsi2skPrefixByType(conversationType: ConversationType): Gsi2skPrefix {
     try {
       this.loggerService.trace("getGsi2skPrefixByType called", { conversationType }, this.constructor.name);
 
       if (conversationType === ConversationType.Friend) {
-        return `${KeyPrefix.Time}${KeyPrefix.FriendConversation}`;
+        return `${KeyPrefix.Time}${KeyPrefix.FriendConversation}` as Gsi2skPrefix;
       }
 
       if (conversationType === ConversationType.Group) {
-        return `${KeyPrefix.Time}${KeyPrefix.GroupConversation}`;
+        return `${KeyPrefix.Time}${KeyPrefix.GroupConversation}` as Gsi2skPrefix;
       }
 
-      return `${KeyPrefix.Time}${KeyPrefix.MeetingConversation}`;
+      return `${KeyPrefix.Time}${KeyPrefix.MeetingConversation}` as Gsi2skPrefix;
     } catch (error: unknown) {
       this.loggerService.error("Error in getGsi2skPrefixByType", { error, conversationType }, this.constructor.name);
 
@@ -309,7 +310,9 @@ export interface ConversationUserRelationship {
   recentMessageId?: string;
 }
 
-type Gsi2sk = `${KeyPrefix.Time}${KeyPrefix.FriendConversation | KeyPrefix.GroupConversation | KeyPrefix.MeetingConversation}${string}`;
+type Gsi1sk = `${KeyPrefix.Time}${string}`;
+type Gsi2skPrefix = `${KeyPrefix.Time}${KeyPrefix.FriendConversation | KeyPrefix.GroupConversation | KeyPrefix.MeetingConversation}`;
+type Gsi2sk = `${Gsi2skPrefix}${string}`;
 
 export interface RawConversationUserRelationship extends ConversationUserRelationship {
   entityType: EntityType.ConversationUserRelationship,
@@ -317,7 +320,7 @@ export interface RawConversationUserRelationship extends ConversationUserRelatio
   sk: UserId;
   gsi1pk: UserId;
   // allows sorting by updatedAt of all conversations
-  gsi1sk: `${KeyPrefix.Time}${string}`;
+  gsi1sk: Gsi1sk;
   gsi2pk: UserId;
   // allows sorting by updatedAt of specific conversation types
   gsi2sk: Gsi2sk;
@@ -368,6 +371,7 @@ export type DeleteConversationUserRelationshipOutput = void;
 
 export interface GetConversationUserRelationshipsByConversationIdInput {
   conversationId: ConversationId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -380,6 +384,7 @@ export interface GetConversationUserRelationshipsByUserIdInput {
   userId: UserId;
   unread?: boolean;
   type?: ConversationType;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

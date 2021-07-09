@@ -110,13 +110,14 @@ export class MessageController extends BaseController implements MessageControll
       const {
         jwtId,
         pathParameters: { userId, friendId },
+        queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMessagesByUserAndFriendIdsDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages } = await this.messageMediatorService.getMessagesByUserAndFriendIds({ userId, friendId });
+      const { messages } = await this.messageMediatorService.getMessagesByUserAndFriendIds({ userId, friendId, exclusiveStartKey, limit });
 
       return this.generateSuccessResponse({ messages });
     } catch (error: unknown) {
@@ -133,7 +134,7 @@ export class MessageController extends BaseController implements MessageControll
       const {
         jwtId,
         pathParameters: { groupId },
-        queryStringParameters: { exclusiveStartKey },
+        queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMessagesByByGroupIdDto, request, getUserIdFromJwt: true });
 
       const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
@@ -142,7 +143,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByGroupId({ groupId, exclusiveStartKey });
+      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByGroupId({ groupId, exclusiveStartKey, limit });
 
       return this.generateSuccessResponse({ messages, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -159,7 +160,7 @@ export class MessageController extends BaseController implements MessageControll
       const {
         jwtId,
         pathParameters: { meetingId },
-        queryStringParameters: { exclusiveStartKey },
+        queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMessagesByByMeetingIdDto, request, getUserIdFromJwt: true });
 
       const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
@@ -168,7 +169,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByMeetingId({ meetingId, exclusiveStartKey });
+      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByMeetingId({ meetingId, exclusiveStartKey, limit });
 
       return this.generateSuccessResponse({ messages, lastEvaluatedKey });
     } catch (error: unknown) {

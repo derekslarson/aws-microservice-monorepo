@@ -1,7 +1,7 @@
-import { Optional, Record, String } from "runtypes";
+import { Optional, Record, String, Number } from "runtypes";
 import { UserId } from "../runtypes/userId.runtype";
 
 export const GetMeetingsByUserIdDto = Record({
   pathParameters: Record({ userId: UserId }),
-  queryStringParameters: Record({ exclusiveStartKey: Optional(String) }),
+  queryStringParameters: Record({ exclusiveStartKey: Optional(String), limit: Optional(Number) }),
 });

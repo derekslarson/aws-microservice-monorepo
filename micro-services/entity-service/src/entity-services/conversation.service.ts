@@ -175,9 +175,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("getConversationsByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, exclusiveStartKey } = params;
+      const { teamId, exclusiveStartKey, limit } = params;
 
-      const { conversations, lastEvaluatedKey } = await this.conversationRepository.getConversationsByTeamId({ teamId, exclusiveStartKey });
+      const { conversations, lastEvaluatedKey } = await this.conversationRepository.getConversationsByTeamId({ teamId, exclusiveStartKey, limit });
 
       return { conversations, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -267,6 +267,7 @@ export interface GetConversationsOutput {
 
 export interface GetConversationsByTeamIdInput {
   teamId: TeamId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

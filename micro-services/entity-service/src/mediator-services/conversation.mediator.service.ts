@@ -1,8 +1,8 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationServiceInterface, Conversation as ConversationEntity } from "../services/conversation.service";
-import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
+import { ConversationServiceInterface, Conversation as ConversationEntity } from "../entity-services/conversation.service";
+import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
 import { UserId } from "../types/userId.type";
 import { ConversationType } from "../enums/conversationType.enum";
 import { ConversationId } from "../types/conversationId.type";
@@ -19,9 +19,9 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
     try {
       this.loggerService.trace("getConversationsByUserId called", { params }, this.constructor.name);
 
-      const { userId, type, unread, exclusiveStartKey } = params;
+      const { userId, type, unread, exclusiveStartKey, limit } = params;
 
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId, exclusiveStartKey, type, unread });
+      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId, exclusiveStartKey, type, unread, limit });
 
       const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
 
@@ -71,6 +71,7 @@ export interface GetConversationsByUserIdInput {
   userId: UserId;
   type?: ConversationType;
   unread?: boolean;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

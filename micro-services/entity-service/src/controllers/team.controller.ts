@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamServiceInterface } from "../services/team.service";
+import { TeamServiceInterface } from "../entity-services/team.service";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { CreateTeamDto } from "../dtos/createTeam.dto";
 import { GetTeamDto } from "../dtos/getTeam.dto";
@@ -128,14 +128,14 @@ export class TeamController extends BaseController implements TeamControllerInte
       const {
         jwtId,
         pathParameters: { userId },
-        queryStringParameters: { exclusiveStartKey },
+        queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetTeamsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByUserId({ userId, exclusiveStartKey });
+      const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByUserId({ userId, exclusiveStartKey, limit });
 
       return this.generateSuccessResponse({ teams, lastEvaluatedKey });
     } catch (error: unknown) {

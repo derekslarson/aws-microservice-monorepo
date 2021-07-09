@@ -68,9 +68,9 @@ export class TeamUserRelationshipService implements TeamUserRelationshipServiceI
     try {
       this.loggerService.trace("getTeamUserRelationshipsByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, exclusiveStartKey } = params;
+      const { teamId, exclusiveStartKey, limit } = params;
 
-      const { teamUserRelationships, lastEvaluatedKey } = await this.teamUserRelationshipRepository.getTeamUserRelationshipsByTeamId({ teamId, exclusiveStartKey });
+      const { teamUserRelationships, lastEvaluatedKey } = await this.teamUserRelationshipRepository.getTeamUserRelationshipsByTeamId({ teamId, exclusiveStartKey, limit });
 
       return { teamUserRelationships, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -84,9 +84,9 @@ export class TeamUserRelationshipService implements TeamUserRelationshipServiceI
     try {
       this.loggerService.trace("getTeamUserRelationshipsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey } = params;
+      const { userId, exclusiveStartKey, limit } = params;
 
-      const { teamUserRelationships, lastEvaluatedKey } = await this.teamUserRelationshipRepository.getTeamUserRelationshipsByUserId({ userId, exclusiveStartKey });
+      const { teamUserRelationships, lastEvaluatedKey } = await this.teamUserRelationshipRepository.getTeamUserRelationshipsByUserId({ userId, exclusiveStartKey, limit });
 
       return { teamUserRelationships, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -134,6 +134,7 @@ export type DeleteTeamUserRelationshipOutput = void;
 
 export interface GetTeamUserRelationshipsByTeamIdInput {
   teamId: TeamId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -144,6 +145,7 @@ export interface GetTeamUserRelationshipsByTeamIdOutput {
 
 export interface GetTeamUserRelationshipsByUserIdInput {
   userId: UserId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

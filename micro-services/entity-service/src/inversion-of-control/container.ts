@@ -3,19 +3,19 @@ import { coreContainerModule, SnsProcessorServiceInterface } from "@yac/core";
 import { TYPES } from "./types";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { TeamDynamoRepository, TeamRepositoryInterface } from "../repositories/team.dynamo.repository";
-import { TeamService, TeamServiceInterface } from "../services/team.service";
+import { TeamService, TeamServiceInterface } from "../entity-services/team.service";
 import { TeamController, TeamControllerInterface } from "../controllers/team.controller";
 import { UserController, UserControllerInterface } from "../controllers/user.controller";
-import { UserService, UserServiceInterface } from "../services/user.service";
+import { UserService, UserServiceInterface } from "../entity-services/user.service";
 import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
-import { UserSignedUpProcessorService } from "../services/userSignedUp.processor.service";
+import { UserSignedUpProcessorService } from "../processor-services/userSignedUp.processor.service";
 import { ConversationDynamoRepository, ConversationRepositoryInterface } from "../repositories/conversation.dynamo.repository";
 import { ConversationUserRelationshipDynamoRepository, ConversationUserRelationshipRepositoryInterface } from "../repositories/conversationUserRelationship.dynamo.repository";
 import { MessageDynamoRepository, MessageRepositoryInterface } from "../repositories/message.dynamo.repository";
-import { MessageService, MessageServiceInterface } from "../services/message.service";
-import { ConversationService, ConversationServiceInterface } from "../services/conversation.service";
-import { ConversationUserRelationshipService, ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
-import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } from "../services/teamUserRelationship.service";
+import { MessageService, MessageServiceInterface } from "../entity-services/message.service";
+import { ConversationService, ConversationServiceInterface } from "../entity-services/conversation.service";
+import { ConversationUserRelationshipService, ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
+import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } from "../entity-services/teamUserRelationship.service";
 import { TeamUserRelationshipDynamoRepository, TeamUserRelationshipRepositoryInterface } from "../repositories/teamUserRelationship.dynamo.repository";
 import { ConversationMediatorService, ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
 import { TeamMediatorService, TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
@@ -59,7 +59,7 @@ try {
   // Processor Services
   container.bind<SnsProcessorServiceInterface>(TYPES.UserSignedUpProcessorServiceInterface).to(UserSignedUpProcessorService);
 
-  // Services
+  // Entity Services
   container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
   container.bind<ConversationUserRelationshipServiceInterface>(TYPES.ConversationUserRelationshipServiceInterface).to(ConversationUserRelationshipService);
   container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);

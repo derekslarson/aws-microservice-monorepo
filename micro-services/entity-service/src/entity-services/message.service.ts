@@ -80,9 +80,9 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
 
-      const { conversationId, exclusiveStartKey } = params;
+      const { conversationId, exclusiveStartKey, limit } = params;
 
-      const { messages, lastEvaluatedKey } = await this.messageRepository.getMessagesByConversationId({ conversationId, exclusiveStartKey });
+      const { messages, lastEvaluatedKey } = await this.messageRepository.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -96,9 +96,9 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("getRepliesByMessageId called", { params }, this.constructor.name);
 
-      const { messageId, exclusiveStartKey } = params;
+      const { messageId, exclusiveStartKey, limit } = params;
 
-      const { replies, lastEvaluatedKey } = await this.messageRepository.getRepliesByMessageId({ messageId, exclusiveStartKey });
+      const { replies, lastEvaluatedKey } = await this.messageRepository.getRepliesByMessageId({ messageId, exclusiveStartKey, limit });
 
       return { replies, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -150,6 +150,7 @@ export interface UpdateMessageSeenAtOutput {
 
 export interface GetMessagesByConversationIdInput {
   conversationId: ConversationId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -160,6 +161,7 @@ export interface GetMessagesByConversationIdOutput {
 
 export interface GetRepliesByMessageIdInput {
   messageId: MessageId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

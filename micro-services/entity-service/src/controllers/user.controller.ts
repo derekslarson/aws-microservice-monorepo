@@ -47,7 +47,7 @@ export class UserController extends BaseController implements UserControllerInte
       const {
         jwtId,
         pathParameters: { teamId },
-        queryStringParameters: { exclusiveStartKey },
+        queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetUsersByTeamIdDto, request, getUserIdFromJwt: true });
 
       const { isTeamMember } = await this.teamMediatorService.isTeamMember({ teamId, userId: jwtId });
@@ -56,7 +56,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByTeamId({ teamId, exclusiveStartKey });
+      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByTeamId({ teamId, exclusiveStartKey, limit });
 
       return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -73,7 +73,7 @@ export class UserController extends BaseController implements UserControllerInte
       const {
         jwtId,
         pathParameters: { groupId },
-        queryStringParameters: { exclusiveStartKey },
+        queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetUsersByGroupIdDto, request, getUserIdFromJwt: true });
 
       const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
@@ -82,7 +82,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByGroupId({ groupId, exclusiveStartKey });
+      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByGroupId({ groupId, exclusiveStartKey, limit });
 
       return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -99,7 +99,7 @@ export class UserController extends BaseController implements UserControllerInte
       const {
         jwtId,
         pathParameters: { meetingId },
-        queryStringParameters: { exclusiveStartKey },
+        queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetUsersByMeetingIdDto, request, getUserIdFromJwt: true });
 
       const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
@@ -108,7 +108,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByMeetingId({ meetingId, exclusiveStartKey });
+      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByMeetingId({ meetingId, exclusiveStartKey, limit });
 
       return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {

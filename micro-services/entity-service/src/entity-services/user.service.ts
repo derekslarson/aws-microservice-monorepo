@@ -108,23 +108,3 @@ export interface GetUsersInput {
 export interface GetUsersOutput {
   users: User[];
 }
-
-export interface GetUsersByTeamIdInput {
-  teamId: string;
-  exclusiveStartKey?: string;
-}
-
-export interface GetUsersByTeamIdOutput {
-  users: WithRole<User>[];
-  lastEvaluatedKey?: string;
-}
-
-export interface GetUsersByConversationIdInput {
-  teamId: string;
-  exclusiveStartKey?: string;
-}
-
-export interface GetUsersByConversationIdOutput {
-  users: WithRole<User>[];
-  lastEvaluatedKey?: string;
-}

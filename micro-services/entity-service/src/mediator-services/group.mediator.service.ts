@@ -1,8 +1,8 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationServiceInterface, GroupConversation } from "../services/conversation.service";
-import { ConversationUserRelationshipServiceInterface } from "../services/conversationUserRelationship.service";
+import { ConversationServiceInterface, GroupConversation } from "../entity-services/conversation.service";
+import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { GroupId } from "../types/groupId.type";
@@ -128,11 +128,12 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
     try {
       this.loggerService.trace("getGroupsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey } = params;
+      const { userId, exclusiveStartKey, limit } = params;
 
       const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
         userId,
         exclusiveStartKey,
+        limit,
       });
 
       const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
@@ -153,11 +154,12 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
     try {
       this.loggerService.trace("getGroupsByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, exclusiveStartKey } = params;
+      const { teamId, exclusiveStartKey, limit } = params;
 
       const { conversations, lastEvaluatedKey } = await this.conversationService.getConversationsByTeamId({
         teamId,
         exclusiveStartKey,
+        limit,
       });
 
       return { groups: conversations as GroupConversation[], lastEvaluatedKey };
@@ -271,6 +273,7 @@ export type RemoveUserFromGroupOutput = void;
 
 export interface GetGroupsByUserIdInput {
   userId: UserId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 
@@ -281,6 +284,7 @@ export interface GetGroupsByUserIdOutput {
 
 export interface GetGroupsByTeamIdInput {
   teamId: TeamId;
+  limit?: number;
   exclusiveStartKey?: string;
 }
 

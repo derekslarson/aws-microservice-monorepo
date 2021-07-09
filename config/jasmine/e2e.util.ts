@@ -3,20 +3,22 @@
 import { CognitoIdentityServiceProvider, DynamoDB, SSM } from "aws-sdk";
 import crypto from "crypto";
 import axios from "axios";
-import { UserId } from "../../micro-services/entity-service/src/types/userId.type";
-import { User } from "../../micro-services/entity-service/src/repositories/user.dynamo.repository";
 
 const ssm = new SSM({ region: "us-east-1" });
-const cognito = new CognitoIdentityServiceProvider({ region: "us-east-1" });
+export const cognito = new CognitoIdentityServiceProvider({ region: "us-east-1" });
 export const documentClient = new DynamoDB.DocumentClient({ region: "us-east-1" });
 
 export async function getSsmParameters(environment: string, paramNames: string[]): Promise<Record<string, string>> {
   try {
+    if (environment === "prod") {
+      throw new Error("Don't run e2e tests in prod");
+    }
+
     const params = await Promise.all(paramNames.map(async (param) => {
       const prefix = "/yac-api-v4";
       let env = environment;
 
-      if (param === "secret" && ![ "dev", "stage", "prod" ].includes(environment)) {
+      if (param === "secret" && ![ "dev", "stage" ].includes(environment)) {
         env = "dev";
       }
 
@@ -173,7 +175,7 @@ export async function getAccessTokenByEmail(email: string): Promise<{ accessToke
   }
 }
 
-export async function createRandomUser(): Promise<User> {
+export async function createRandomUser(): Promise<{ user: { id: string; email: string; } }> {
   try {
     const email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
 
@@ -184,35 +186,9 @@ export async function createRandomUser(): Promise<User> {
       Password: `YAC-${process.env.secret as string}`,
     }).promise();
 
-    return { id: `user-${UserSub}` as UserId, email };
+    return { user: { id: `user-${UserSub}`, email } };
   } catch (error) {
     console.log("Error in createRandomUser:\n", error);
-
-    throw error;
-  }
-}
-
-export async function deleteUser(id: UserId): Promise<void> {
-  try {
-    const { Item } = await documentClient.get({
-      TableName: process.env["core-table-name"] as string,
-      Key: { pk: id, sk: id },
-    }).promise();
-
-    if (Item) {
-      await Promise.all([
-        cognito.adminDeleteUser({
-          UserPoolId: process.env["user-pool-id"] as string,
-          Username: (Item as Record<string, string>).email,
-        }).promise(),
-        documentClient.delete({
-          TableName: process.env["core-table-name"] as string,
-          Key: { pk: id, sk: id },
-        }).promise(),
-      ]);
-    }
-  } catch (error) {
-    console.log("Error in deleteUser:\n", error);
 
     throw error;
   }
