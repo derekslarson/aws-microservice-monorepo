@@ -10,7 +10,7 @@ import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { ConversationId } from "../../src/types/conversationId.type";
 
-fdescribe("POST /users/{userId}/friends (Add User as Friend)", () => {
+describe("POST /users/{userId}/friends (Add User as Friend)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
