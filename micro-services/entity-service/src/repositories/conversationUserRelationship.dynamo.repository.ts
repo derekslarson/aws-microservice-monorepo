@@ -33,7 +33,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const { conversationUserRelationship } = params;
 
-      const conversationUserRelationshipEntity: RawEntity<ConversationUserRelationship> = {
+      const conversationUserRelationshipEntity: RawConversationUserRelationship = {
         entityType: EntityType.ConversationUserRelationship,
         pk: conversationUserRelationship.conversationId,
         sk: conversationUserRelationship.userId,
@@ -227,7 +227,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     }
   }
 
-  private getGsi2skPrefixById(conversationId: string): string {
+  private getGsi2skPrefixById(conversationId: string): Gsi2sk {
     try {
       this.loggerService.trace("getGsi2skPrefixById called", { conversationId }, this.constructor.name);
 
@@ -247,7 +247,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     }
   }
 
-  private getGsi2skPrefixByType(conversationType: ConversationType): string {
+  private getGsi2skPrefixByType(conversationType: ConversationType): Gsi2sk {
     try {
       this.loggerService.trace("getGsi2skPrefixByType called", { conversationType }, this.constructor.name);
 
@@ -307,6 +307,20 @@ export interface ConversationUserRelationship {
   updatedAt: string;
   unreadMessages?: MessageId[];
   recentMessageId?: string;
+}
+
+type Gsi2sk = `${KeyPrefix.Time}${KeyPrefix.FriendConversation | KeyPrefix.GroupConversation | KeyPrefix.MeetingConversation}${string}`;
+
+export interface RawConversationUserRelationship extends ConversationUserRelationship {
+  entityType: EntityType.ConversationUserRelationship,
+  pk: ConversationId;
+  sk: UserId;
+  gsi1pk: UserId;
+  // allows sorting by updatedAt of all conversations
+  gsi1sk: `${KeyPrefix.Time}${string}`;
+  gsi2pk: UserId;
+  // allows sorting by updatedAt of specific conversation types
+  gsi2sk: Gsi2sk;
 }
 
 export interface CreateConversationUserRelationshipInput {

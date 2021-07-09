@@ -5,7 +5,6 @@ import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
-import { RawEntity } from "../types/raw.entity.type";
 import { TeamId } from "../types/teamId.type";
 import { UserId } from "../types/userId.type";
 
@@ -29,7 +28,7 @@ export class TeamUserRelationshipDynamoRepository extends BaseDynamoRepositoryV2
 
       const { teamUserRelationship } = params;
 
-      const teamUserRelationshipEntity: RawEntity<TeamUserRelationship> = {
+      const teamUserRelationshipEntity: RawTeamUserRelationship = {
         entityType: EntityType.TeamUserRelationship,
         pk: teamUserRelationship.teamId,
         sk: teamUserRelationship.userId,
@@ -159,6 +158,13 @@ export interface TeamUserRelationship {
   teamId: TeamId;
   userId: UserId;
   role: Role;
+}
+export interface RawTeamUserRelationship extends TeamUserRelationship {
+  entityType: EntityType.TeamUserRelationship,
+  pk: TeamId;
+  sk: UserId;
+  gsi1pk: UserId;
+  gsi1sk: TeamId;
 }
 
 export interface CreateTeamUserRelationshipInput {

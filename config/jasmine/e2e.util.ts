@@ -3,6 +3,8 @@
 import { CognitoIdentityServiceProvider, DynamoDB, SSM } from "aws-sdk";
 import crypto from "crypto";
 import axios from "axios";
+import { UserId } from "../../micro-services/entity-service/src/types/userId.type";
+import { User } from "../../micro-services/entity-service/src/repositories/user.dynamo.repository";
 
 const ssm = new SSM({ region: "us-east-1" });
 const cognito = new CognitoIdentityServiceProvider({ region: "us-east-1" });
@@ -171,7 +173,7 @@ export async function getAccessTokenByEmail(email: string): Promise<{ accessToke
   }
 }
 
-export async function createRandomUser(): Promise<{ id: string; email: string; }> {
+export async function createRandomUser(): Promise<User> {
   try {
     const email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
 
@@ -182,7 +184,7 @@ export async function createRandomUser(): Promise<{ id: string; email: string; }
       Password: `YAC-${process.env.secret as string}`,
     }).promise();
 
-    return { id: `user-${UserSub}`, email };
+    return { id: `user-${UserSub}` as UserId, email };
   } catch (error) {
     console.log("Error in createRandomUser:\n", error);
 
@@ -190,11 +192,7 @@ export async function createRandomUser(): Promise<{ id: string; email: string; }
   }
 }
 
-export async function deleteUser(id: string): Promise<void> {
-  if (!id.startsWith("user-")) {
-    throw new Error("must be a valid user id");
-  }
-
+export async function deleteUser(id: UserId): Promise<void> {
   try {
     const { Item } = await documentClient.get({
       TableName: process.env["core-table-name"] as string,

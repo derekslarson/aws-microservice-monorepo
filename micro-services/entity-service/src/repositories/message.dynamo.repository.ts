@@ -5,7 +5,6 @@ import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
-import { RawEntity } from "../types/raw.entity.type";
 import { MessageId } from "../types/messageId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { UserId } from "../types/userId.type";
@@ -32,7 +31,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 
       const { message } = params;
 
-      const messageEntity: RawEntity<Message> = {
+      const messageEntity: RawMessage = {
         entityType: EntityType.Message,
         pk: message.id,
         sk: message.id,
@@ -182,6 +181,17 @@ export interface Message {
   reactions: { [key: string]: number };
   hasReplies: boolean;
   replyTo?: MessageId;
+}
+
+export interface RawMessage extends Message {
+  entityType: EntityType.Message,
+  pk: MessageId;
+  sk: MessageId;
+  gsi1pk: ConversationId;
+  gsi1sk: MessageId;
+  // Message replying to (if a reply)
+  gsi2pk?: MessageId;
+  gsi2sk?: MessageId;
 }
 
 export interface CreateMessageInput {

@@ -4,11 +4,10 @@ import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface }
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
-import { RawEntity } from "../types/raw.entity.type";
-import { ConversationType } from "../enums/conversationType.enum";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { TeamId } from "../types/teamId.type";
 import { ConversationId } from "../types/conversationId.type";
+import { ConversationType } from "../enums/conversationType.enum";
 
 @injectable()
 export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Conversation> implements ConversationRepositoryInterface {
@@ -30,17 +29,12 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
       const { conversation } = params;
 
-      const entityTypeMap = {
-        [ConversationType.Friend]: EntityType.FriendConversation,
-        [ConversationType.Group]: EntityType.GroupConversation,
-        [ConversationType.Meeting]: EntityType.MeetingConversation,
-      };
-
-      const conversationEntity: RawEntity<Conversation> = {
-        entityType: entityTypeMap[conversation.type],
+      const conversationEntity: RawConversation = {
+        entityType: this.getEntityTypeByConversationType(conversation.type),
         pk: conversation.id,
         sk: conversation.id,
-        ...(conversation.teamId && { gsi1pk: conversation.teamId, gsi1sk: conversation.id }),
+        gsi1pk: conversation.teamId,
+        gsi1sk: conversation.teamId && conversation.id,
         ...conversation,
       };
 
@@ -137,6 +131,26 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
       throw error;
     }
   }
+
+  private getEntityTypeByConversationType(conversationType: ConversationType): ConversationEntityType {
+    try {
+      this.loggerService.trace("getEntityTypeByConversationType called", { conversationType }, this.constructor.name);
+
+      if (conversationType === ConversationType.Friend) {
+        return EntityType.FriendConversation;
+      }
+
+      if (conversationType === ConversationType.Group) {
+        return EntityType.GroupConversation;
+      }
+
+      return EntityType.MeetingConversation;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getEntityTypeByConversationType", { error, conversationType }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface ConversationRepositoryInterface {
@@ -155,6 +169,17 @@ export interface Conversation {
   createdAt: string;
   teamId?: TeamId;
 }
+
+type ConversationEntityType = EntityType.FriendConversation | EntityType.GroupConversation | EntityType.MeetingConversation;
+
+export interface RawConversation extends Conversation {
+  entityType: ConversationEntityType,
+  pk: ConversationId;
+  sk: ConversationId;
+  gsi1pk?: TeamId;
+  gsi1sk?: ConversationId;
+}
+
 export interface CreateConversationInput {
   conversation: Conversation;
 }
