@@ -1,25 +1,29 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import axios, { AxiosError } from "axios";
-import { Role } from "@yac/core";
+import axios from "axios";
+import { Role, WithRole } from "@yac/core";
+import { createRandomUser, getAccessTokenByEmail } from "../../../../e2e/util";
 import { Team } from "../../src/mediator-services/team.mediator.service";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomTeam, createTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 
-fdescribe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
-  const environment = process.env.environment as string;
-  const baseUrl = `https://${environment}.yacchat.com/entity-service`;
+describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
+  const baseUrl = process.env.baseUrl as string;
 
-  const userId = process.env.userId as UserId;
-  const otherUserIdA = "user-abc-123";
-  const otherUserIdB = "user-def-456";
-  const accessToken = process.env.accessToken as string;
+  let userId: UserId;
+  let accessToken: string;
   let teamA: RawTeam;
   let teamB: RawTeam;
-  let teamC: RawTeam;
+  const otherUserIdA = "user-abc-123";
+  const otherUserIdB = "user-def-456";
 
   beforeAll(async () => {
-    ([ { team: teamA }, { team: teamB }, { team: teamC } ] = await Promise.all([
+    // We have to fetch a new base user and access token here to prevent bleed over from other tests
+    const { user } = await createRandomUser();
+    userId = user.id as UserId;
+    ({ accessToken } = await getAccessTokenByEmail(user.email));
+
+    ([ { team: teamA }, { team: teamB } ] = await Promise.all([
       createRandomTeam({ createdBy: userId }),
       createRandomTeam({ createdBy: otherUserIdA }),
       createRandomTeam({ createdBy: otherUserIdB }),
@@ -37,52 +41,71 @@ fdescribe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get<{ teams: Team[]; }>(`${baseUrl}/users/${userId}/teams`, { headers });
+          const { status, data } = await axios.get<{ teams: WithRole<Team>[]; }>(`${baseUrl}/users/${userId}/teams`, { headers });
 
           expect(status).toBe(200);
-          expect(data.teams).toEqual(jasmine.any(Array));
-          expect(data.teams.length).toBe(2);
-          expect(data.teams).toContain(jasmine.objectContaining({ id: teamA.id, name: teamA.name, createdBy: teamA.createdBy, role: Role.Admin }));
-          expect(data.teams).toContain(jasmine.objectContaining({ id: teamB.id, name: teamB.name, createdBy: teamB.createdBy, role: Role.User }));
-          expect(data.teams).not.toContain(jasmine.objectContaining({ id: teamC.id, name: teamC.name, createdBy: teamC.createdBy }));
+          expect(data).toEqual({
+            teams: [
+              {
+                id: teamB.id,
+                name: teamB.name,
+                createdBy: teamB.createdBy,
+                role: Role.User,
+              },
+              {
+                id: teamA.id,
+                name: teamA.name,
+                createdBy: teamA.createdBy,
+                role: Role.Admin,
+              },
+            ],
+          });
         } catch (error) {
           fail(error);
         }
       });
     });
 
-    fdescribe("when passed a 'limit' query param", () => {
+    describe("when passed a 'limit' query param smaller than the number of entities", () => {
       it("returns a valid response", async () => {
         const params = { limit: 1 };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get<{ teams: Team[]; lastEvaluatedKey: string; }>(`${baseUrl}/users/${userId}/teams`, { params, headers });
+          const { status, data } = await axios.get<{ teams: WithRole<Team>[]; lastEvaluatedKey: string; }>(`${baseUrl}/users/${userId}/teams`, { params, headers });
 
           expect(status).toBe(200);
-          expect(data.teams).toEqual(jasmine.any(Array));
-          expect(data.teams.length).toBe(1);
-          expect(data.teams).toContain(jasmine.objectContaining({ id: teamB.id, name: teamB.name, createdBy: teamB.createdBy, role: Role.User }));
-          expect(data.lastEvaluatedKey).toEqual(jasmine.any(String));
-
-          console.log("data: ", data);
+          expect(data).toEqual({
+            teams: [
+              {
+                id: teamB.id,
+                name: teamB.name,
+                createdBy: teamB.createdBy,
+                role: Role.User,
+              },
+            ],
+            lastEvaluatedKey: jasmine.any(String),
+          });
 
           const callTwoParams = { limit: 1, exclusiveStartKey: data.lastEvaluatedKey };
 
-          const { status: callTwoStatus, data: callTwoData } = await axios.get<{ teams: Team[]; lastEvaluatedKey: string; }>(
+          const { status: callTwoStatus, data: callTwoData } = await axios.get<{ teams: WithRole<Team>[]; }>(
             `${baseUrl}/users/${userId}/teams`,
             { params: callTwoParams, headers },
           );
 
-          console.log("callTwoData: ", callTwoData);
-
           expect(callTwoStatus).toBe(200);
-          expect(callTwoData.teams).toEqual(jasmine.any(Array));
-          expect(callTwoData.teams.length).toBe(1);
-          expect(callTwoData.teams).toContain(jasmine.objectContaining({ id: teamA.id, name: teamA.name, createdBy: teamA.createdBy, role: Role.Admin }));
-          expect(callTwoData.lastEvaluatedKey).not.toBeDefined();
+          expect(callTwoData).toEqual({
+            teams: [
+              {
+                id: teamA.id,
+                name: teamA.name,
+                createdBy: teamA.createdBy,
+                role: Role.Admin,
+              },
+            ],
+          });
         } catch (error) {
-          console.log(JSON.stringify(error.response.data, null, 2));
           fail(error);
         }
       });
@@ -98,16 +121,14 @@ fdescribe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
           await axios.get(`${baseUrl}/users/${userId}/teams`, { headers });
 
           fail("Expected an error");
-        } catch (error: unknown) {
-          const axiosError = error as AxiosError;
-
-          expect(axiosError.response?.status).toBe(401);
-          expect(axiosError.response?.statusText).toBe("Unauthorized");
+        } catch (error) {
+          expect(error.response?.status).toBe(401);
+          expect(error.response?.statusText).toBe("Unauthorized");
         }
       });
     });
 
-    describe("when a userId of a user different than the id int he accessToken is passed in", () => {
+    describe("when a userId of a user different than the id in the accessToken is passed in", () => {
       it("throws a 403 error", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
@@ -115,21 +136,20 @@ fdescribe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
           await axios.get(`${baseUrl}/users/${otherUserIdA}/teams`, { headers });
 
           fail("Expected an error");
-        } catch (error: unknown) {
-          const axiosError = error as AxiosError;
-
-          expect(axiosError.response?.status).toBe(403);
-          expect(axiosError.response?.statusText).toBe("Forbidden");
+        } catch (error) {
+          expect(error.response?.status).toBe(403);
+          expect(error.response?.statusText).toBe("Forbidden");
         }
       });
     });
 
     describe("when passed invalid parameters", () => {
       it("throws a 400 error with a valid structure", async () => {
+        const params = { limit: "pants" };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/users/test/teams`, { headers });
+          await axios.get(`${baseUrl}/users/test/teams`, { params, headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -137,7 +157,10 @@ fdescribe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
             message: "Error validating request",
-            validationErrors: { pathParameters: { userId: "Failed constraint check for string: Must be a user id" } },
+            validationErrors: {
+              pathParameters: { userId: "Failed constraint check for string: Must be a user id" },
+              queryStringParameters: { limit: "Failed constraint check for string: Must be a whole number" },
+            },
           });
         }
       });

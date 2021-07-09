@@ -1,26 +1,31 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role } from "@yac/core";
-import { Team } from "../../src/mediator-services/team.mediator.service";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createRandomTeam, createTeamUserRelationship } from "../util";
+import { createRandomTeam, createTeamUserRelationship, getTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
+import { createRandomUser } from "../../../../e2e/util";
 
-describe("GET /teams/{teamId} (Get Team)", () => {
+describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
   let teamA: RawTeam;
   let teamB: RawTeam;
+  let otherUser: { id: string, email: string; };
 
   beforeAll(async () => {
-    ([ { team: teamA }, { team: teamB } ] = await Promise.all([
+    ([ { team: teamA }, { team: teamB }, { user: otherUser } ] = await Promise.all([
       createRandomTeam({ createdBy: userId }),
-      createRandomTeam({ createdBy: "user-abc-123" }),
+      createRandomTeam({ createdBy: "user-abcd" }),
+      createRandomUser(),
     ]));
 
-    await createTeamUserRelationship({ userId, teamId: teamA.id, role: Role.Admin });
+    await Promise.all([
+      createTeamUserRelationship({ userId, teamId: teamA.id, role: Role.Admin }),
+      createTeamUserRelationship({ userId: otherUser.id as UserId, teamId: teamA.id, role: Role.User }),
+    ]);
   });
 
   describe("under normal conditions", () => {
@@ -28,13 +33,24 @@ describe("GET /teams/{teamId} (Get Team)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.get<{ team: Team; }>(`${baseUrl}/teams/${teamA.id}`, { headers });
+        const { status, data } = await axios.delete<{ message: string; }>(`${baseUrl}/teams/${teamA.id}/users/${otherUser.id}`, { headers });
 
         expect(status).toBe(200);
-        expect(data.team).toBeDefined();
-        expect(data.team.id).toMatch(teamA.id);
-        expect(data.team.name).toBe(teamA.name);
-        expect(data.team.createdBy).toBe(teamA.createdBy);
+        expect(data).toEqual({ message: "User removed from team." });
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("deletes a TeamUserRelationship entity", async () => {
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      try {
+        await axios.delete<{ message: string; }>(`${baseUrl}/teams/${teamA.id}/users/${otherUser.id}`, { headers });
+
+        const { teamUserRelationship } = await getTeamUserRelationship({ teamId: teamA.id, userId: otherUser.id as UserId });
+
+        expect(teamUserRelationship).not.toBeDefined();
       } catch (error) {
         fail(error);
       }
@@ -47,7 +63,7 @@ describe("GET /teams/{teamId} (Get Team)", () => {
         const headers = {};
 
         try {
-          await axios.get(`${baseUrl}/teams/${teamA.id}`, { headers });
+          await axios.delete(`${baseUrl}/teams/${teamA.id}/users/${otherUser.id}`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -57,12 +73,12 @@ describe("GET /teams/{teamId} (Get Team)", () => {
       });
     });
 
-    describe("when a teamId of a team the user is not a member of is passed in", () => {
+    describe("when an id of a team the user is not an admin of is passed in", () => {
       it("throws a 403 error", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/teams/${teamB.id}`, { headers });
+          await axios.delete(`${baseUrl}/teams/${teamB.id}/users/${otherUser.id}`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -77,7 +93,7 @@ describe("GET /teams/{teamId} (Get Team)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/teams/test`, { headers });
+          await axios.delete(`${baseUrl}/teams/invalid-id/users/invalid-id-two`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -85,7 +101,12 @@ describe("GET /teams/{teamId} (Get Team)", () => {
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
             message: "Error validating request",
-            validationErrors: { pathParameters: { teamId: "Failed constraint check for string: Must be a team id" } },
+            validationErrors: {
+              pathParameters: {
+                teamId: "Failed constraint check for string: Must be a team id",
+                userId: "Failed constraint check for string: Must be a user id",
+              },
+            },
           });
         }
       });

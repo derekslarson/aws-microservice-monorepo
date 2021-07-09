@@ -33,7 +33,7 @@ export class ConversationController extends BaseController implements Conversati
         exclusiveStartKey,
         type,
         unread,
-        limit: parseInt(limit, 10),
+        limit: limit ? parseInt(limit, 10) : undefined,
       });
 
       return this.generateSuccessResponse({ conversations, lastEvaluatedKey });

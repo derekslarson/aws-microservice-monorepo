@@ -117,7 +117,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages } = await this.messageMediatorService.getMessagesByUserAndFriendIds({ userId, friendId, exclusiveStartKey, limit: parseInt(limit, 10) });
+      const { messages } = await this.messageMediatorService.getMessagesByUserAndFriendIds({ userId, friendId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ messages });
     } catch (error: unknown) {
@@ -143,7 +143,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByGroupId({ groupId, exclusiveStartKey, limit: parseInt(limit, 10) });
+      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByGroupId({ groupId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ messages, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -169,7 +169,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByMeetingId({ meetingId, exclusiveStartKey, limit: parseInt(limit, 10) });
+      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByMeetingId({ meetingId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ messages, lastEvaluatedKey });
     } catch (error: unknown) {

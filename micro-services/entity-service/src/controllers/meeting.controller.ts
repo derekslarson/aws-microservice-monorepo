@@ -143,7 +143,7 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByUserId({ userId, exclusiveStartKey, limit: parseInt(limit, 10) });
+      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ meetings, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -169,7 +169,7 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByTeamId({ teamId, exclusiveStartKey, limit: parseInt(limit, 10) });
+      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ meetings, lastEvaluatedKey });
     } catch (error: unknown) {

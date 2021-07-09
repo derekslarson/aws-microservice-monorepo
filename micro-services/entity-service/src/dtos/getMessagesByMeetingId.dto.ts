@@ -4,5 +4,5 @@ import { Limit } from "../runtypes/limit.runtype";
 
 export const GetMessagesByByMeetingIdDto = Record({
   pathParameters: Record({ meetingId: MeetingId }),
-  queryStringParameters: Record({ exclusiveStartKey: Optional(String), limit: Limit }),
+  queryStringParameters: Record({ exclusiveStartKey: Optional(String), limit: Optional(Limit) }),
 });

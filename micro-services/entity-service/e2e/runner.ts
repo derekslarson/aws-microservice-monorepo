@@ -5,7 +5,7 @@ import Jasmine from "jasmine";
 import { SpecReporter } from "jasmine-spec-reporter";
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
-import { createRandomUser, getAccessTokenByEmail, getSsmParameters, setEnvVars } from "../../../config/jasmine/e2e.util";
+import { createRandomUser, getAccessTokenByEmail, getSsmParameters, setEnvVars } from "../../../e2e/util";
 
 const { argv } = yargs(hideBin(process.argv));
 const { environment } = argv as { environment?: string; };
@@ -26,7 +26,7 @@ const necessaryParams = [
 
 (async () => {
   const initialEnvVals = await getSsmParameters(environment, necessaryParams);
-  initialEnvVals.environment = environment;
+  initialEnvVals.baseUrl = `https://${environment}.yacchat.com/entity-service`;
 
   setEnvVars(initialEnvVals);
 

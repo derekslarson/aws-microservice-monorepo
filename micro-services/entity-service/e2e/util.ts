@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { Role } from "@yac/core/lib/src/enums";
 import ksuid from "ksuid";
-import { documentClient, cognito, generateRandomString } from "../../../config/jasmine/e2e.util";
+import { documentClient, cognito, generateRandomString } from "../../../e2e/util";
 import { EntityType } from "../src/enums/entityType.enum";
 import { KeyPrefix } from "../src/enums/keyPrefix.enum";
 import { RawTeam } from "../src/repositories/team.dynamo.repository";
@@ -63,6 +63,25 @@ export async function createRandomTeam(params: CreateRandomTeamInput): Promise<C
   }
 }
 
+export async function getTeam(params: GetTeamInput): Promise<GetTeamOutput> {
+  try {
+    const { teamId } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: teamId, sk: teamId },
+    }).promise();
+
+    const team = Item as RawTeam;
+
+    return { team };
+  } catch (error) {
+    console.log("Error in createRandomTeam:\n", error);
+
+    throw error;
+  }
+}
+
 export async function createTeamUserRelationship(params: CreateTeamUserRelationshipInput): Promise<CreateTeamUserRelationshipOutput> {
   try {
     const { userId, teamId, role } = params;
@@ -91,12 +110,39 @@ export async function createTeamUserRelationship(params: CreateTeamUserRelations
   }
 }
 
+export async function getTeamUserRelationship(params: GetTeamUserRelationshipInput): Promise<GetTeamUserRelationshipOutput> {
+  try {
+    const { teamId, userId } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: teamId, sk: userId },
+    }).promise();
+
+    const teamUserRelationship = Item as RawTeamUserRelationship;
+
+    return { teamUserRelationship };
+  } catch (error) {
+    console.log("Error in createRandomTeam:\n", error);
+
+    throw error;
+  }
+}
+
 export interface CreateRandomTeamInput {
   createdBy: UserId;
 }
 
 export interface CreateRandomTeamOutput {
   team: RawTeam;
+}
+
+export interface GetTeamInput {
+  teamId: TeamId;
+}
+
+export interface GetTeamOutput {
+  team?: RawTeam;
 }
 
 export interface CreateTeamUserRelationshipInput {
@@ -107,4 +153,13 @@ export interface CreateTeamUserRelationshipInput {
 
 export interface CreateTeamUserRelationshipOutput {
   teamUserRelationship: RawTeamUserRelationship;
+}
+
+export interface GetTeamUserRelationshipInput {
+  userId: UserId;
+  teamId: TeamId;
+}
+
+export interface GetTeamUserRelationshipOutput {
+  teamUserRelationship?: RawTeamUserRelationship;
 }

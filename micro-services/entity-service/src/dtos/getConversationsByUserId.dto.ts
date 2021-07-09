@@ -9,6 +9,6 @@ export const GetConversationsByUserIdDto = Record({
     exclusiveStartKey: Optional(String),
     type: Optional(ConversationType),
     unread: Optional(Boolean),
-    limit: Limit,
+    limit: Optional(Limit),
   }),
 });

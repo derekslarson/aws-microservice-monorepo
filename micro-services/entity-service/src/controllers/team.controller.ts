@@ -88,7 +88,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       await this.teamMediatorService.addUserToTeam({ teamId, userId, role });
 
-      return this.generateSuccessResponse({ message: "user added to team" });
+      return this.generateSuccessResponse({ message: "User added to team." });
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToTeam", { error, request }, this.constructor.name);
 
@@ -113,7 +113,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       await this.teamMediatorService.removeUserFromTeam({ teamId, userId });
 
-      return this.generateSuccessResponse({ message: "user removed from team" });
+      return this.generateSuccessResponse({ message: "User removed from team." });
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromTeam", { error, request }, this.constructor.name);
 
@@ -135,7 +135,7 @@ export class TeamController extends BaseController implements TeamControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByUserId({ userId, exclusiveStartKey, limit: parseInt(limit, 10) });
+      const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ teams, lastEvaluatedKey });
     } catch (error: unknown) {

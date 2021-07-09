@@ -1,15 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import { Role } from "@yac/core";
-import { generateRandomString, documentClient } from "../../../../config/jasmine/e2e.util";
+import { generateRandomString } from "../../../../e2e/util";
 import { Team } from "../../src/mediator-services/team.mediator.service";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { UserId } from "../../src/types/userId.type";
+import { getTeam, getTeamUserRelationship } from "../util";
 
 describe("POST /users/{userId}/teams (Create Team)", () => {
-  const environment = process.env.environment as string;
-  const baseUrl = `https://${environment}.yacchat.com/entity-service`;
-
+  const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
@@ -40,20 +39,15 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
       try {
         const { data } = await axios.post<{ team: Team; }>(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
-        const getTeamResponse = await documentClient.get({
-          TableName: process.env["core-table-name"] as string,
-          Key: { pk: data.team.id, sk: data.team.id },
-        }).promise();
-
-        const team = getTeamResponse.Item as Record<string, unknown>;
+        const { team } = await getTeam({ teamId: data.team.id });
 
         expect(team).toBeDefined();
-        expect(team.entityType).toBe(EntityType.Team);
-        expect(team.pk).toBe(data.team.id);
-        expect(team.sk).toBe(data.team.id);
-        expect(team.id).toBe(data.team.id);
-        expect(team.name).toBe(name);
-        expect(team.createdBy).toBe(userId);
+        expect(team?.entityType).toBe(EntityType.Team);
+        expect(team?.pk).toBe(data.team.id);
+        expect(team?.sk).toBe(data.team.id);
+        expect(team?.id).toBe(data.team.id);
+        expect(team?.name).toBe(name);
+        expect(team?.createdBy).toBe(userId);
       } catch (error) {
         fail(error);
       }
@@ -67,22 +61,17 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
       try {
         const { data } = await axios.post<{ team: Team; }>(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
-        const getTeamUserRelationshipResponse = await documentClient.get({
-          TableName: process.env["core-table-name"] as string,
-          Key: { pk: data.team.id, sk: userId },
-        }).promise();
-
-        const teamUserRelationship = getTeamUserRelationshipResponse.Item as Record<string, unknown>;
+        const { teamUserRelationship } = await getTeamUserRelationship({ teamId: data.team.id, userId });
 
         expect(teamUserRelationship).toBeDefined();
-        expect(teamUserRelationship.entityType).toBe(EntityType.TeamUserRelationship);
-        expect(teamUserRelationship.pk).toBe(data.team.id);
-        expect(teamUserRelationship.sk).toBe(userId);
-        expect(teamUserRelationship.gsi1pk).toBe(userId);
-        expect(teamUserRelationship.gsi1sk).toBe(data.team.id);
-        expect(teamUserRelationship.teamId).toBe(data.team.id);
-        expect(teamUserRelationship.userId).toBe(userId);
-        expect(teamUserRelationship.role).toBe(Role.Admin);
+        expect(teamUserRelationship?.entityType).toBe(EntityType.TeamUserRelationship);
+        expect(teamUserRelationship?.pk).toBe(data.team.id);
+        expect(teamUserRelationship?.sk).toBe(userId);
+        expect(teamUserRelationship?.gsi1pk).toBe(userId);
+        expect(teamUserRelationship?.gsi1sk).toBe(data.team.id);
+        expect(teamUserRelationship?.teamId).toBe(data.team.id);
+        expect(teamUserRelationship?.userId).toBe(userId);
+        expect(teamUserRelationship?.role).toBe(Role.Admin);
       } catch (error) {
         fail(error);
       }
@@ -100,11 +89,9 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
           await axios.post(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
           fail("Expected an error");
-        } catch (error: unknown) {
-          const axiosError = error as AxiosError;
-
-          expect(axiosError.response?.status).toBe(401);
-          expect(axiosError.response?.statusText).toBe("Unauthorized");
+        } catch (error) {
+          expect(error.response?.status).toBe(401);
+          expect(error.response?.statusText).toBe("Unauthorized");
         }
       });
     });

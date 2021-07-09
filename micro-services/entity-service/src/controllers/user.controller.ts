@@ -56,7 +56,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByTeamId({ teamId, exclusiveStartKey, limit: parseInt(limit, 10) });
+      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -82,7 +82,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByGroupId({ groupId, exclusiveStartKey, limit: parseInt(limit, 10) });
+      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByGroupId({ groupId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -108,7 +108,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByMeetingId({ meetingId, exclusiveStartKey, limit: parseInt(limit, 10) });
+      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByMeetingId({ meetingId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {

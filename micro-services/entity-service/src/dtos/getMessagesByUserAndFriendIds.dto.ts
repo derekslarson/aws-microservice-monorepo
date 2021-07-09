@@ -4,5 +4,5 @@ import { Limit } from "../runtypes/limit.runtype";
 
 export const GetMessagesByUserAndFriendIdsDto = Record({
   pathParameters: Record({ userId: UserId, friendId: UserId }),
-  queryStringParameters: Record({ exclusiveStartKey: Optional(String), limit: Limit }),
+  queryStringParameters: Record({ exclusiveStartKey: Optional(String), limit: Optional(Limit) }),
 });
