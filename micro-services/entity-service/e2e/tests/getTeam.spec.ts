@@ -31,10 +31,13 @@ describe("GET /teams/{teamId} (Get Team)", () => {
         const { status, data } = await axios.get<{ team: Team; }>(`${baseUrl}/teams/${teamA.id}`, { headers });
 
         expect(status).toBe(200);
-        expect(data.team).toBeDefined();
-        expect(data.team.id).toMatch(teamA.id);
-        expect(data.team.name).toBe(teamA.name);
-        expect(data.team.createdBy).toBe(teamA.createdBy);
+        expect(data).toEqual({
+          team: {
+            id: teamA.id,
+            name: teamA.name,
+            createdBy: teamA.createdBy,
+          },
+        });
       } catch (error) {
         fail(error);
       }

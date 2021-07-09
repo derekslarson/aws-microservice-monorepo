@@ -22,10 +22,14 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
         const { status, data } = await axios.post<{ team: Team; }>(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
         expect(status).toBe(201);
-        expect(data.team).toBeDefined();
-        expect(data.team.id).toMatch(/team-.*/);
-        expect(data.team.name).toBe(name);
-        expect(data.team.createdBy).toBe(userId);
+        expect(data).toEqual({
+          team: {
+            id: jasmine.stringMatching(/team-.*/),
+            name,
+            createdBy: userId,
+            role: Role.Admin,
+          },
+        });
       } catch (error) {
         fail(error);
       }

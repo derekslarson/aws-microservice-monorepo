@@ -193,3 +193,7 @@ export async function createRandomUser(): Promise<{ user: { id: string; email: s
     throw error;
   }
 }
+
+export async function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(() => resolve(), ms));
+}
