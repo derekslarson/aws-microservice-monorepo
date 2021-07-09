@@ -42,7 +42,7 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
       }
     });
 
-    it("deletes a TeamUserRelationship entity", async () => {
+    it("deletes the necessary TeamUserRelationship entity", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {

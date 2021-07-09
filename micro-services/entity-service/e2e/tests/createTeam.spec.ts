@@ -14,7 +14,7 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
   const accessToken = process.env.accessToken as string;
 
   describe("under normal conditions", () => {
-    fit("returns a valid response", async () => {
+    it("returns a valid response", async () => {
       const name = generateRandomString(5);
       const body = { name };
       const headers = { Authorization: `Bearer ${accessToken}` };

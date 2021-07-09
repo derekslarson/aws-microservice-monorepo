@@ -18,20 +18,13 @@ describe("POST /users/{userId}/friends (Add User as Friend)", () => {
   let otherUser: { id: `user-${string}`, email: string; };
   let conversationId: ConversationId;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     ({ user: otherUser } = await createRandomUser());
 
     conversationId = `${KeyPrefix.FriendConversation}${[ userId, otherUser.id ].sort().join("-")}` as FriendConvoId;
   });
 
   describe("under normal conditions", () => {
-    // need a different otherUser on each successful request
-    beforeEach(async () => {
-      ({ user: otherUser } = await createRandomUser());
-
-      conversationId = `${KeyPrefix.FriendConversation}${[ userId, otherUser.id ].sort().join("-")}` as FriendConvoId;
-    });
-
     it("returns a valid response", async () => {
       const body = { friendId: otherUser.id };
       const headers = { Authorization: `Bearer ${accessToken}` };

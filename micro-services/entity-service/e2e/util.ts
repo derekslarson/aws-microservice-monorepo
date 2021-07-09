@@ -2,6 +2,7 @@
 import { Role } from "@yac/core/lib/src/enums";
 import ksuid from "ksuid";
 import { documentClient, cognito, generateRandomString } from "../../../e2e/util";
+import { ConversationType } from "../src/enums/conversationType.enum";
 import { EntityType } from "../src/enums/entityType.enum";
 import { KeyPrefix } from "../src/enums/keyPrefix.enum";
 import { RawConversation } from "../src/repositories/conversation.dynamo.repository";
@@ -9,6 +10,7 @@ import { RawConversationUserRelationship } from "../src/repositories/conversatio
 import { RawTeam } from "../src/repositories/team.dynamo.repository";
 import { RawTeamUserRelationship } from "../src/repositories/teamUserRelationship.dynamo.repository";
 import { ConversationId } from "../src/types/conversationId.type";
+import { FriendConvoId } from "../src/types/friendConvoId.type";
 import { TeamId } from "../src/types/teamId.type";
 import { UserId } from "../src/types/userId.type";
 
@@ -132,6 +134,34 @@ export async function getTeamUserRelationship(params: GetTeamUserRelationshipInp
   }
 }
 
+export async function createFriendConversation(params: CreateFriendConversationInput): Promise<CreateFriendConversationOutput> {
+  try {
+    const { userId, friendId } = params;
+
+    const conversationId = `${KeyPrefix.FriendConversation}${[ userId, friendId ].sort().join("-")}` as FriendConvoId;
+
+    const conversation: RawConversation = {
+      entityType: EntityType.FriendConversation,
+      pk: conversationId,
+      sk: conversationId,
+      id: conversationId,
+      type: ConversationType.Friend,
+      createdAt: new Date().toISOString(),
+    };
+
+    await documentClient.put({
+      TableName: process.env["core-table-name"] as string,
+      Item: conversation,
+    }).promise();
+
+    return { conversation };
+  } catch (error) {
+    console.log("Error in createFriendConversation:\n", error);
+
+    throw error;
+  }
+}
+
 export async function getConversation(params: GetConversationInput): Promise<GetConversationOutput> {
   try {
     const { conversationId } = params;
@@ -144,6 +174,54 @@ export async function getConversation(params: GetConversationInput): Promise<Get
     const conversation = Item as RawConversation;
 
     return { conversation };
+  } catch (error) {
+    console.log("Error in getConversation:\n", error);
+
+    throw error;
+  }
+}
+
+// entityType: EntityType.ConversationUserRelationship,
+// pk: conversationUserRelationship.conversationId,
+// sk: conversationUserRelationship.userId,
+// gsi1pk: conversationUserRelationship.userId,
+// gsi1sk: `${KeyPrefix.Time}${conversationUserRelationship.updatedAt}` as Gsi1sk,
+// gsi2pk: conversationUserRelationship.userId,
+// gsi2sk: `${this.getGsi2skPrefixById(conversationUserRelationship.conversationId)}${conversationUserRelationship.updatedAt}` as Gsi2sk,
+// ...conversationUserRelationship,
+
+export async function createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput> {
+  try {
+    const { userId, conversationId, role } = params;
+
+    const updatedAt = new Date().toISOString();
+
+    // eslint-disable-next-line no-nested-ternary
+    const convoPrefix = conversationId.startsWith(KeyPrefix.FriendConversation) ? KeyPrefix.FriendConversation
+      : conversationId.startsWith(KeyPrefix.GroupConversation) ? KeyPrefix.GroupConversation
+        : KeyPrefix.MeetingConversation;
+
+    const conversationUserRelationship: RawConversationUserRelationship = {
+      entityType: EntityType.ConversationUserRelationship,
+      pk: conversationId,
+      sk: userId,
+      gsi1pk: userId,
+      gsi1sk: `${KeyPrefix.Time}${updatedAt}` as `${KeyPrefix.Time}${string}`,
+      gsi2pk: userId,
+      gsi2sk: `${KeyPrefix.Time}${convoPrefix}${updatedAt}` as `${KeyPrefix.Time}${KeyPrefix.FriendConversation | KeyPrefix.GroupConversation | KeyPrefix.MeetingConversation}${string}`,
+      conversationId,
+      userId,
+      updatedAt,
+      role,
+      muted: false,
+    };
+
+    await documentClient.put({
+      TableName: process.env["core-table-name"] as string,
+      Item: conversationUserRelationship,
+    }).promise();
+
+    return { conversationUserRelationship };
   } catch (error) {
     console.log("Error in getConversation:\n", error);
 
@@ -205,12 +283,31 @@ export interface GetTeamUserRelationshipOutput {
   teamUserRelationship?: RawTeamUserRelationship;
 }
 
+export interface CreateFriendConversationInput {
+  userId: UserId;
+  friendId: UserId;
+}
+
+export interface CreateFriendConversationOutput {
+  conversation: RawConversation;
+}
+
 export interface GetConversationInput {
   conversationId: ConversationId;
 }
 
 export interface GetConversationOutput {
   conversation?: RawConversation;
+}
+
+export interface CreateConversationUserRelationshipInput {
+  userId: UserId;
+  conversationId: ConversationId;
+  role: Role;
+}
+
+export interface CreateConversationUserRelationshipOutput {
+  conversationUserRelationship: RawConversationUserRelationship;
 }
 
 export interface GetConversationUserRelationshipInput {
