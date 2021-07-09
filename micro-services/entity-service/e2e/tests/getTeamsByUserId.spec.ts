@@ -32,22 +32,60 @@ fdescribe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
   });
 
   describe("under normal conditions", () => {
-    it("returns a valid response", async () => {
-      const headers = { Authorization: `Bearer ${accessToken}` };
+    describe("when not passed a 'limit' query param", () => {
+      it("returns a valid response", async () => {
+        const headers = { Authorization: `Bearer ${accessToken}` };
 
-      try {
-        const { status, data } = await axios.get<{ teams: Team[]; }>(`${baseUrl}/users/${userId}/teams`, { headers });
+        try {
+          const { status, data } = await axios.get<{ teams: Team[]; }>(`${baseUrl}/users/${userId}/teams`, { headers });
 
-        expect(status).toBe(200);
-        expect(data.teams).toBeDefined();
-        expect(data.teams).toEqual(jasmine.any(Array));
-        expect(data.teams.length).toBe(2);
-        expect(data.teams).toContain(jasmine.objectContaining({ id: teamA.id, name: teamA.name, createdBy: teamA.createdBy, role: Role.Admin }));
-        expect(data.teams).toContain(jasmine.objectContaining({ id: teamB.id, name: teamB.name, createdBy: teamB.createdBy, role: Role.User }));
-        expect(data.teams).not.toContain(jasmine.objectContaining({ id: teamC.id, name: teamC.name, createdBy: teamC.createdBy }));
-      } catch (error) {
-        fail(error);
-      }
+          expect(status).toBe(200);
+          expect(data.teams).toEqual(jasmine.any(Array));
+          expect(data.teams.length).toBe(2);
+          expect(data.teams).toContain(jasmine.objectContaining({ id: teamA.id, name: teamA.name, createdBy: teamA.createdBy, role: Role.Admin }));
+          expect(data.teams).toContain(jasmine.objectContaining({ id: teamB.id, name: teamB.name, createdBy: teamB.createdBy, role: Role.User }));
+          expect(data.teams).not.toContain(jasmine.objectContaining({ id: teamC.id, name: teamC.name, createdBy: teamC.createdBy }));
+        } catch (error) {
+          fail(error);
+        }
+      });
+    });
+
+    fdescribe("when passed a 'limit' query param", () => {
+      it("returns a valid response", async () => {
+        const params = { limit: 1 };
+        const headers = { Authorization: `Bearer ${accessToken}` };
+
+        try {
+          const { status, data } = await axios.get<{ teams: Team[]; lastEvaluatedKey: string; }>(`${baseUrl}/users/${userId}/teams`, { params, headers });
+
+          expect(status).toBe(200);
+          expect(data.teams).toEqual(jasmine.any(Array));
+          expect(data.teams.length).toBe(1);
+          expect(data.teams).toContain(jasmine.objectContaining({ id: teamB.id, name: teamB.name, createdBy: teamB.createdBy, role: Role.User }));
+          expect(data.lastEvaluatedKey).toEqual(jasmine.any(String));
+
+          console.log("data: ", data);
+
+          const callTwoParams = { limit: 1, exclusiveStartKey: data.lastEvaluatedKey };
+
+          const { status: callTwoStatus, data: callTwoData } = await axios.get<{ teams: Team[]; lastEvaluatedKey: string; }>(
+            `${baseUrl}/users/${userId}/teams`,
+            { params: callTwoParams, headers },
+          );
+
+          console.log("callTwoData: ", callTwoData);
+
+          expect(callTwoStatus).toBe(200);
+          expect(callTwoData.teams).toEqual(jasmine.any(Array));
+          expect(callTwoData.teams.length).toBe(1);
+          expect(callTwoData.teams).toContain(jasmine.objectContaining({ id: teamA.id, name: teamA.name, createdBy: teamA.createdBy, role: Role.Admin }));
+          expect(callTwoData.lastEvaluatedKey).not.toBeDefined();
+        } catch (error) {
+          console.log(JSON.stringify(error.response.data, null, 2));
+          fail(error);
+        }
+      });
     });
   });
 

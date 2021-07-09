@@ -78,7 +78,7 @@ export class FriendController extends BaseController implements FriendController
         throw new ForbiddenError("Forbidden");
       }
 
-      const { friends, lastEvaluatedKey } = await this.friendshipMediatorService.getFriendsByUserId({ userId, exclusiveStartKey, limit });
+      const { friends, lastEvaluatedKey } = await this.friendshipMediatorService.getFriendsByUserId({ userId, exclusiveStartKey, limit: parseInt(limit, 10) });
 
       return this.generateSuccessResponse({ friends, lastEvaluatedKey });
     } catch (error: unknown) {

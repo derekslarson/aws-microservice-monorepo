@@ -135,7 +135,7 @@ export class TeamController extends BaseController implements TeamControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByUserId({ userId, exclusiveStartKey, limit });
+      const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByUserId({ userId, exclusiveStartKey, limit: parseInt(limit, 10) });
 
       return this.generateSuccessResponse({ teams, lastEvaluatedKey });
     } catch (error: unknown) {

@@ -143,7 +143,7 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByUserId({ userId, exclusiveStartKey, limit });
+      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByUserId({ userId, exclusiveStartKey, limit: parseInt(limit, 10) });
 
       return this.generateSuccessResponse({ groups, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -169,7 +169,7 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByTeamId({ teamId, exclusiveStartKey, limit });
+      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByTeamId({ teamId, exclusiveStartKey, limit: parseInt(limit, 10) });
 
       return this.generateSuccessResponse({ groups, lastEvaluatedKey });
     } catch (error: unknown) {

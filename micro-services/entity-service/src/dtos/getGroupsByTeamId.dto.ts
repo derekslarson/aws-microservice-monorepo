@@ -1,7 +1,8 @@
-import { Optional, Record, String, Number } from "runtypes";
+import { Optional, Record, String } from "runtypes";
 import { TeamId } from "../runtypes/teamId.runtype";
+import { Limit } from "../runtypes/limit.runtype";
 
 export const GetGroupsByTeamIdDto = Record({
   pathParameters: Record({ teamId: TeamId }),
-  queryStringParameters: Record({ exclusiveStartKey: Optional(String), limit: Optional(Number) }),
+  queryStringParameters: Record({ exclusiveStartKey: Optional(String), limit: Limit }),
 });
