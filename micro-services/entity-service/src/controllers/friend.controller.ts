@@ -31,9 +31,9 @@ export class FriendController extends BaseController implements FriendController
         throw new ForbiddenError("Forbidden");
       }
 
-      const { friendship } = await this.friendshipMediatorService.createFriendship({ userIds: [ userId, friendId ] });
+      await this.friendshipMediatorService.createFriendship({ userIds: [ userId, friendId ] });
 
-      return this.generateCreatedResponse({ friendship });
+      return this.generateSuccessResponse({ message: "User added as friend." });
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserAsFriend", { error, request }, this.constructor.name);
 
@@ -56,7 +56,7 @@ export class FriendController extends BaseController implements FriendController
 
       await this.friendshipMediatorService.deleteFriendship({ userIds: [ userId, friendId ] });
 
-      return this.generateSuccessResponse({ message: "User removed as friend" });
+      return this.generateSuccessResponse({ message: "User removed as friend." });
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserAsFriend", { error, request }, this.constructor.name);
 

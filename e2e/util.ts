@@ -175,7 +175,7 @@ export async function getAccessTokenByEmail(email: string): Promise<{ accessToke
   }
 }
 
-export async function createRandomUser(): Promise<{ user: { id: string; email: string; } }> {
+export async function createRandomUser(): Promise<{ user: { id: `user-${string}`; email: string; } }> {
   try {
     const email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
 
@@ -186,7 +186,7 @@ export async function createRandomUser(): Promise<{ user: { id: string; email: s
       Password: `YAC-${process.env.secret as string}`,
     }).promise();
 
-    return { user: { id: `user-${UserSub}`, email } };
+    return { user: { id: `user-${UserSub}` as `user-${string}`, email } };
   } catch (error) {
     console.log("Error in createRandomUser:\n", error);
 
@@ -197,3 +197,5 @@ export async function createRandomUser(): Promise<{ user: { id: string; email: s
 export async function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(() => resolve(), ms));
 }
+
+export const ISO_DATE_REGEX = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})[Z]/;

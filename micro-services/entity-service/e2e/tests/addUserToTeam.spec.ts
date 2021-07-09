@@ -14,7 +14,7 @@ describe("POST /teams/{teamId}/users (Add User to Team)", () => {
 
   let teamA: RawTeam;
   let teamB: RawTeam;
-  let otherUser: { id: string, email: string; };
+  let otherUser: { id: `user-${string}`, email: string; };
 
   beforeAll(async () => {
     ([ { team: teamA }, { team: teamB }, { user: otherUser } ] = await Promise.all([
@@ -48,18 +48,18 @@ describe("POST /teams/{teamId}/users (Add User to Team)", () => {
       try {
         await axios.post<{ message: string; }>(`${baseUrl}/teams/${teamA.id}/users`, body, { headers });
 
-        const { teamUserRelationship } = await getTeamUserRelationship({ teamId: teamA.id, userId: otherUser.id as UserId });
+        const { teamUserRelationship } = await getTeamUserRelationship({ teamId: teamA.id, userId: otherUser.id });
 
-        expect(teamUserRelationship).toBeDefined();
-
-        expect(teamUserRelationship?.entityType).toBe(EntityType.TeamUserRelationship);
-        expect(teamUserRelationship?.pk).toBe(teamA.id);
-        expect(teamUserRelationship?.sk).toBe(otherUser.id);
-        expect(teamUserRelationship?.gsi1pk).toBe(otherUser.id);
-        expect(teamUserRelationship?.gsi1sk).toBe(teamA.id);
-        expect(teamUserRelationship?.teamId).toBe(teamA.id);
-        expect(teamUserRelationship?.userId).toBe(otherUser.id);
-        expect(teamUserRelationship?.role).toBe(Role.User);
+        expect(teamUserRelationship).toEqual({
+          entityType: EntityType.TeamUserRelationship,
+          pk: teamA.id,
+          sk: otherUser.id,
+          gsi1pk: otherUser.id,
+          gsi1sk: teamA.id,
+          teamId: teamA.id,
+          userId: otherUser.id,
+          role: Role.User,
+        });
       } catch (error) {
         fail(error);
       }

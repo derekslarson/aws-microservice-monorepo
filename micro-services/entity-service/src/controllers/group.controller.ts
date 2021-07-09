@@ -94,9 +94,9 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      const { membership } = await this.groupMediatorService.addUserToGroup({ groupId, userId, role });
+      await this.groupMediatorService.addUserToGroup({ groupId, userId, role });
 
-      return this.generateSuccessResponse({ membership });
+      return this.generateSuccessResponse({ message: "User added to group." });
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToGroup", { error, request }, this.constructor.name);
 
@@ -121,7 +121,7 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       await this.groupMediatorService.removeUserFromGroup({ groupId, userId });
 
-      return this.generateSuccessResponse({ message: "User removed from group" });
+      return this.generateSuccessResponse({ message: "User removed from group." });
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromGroup", { error, request }, this.constructor.name);
 

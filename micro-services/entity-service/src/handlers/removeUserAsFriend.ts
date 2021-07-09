@@ -5,7 +5,7 @@ import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 import { FriendControllerInterface } from "../controllers/friend.controller";
 
-const friendController = container.get<FriendControllerInterface>(TYPES.TeamControllerInterface);
+const friendController = container.get<FriendControllerInterface>(TYPES.FriendControllerInterface);
 const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {

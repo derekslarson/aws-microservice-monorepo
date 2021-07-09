@@ -6,6 +6,7 @@ import { Team } from "../../src/mediator-services/team.mediator.service";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { UserId } from "../../src/types/userId.type";
 import { getTeam, getTeamUserRelationship } from "../util";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("POST /users/{userId}/teams (Create Team)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -13,7 +14,7 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
   const accessToken = process.env.accessToken as string;
 
   describe("under normal conditions", () => {
-    it("returns a valid response", async () => {
+    fit("returns a valid response", async () => {
       const name = generateRandomString(5);
       const body = { name };
       const headers = { Authorization: `Bearer ${accessToken}` };
@@ -24,7 +25,7 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
         expect(status).toBe(201);
         expect(data).toEqual({
           team: {
-            id: jasmine.stringMatching(/team-.*/),
+            id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Team}.*`)),
             name,
             createdBy: userId,
             role: Role.Admin,
@@ -45,13 +46,14 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
 
         const { team } = await getTeam({ teamId: data.team.id });
 
-        expect(team).toBeDefined();
-        expect(team?.entityType).toBe(EntityType.Team);
-        expect(team?.pk).toBe(data.team.id);
-        expect(team?.sk).toBe(data.team.id);
-        expect(team?.id).toBe(data.team.id);
-        expect(team?.name).toBe(name);
-        expect(team?.createdBy).toBe(userId);
+        expect(team).toEqual({
+          entityType: EntityType.Team,
+          pk: data.team.id,
+          sk: data.team.id,
+          id: data.team.id,
+          createdBy: userId,
+          name,
+        });
       } catch (error) {
         fail(error);
       }
@@ -67,15 +69,16 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
 
         const { teamUserRelationship } = await getTeamUserRelationship({ teamId: data.team.id, userId });
 
-        expect(teamUserRelationship).toBeDefined();
-        expect(teamUserRelationship?.entityType).toBe(EntityType.TeamUserRelationship);
-        expect(teamUserRelationship?.pk).toBe(data.team.id);
-        expect(teamUserRelationship?.sk).toBe(userId);
-        expect(teamUserRelationship?.gsi1pk).toBe(userId);
-        expect(teamUserRelationship?.gsi1sk).toBe(data.team.id);
-        expect(teamUserRelationship?.teamId).toBe(data.team.id);
-        expect(teamUserRelationship?.userId).toBe(userId);
-        expect(teamUserRelationship?.role).toBe(Role.Admin);
+        expect(teamUserRelationship).toEqual({
+          entityType: EntityType.TeamUserRelationship,
+          pk: data.team.id,
+          sk: userId,
+          gsi1pk: userId,
+          gsi1sk: data.team.id,
+          teamId: data.team.id,
+          role: Role.Admin,
+          userId,
+        });
       } catch (error) {
         fail(error);
       }

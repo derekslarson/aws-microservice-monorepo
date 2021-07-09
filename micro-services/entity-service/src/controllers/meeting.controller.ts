@@ -94,9 +94,9 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { membership } = await this.meetingMediatorService.addUserToMeeting({ meetingId, userId, role });
+      await this.meetingMediatorService.addUserToMeeting({ meetingId, userId, role });
 
-      return this.generateSuccessResponse({ membership });
+      return this.generateSuccessResponse({ message: "User added to meeting." });
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToMeeting", { error, request }, this.constructor.name);
 
@@ -121,7 +121,7 @@ export class MeetingController extends BaseController implements MeetingControll
 
       await this.meetingMediatorService.removeUserFromMeeting({ meetingId, userId });
 
-      return this.generateSuccessResponse({ message: "User removed from group" });
+      return this.generateSuccessResponse({ message: "User removed from meeting." });
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromMeeting", { error, request }, this.constructor.name);
 

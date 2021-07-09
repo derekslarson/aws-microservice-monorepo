@@ -4,8 +4,11 @@ import ksuid from "ksuid";
 import { documentClient, cognito, generateRandomString } from "../../../e2e/util";
 import { EntityType } from "../src/enums/entityType.enum";
 import { KeyPrefix } from "../src/enums/keyPrefix.enum";
+import { RawConversation } from "../src/repositories/conversation.dynamo.repository";
+import { RawConversationUserRelationship } from "../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawTeam } from "../src/repositories/team.dynamo.repository";
 import { RawTeamUserRelationship } from "../src/repositories/teamUserRelationship.dynamo.repository";
+import { ConversationId } from "../src/types/conversationId.type";
 import { TeamId } from "../src/types/teamId.type";
 import { UserId } from "../src/types/userId.type";
 
@@ -76,7 +79,7 @@ export async function getTeam(params: GetTeamInput): Promise<GetTeamOutput> {
 
     return { team };
   } catch (error) {
-    console.log("Error in createRandomTeam:\n", error);
+    console.log("Error in getTeam:\n", error);
 
     throw error;
   }
@@ -104,7 +107,7 @@ export async function createTeamUserRelationship(params: CreateTeamUserRelations
 
     return { teamUserRelationship };
   } catch (error) {
-    console.log("Error in createRandomTeam:\n", error);
+    console.log("Error in createTeamUserRelationship:\n", error);
 
     throw error;
   }
@@ -123,7 +126,45 @@ export async function getTeamUserRelationship(params: GetTeamUserRelationshipInp
 
     return { teamUserRelationship };
   } catch (error) {
-    console.log("Error in createRandomTeam:\n", error);
+    console.log("Error in getTeamUserRelationship:\n", error);
+
+    throw error;
+  }
+}
+
+export async function getConversation(params: GetConversationInput): Promise<GetConversationOutput> {
+  try {
+    const { conversationId } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: conversationId, sk: conversationId },
+    }).promise();
+
+    const conversation = Item as RawConversation;
+
+    return { conversation };
+  } catch (error) {
+    console.log("Error in getConversation:\n", error);
+
+    throw error;
+  }
+}
+
+export async function getConversationUserRelationship(params: GetConversationUserRelationshipInput): Promise<GetConversationUserRelationshipOutput> {
+  try {
+    const { conversationId, userId } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: conversationId, sk: userId },
+    }).promise();
+
+    const conversationUserRelationship = Item as RawConversationUserRelationship;
+
+    return { conversationUserRelationship };
+  } catch (error) {
+    console.log("Error in getConversationUserRelationship:\n", error);
 
     throw error;
   }
@@ -162,4 +203,21 @@ export interface GetTeamUserRelationshipInput {
 
 export interface GetTeamUserRelationshipOutput {
   teamUserRelationship?: RawTeamUserRelationship;
+}
+
+export interface GetConversationInput {
+  conversationId: ConversationId;
+}
+
+export interface GetConversationOutput {
+  conversation?: RawConversation;
+}
+
+export interface GetConversationUserRelationshipInput {
+  userId: UserId;
+  conversationId: ConversationId;
+}
+
+export interface GetConversationUserRelationshipOutput {
+  conversationUserRelationship?: RawConversationUserRelationship;
 }

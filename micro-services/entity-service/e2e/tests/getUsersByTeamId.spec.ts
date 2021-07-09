@@ -15,21 +15,21 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
 
   let teamA: RawTeam;
   let teamB: RawTeam;
-  let otherUser: { id: string; email: string; };
-  let expectedUsersSorted: { id: string; email: string; role: Role; }[];
+  let otherUser: { id: `user-${string}`, email: string; };
+  let expectedUsersSorted: { id: `user-${string}`; email: string; role: Role; }[];
 
   beforeAll(async () => {
     ({ user: otherUser } = await createRandomUser());
 
     ([ { team: teamA }, { team: teamB } ] = await Promise.all([
       createRandomTeam({ createdBy: userId }),
-      createRandomTeam({ createdBy: otherUser.id as UserId }),
+      createRandomTeam({ createdBy: otherUser.id }),
     ]));
 
     await Promise.all([
       createTeamUserRelationship({ userId, teamId: teamA.id, role: Role.Admin }),
-      createTeamUserRelationship({ userId: otherUser.id as UserId, teamId: teamA.id, role: Role.User }),
-      createTeamUserRelationship({ userId: otherUser.id as UserId, teamId: teamB.id, role: Role.Admin }),
+      createTeamUserRelationship({ userId: otherUser.id, teamId: teamA.id, role: Role.User }),
+      createTeamUserRelationship({ userId: otherUser.id, teamId: teamB.id, role: Role.Admin }),
     ]);
 
     // since user ids come from Cognito, we can't guarantee their sort order based off order of creation,

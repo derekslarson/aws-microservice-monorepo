@@ -19,7 +19,7 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
   beforeAll(async () => {
     // We have to fetch a new base user and access token here to prevent bleed over from other tests
     const { user } = await createRandomUser();
-    userId = user.id as UserId;
+    userId = user.id;
 
     ([ { accessToken }, { team: teamA } ] = await Promise.all([
       getAccessTokenByEmail(user.email),

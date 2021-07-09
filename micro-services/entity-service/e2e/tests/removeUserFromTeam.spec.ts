@@ -13,7 +13,7 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
 
   let teamA: RawTeam;
   let teamB: RawTeam;
-  let otherUser: { id: string, email: string; };
+  let otherUser: { id: `user-${string}`, email: string; };
 
   beforeAll(async () => {
     ([ { team: teamA }, { team: teamB }, { user: otherUser } ] = await Promise.all([
@@ -24,7 +24,7 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
 
     await Promise.all([
       createTeamUserRelationship({ userId, teamId: teamA.id, role: Role.Admin }),
-      createTeamUserRelationship({ userId: otherUser.id as UserId, teamId: teamA.id, role: Role.User }),
+      createTeamUserRelationship({ userId: otherUser.id, teamId: teamA.id, role: Role.User }),
     ]);
   });
 
@@ -48,7 +48,7 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
       try {
         await axios.delete<{ message: string; }>(`${baseUrl}/teams/${teamA.id}/users/${otherUser.id}`, { headers });
 
-        const { teamUserRelationship } = await getTeamUserRelationship({ teamId: teamA.id, userId: otherUser.id as UserId });
+        const { teamUserRelationship } = await getTeamUserRelationship({ teamId: teamA.id, userId: otherUser.id });
 
         expect(teamUserRelationship).not.toBeDefined();
       } catch (error) {
