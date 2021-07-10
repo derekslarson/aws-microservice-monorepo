@@ -9,7 +9,7 @@ import { getConversation, getConversationUserRelationship } from "../util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 
-fdescribe("POST /users/{userId}/groups (Create Group)", () => {
+describe("POST /users/{userId}/groups (Create Group)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;

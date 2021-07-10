@@ -169,6 +169,9 @@ export interface Conversation {
   type: ConversationType;
   createdAt: string;
   teamId?: TeamId;
+  name?: string;
+  createdBy?: string;
+  dueDate?: string;
 }
 
 type ConversationEntityType = EntityType.FriendConversation | EntityType.GroupConversation | EntityType.MeetingConversation;

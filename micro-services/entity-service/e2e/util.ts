@@ -11,6 +11,7 @@ import { RawTeam } from "../src/repositories/team.dynamo.repository";
 import { RawTeamUserRelationship } from "../src/repositories/teamUserRelationship.dynamo.repository";
 import { ConversationId } from "../src/types/conversationId.type";
 import { FriendConvoId } from "../src/types/friendConvoId.type";
+import { GroupId } from "../src/types/groupId.type";
 import { TeamId } from "../src/types/teamId.type";
 import { UserId } from "../src/types/userId.type";
 
@@ -162,6 +163,39 @@ export async function createFriendConversation(params: CreateFriendConversationI
   }
 }
 
+export async function createGroupConversation(params: CreateGroupConversationInput): Promise<CreateGroupConversationOutput> {
+  try {
+    const { name, createdBy, teamId } = params;
+
+    const conversationId = `${KeyPrefix.GroupConversation}${ksuid.randomSync().string}` as GroupId;
+
+    const conversation: RawConversation = {
+      entityType: EntityType.GroupConversation,
+      pk: conversationId,
+      sk: conversationId,
+      gsi1pk: teamId,
+      gsi1sk: teamId && conversationId,
+      id: conversationId,
+      type: ConversationType.Group,
+      createdAt: new Date().toISOString(),
+      teamId,
+      name,
+      createdBy,
+    };
+
+    await documentClient.put({
+      TableName: process.env["core-table-name"] as string,
+      Item: conversation,
+    }).promise();
+
+    return { conversation };
+  } catch (error) {
+    console.log("Error in createFriendConversation:\n", error);
+
+    throw error;
+  }
+}
+
 export async function getConversation(params: GetConversationInput): Promise<GetConversationOutput> {
   try {
     const { conversationId } = params;
@@ -180,15 +214,6 @@ export async function getConversation(params: GetConversationInput): Promise<Get
     throw error;
   }
 }
-
-// entityType: EntityType.ConversationUserRelationship,
-// pk: conversationUserRelationship.conversationId,
-// sk: conversationUserRelationship.userId,
-// gsi1pk: conversationUserRelationship.userId,
-// gsi1sk: `${KeyPrefix.Time}${conversationUserRelationship.updatedAt}` as Gsi1sk,
-// gsi2pk: conversationUserRelationship.userId,
-// gsi2sk: `${this.getGsi2skPrefixById(conversationUserRelationship.conversationId)}${conversationUserRelationship.updatedAt}` as Gsi2sk,
-// ...conversationUserRelationship,
 
 export async function createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput> {
   try {
@@ -289,6 +314,16 @@ export interface CreateFriendConversationInput {
 }
 
 export interface CreateFriendConversationOutput {
+  conversation: RawConversation;
+}
+
+export interface CreateGroupConversationInput {
+  createdBy: UserId;
+  name: string;
+  teamId?: TeamId;
+}
+
+export interface CreateGroupConversationOutput {
   conversation: RawConversation;
 }
 
