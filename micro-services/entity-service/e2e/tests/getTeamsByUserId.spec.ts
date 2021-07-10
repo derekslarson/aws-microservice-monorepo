@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role, WithRole } from "@yac/core";
-import { createRandomUser, getAccessTokenByEmail, wait } from "../../../../e2e/util";
+import { createRandomUser, getAccessTokenByEmail } from "../../../../e2e/util";
 import { Team } from "../../src/mediator-services/team.mediator.service";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomTeam, createTeamUserRelationship } from "../util";
@@ -26,8 +26,7 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
       createRandomTeam({ createdBy: userId }),
     ]));
 
-    // We need to wait a second between the creation of teamA and teamB, so that we can be sure of the return order in the test
-    await wait(1000);
+    // We need to wait create the teams in sequence, so that we can be sure of the return order in the test
 
     ({ team: teamB } = await createRandomTeam({ createdBy: otherUserIdA }));
 
