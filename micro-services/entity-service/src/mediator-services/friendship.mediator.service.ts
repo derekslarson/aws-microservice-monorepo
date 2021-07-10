@@ -5,6 +5,9 @@ import { ConversationServiceInterface } from "../entity-services/conversation.se
 import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
 import { UserServiceInterface, User } from "../entity-services/user.service";
 import { UserId } from "../types/userId.type";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
+import { ConversationId } from "../types/conversationId.type";
+import { ConversationType } from "../enums/conversationType.enum";
 @injectable()
 export class FriendshipMediatorService implements FriendshipMediatorServiceInterface {
   constructor(
@@ -48,14 +51,14 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
 
       const { userIds } = params;
 
-      const { conversation } = await this.conversationService.getFriendConversationByUserIds({ userIds });
+      const conversationId = `${KeyPrefix.FriendConversation}${userIds.sort().join("-")}` as ConversationId;
 
       await Promise.all(userIds.map((userId) => this.conversationUserRelationshipService.deleteConversationUserRelationship({
         userId,
-        conversationId: conversation.id,
+        conversationId,
       })));
 
-      await this.conversationService.deleteConversation({ conversationId: conversation.id });
+      await this.conversationService.deleteConversation({ conversationId });
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteFriendship", { error, params }, this.constructor.name);
 
@@ -69,11 +72,16 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
 
       const { userId, exclusiveStartKey, limit } = params;
 
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId, exclusiveStartKey, limit });
+      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
+        userId,
+        type: ConversationType.Friend,
+        exclusiveStartKey,
+        limit,
+      });
 
-      const userIds = conversationUserRelationships.map((relationship) => relationship.userId);
+      const friendIds = conversationUserRelationships.map((relationship) => relationship.conversationId.replace(KeyPrefix.FriendConversation, "").replace(userId, "").replace(/^-|-$/, "") as UserId);
 
-      const { users } = await this.userService.getUsers({ userIds });
+      const { users } = await this.userService.getUsers({ userIds: friendIds });
 
       return { friends: users, lastEvaluatedKey };
     } catch (error: unknown) {

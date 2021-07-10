@@ -102,7 +102,7 @@ export interface GetUserOutput {
 }
 
 export interface GetUsersInput {
-  userIds: string[];
+  userIds: UserId[];
 }
 
 export interface GetUsersOutput {

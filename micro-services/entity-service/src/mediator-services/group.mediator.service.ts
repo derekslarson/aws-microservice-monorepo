@@ -6,6 +6,7 @@ import { ConversationUserRelationshipServiceInterface } from "../entity-services
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { GroupId } from "../types/groupId.type";
+import { ConversationType } from "../enums/conversationType.enum";
 
 @injectable()
 export class GroupMediatorService implements GroupMediatorServiceInterface {
@@ -132,6 +133,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
         userId,
+        type: ConversationType.Group,
         exclusiveStartKey,
         limit,
       });

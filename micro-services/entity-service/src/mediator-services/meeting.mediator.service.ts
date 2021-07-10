@@ -6,6 +6,7 @@ import { ConversationUserRelationshipServiceInterface } from "../entity-services
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { MeetingId } from "../types/meetingId.type";
+import { ConversationType } from "../enums/conversationType.enum";
 
 @injectable()
 export class MeetingMediatorService implements MeetingMediatorServiceInterface {
@@ -133,6 +134,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
         userId,
+        type: ConversationType.Meeting,
         exclusiveStartKey,
         limit,
       });
