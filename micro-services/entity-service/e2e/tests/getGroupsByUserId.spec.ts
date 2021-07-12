@@ -13,29 +13,30 @@ import { ConversationType } from "../../src/enums/conversationType.enum";
 describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
-  let userId: UserId;
-  let accessToken: string;
-  let groupConversationA: RawConversation;
-  let groupConversationB: RawConversation;
-  const otherUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
-
-  beforeAll(async () => {
-    // We have to fetch a new base user and access token here to prevent bleed over from other tests
-    const { user } = await createRandomUser();
-    userId = user.id;
-
-    ([ { accessToken }, { conversation: groupConversationA }, { conversation: groupConversationB } ] = await Promise.all([
-      getAccessTokenByEmail(user.email),
-      createGroupConversation({ createdBy: userId, name: generateRandomString(5), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId }),
-      createGroupConversation({ createdBy: otherUserId, name: generateRandomString(5) }),
-    ]));
-
-    // We need to wait create the relationships in sequence, so that we can be sure of the return order in the test
-    await createConversationUserRelationship({ conversationId: groupConversationA.id, userId, role: Role.Admin });
-    await createConversationUserRelationship({ conversationId: groupConversationB.id, userId, role: Role.User });
-  });
+  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
 
   describe("under normal conditions", () => {
+    let userId: UserId;
+    let accessToken: string;
+    let groupConversationA: RawConversation;
+    let groupConversationB: RawConversation;
+
+    beforeAll(async () => {
+      // We have to fetch a new base user and access token here to prevent bleed over from other tests
+      const { user } = await createRandomUser();
+      userId = user.id;
+
+      ([ { accessToken }, { conversation: groupConversationA }, { conversation: groupConversationB } ] = await Promise.all([
+        getAccessTokenByEmail(user.email),
+        createGroupConversation({ createdBy: userId, name: generateRandomString(5), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId }),
+        createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5) }),
+      ]));
+
+      // We need to wait create the relationships in sequence, so that we can be sure of the return order in the test
+      await createConversationUserRelationship({ conversationId: groupConversationA.id, userId, role: Role.Admin });
+      await createConversationUserRelationship({ conversationId: groupConversationB.id, userId, role: Role.User });
+    });
+
     describe("when not passed a 'limit' query param", () => {
       it("returns a valid response", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
@@ -123,6 +124,9 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
   });
 
   describe("under error conditions", () => {
+    const userId = process.env.userId as UserId;
+    const accessToken = process.env.accessToken as string;
+
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
         const headers = {};
@@ -138,12 +142,12 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
       });
     });
 
-    describe("when a groupId of a group the user is not a member of is passed in", () => {
+    describe("when a userId of a user different than the id in the accessToken is passed in", () => {
       it("throws a 403 error", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/users/${otherUserId}/groups`, { headers });
+          await axios.get(`${baseUrl}/users/${mockUserId}/groups`, { headers });
 
           fail("Expected an error");
         } catch (error) {

@@ -3,30 +3,33 @@ import axios from "axios";
 import { Role } from "@yac/core";
 import { createConversationUserRelationship, createFriendConversation, getConversation, getConversationUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { createRandomUser } from "../../../../e2e/util";
+import { createRandomUser, generateRandomString } from "../../../../e2e/util";
 import { ConversationId } from "../../src/types/conversationId.type";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  let otherUser: { id: `user-${string}`, email: string; };
-  let conversationId: ConversationId;
-
-  beforeEach(async () => {
-    ({ user: otherUser } = await createRandomUser());
-
-    const { conversation } = await createFriendConversation({ userId, friendId: otherUser.id });
-    conversationId = conversation.id;
-
-    await Promise.all([
-      createConversationUserRelationship({ userId, conversationId, role: Role.Admin }),
-      createConversationUserRelationship({ userId: otherUser.id, conversationId, role: Role.Admin }),
-    ]);
-  });
+  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
+    let otherUser: { id: `user-${string}`, email: string; };
+    let conversationId: ConversationId;
+
+    beforeEach(async () => {
+      ({ user: otherUser } = await createRandomUser());
+
+      const { conversation } = await createFriendConversation({ userId, friendId: otherUser.id });
+      conversationId = conversation.id;
+
+      await Promise.all([
+        createConversationUserRelationship({ userId, conversationId, role: Role.Admin }),
+        createConversationUserRelationship({ userId: otherUser.id, conversationId, role: Role.Admin }),
+      ]);
+    });
+
     it("returns a valid response", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
@@ -82,7 +85,7 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
         const headers = {};
 
         try {
-          await axios.delete(`${baseUrl}/users/${userId}/friends/${otherUser.id}`, { headers });
+          await axios.delete(`${baseUrl}/users/${userId}/friends/${mockUserId}`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -93,11 +96,13 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
     });
 
     describe("when an id of a user different than the one in the access token is passed in", () => {
+      const mockUserIdTwo = `${KeyPrefix.User}bcd-234`;
+
       it("throws a 403 error", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.delete(`${baseUrl}/users/${otherUser.id}/friends/user-abc`, { headers });
+          await axios.delete(`${baseUrl}/users/${mockUserId}/friends/${mockUserIdTwo}`, { headers });
 
           fail("Expected an error");
         } catch (error) {

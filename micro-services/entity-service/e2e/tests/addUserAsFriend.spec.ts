@@ -4,7 +4,7 @@ import { Role } from "@yac/core";
 import { getConversation, getConversationUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { FriendConvoId } from "../../src/types/friendConvoId.type";
-import { createRandomUser, ISO_DATE_REGEX } from "../../../../e2e/util";
+import { createRandomUser, generateRandomString, ISO_DATE_REGEX } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -15,16 +15,17 @@ describe("POST /users/{userId}/friends (Add User as Friend)", () => {
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
+  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
   let otherUser: { id: `user-${string}`, email: string; };
   let conversationId: ConversationId;
 
-  beforeEach(async () => {
-    ({ user: otherUser } = await createRandomUser());
-
-    conversationId = `${KeyPrefix.FriendConversation}${[ userId, otherUser.id ].sort().join("-")}` as FriendConvoId;
-  });
-
   describe("under normal conditions", () => {
+    beforeEach(async () => {
+      ({ user: otherUser } = await createRandomUser());
+
+      conversationId = `${KeyPrefix.FriendConversation}${[ userId, otherUser.id ].sort().join("-")}` as FriendConvoId;
+    });
+
     it("returns a valid response", async () => {
       const body = { friendId: otherUser.id };
       const headers = { Authorization: `Bearer ${accessToken}` };
@@ -116,7 +117,7 @@ describe("POST /users/{userId}/friends (Add User as Friend)", () => {
   describe("under error conditions", () => {
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
-        const body = { friendId: otherUser.id };
+        const body = { friendId: mockUserId };
         const headers = {};
 
         try {
@@ -132,11 +133,11 @@ describe("POST /users/{userId}/friends (Add User as Friend)", () => {
 
     describe("when an id of a user different than the one in the access token is passed in", () => {
       it("throws a 403 error", async () => {
-        const body = { friendId: otherUser.id };
+        const body = { friendId: mockUserId };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/users/${otherUser.id}/friends`, body, { headers });
+          await axios.post(`${baseUrl}/users/user-abc-456/friends`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {

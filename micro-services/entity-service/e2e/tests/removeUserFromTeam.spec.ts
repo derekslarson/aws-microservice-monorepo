@@ -4,36 +4,36 @@ import { Role } from "@yac/core";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomTeam, createTeamUserRelationship, getTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { createRandomUser } from "../../../../e2e/util";
+import { createRandomUser, generateRandomString } from "../../../../e2e/util";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  let teamA: RawTeam;
-  let teamB: RawTeam;
-  let otherUser: { id: `user-${string}`, email: string; };
-
-  beforeAll(async () => {
-    ([ { team: teamA }, { team: teamB }, { user: otherUser } ] = await Promise.all([
-      createRandomTeam({ createdBy: userId }),
-      createRandomTeam({ createdBy: "user-abcd" }),
-      createRandomUser(),
-    ]));
-
-    await Promise.all([
-      createTeamUserRelationship({ userId, teamId: teamA.id, role: Role.Admin }),
-      createTeamUserRelationship({ userId: otherUser.id, teamId: teamA.id, role: Role.User }),
-    ]);
-  });
+  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
+    let team: RawTeam;
+    let otherUser: { id: `user-${string}`, email: string; };
+
+    beforeAll(async () => {
+      ({ user: otherUser } = await createRandomUser());
+    });
+
+    beforeEach(async () => {
+      ({ team } = await createRandomTeam({ createdBy: userId }));
+
+      await createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin });
+    });
+
     it("returns a valid response", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.delete<{ message: string; }>(`${baseUrl}/teams/${teamA.id}/users/${otherUser.id}`, { headers });
+        const { status, data } = await axios.delete<{ message: string; }>(`${baseUrl}/teams/${team.id}/users/${otherUser.id}`, { headers });
 
         expect(status).toBe(200);
         expect(data).toEqual({ message: "User removed from team." });
@@ -46,9 +46,9 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        await axios.delete<{ message: string; }>(`${baseUrl}/teams/${teamA.id}/users/${otherUser.id}`, { headers });
+        await axios.delete<{ message: string; }>(`${baseUrl}/teams/${team.id}/users/${otherUser.id}`, { headers });
 
-        const { teamUserRelationship } = await getTeamUserRelationship({ teamId: teamA.id, userId: otherUser.id });
+        const { teamUserRelationship } = await getTeamUserRelationship({ teamId: team.id, userId: otherUser.id });
 
         expect(teamUserRelationship).not.toBeDefined();
       } catch (error) {
@@ -63,7 +63,7 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
         const headers = {};
 
         try {
-          await axios.delete(`${baseUrl}/teams/${teamA.id}/users/${otherUser.id}`, { headers });
+          await axios.delete(`${baseUrl}/teams/${mockTeamId}/users/${mockUserId}`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -74,11 +74,19 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
     });
 
     describe("when an id of a team the user is not an admin of is passed in", () => {
+      let teamTwo: RawTeam;
+
+      beforeEach(async () => {
+        ({ team: teamTwo } = await createRandomTeam({ createdBy: "user-abcd" }));
+
+        await createTeamUserRelationship({ userId, teamId: teamTwo.id, role: Role.User });
+      });
+
       it("throws a 403 error", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.delete(`${baseUrl}/teams/${teamB.id}/users/${otherUser.id}`, { headers });
+          await axios.delete(`${baseUrl}/teams/${teamTwo.id}/users/${mockUserId}`, { headers });
 
           fail("Expected an error");
         } catch (error) {

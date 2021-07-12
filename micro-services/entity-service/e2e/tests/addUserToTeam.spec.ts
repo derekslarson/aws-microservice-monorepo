@@ -4,35 +4,38 @@ import { Role } from "@yac/core";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomTeam, createTeamUserRelationship, getTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { createRandomUser } from "../../../../e2e/util";
+import { createRandomUser, generateRandomString } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("POST /teams/{teamId}/users (Add User to Team)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  let teamA: RawTeam;
-  let teamB: RawTeam;
-  let otherUser: { id: `user-${string}`, email: string; };
-
-  beforeAll(async () => {
-    ({ user: otherUser } = await createRandomUser());
-  });
-
-  beforeEach(async () => {
-    ({ team: teamA } = await createRandomTeam({ createdBy: userId }));
-
-    await createTeamUserRelationship({ userId, teamId: teamA.id, role: Role.Admin });
-  });
+  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
+    let team: RawTeam;
+    let otherUser: { id: `user-${string}`, email: string; };
+
+    beforeAll(async () => {
+      ({ user: otherUser } = await createRandomUser());
+    });
+
+    beforeEach(async () => {
+      ({ team } = await createRandomTeam({ createdBy: userId }));
+
+      await createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin });
+    });
+
     it("returns a valid response", async () => {
       const body = { userId: otherUser.id, role: Role.User };
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post<{ message: string; }>(`${baseUrl}/teams/${teamA.id}/users`, body, { headers });
+        const { status, data } = await axios.post<{ message: string; }>(`${baseUrl}/teams/${team.id}/users`, body, { headers });
 
         expect(status).toBe(200);
         expect(data).toEqual({ message: "User added to team." });
@@ -46,17 +49,17 @@ describe("POST /teams/{teamId}/users (Add User to Team)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        await axios.post(`${baseUrl}/teams/${teamA.id}/users`, body, { headers });
+        await axios.post(`${baseUrl}/teams/${team.id}/users`, body, { headers });
 
-        const { teamUserRelationship } = await getTeamUserRelationship({ teamId: teamA.id, userId: otherUser.id });
+        const { teamUserRelationship } = await getTeamUserRelationship({ teamId: team.id, userId: otherUser.id });
 
         expect(teamUserRelationship).toEqual({
           entityType: EntityType.TeamUserRelationship,
-          pk: teamA.id,
+          pk: team.id,
           sk: otherUser.id,
           gsi1pk: otherUser.id,
-          gsi1sk: teamA.id,
-          teamId: teamA.id,
+          gsi1sk: team.id,
+          teamId: team.id,
           userId: otherUser.id,
           role: Role.User,
         });
@@ -69,11 +72,11 @@ describe("POST /teams/{teamId}/users (Add User to Team)", () => {
   describe("under error conditions", () => {
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
-        const body = { userId: otherUser.id, role: Role.User };
+        const body = { userId: mockUserId, role: Role.User };
         const headers = {};
 
         try {
-          await axios.post(`${baseUrl}/teams/${teamA.id}/users`, body, { headers });
+          await axios.post(`${baseUrl}/teams/${mockTeamId}/users`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -84,18 +87,20 @@ describe("POST /teams/{teamId}/users (Add User to Team)", () => {
     });
 
     describe("when an id of a team the user is not an admin of is passed in", () => {
-      beforeEach(async () => {
-        ({ team: teamB } = await createRandomTeam({ createdBy: "user-abcd" }));
+      let teamTwo: RawTeam;
 
-        await createTeamUserRelationship({ userId, teamId: teamB.id, role: Role.User });
+      beforeEach(async () => {
+        ({ team: teamTwo } = await createRandomTeam({ createdBy: "user-abcd" }));
+
+        await createTeamUserRelationship({ userId, teamId: teamTwo.id, role: Role.User });
       });
 
       it("throws a 403 error", async () => {
-        const body = { userId: otherUser.id, role: Role.User };
+        const body = { userId: mockUserId, role: Role.User };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/teams/${teamB.id}/users`, body, { headers });
+          await axios.post(`${baseUrl}/teams/${teamTwo.id}/users`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {

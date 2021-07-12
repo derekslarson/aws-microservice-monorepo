@@ -1,42 +1,44 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role, WithRole } from "@yac/core";
-import { createRandomUser, getAccessTokenByEmail } from "../../../../e2e/util";
+import { createRandomUser, generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
 import { Team } from "../../src/mediator-services/team.mediator.service";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomTeam, createTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
-  let userId: UserId;
-  let accessToken: string;
-  let teamA: RawTeam;
-  let teamB: RawTeam;
-  const otherUserIdA = "user-abc-123";
-
-  beforeAll(async () => {
-    // We have to fetch a new base user and access token here to prevent bleed over from other tests
-    const { user } = await createRandomUser();
-    userId = user.id;
-
-    ([ { accessToken }, { team: teamA } ] = await Promise.all([
-      getAccessTokenByEmail(user.email),
-      createRandomTeam({ createdBy: userId }),
-    ]));
-
-    // We need to wait create the teams in sequence, so that we can be sure of the return order in the test
-
-    ({ team: teamB } = await createRandomTeam({ createdBy: otherUserIdA }));
-
-    await Promise.all([
-      createTeamUserRelationship({ userId, teamId: teamA.id, role: Role.Admin }),
-      createTeamUserRelationship({ userId, teamId: teamB.id, role: Role.User }),
-    ]);
-  });
+  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
 
   describe("under normal conditions", () => {
+    let userId: UserId;
+    let accessToken: string;
+    let teamA: RawTeam;
+    let teamB: RawTeam;
+
+    beforeAll(async () => {
+      // We have to fetch a new base user and access token here to prevent bleed over from other tests
+      const { user } = await createRandomUser();
+      userId = user.id;
+
+      ([ { accessToken }, { team: teamA } ] = await Promise.all([
+        getAccessTokenByEmail(user.email),
+        createRandomTeam({ createdBy: userId }),
+      ]));
+
+      // We need to wait create the teams in sequence, so that we can be sure of the return order in the test
+
+      ({ team: teamB } = await createRandomTeam({ createdBy: mockUserId }));
+
+      await Promise.all([
+        createTeamUserRelationship({ userId, teamId: teamA.id, role: Role.Admin }),
+        createTeamUserRelationship({ userId, teamId: teamB.id, role: Role.User }),
+      ]);
+    });
+
     describe("when not passed a 'limit' query param", () => {
       it("returns a valid response", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
@@ -114,6 +116,9 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
   });
 
   describe("under error conditions", () => {
+    const userId = process.env.userId as UserId;
+    const accessToken = process.env.accessToken as string;
+
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
         const headers = {};
@@ -134,7 +139,7 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/users/${otherUserIdA}/teams`, { headers });
+          await axios.get(`${baseUrl}/users/${mockUserId}/teams`, { headers });
 
           fail("Expected an error");
         } catch (error) {

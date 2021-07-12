@@ -1,51 +1,54 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role } from "@yac/core";
-import { createRandomUser, getAccessTokenByEmail } from "../../../../e2e/util";
+import { createRandomUser, generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
 import { User } from "../../src/mediator-services/user.mediator.service";
 import { createConversationUserRelationship, createFriendConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
-  let userId: UserId;
-  let accessToken: string;
-  let otherUserA: { id: `user-${string}`, email: string; };
-  let otherUserB: { id: `user-${string}`, email: string; };
-  let conversationA: RawConversation;
-  let conversationB: RawConversation;
-
-  beforeAll(async () => {
-    // We have to fetch a new base user and access token here to prevent bleed over from other tests
-    const { user } = await createRandomUser();
-    userId = user.id;
-
-    ([ { accessToken }, { user: otherUserA }, { user: otherUserB } ] = await Promise.all([
-      getAccessTokenByEmail(user.email),
-      createRandomUser(),
-      createRandomUser(),
-    ]));
-
-    ([ { conversation: conversationA }, { conversation: conversationB } ] = await Promise.all([
-      createFriendConversation({ userId, friendId: otherUserA.id }),
-      createFriendConversation({ userId, friendId: otherUserB.id }),
-    ]));
-
-    // break the convo relationship creation up to ensure different updatedAt timestamps, so that we can predict return order
-    await Promise.all([
-      createConversationUserRelationship({ userId, conversationId: conversationA.id, role: Role.Admin }),
-      createConversationUserRelationship({ userId: otherUserA.id, conversationId: conversationA.id, role: Role.Admin }),
-    ]);
-
-    await Promise.all([
-      createConversationUserRelationship({ userId, conversationId: conversationB.id, role: Role.Admin }),
-      createConversationUserRelationship({ userId: otherUserB.id, conversationId: conversationB.id, role: Role.Admin }),
-    ]);
-  });
+  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
+    let userId: UserId;
+    let accessToken: string;
+    let otherUserA: { id: `user-${string}`, email: string; };
+    let otherUserB: { id: `user-${string}`, email: string; };
+    let conversationA: RawConversation;
+    let conversationB: RawConversation;
+
+    beforeAll(async () => {
+      // We have to fetch a new base user and access token here to prevent bleed over from other tests
+      const { user } = await createRandomUser();
+      userId = user.id;
+
+      ([ { accessToken }, { user: otherUserA }, { user: otherUserB } ] = await Promise.all([
+        getAccessTokenByEmail(user.email),
+        createRandomUser(),
+        createRandomUser(),
+      ]));
+
+      ([ { conversation: conversationA }, { conversation: conversationB } ] = await Promise.all([
+        createFriendConversation({ userId, friendId: otherUserA.id }),
+        createFriendConversation({ userId, friendId: otherUserB.id }),
+      ]));
+
+      // break the convo relationship creation up to ensure different updatedAt timestamps, so that we can predict return order
+      await Promise.all([
+        createConversationUserRelationship({ userId, conversationId: conversationA.id, role: Role.Admin }),
+        createConversationUserRelationship({ userId: otherUserA.id, conversationId: conversationA.id, role: Role.Admin }),
+      ]);
+
+      await Promise.all([
+        createConversationUserRelationship({ userId, conversationId: conversationB.id, role: Role.Admin }),
+        createConversationUserRelationship({ userId: otherUserB.id, conversationId: conversationB.id, role: Role.Admin }),
+      ]);
+    });
+
     describe("when not passed a 'limit' query param", () => {
       it("returns a valid response", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
@@ -94,6 +97,9 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
   });
 
   describe("under error conditions", () => {
+    const userId = process.env.userId as UserId;
+    const accessToken = process.env.accessToken as string;
+
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
         const headers = {};
@@ -114,7 +120,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/users/${otherUserA.id}/friends`, { headers });
+          await axios.get(`${baseUrl}/users/${mockUserId}/friends`, { headers });
 
           fail("Expected an error");
         } catch (error) {
