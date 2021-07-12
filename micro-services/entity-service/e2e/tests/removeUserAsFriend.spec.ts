@@ -15,7 +15,7 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
   const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
-    let otherUser: { id: `user-${string}`, email: string; };
+    let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
     let conversationId: ConversationId;
 
     beforeEach(async () => {

@@ -3,22 +3,22 @@ import axios from "axios";
 import { Role } from "@yac/core";
 import { createConversationUserRelationship, createGroupConversation, getConversationUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { createRandomUser, generateRandomString, ISO_DATE_REGEX } from "../../../../e2e/util";
-import { EntityType } from "../../src/enums/entityType.enum";
+import { createRandomUser, generateRandomString } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { GroupId } from "../../src/types/groupId.type";
 
-describe("POST /groups/{groupId}/users (Add User as Friend)", () => {
+describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
-  const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+  const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}` as GroupId;
 
   describe("under normal conditions", () => {
-    let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
     let group: RawConversation;
+    let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
 
     beforeAll(async () => {
       ({ user: otherUser } = await createRandomUser());
@@ -27,46 +27,31 @@ describe("POST /groups/{groupId}/users (Add User as Friend)", () => {
     beforeEach(async () => {
       ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
 
-      await createConversationUserRelationship({ conversationId: group.id, userId, role: Role.Admin });
+      await createConversationUserRelationship({ userId, conversationId: group.id, role: Role.Admin });
     });
 
     it("returns a valid response", async () => {
-      const body = { userId: otherUser.id, role: Role.User };
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post<{ message: string; }>(`${baseUrl}/groups/${group.id}/users`, body, { headers });
+        const { status, data } = await axios.delete<{ message: string; }>(`${baseUrl}/groups/${group.id}/users/${otherUser.id}`, { headers });
 
         expect(status).toBe(200);
-        expect(data).toEqual({ message: "User added to group." });
+        expect(data).toEqual({ message: "User removed from group." });
       } catch (error) {
         fail(error);
       }
     });
 
-    it("creates a valid ConversationUserRelationship entity", async () => {
-      const body = { userId: otherUser.id, role: Role.User };
+    it("deletes the necessary ConversationUserRelationship entity", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        await axios.post(`${baseUrl}/groups/${group.id}/users`, body, { headers });
+        await axios.delete<{ message: string; }>(`${baseUrl}/groups/${group.id}/users/${otherUser.id}`, { headers });
 
         const { conversationUserRelationship } = await getConversationUserRelationship({ conversationId: group.id, userId: otherUser.id });
 
-        expect(conversationUserRelationship).toEqual({
-          entityType: EntityType.ConversationUserRelationship,
-          pk: group.id,
-          sk: otherUser.id,
-          gsi1pk: otherUser.id,
-          gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: otherUser.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.GroupConversation}.*`)),
-          role: Role.User,
-          conversationId: group.id,
-          userId: otherUser.id,
-          updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
-          muted: false,
-        });
+        expect(conversationUserRelationship).not.toBeDefined();
       } catch (error) {
         fail(error);
       }
@@ -76,11 +61,11 @@ describe("POST /groups/{groupId}/users (Add User as Friend)", () => {
   describe("under error conditions", () => {
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
-        const body = { userId: mockUserId, role: Role.User };
-        const headers = { };
+        const headers = {};
 
         try {
-          await axios.post(`${baseUrl}/groups/${mockGroupId}/users`, body, { headers });
+          await axios.delete(`${baseUrl}/groups/${mockGroupId}/users/${mockUserId}`, { headers });
+
           fail("Expected an error");
         } catch (error) {
           expect(error.response?.status).toBe(401);
@@ -89,22 +74,21 @@ describe("POST /groups/{groupId}/users (Add User as Friend)", () => {
       });
     });
 
-    describe("when an id of a group that the user is not an admin of is passed in", () => {
+    describe("when an id of a group the user is not an admin of is passed in", () => {
       let groupTwo: RawConversation;
       const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
 
       beforeEach(async () => {
         ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserIdTwo, name: generateRandomString(5) }));
 
-        await createConversationUserRelationship({ conversationId: groupTwo.id, userId, role: Role.User });
+        await createConversationUserRelationship({ userId, conversationId: groupTwo.id, role: Role.User });
       });
 
       it("throws a 403 error", async () => {
-        const body = { userId: mockUserId, role: Role.User };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/groups/${groupTwo.id}/users`, body, { headers });
+          await axios.delete(`${baseUrl}/groups/${groupTwo.id}/users/${mockUserId}`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -116,11 +100,10 @@ describe("POST /groups/{groupId}/users (Add User as Friend)", () => {
 
     describe("when passed invalid parameters", () => {
       it("throws a 400 error with a valid structure", async () => {
-        const body = {};
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/groups/pants/users`, body, { headers });
+          await axios.delete(`${baseUrl}/groups/invalid-id/users/invalid-id-two`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -129,10 +112,9 @@ describe("POST /groups/{groupId}/users (Add User as Friend)", () => {
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { groupId: "Failed constraint check for string: Must be a group id" },
-              body: {
-                userId: "Expected string, but was missing",
-                role: 'Expected "super_admin" | "admin" | "user", but was missing',
+              pathParameters: {
+                groupId: "Failed constraint check for string: Must be a group id",
+                userId: "Failed constraint check for string: Must be a user id",
               },
             },
           });

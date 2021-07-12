@@ -3,6 +3,7 @@
 import { CognitoIdentityServiceProvider, DynamoDB, SSM } from "aws-sdk";
 import crypto from "crypto";
 import axios from "axios";
+import { KeyPrefix } from "../micro-services/entity-service/src/enums/keyPrefix.enum";
 
 const ssm = new SSM({ region: "us-east-1" });
 export const cognito = new CognitoIdentityServiceProvider({ region: "us-east-1" });
@@ -175,7 +176,7 @@ export async function getAccessTokenByEmail(email: string): Promise<{ accessToke
   }
 }
 
-export async function createRandomUser(): Promise<{ user: { id: `user-${string}`; email: string; } }> {
+export async function createRandomUser(): Promise<{ user: { id: `${KeyPrefix.User}${string}`; email: string; } }> {
   try {
     const email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
 

@@ -6,18 +6,19 @@ import { createRandomTeam, createTeamUserRelationship, getTeamUserRelationship }
 import { UserId } from "../../src/types/userId.type";
 import { createRandomUser, generateRandomString } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
+import { TeamId } from "../../src/types/teamId.type";
 
 describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
-  const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
+  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+  const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId;
 
   describe("under normal conditions", () => {
     let team: RawTeam;
-    let otherUser: { id: `user-${string}`, email: string; };
+    let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
 
     beforeAll(async () => {
       ({ user: otherUser } = await createRandomUser());
@@ -75,9 +76,10 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
 
     describe("when an id of a team the user is not an admin of is passed in", () => {
       let teamTwo: RawTeam;
+      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
 
       beforeEach(async () => {
-        ({ team: teamTwo } = await createRandomTeam({ createdBy: "user-abcd" }));
+        ({ team: teamTwo } = await createRandomTeam({ createdBy: mockUserIdTwo }));
 
         await createTeamUserRelationship({ userId, teamId: teamTwo.id, role: Role.User });
       });

@@ -16,8 +16,8 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
   describe("under normal conditions", () => {
     let userId: UserId;
     let accessToken: string;
-    let otherUserA: { id: `user-${string}`, email: string; };
-    let otherUserB: { id: `user-${string}`, email: string; };
+    let otherUserA: { id: `${KeyPrefix.User}${string}`, email: string; };
+    let otherUserB: { id: `${KeyPrefix.User}${string}`, email: string; };
     let conversationA: RawConversation;
     let conversationB: RawConversation;
 

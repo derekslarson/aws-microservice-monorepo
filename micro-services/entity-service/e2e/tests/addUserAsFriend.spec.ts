@@ -16,7 +16,7 @@ describe("POST /users/{userId}/friends (Add User as Friend)", () => {
   const accessToken = process.env.accessToken as string;
 
   const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
-  let otherUser: { id: `user-${string}`, email: string; };
+  let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
   let conversationId: ConversationId;
 
   describe("under normal conditions", () => {
@@ -132,12 +132,14 @@ describe("POST /users/{userId}/friends (Add User as Friend)", () => {
     });
 
     describe("when an id of a user different than the one in the access token is passed in", () => {
+      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+
       it("throws a 403 error", async () => {
         const body = { friendId: mockUserId };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/users/user-abc-456/friends`, body, { headers });
+          await axios.post(`${baseUrl}/users/${mockUserIdTwo}/friends`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {

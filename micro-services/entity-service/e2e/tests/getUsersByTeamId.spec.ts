@@ -6,6 +6,7 @@ import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomTeam, createTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { User } from "../../src/mediator-services/user.mediator.service";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -15,8 +16,8 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
 
   let teamA: RawTeam;
   let teamB: RawTeam;
-  let otherUser: { id: `user-${string}`, email: string; };
-  let expectedUsersSorted: { id: `user-${string}`; email: string; role: Role; }[];
+  let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
+  let expectedUsersSorted: { id: `${KeyPrefix.User}${string}`; email: string; role: Role; }[];
 
   beforeAll(async () => {
     ({ user: otherUser } = await createRandomUser());

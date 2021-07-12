@@ -18,7 +18,7 @@ describe("POST /teams/{teamId}/users (Add User to Team)", () => {
 
   describe("under normal conditions", () => {
     let team: RawTeam;
-    let otherUser: { id: `user-${string}`, email: string; };
+    let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
 
     beforeAll(async () => {
       ({ user: otherUser } = await createRandomUser());
@@ -88,9 +88,10 @@ describe("POST /teams/{teamId}/users (Add User to Team)", () => {
 
     describe("when an id of a team the user is not an admin of is passed in", () => {
       let teamTwo: RawTeam;
+      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
 
       beforeEach(async () => {
-        ({ team: teamTwo } = await createRandomTeam({ createdBy: "user-abcd" }));
+        ({ team: teamTwo } = await createRandomTeam({ createdBy: mockUserIdTwo }));
 
         await createTeamUserRelationship({ userId, teamId: teamTwo.id, role: Role.User });
       });
