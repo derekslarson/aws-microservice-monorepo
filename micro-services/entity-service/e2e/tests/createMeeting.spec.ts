@@ -2,7 +2,7 @@
 import axios from "axios";
 import { Role } from "@yac/core";
 import { generateRandomString, ISO_DATE_REGEX } from "../../../../e2e/util";
-import { Group } from "../../src/mediator-services/group.mediator.service";
+import { Meeting } from "../../src/mediator-services/meeting.mediator.service";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { UserId } from "../../src/types/userId.type";
 import { createRandomTeam, createTeamUserRelationship, getConversation, getConversationUserRelationship } from "../util";
@@ -10,7 +10,7 @@ import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 
-describe("POST /users/{userId}/groups (Create Group)", () => {
+describe("POST /users/{userId}/meetings (Create Meeting)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
@@ -26,17 +26,20 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
 
     it("returns a valid response", async () => {
       const name = generateRandomString(5);
-      const body = { name, teamId: team.id };
+      const dueDate = new Date().toISOString();
+      const body = { name, teamId: team.id, dueDate };
+
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post<{ team: Group; }>(`${baseUrl}/users/${userId}/groups`, body, { headers });
+        const { status, data } = await axios.post<{ meeting: Meeting; }>(`${baseUrl}/users/${userId}/meetings`, body, { headers });
 
         expect(status).toBe(201);
         expect(data).toEqual({
-          group: {
-            id: jasmine.stringMatching(new RegExp(`${KeyPrefix.GroupConversation}.*`)),
+          meeting: {
+            id: jasmine.stringMatching(new RegExp(`${KeyPrefix.MeetingConversation}.*`)),
             name,
+            dueDate,
             teamId: team.id,
             createdBy: userId,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
@@ -49,25 +52,27 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
 
     it("creates a valid Conversation entity", async () => {
       const name = generateRandomString(5);
-      const body = { name, teamId: team.id };
+      const dueDate = new Date().toISOString();
+      const body = { name, teamId: team.id, dueDate };
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { data } = await axios.post<{ group: Group; }>(`${baseUrl}/users/${userId}/groups`, body, { headers });
+        const { data } = await axios.post<{ meeting: Meeting; }>(`${baseUrl}/users/${userId}/meetings`, body, { headers });
 
-        const { conversation } = await getConversation({ conversationId: data.group.id });
+        const { conversation } = await getConversation({ conversationId: data.meeting.id });
 
         expect(conversation).toEqual({
-          entityType: EntityType.GroupConversation,
-          pk: data.group.id,
-          sk: data.group.id,
+          entityType: EntityType.MeetingConversation,
+          pk: data.meeting.id,
+          sk: data.meeting.id,
           gsi1pk: team.id,
-          gsi1sk: data.group.id,
-          id: data.group.id,
+          gsi1sk: data.meeting.id,
+          id: data.meeting.id,
           createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
-          type: ConversationType.Group,
-          createdBy: userId,
+          type: ConversationType.Meeting,
           teamId: team.id,
+          createdBy: userId,
+          dueDate,
           name,
         });
       } catch (error) {
@@ -77,24 +82,25 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
 
     it("creates a valid ConversationUserRelationship entity", async () => {
       const name = generateRandomString(5);
-      const body = { name };
+      const dueDate = new Date().toISOString();
+      const body = { name, teamId: team.id, dueDate };
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { data } = await axios.post<{ group: Group; }>(`${baseUrl}/users/${userId}/groups`, body, { headers });
+        const { data } = await axios.post<{ meeting: Meeting; }>(`${baseUrl}/users/${userId}/meetings`, body, { headers });
 
-        const { conversationUserRelationship } = await getConversationUserRelationship({ conversationId: data.group.id, userId });
+        const { conversationUserRelationship } = await getConversationUserRelationship({ conversationId: data.meeting.id, userId });
 
         expect(conversationUserRelationship).toEqual({
           entityType: EntityType.ConversationUserRelationship,
-          pk: data.group.id,
+          pk: data.meeting.id,
           sk: userId,
           gsi1pk: userId,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: userId,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.GroupConversation}.*`)),
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
           role: Role.Admin,
-          conversationId: data.group.id,
+          conversationId: data.meeting.id,
           userId,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
@@ -113,7 +119,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
         const headers = {};
 
         try {
-          await axios.post(`${baseUrl}/users/${userId}/groups`, body, { headers });
+          await axios.post(`${baseUrl}/users/${userId}/meetings`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -134,11 +140,11 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
 
       it("throws a 403 error", async () => {
         const name = generateRandomString(5);
-        const body = { name, teamId: teamTwo.id };
+        const body = { name, teamId: teamTwo.id, dueDate: new Date().toISOString() };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/users/${userId}/groups`, body, { headers });
+          await axios.post(`${baseUrl}/users/${userId}/meetings`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -150,11 +156,11 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
 
     describe("when passed invalid parameters", () => {
       it("throws a 400 error with a valid structure", async () => {
-        const body = { teamId: 1 };
+        const body = { teamId: 1, dueDate: "test" };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/users/test/groups`, body, { headers });
+          await axios.post(`${baseUrl}/users/test/meetings`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -167,6 +173,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
               body: {
                 name: "Expected string, but was missing",
                 teamId: "Expected string, but was number",
+                dueDate: "Failed constraint check for string: Must be an ISO timestamp",
               },
             },
           });

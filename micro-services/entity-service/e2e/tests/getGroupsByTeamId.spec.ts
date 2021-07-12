@@ -1,46 +1,43 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role, WithRole } from "@yac/core";
-import { createRandomUser, generateRandomString } from "../../../../e2e/util";
+import { generateRandomString, wait } from "../../../../e2e/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createRandomTeam, createTeamUserRelationship } from "../util";
+import { createConversationUserRelationship, createGroupConversation, createRandomTeam, createTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { User } from "../../src/mediator-services/user.mediator.service";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
+import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { TeamId } from "../../src/types/teamId.type";
+import { Group } from "../../src/mediator-services/group.mediator.service";
 
-describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
+describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
-  const userEmail = process.env.userEmail as UserId;
   const accessToken = process.env.accessToken as string;
 
+  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
   const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId;
 
   describe("under normal conditions", () => {
     let team: RawTeam;
-    let teamTwo: RawTeam;
-    let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
-    let expectedUsersSorted: { id: `${KeyPrefix.User}${string}`; email: string; role: Role; }[];
+    let group: RawConversation;
+    let groupTwo: RawConversation;
 
     beforeAll(async () => {
-      ({ user: otherUser } = await createRandomUser());
+      ({ team } = await createRandomTeam({ createdBy: mockUserId }));
 
-      ([ { team }, { team: teamTwo } ] = await Promise.all([
-        createRandomTeam({ createdBy: userId }),
-        createRandomTeam({ createdBy: otherUser.id }),
-      ]));
+      // We need to wait create the groups in sequence, so that we can be sure of the return order in the test
+      ({ conversation: group } = await createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5), teamId: team.id }));
+
+      await wait(1000);
+
+      ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5), teamId: team.id }));
 
       await Promise.all([
-        createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin }),
-        createTeamUserRelationship({ userId: otherUser.id, teamId: team.id, role: Role.User }),
-        createTeamUserRelationship({ userId: otherUser.id, teamId: teamTwo.id, role: Role.Admin }),
+        createTeamUserRelationship({ userId, teamId: team.id, role: Role.User }),
+        createConversationUserRelationship({ conversationId: group.id, userId, role: Role.User }),
+        createConversationUserRelationship({ conversationId: groupTwo.id, userId, role: Role.User }),
       ]);
-
-      // since user ids come from Cognito, we can't guarantee their sort order based off order of creation,
-      // so we need to establish it here
-      const expectedUsers = [ { id: userId, email: userEmail, role: Role.Admin }, { id: otherUser.id, email: otherUser.email, role: Role.User } ];
-      expectedUsersSorted = expectedUsers.sort((userA, userB) => (userA.id > userB.id ? 1 : -1));
     });
 
     describe("when not passed a 'limit' query param", () => {
@@ -48,10 +45,29 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get<{ users: WithRole<User>[]; }>(`${baseUrl}/teams/${team.id}/users`, { headers });
+          const { status, data } = await axios.get<{ groups: WithRole<Group>[]; }>(`${baseUrl}/teams/${team.id}/groups`, { headers });
 
           expect(status).toBe(200);
-          expect(data).toEqual({ users: expectedUsersSorted });
+          expect(data).toEqual({
+            groups: [
+              {
+                id: group.id,
+                name: group.name,
+                createdBy: group.createdBy,
+                createdAt: group.createdAt,
+                teamId: group.teamId,
+                type: group.type,
+              },
+              {
+                id: groupTwo.id,
+                name: groupTwo.name,
+                createdBy: groupTwo.createdBy,
+                createdAt: groupTwo.createdAt,
+                teamId: groupTwo.teamId,
+                type: groupTwo.type,
+              },
+            ],
+          });
         } catch (error) {
           fail(error);
         }
@@ -64,27 +80,41 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get<{ users: WithRole<User>[]; lastEvaluatedKey: string; }>(`${baseUrl}/teams/${team.id}/users`, { params, headers });
+          const { status, data } = await axios.get<{ groups: WithRole<Group>[]; lastEvaluatedKey: string; }>(`${baseUrl}/teams/${team.id}/groups`, { params, headers });
 
           expect(status).toBe(200);
           expect(data).toEqual({
-            users: [
-              expectedUsersSorted[0],
+            groups: [
+              {
+                id: group.id,
+                name: group.name,
+                createdBy: group.createdBy,
+                createdAt: group.createdAt,
+                teamId: group.teamId,
+                type: group.type,
+              },
             ],
             lastEvaluatedKey: jasmine.any(String),
           });
 
           const callTwoParams = { limit: 1, exclusiveStartKey: data.lastEvaluatedKey };
 
-          const { status: callTwoStatus, data: callTwoData } = await axios.get<{ teams: WithRole<User>[]; }>(
-            `${baseUrl}/teams/${team.id}/users`,
+          const { status: callTwoStatus, data: callTwoData } = await axios.get<{ groups: WithRole<Group>[]; }>(
+            `${baseUrl}/teams/${team.id}/groups`,
             { params: callTwoParams, headers },
           );
 
           expect(callTwoStatus).toBe(200);
           expect(callTwoData).toEqual({
-            users: [
-              expectedUsersSorted[1],
+            groups: [
+              {
+                id: groupTwo.id,
+                name: groupTwo.name,
+                createdBy: groupTwo.createdBy,
+                createdAt: groupTwo.createdAt,
+                teamId: groupTwo.teamId,
+                type: groupTwo.type,
+              },
             ],
           });
         } catch (error) {
@@ -100,7 +130,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
         const headers = {};
 
         try {
-          await axios.get(`${baseUrl}/teams/${mockTeamId}/users`, { headers });
+          await axios.get(`${baseUrl}/teams/${mockTeamId}/groups`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -115,7 +145,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/teams/${mockTeamId}/users`, { headers });
+          await axios.get(`${baseUrl}/teams/${mockTeamId}/groups`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -131,7 +161,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/teams/test/users`, { params, headers });
+          await axios.get(`${baseUrl}/teams/test/groups`, { params, headers });
 
           fail("Expected an error");
         } catch (error) {

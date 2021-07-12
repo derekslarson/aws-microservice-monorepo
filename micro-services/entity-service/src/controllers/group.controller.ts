@@ -163,9 +163,9 @@ export class GroupController extends BaseController implements GroupControllerIn
         queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetGroupsByTeamIdDto, request, getUserIdFromJwt: true });
 
-      const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
+      const { isTeamMember } = await this.teamMediatorService.isTeamMember({ teamId, userId: jwtId });
 
-      if (!isTeamAdmin) {
+      if (!isTeamMember) {
         throw new ForbiddenError("Forbidden");
       }
 
