@@ -31,7 +31,11 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
         ...team,
       };
 
-      await this.documentClient.put({ TableName: this.tableName, Item: teamEntity }).promise();
+      await this.documentClient.put({
+        TableName: this.tableName,
+        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
+        Item: teamEntity,
+      }).promise();
 
       return { team };
     } catch (error: unknown) {

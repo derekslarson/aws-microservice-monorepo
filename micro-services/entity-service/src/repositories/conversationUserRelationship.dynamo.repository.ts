@@ -44,6 +44,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
       };
 
       await this.documentClient.put({
+        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
         TableName: this.tableName,
         Item: conversationUserRelationshipEntity,
       }).promise();

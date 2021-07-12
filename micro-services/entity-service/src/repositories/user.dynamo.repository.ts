@@ -32,6 +32,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
 
       await this.documentClient.put({
         TableName: this.tableName,
+        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
         Item: userEntity,
       }).promise();
 

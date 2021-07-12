@@ -43,6 +43,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
       };
 
       await this.documentClient.put({
+        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
         TableName: this.tableName,
         Item: messageEntity,
       }).promise();
