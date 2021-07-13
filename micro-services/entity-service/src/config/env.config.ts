@@ -8,6 +8,7 @@ export const envConfig: EnvConfigInterface = {
   globalSecondaryIndexNames: {
     one: process.env.GSI_ONE_INDEX_NAME || "",
     two: process.env.GSI_TWO_INDEX_NAME || "",
+    three: process.env.GSI_THREE_INDEX_NAME || "",
   },
 };
 
@@ -18,5 +19,6 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   globalSecondaryIndexNames: {
     one: string;
     two: string;
+    three: string;
   }
 }

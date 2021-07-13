@@ -59,6 +59,12 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       sortKey: { name: "gsi2sk", type: DynamoDB.AttributeType.STRING },
     });
 
+    coreTable.addGlobalSecondaryIndex({
+      indexName: GlobalSecondaryIndex.Three,
+      partitionKey: { name: "gsi3pk", type: DynamoDB.AttributeType.STRING },
+      sortKey: { name: "gsi3sk", type: DynamoDB.AttributeType.STRING },
+    });
+
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
 
@@ -73,6 +79,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       CORE_TABLE_NAME: coreTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
       GSI_TWO_INDEX_NAME: GlobalSecondaryIndex.Two,
+      GSI_THREE_INDEX_NAME: GlobalSecondaryIndex.Three,
       USER_SIGNED_UP_SNS_TOPIC_ARN: userSignedUpSnsTopicArn,
     };
 

@@ -21,7 +21,13 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
       const { userId, type, unread, exclusiveStartKey, limit } = params;
 
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId, exclusiveStartKey, type, unread, limit });
+      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
+        userId,
+        exclusiveStartKey,
+        type: type === "meeting_due_date" ? "due_date" : type,
+        unread,
+        limit,
+      });
 
       const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
 
@@ -69,7 +75,7 @@ export type Conversation = ConversationEntity;
 
 export interface GetConversationsByUserIdInput {
   userId: UserId;
-  type?: ConversationType;
+  type?: ConversationType | "meeting_due_date";
   unread?: boolean;
   limit?: number;
   exclusiveStartKey?: string;

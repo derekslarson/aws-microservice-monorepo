@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, DynamoSetValues, Role } from "@yac/core";
@@ -16,6 +17,8 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
   private gsiTwoIndexName: string;
 
+  private gsiThreeIndexName: string;
+
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
@@ -24,6 +27,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     super(documentClientFactory, envConfig.tableNames.core, loggerService);
     this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
     this.gsiTwoIndexName = envConfig.globalSecondaryIndexNames.two;
+    this.gsiThreeIndexName = envConfig.globalSecondaryIndexNames.three;
   }
 
   public async createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput> {
@@ -40,6 +44,8 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
         gsi1sk: `${KeyPrefix.Time}${conversationUserRelationship.updatedAt}` as Gsi1sk,
         gsi2pk: conversationUserRelationship.userId,
         gsi2sk: `${this.getGsi2skPrefixById(conversationUserRelationship.conversationId)}${conversationUserRelationship.updatedAt}` as Gsi2sk,
+        gsi3pk: conversationUserRelationship.dueDate ? conversationUserRelationship.userId : undefined,
+        gsi3sk: conversationUserRelationship.dueDate ? `${KeyPrefix.Time}${conversationUserRelationship.dueDate}` as Gsi3sk : undefined,
         ...conversationUserRelationship,
       };
 
@@ -195,10 +201,10 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const { userId, exclusiveStartKey, type, unread, limit } = params;
 
-      const indexName = type ? this.gsiTwoIndexName : this.gsiOneIndexName;
-      const pk = type ? "gsi2pk" : "gsi1pk";
-      const sk = type ? "gsi2sk" : "gsi1sk";
-      const skPrefix = type ? this.getGsi2skPrefixByType(type) : KeyPrefix.Time;
+      const indexName = type === "due_date" ? this.gsiThreeIndexName : type ? this.gsiTwoIndexName : this.gsiOneIndexName;
+      const pk = type === "due_date" ? "gsi3pk" : type ? "gsi2pk" : "gsi1pk";
+      const sk = type === "due_date" ? "gsi3sk" : type ? "gsi2sk" : "gsi1sk";
+      const skPrefix = type === "due_date" || !type ? KeyPrefix.Time : this.getGsi2skPrefixByType(type);
 
       const { Items: conversationUserRelationshipsWithSet, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
@@ -309,23 +315,28 @@ export interface ConversationUserRelationship {
   muted: boolean;
   updatedAt: string;
   unreadMessages?: MessageId[];
-  recentMessageId?: string;
+  recentMessageId?: MessageId;
+  dueDate?: string;
 }
 
 type Gsi1sk = `${KeyPrefix.Time}${string}`;
 type Gsi2skPrefix = `${KeyPrefix.Time}${KeyPrefix.FriendConversation | KeyPrefix.GroupConversation | KeyPrefix.MeetingConversation}`;
 type Gsi2sk = `${Gsi2skPrefix}${string}`;
+type Gsi3sk = `${KeyPrefix.Time}${string}`;
 
 export interface RawConversationUserRelationship extends ConversationUserRelationship {
   entityType: EntityType.ConversationUserRelationship,
   pk: ConversationId;
   sk: UserId;
-  gsi1pk: UserId;
   // allows sorting by updatedAt of all conversations
+  gsi1pk: UserId;
   gsi1sk: Gsi1sk;
-  gsi2pk: UserId;
   // allows sorting by updatedAt of specific conversation types
+  gsi2pk: UserId;
   gsi2sk: Gsi2sk;
+  // allows sorting by meeting dueDate
+  gsi3pk?: UserId;
+  gsi3sk?: Gsi3sk;
 }
 
 export interface CreateConversationUserRelationshipInput {
@@ -385,7 +396,7 @@ export interface GetConversationUserRelationshipsByConversationIdOutput {
 export interface GetConversationUserRelationshipsByUserIdInput {
   userId: UserId;
   unread?: boolean;
-  type?: ConversationType;
+  type?: ConversationType | "due_date";
   limit?: number;
   exclusiveStartKey?: string;
 }

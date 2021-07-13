@@ -18,12 +18,13 @@ export class ConversationUserRelationshipService implements ConversationUserRela
     try {
       this.loggerService.trace("createConversationUserRelationship called", { params }, this.constructor.name);
 
-      const { conversationId, userId, role } = params;
+      const { conversationId, userId, role, dueDate } = params;
 
       const conversationUserRelationship: ConversationUserRelationshipEntity = {
         conversationId,
         userId,
         role,
+        dueDate,
         muted: false,
         updatedAt: new Date().toISOString(),
       };
@@ -148,6 +149,7 @@ export interface CreateConversationUserRelationshipInput {
   conversationId: ConversationId;
   userId: UserId;
   role: Role;
+  dueDate?: string;
 }
 
 export interface CreateConversationUserRelationshipOutput {
@@ -194,7 +196,7 @@ export interface GetConversationUserRelationshipsByConversationIdOutput {
 export interface GetConversationUserRelationshipsByUserIdInput {
   userId: UserId;
   unread?: boolean;
-  type?: ConversationType;
+  type?: ConversationType | "due_date";
   limit?: number;
   exclusiveStartKey?: string;
 }
