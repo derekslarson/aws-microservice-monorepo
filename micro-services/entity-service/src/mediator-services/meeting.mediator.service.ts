@@ -29,7 +29,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
         teamId,
       });
 
-      await this.conversationUserRelationshipService.createConversationUserRelationship({ userId: createdBy, conversationId: conversation.id, role: Role.Admin });
+      await this.conversationUserRelationshipService.createConversationUserRelationship({ userId: createdBy, conversationId: conversation.id, role: Role.Admin, dueDate });
 
       const { type, ...restOfMeeting } = conversation;
 
@@ -89,8 +89,11 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { meetingId, userId, role } = params;
 
+      const { meeting } = await this.getMeeting({ meetingId });
+
       await this.conversationUserRelationshipService.createConversationUserRelationship({
         conversationId: meetingId,
+        dueDate: meeting.dueDate,
         userId,
         role,
       });
