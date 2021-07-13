@@ -1,33 +1,33 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role } from "@yac/core";
-import { createConversationUserRelationship, createGroupConversation, getConversationUserRelationship } from "../util";
+import { createConversationUserRelationship, createMeetingConversation, getConversationUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { createRandomUser, generateRandomString, ISO_DATE_REGEX } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 
-describe("POST /groups/{groupId}/users (Add User to Group)", () => {
+describe("POST /meetings/{meetingId}/users (Add User to Meeting)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
   const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
-  const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+  const mockMeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
-    let group: RawConversation;
+    let meeting: RawConversation;
 
     beforeAll(async () => {
       ({ user: otherUser } = await createRandomUser());
     });
 
     beforeEach(async () => {
-      ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
+      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
-      await createConversationUserRelationship({ conversationId: group.id, userId, role: Role.Admin });
+      await createConversationUserRelationship({ conversationId: meeting.id, userId, role: Role.Admin });
     });
 
     it("returns a valid response", async () => {
@@ -35,11 +35,12 @@ describe("POST /groups/{groupId}/users (Add User to Group)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post<{ message: string; }>(`${baseUrl}/groups/${group.id}/users`, body, { headers });
+        const { status, data } = await axios.post<{ message: string; }>(`${baseUrl}/meetings/${meeting.id}/users`, body, { headers });
 
         expect(status).toBe(200);
-        expect(data).toEqual({ message: "User added to group." });
+        expect(data).toEqual({ message: "User added to meeting." });
       } catch (error) {
+        console.log(JSON.stringify(error.response.data, null, 2));
         fail(error);
       }
     });
@@ -49,20 +50,20 @@ describe("POST /groups/{groupId}/users (Add User to Group)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        await axios.post(`${baseUrl}/groups/${group.id}/users`, body, { headers });
+        await axios.post(`${baseUrl}/meetings/${meeting.id}/users`, body, { headers });
 
-        const { conversationUserRelationship } = await getConversationUserRelationship({ conversationId: group.id, userId: otherUser.id });
+        const { conversationUserRelationship } = await getConversationUserRelationship({ conversationId: meeting.id, userId: otherUser.id });
 
         expect(conversationUserRelationship).toEqual({
           entityType: EntityType.ConversationUserRelationship,
-          pk: group.id,
+          pk: meeting.id,
           sk: otherUser.id,
           gsi1pk: otherUser.id,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: otherUser.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.GroupConversation}.*`)),
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
           role: Role.User,
-          conversationId: group.id,
+          conversationId: meeting.id,
           userId: otherUser.id,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
@@ -80,7 +81,7 @@ describe("POST /groups/{groupId}/users (Add User to Group)", () => {
         const headers = { };
 
         try {
-          await axios.post(`${baseUrl}/groups/${mockGroupId}/users`, body, { headers });
+          await axios.post(`${baseUrl}/meetings/${mockMeetingId}/users`, body, { headers });
           fail("Expected an error");
         } catch (error) {
           expect(error.response?.status).toBe(401);
@@ -89,14 +90,14 @@ describe("POST /groups/{groupId}/users (Add User to Group)", () => {
       });
     });
 
-    describe("when an id of a group that the user is not an admin of is passed in", () => {
-      let groupTwo: RawConversation;
+    describe("when an id of a meeting that the user is not an admin of is passed in", () => {
+      let meetingTwo: RawConversation;
       const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
 
       beforeEach(async () => {
-        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserIdTwo, name: generateRandomString(5) }));
+        ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserIdTwo, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
-        await createConversationUserRelationship({ conversationId: groupTwo.id, userId, role: Role.User });
+        await createConversationUserRelationship({ conversationId: meetingTwo.id, userId, role: Role.User });
       });
 
       it("throws a 403 error", async () => {
@@ -104,7 +105,7 @@ describe("POST /groups/{groupId}/users (Add User to Group)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/groups/${groupTwo.id}/users`, body, { headers });
+          await axios.post(`${baseUrl}/meetings/${meetingTwo.id}/users`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -120,7 +121,7 @@ describe("POST /groups/{groupId}/users (Add User to Group)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/groups/pants/users`, body, { headers });
+          await axios.post(`${baseUrl}/meetings/pants/users`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -129,7 +130,7 @@ describe("POST /groups/{groupId}/users (Add User to Group)", () => {
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { groupId: "Failed constraint check for string: Must be a group id" },
+              pathParameters: { meetingId: "Failed constraint check for string: Must be a meeting id" },
               body: {
                 userId: "Expected string, but was missing",
                 role: 'Expected "super_admin" | "admin" | "user", but was missing',

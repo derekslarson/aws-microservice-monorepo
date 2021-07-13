@@ -30,7 +30,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post<{ team: Group; }>(`${baseUrl}/users/${userId}/groups`, body, { headers });
+        const { status, data } = await axios.post<{ group: Group; }>(`${baseUrl}/users/${userId}/groups`, body, { headers });
 
         expect(status).toBe(201);
         expect(data).toEqual({

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/core";
+import { Role, WithRole } from "@yac/core";
 import { generateRandomString } from "../../../../e2e/util";
 import { Team } from "../../src/mediator-services/team.mediator.service";
 import { EntityType } from "../../src/enums/entityType.enum";
@@ -20,7 +20,7 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post<{ team: Team; }>(`${baseUrl}/users/${userId}/teams`, body, { headers });
+        const { status, data } = await axios.post<{ team: WithRole<Team>; }>(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
         expect(status).toBe(201);
         expect(data).toEqual({

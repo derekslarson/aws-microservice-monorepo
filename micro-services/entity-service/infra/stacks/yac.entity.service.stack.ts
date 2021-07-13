@@ -560,13 +560,13 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         authorizationScopes: [ "yac/meeting.read" ],
       },
       {
-        path: "/meeting/{meetingId}/users",
+        path: "/meetings/{meetingId}/users",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: addUserToMeetingHandler,
         authorizationScopes: [ "yac/meeting.write" ],
       },
       {
-        path: "/meeting/{meetingId}/users/{userId}",
+        path: "/meetings/{meetingId}/users/{userId}",
         method: ApiGatewayV2.HttpMethod.DELETE,
         handler: removeUserFromMeetingHandler,
         authorizationScopes: [ "yac/meeting.write" ],

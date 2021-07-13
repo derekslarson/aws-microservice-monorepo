@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { Role } from "@yac/core/lib/src/enums";
+import { Role } from "@yac/core";
 import ksuid from "ksuid";
 import { documentClient, cognito, generateRandomString } from "../../../e2e/util";
 import { ConversationType } from "../src/enums/conversationType.enum";
@@ -12,6 +12,7 @@ import { RawTeamUserRelationship } from "../src/repositories/teamUserRelationshi
 import { ConversationId } from "../src/types/conversationId.type";
 import { FriendConvoId } from "../src/types/friendConvoId.type";
 import { GroupId } from "../src/types/groupId.type";
+import { MeetingId } from "../src/types/meetingId.type";
 import { TeamId } from "../src/types/teamId.type";
 import { UserId } from "../src/types/userId.type";
 
@@ -196,6 +197,40 @@ export async function createGroupConversation(params: CreateGroupConversationInp
   }
 }
 
+export async function createMeetingConversation(params: CreateMeetingConversationInput): Promise<CreateMeetingConversationOutput> {
+  try {
+    const { name, createdBy, teamId, dueDate } = params;
+
+    const conversationId = `${KeyPrefix.MeetingConversation}${ksuid.randomSync().string}` as MeetingId;
+
+    const conversation: RawConversation = {
+      entityType: EntityType.GroupConversation,
+      pk: conversationId,
+      sk: conversationId,
+      gsi1pk: teamId,
+      gsi1sk: teamId && conversationId,
+      id: conversationId,
+      type: ConversationType.Group,
+      createdAt: new Date().toISOString(),
+      dueDate,
+      teamId,
+      name,
+      createdBy,
+    };
+
+    await documentClient.put({
+      TableName: process.env["core-table-name"] as string,
+      Item: conversation,
+    }).promise();
+
+    return { conversation };
+  } catch (error) {
+    console.log("Error in createFriendConversation:\n", error);
+
+    throw error;
+  }
+}
+
 export async function getConversation(params: GetConversationInput): Promise<GetConversationOutput> {
   try {
     const { conversationId } = params;
@@ -324,6 +359,17 @@ export interface CreateGroupConversationInput {
 }
 
 export interface CreateGroupConversationOutput {
+  conversation: RawConversation;
+}
+
+export interface CreateMeetingConversationInput {
+  createdBy: UserId;
+  name: string;
+  dueDate: string;
+  teamId?: TeamId;
+}
+
+export interface CreateMeetingConversationOutput {
   conversation: RawConversation;
 }
 
