@@ -133,11 +133,16 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
     try {
       this.loggerService.trace("getMeetingsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey, limit } = params;
+      const { userId, exclusiveStartKey, limit, sortBy = "updatedAt" } = params;
+
+      const sortByToTypeMap: Record<"dueDate" | "updatedAt", "due_date" | ConversationType.Meeting> = {
+        dueDate: "due_date",
+        updatedAt: ConversationType.Meeting,
+      };
 
       const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
         userId,
-        type: ConversationType.Meeting,
+        type: sortByToTypeMap[sortBy],
         exclusiveStartKey,
         limit,
       });
@@ -146,7 +151,11 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { conversations } = await this.conversationService.getConversations({ conversationIds });
 
-      const meetingsWithRoles: WithRole<Meeting>[] = (conversations as MeetingConversation[]).map((meeting, i) => ({ ...meeting, role: conversationUserRelationships[i].role }));
+      const meetingsWithRoles: WithRole<Meeting>[] = (conversations as MeetingConversation[]).map((meeting, i) => {
+        const { type, ...rest } = meeting;
+
+        return { ...rest, role: conversationUserRelationships[i].role };
+      });
 
       return { meetings: meetingsWithRoles, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -168,7 +177,9 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
         limit,
       });
 
-      return { meetings: conversations as MeetingConversation[], lastEvaluatedKey };
+      const meetings = conversations.map(({ type, ...meeting }) => meeting) as MeetingConversation[];
+
+      return { meetings, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingsByTeamId", { error, params }, this.constructor.name);
 
@@ -280,6 +291,7 @@ export type RemoveUserFromMeetingOutput = void;
 
 export interface GetMeetingsByUserIdInput {
   userId: UserId;
+  sortBy?: "dueDate" | "updatedAt";
   limit?: number;
   exclusiveStartKey?: string;
 }

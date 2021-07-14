@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
 import { Role } from "@yac/core";
 import { generateRandomString, ISO_DATE_REGEX } from "../../../../e2e/util";
@@ -57,7 +58,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { data } = await axios.post<{ meeting: Meeting; }>(`${baseUrl}/users/${userId}/meetings`, body, { headers });
+        const { data } = await axios.post(`${baseUrl}/users/${userId}/meetings`, body, { headers });
 
         const { conversation } = await getConversation({ conversationId: data.meeting.id });
 
@@ -87,7 +88,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { data } = await axios.post<{ meeting: Meeting; }>(`${baseUrl}/users/${userId}/meetings`, body, { headers });
+        const { data } = await axios.post(`${baseUrl}/users/${userId}/meetings`, body, { headers });
 
         const { conversationUserRelationship } = await getConversationUserRelationship({ conversationId: data.meeting.id, userId });
 
@@ -99,8 +100,11 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: userId,
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
+          gsi3pk: userId,
+          gsi3sk: `${KeyPrefix.Time}${data.meeting.dueDate as string}` as `${KeyPrefix.Time}${string}`,
           role: Role.Admin,
           conversationId: data.meeting.id,
+          dueDate: data.meeting.dueDate,
           userId,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,

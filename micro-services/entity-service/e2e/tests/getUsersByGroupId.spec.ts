@@ -2,34 +2,34 @@
 import axios from "axios";
 import { Role, WithRole } from "@yac/core";
 import { createRandomUser, generateRandomString } from "../../../../e2e/util";
-import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createRandomTeam, createTeamUserRelationship } from "../util";
+import { createConversationUserRelationship, createGroupConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { User } from "../../src/mediator-services/user.mediator.service";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { TeamId } from "../../src/types/teamId.type";
+import { GroupId } from "../../src/types/groupId.type";
+import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 
-describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
+describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const userEmail = process.env.userEmail as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId;
+  const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}` as GroupId;
 
   describe("under normal conditions", () => {
-    let team: RawTeam;
+    let group: RawConversation;
     let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
     let expectedUsersSorted: { id: `${KeyPrefix.User}${string}`; email: string; role: Role; }[];
 
     beforeAll(async () => {
       ({ user: otherUser } = await createRandomUser());
 
-      ({ team } = await createRandomTeam({ createdBy: userId }));
+      ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
 
       await Promise.all([
-        createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin }),
-        createTeamUserRelationship({ userId: otherUser.id, teamId: team.id, role: Role.User }),
+        createConversationUserRelationship({ userId, conversationId: group.id, role: Role.Admin }),
+        createConversationUserRelationship({ userId: otherUser.id, conversationId: group.id, role: Role.User }),
       ]);
 
       // since user ids come from Cognito, we can't guarantee their sort order based off order of creation,
@@ -43,7 +43,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get<{ users: WithRole<User>[]; }>(`${baseUrl}/teams/${team.id}/users`, { headers });
+          const { status, data } = await axios.get<{ users: WithRole<User>[]; }>(`${baseUrl}/groups/${group.id}/users`, { headers });
 
           expect(status).toBe(200);
           expect(data).toEqual({ users: expectedUsersSorted });
@@ -59,7 +59,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get<{ users: WithRole<User>[]; lastEvaluatedKey: string; }>(`${baseUrl}/teams/${team.id}/users`, { params, headers });
+          const { status, data } = await axios.get<{ users: WithRole<User>[]; lastEvaluatedKey: string; }>(`${baseUrl}/groups/${group.id}/users`, { params, headers });
 
           expect(status).toBe(200);
           expect(data).toEqual({
@@ -72,7 +72,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
           const callTwoParams = { limit: 1, exclusiveStartKey: data.lastEvaluatedKey };
 
           const { status: callTwoStatus, data: callTwoData } = await axios.get<{ users: WithRole<User>[]; }>(
-            `${baseUrl}/teams/${team.id}/users`,
+            `${baseUrl}/groups/${group.id}/users`,
             { params: callTwoParams, headers },
           );
 
@@ -95,7 +95,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
         const headers = {};
 
         try {
-          await axios.get(`${baseUrl}/teams/${mockTeamId}/users`, { headers });
+          await axios.get(`${baseUrl}/groups/${mockGroupId}/users`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -105,12 +105,12 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
       });
     });
 
-    describe("when an id of a team the user is not a member of is passed in", () => {
+    describe("when an id of a group the user is not a member of is passed in", () => {
       it("throws a 403 error", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/teams/${mockTeamId}/users`, { headers });
+          await axios.get(`${baseUrl}/groups/${mockGroupId}/users`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -126,7 +126,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/teams/test/users`, { params, headers });
+          await axios.get(`${baseUrl}/groups/test/users`, { params, headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -135,7 +135,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { teamId: "Failed constraint check for string: Must be a team id" },
+              pathParameters: { groupId: "Failed constraint check for string: Must be a group id" },
               queryStringParameters: { limit: "Failed constraint check for string: Must be a whole number" },
             },
           });

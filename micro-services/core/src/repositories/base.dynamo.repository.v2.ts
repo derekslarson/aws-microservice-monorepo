@@ -179,7 +179,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
     try {
       this.loggerService.trace("cleanse called", { item }, this.constructor.name);
 
-      const { entityType, pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, ...rest } = item;
+      const { entityType, pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, gsi3pk, gsi3sk, ...rest } = item;
 
       return rest as unknown as CleansedEntity<T>;
     } catch (error: unknown) {
@@ -221,11 +221,11 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
-  private chunkArrayInGroups<T>(arr: T[], size: number): T[][] {
+  private chunkArrayInGroups<U>(arr: U[], size: number): U[][] {
     try {
       this.loggerService.trace("chunkArrayInGroups called", { arr, size }, this.constructor.name);
 
-      const arrayOfArrays: T[][] = [];
+      const arrayOfArrays: U[][] = [];
 
       for (let i = 0; i < arr.length; i += size) {
         arrayOfArrays.push(arr.slice(i, i + size));

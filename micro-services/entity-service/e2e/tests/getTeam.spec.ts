@@ -5,37 +5,36 @@ import { Team } from "../../src/mediator-services/team.mediator.service";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomTeam, createTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
+import { generateRandomString } from "../../../../e2e/util";
+import { TeamId } from "../../src/types/teamId.type";
 
 describe("GET /teams/{teamId} (Get Team)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  let teamA: RawTeam;
-  let teamB: RawTeam;
-
-  beforeAll(async () => {
-    ([ { team: teamA }, { team: teamB } ] = await Promise.all([
-      createRandomTeam({ createdBy: userId }),
-      createRandomTeam({ createdBy: "user-abc-123" }),
-    ]));
-
-    await createTeamUserRelationship({ userId, teamId: teamA.id, role: Role.Admin });
-  });
-
   describe("under normal conditions", () => {
+    let team: RawTeam;
+
+    beforeAll(async () => {
+      ({ team } = await createRandomTeam({ createdBy: userId }));
+
+      await createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin });
+    });
+
     it("returns a valid response", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.get<{ team: Team; }>(`${baseUrl}/teams/${teamA.id}`, { headers });
+        const { status, data } = await axios.get<{ team: Team; }>(`${baseUrl}/teams/${team.id}`, { headers });
 
         expect(status).toBe(200);
         expect(data).toEqual({
           team: {
-            id: teamA.id,
-            name: teamA.name,
-            createdBy: teamA.createdBy,
+            id: team.id,
+            name: team.name,
+            createdBy: team.createdBy,
           },
         });
       } catch (error) {
@@ -45,12 +44,14 @@ describe("GET /teams/{teamId} (Get Team)", () => {
   });
 
   describe("under error conditions", () => {
+    const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId;
+
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
         const headers = {};
 
         try {
-          await axios.get(`${baseUrl}/teams/${teamA.id}`, { headers });
+          await axios.get(`${baseUrl}/teams/${mockTeamId}`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -61,11 +62,19 @@ describe("GET /teams/{teamId} (Get Team)", () => {
     });
 
     describe("when a teamId of a team the user is not a member of is passed in", () => {
+      const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+
+      let team: RawTeam;
+
+      beforeAll(async () => {
+        ({ team } = await createRandomTeam({ createdBy: mockUserId }));
+      });
+
       it("throws a 403 error", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/teams/${teamB.id}`, { headers });
+          await axios.get(`${baseUrl}/teams/${team.id}`, { headers });
 
           fail("Expected an error");
         } catch (error) {

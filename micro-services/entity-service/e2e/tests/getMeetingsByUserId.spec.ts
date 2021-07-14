@@ -2,14 +2,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
 import { Role } from "@yac/core";
-import { createConversationUserRelationship, createGroupConversation } from "../util";
+import { createConversationUserRelationship, createMeetingConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { createRandomUser, generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { TeamId } from "../../src/types/teamId.type";
 
-describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
+describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
@@ -17,23 +17,23 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
   describe("under normal conditions", () => {
     let userId: UserId;
     let accessToken: string;
-    let group: RawConversation;
-    let groupTwo: RawConversation;
+    let meeting: RawConversation;
+    let meetingTwo: RawConversation;
 
     beforeAll(async () => {
       // We have to fetch a new base user and access token here to prevent bleed over from other tests
       const { user } = await createRandomUser();
       userId = user.id;
 
-      ([ { accessToken }, { conversation: group }, { conversation: groupTwo } ] = await Promise.all([
+      ([ { accessToken }, { conversation: meeting }, { conversation: meetingTwo } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createGroupConversation({ createdBy: userId, name: generateRandomString(5), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId }),
-        createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5) }),
+        createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId }),
+        createMeetingConversation({ createdBy: mockUserId, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
       ]));
 
       // We need to wait create the relationships in sequence, so that we can be sure of the return order in the test
-      await createConversationUserRelationship({ conversationId: group.id, userId, role: Role.Admin });
-      await createConversationUserRelationship({ conversationId: groupTwo.id, userId, role: Role.User });
+      await createConversationUserRelationship({ conversationId: meeting.id, userId, role: Role.Admin, dueDate: meeting.dueDate });
+      await createConversationUserRelationship({ conversationId: meetingTwo.id, userId, role: Role.User, dueDate: meetingTwo.dueDate });
     });
 
     describe("when not passed a 'limit' query param", () => {
@@ -41,24 +41,26 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get(`${baseUrl}/users/${userId}/groups`, { headers });
+          const { status, data } = await axios.get(`${baseUrl}/users/${userId}/meetings`, { headers });
 
           expect(status).toBe(200);
           expect(data).toEqual({
-            groups: [
+            meetings: [
               {
-                id: groupTwo.id,
-                name: groupTwo.name,
-                createdBy: groupTwo.createdBy,
-                createdAt: groupTwo.createdAt,
+                id: meetingTwo.id,
+                name: meetingTwo.name,
+                createdBy: meetingTwo.createdBy,
+                createdAt: meetingTwo.createdAt,
+                dueDate: meetingTwo.dueDate,
                 role: Role.User,
               },
               {
-                id: group.id,
-                name: group.name,
-                createdBy: group.createdBy,
-                createdAt: group.createdAt,
-                teamId: group.teamId,
+                id: meeting.id,
+                name: meeting.name,
+                createdBy: meeting.createdBy,
+                createdAt: meeting.createdAt,
+                teamId: meeting.teamId,
+                dueDate: meeting.dueDate,
                 role: Role.Admin,
               },
             ],
@@ -75,16 +77,17 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get(`${baseUrl}/users/${userId}/groups`, { params, headers });
+          const { status, data } = await axios.get(`${baseUrl}/users/${userId}/meetings`, { params, headers });
 
           expect(status).toBe(200);
           expect(data).toEqual({
-            groups: [
+            meetings: [
               {
-                id: groupTwo.id,
-                name: groupTwo.name,
-                createdBy: groupTwo.createdBy,
-                createdAt: groupTwo.createdAt,
+                id: meetingTwo.id,
+                name: meetingTwo.name,
+                createdBy: meetingTwo.createdBy,
+                createdAt: meetingTwo.createdAt,
+                dueDate: meetingTwo.dueDate,
                 role: Role.User,
               },
             ],
@@ -93,18 +96,58 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
 
           const callTwoParams = { limit: 1, exclusiveStartKey: data.lastEvaluatedKey };
 
-          const { status: callTwoStatus, data: callTwoData } = await axios.get(`${baseUrl}/users/${userId}/groups`, { params: callTwoParams, headers });
+          const { status: callTwoStatus, data: callTwoData } = await axios.get(
+            `${baseUrl}/users/${userId}/meetings`,
+            { params: callTwoParams, headers },
+          );
 
           expect(callTwoStatus).toBe(200);
           expect(callTwoData).toEqual({
-            groups: [
+            meetings: [
               {
-                id: group.id,
-                name: group.name,
-                createdBy: group.createdBy,
-                createdAt: group.createdAt,
-                teamId: group.teamId,
+                id: meeting.id,
+                name: meeting.name,
+                createdBy: meeting.createdBy,
+                createdAt: meeting.createdAt,
+                teamId: meeting.teamId,
+                dueDate: meeting.dueDate,
                 role: Role.Admin,
+              },
+            ],
+          });
+        } catch (error) {
+          fail(error);
+        }
+      });
+    });
+
+    describe("when passed a 'sortBy=dueDate' query param", () => {
+      it("returns a valid response", async () => {
+        const params = { sortBy: "dueDate" };
+        const headers = { Authorization: `Bearer ${accessToken}` };
+
+        try {
+          const { status, data } = await axios.get(`${baseUrl}/users/${userId}/meetings`, { params, headers });
+
+          expect(status).toBe(200);
+          expect(data).toEqual({
+            meetings: [
+              {
+                id: meeting.id,
+                name: meeting.name,
+                createdBy: meeting.createdBy,
+                createdAt: meeting.createdAt,
+                teamId: meeting.teamId,
+                dueDate: meeting.dueDate,
+                role: Role.Admin,
+              },
+              {
+                id: meetingTwo.id,
+                name: meetingTwo.name,
+                createdBy: meetingTwo.createdBy,
+                createdAt: meetingTwo.createdAt,
+                dueDate: meetingTwo.dueDate,
+                role: Role.User,
               },
             ],
           });
@@ -124,7 +167,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
         const headers = {};
 
         try {
-          await axios.get(`${baseUrl}/users/${userId}/groups`, { headers });
+          await axios.get(`${baseUrl}/users/${userId}/meetings`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -139,7 +182,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/users/${mockUserId}/groups`, { headers });
+          await axios.get(`${baseUrl}/users/${mockUserId}/meetings`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -154,7 +197,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/users/test/groups`, { headers });
+          await axios.get(`${baseUrl}/users/test/meetings`, { headers });
 
           fail("Expected an error");
         } catch (error) {

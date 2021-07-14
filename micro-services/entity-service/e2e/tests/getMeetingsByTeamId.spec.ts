@@ -4,13 +4,13 @@ import axios from "axios";
 import { Role } from "@yac/core";
 import { generateRandomString, wait } from "../../../../e2e/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createConversationUserRelationship, createGroupConversation, createRandomTeam, createTeamUserRelationship } from "../util";
+import { createConversationUserRelationship, createMeetingConversation, createRandomTeam, createTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { TeamId } from "../../src/types/teamId.type";
 
-describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
+describe("GET /teams/{teamId}/meetings (Get Meetings by Team Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
@@ -20,23 +20,23 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
 
   describe("under normal conditions", () => {
     let team: RawTeam;
-    let group: RawConversation;
-    let groupTwo: RawConversation;
+    let meeting: RawConversation;
+    let meetingTwo: RawConversation;
 
     beforeAll(async () => {
       ({ team } = await createRandomTeam({ createdBy: mockUserId }));
 
-      // We need to wait create the groups in sequence, so that we can be sure of the return order in the test
-      ({ conversation: group } = await createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5), teamId: team.id }));
+      // We need to wait create the meetings in sequence, so that we can be sure of the return order in the test
+      ({ conversation: meeting } = await createMeetingConversation({ createdBy: mockUserId, name: generateRandomString(5), teamId: team.id, dueDate: new Date().toISOString() }));
 
       await wait(1000);
 
-      ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5), teamId: team.id }));
+      ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserId, name: generateRandomString(5), teamId: team.id, dueDate: new Date().toISOString() }));
 
       await Promise.all([
         createTeamUserRelationship({ userId, teamId: team.id, role: Role.User }),
-        createConversationUserRelationship({ conversationId: group.id, userId, role: Role.User }),
-        createConversationUserRelationship({ conversationId: groupTwo.id, userId, role: Role.User }),
+        createConversationUserRelationship({ conversationId: meeting.id, userId, role: Role.User }),
+        createConversationUserRelationship({ conversationId: meetingTwo.id, userId, role: Role.User }),
       ]);
     });
 
@@ -45,24 +45,26 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get(`${baseUrl}/teams/${team.id}/groups`, { headers });
+          const { status, data } = await axios.get(`${baseUrl}/teams/${team.id}/meetings`, { headers });
 
           expect(status).toBe(200);
           expect(data).toEqual({
-            groups: [
+            meetings: [
               {
-                id: group.id,
-                name: group.name,
-                createdBy: group.createdBy,
-                createdAt: group.createdAt,
-                teamId: group.teamId,
+                id: meeting.id,
+                name: meeting.name,
+                createdBy: meeting.createdBy,
+                createdAt: meeting.createdAt,
+                teamId: meeting.teamId,
+                dueDate: meeting.dueDate,
               },
               {
-                id: groupTwo.id,
-                name: groupTwo.name,
-                createdBy: groupTwo.createdBy,
-                createdAt: groupTwo.createdAt,
-                teamId: groupTwo.teamId,
+                id: meetingTwo.id,
+                name: meetingTwo.name,
+                createdBy: meetingTwo.createdBy,
+                createdAt: meetingTwo.createdAt,
+                teamId: meetingTwo.teamId,
+                dueDate: meetingTwo.dueDate,
               },
             ],
           });
@@ -78,17 +80,18 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get(`${baseUrl}/teams/${team.id}/groups`, { params, headers });
+          const { status, data } = await axios.get(`${baseUrl}/teams/${team.id}/meetings`, { params, headers });
 
           expect(status).toBe(200);
           expect(data).toEqual({
-            groups: [
+            meetings: [
               {
-                id: group.id,
-                name: group.name,
-                createdBy: group.createdBy,
-                createdAt: group.createdAt,
-                teamId: group.teamId,
+                id: meeting.id,
+                name: meeting.name,
+                createdBy: meeting.createdBy,
+                createdAt: meeting.createdAt,
+                teamId: meeting.teamId,
+                dueDate: meeting.dueDate,
               },
             ],
             lastEvaluatedKey: jasmine.any(String),
@@ -96,17 +99,21 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
 
           const callTwoParams = { limit: 1, exclusiveStartKey: data.lastEvaluatedKey };
 
-          const { status: callTwoStatus, data: callTwoData } = await axios.get(`${baseUrl}/teams/${team.id}/groups`, { params: callTwoParams, headers });
+          const { status: callTwoStatus, data: callTwoData } = await axios.get(
+            `${baseUrl}/teams/${team.id}/meetings`,
+            { params: callTwoParams, headers },
+          );
 
           expect(callTwoStatus).toBe(200);
           expect(callTwoData).toEqual({
-            groups: [
+            meetings: [
               {
-                id: groupTwo.id,
-                name: groupTwo.name,
-                createdBy: groupTwo.createdBy,
-                createdAt: groupTwo.createdAt,
-                teamId: groupTwo.teamId,
+                id: meetingTwo.id,
+                name: meetingTwo.name,
+                createdBy: meetingTwo.createdBy,
+                createdAt: meetingTwo.createdAt,
+                teamId: meetingTwo.teamId,
+                dueDate: meetingTwo.dueDate,
               },
             ],
           });
@@ -123,7 +130,7 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
         const headers = {};
 
         try {
-          await axios.get(`${baseUrl}/teams/${mockTeamId}/groups`, { headers });
+          await axios.get(`${baseUrl}/teams/${mockTeamId}/meetings`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -138,7 +145,7 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/teams/${mockTeamId}/groups`, { headers });
+          await axios.get(`${baseUrl}/teams/${mockTeamId}/meetings`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -154,7 +161,7 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/teams/test/groups`, { params, headers });
+          await axios.get(`${baseUrl}/teams/test/meetings`, { params, headers });
 
           fail("Expected an error");
         } catch (error) {

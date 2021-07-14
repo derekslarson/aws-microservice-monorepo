@@ -36,7 +36,7 @@ export class TeamUserRelationshipService implements TeamUserRelationshipServiceI
 
   public async getTeamUserRelationship(params: GetTeamUserRelationshipInput): Promise<GetTeamUserRelationshipOutput> {
     try {
-      this.loggerService.trace("removeUserFromTeam called", { params }, this.constructor.name);
+      this.loggerService.trace("getTeamUserRelationship called", { params }, this.constructor.name);
 
       const { teamId, userId } = params;
 
@@ -44,7 +44,7 @@ export class TeamUserRelationshipService implements TeamUserRelationshipServiceI
 
       return { teamUserRelationship };
     } catch (error: unknown) {
-      this.loggerService.error("Error in removeUserFromTeam", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getTeamUserRelationship", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -52,13 +52,13 @@ export class TeamUserRelationshipService implements TeamUserRelationshipServiceI
 
   public async deleteTeamUserRelationship(params: DeleteTeamUserRelationshipInput): Promise<DeleteTeamUserRelationshipOutput> {
     try {
-      this.loggerService.trace("removeUserFromTeam called", { params }, this.constructor.name);
+      this.loggerService.trace("deleteTeamUserRelationship called", { params }, this.constructor.name);
 
       const { teamId, userId } = params;
 
       await this.teamUserRelationshipRepository.deleteTeamUserRelationship({ teamId, userId });
     } catch (error: unknown) {
-      this.loggerService.error("Error in removeUserFromTeam", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in deleteTeamUserRelationship", { error, params }, this.constructor.name);
 
       throw error;
     }

@@ -8,6 +8,7 @@ import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { TeamId } from "../types/teamId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { ConversationType } from "../enums/conversationType.enum";
+import { UserId } from "../types/userId.type";
 
 @injectable()
 export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Conversation> implements ConversationRepositoryInterface {
@@ -170,7 +171,7 @@ export interface Conversation {
   createdAt: string;
   teamId?: TeamId;
   name?: string;
-  createdBy?: string;
+  createdBy?: UserId;
   dueDate?: string;
 }
 

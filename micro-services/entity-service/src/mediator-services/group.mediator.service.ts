@@ -142,7 +142,11 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { conversations } = await this.conversationService.getConversations({ conversationIds });
 
-      const groupsWithRoles: WithRole<Group>[] = (conversations as GroupConversation[]).map((group, i) => ({ ...group, role: conversationUserRelationships[i].role }));
+      const groupsWithRoles: WithRole<Group>[] = (conversations as GroupConversation[]).map((group, i) => {
+        const { type, ...rest } = group;
+
+        return { ...rest, role: conversationUserRelationships[i].role };
+      });
 
       return { groups: groupsWithRoles, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -164,7 +168,9 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
         limit,
       });
 
-      return { groups: conversations as GroupConversation[], lastEvaluatedKey };
+      const groups = conversations.map(({ type, ...group }) => group) as GroupConversation[];
+
+      return { groups, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroupsByTeamId", { error, params }, this.constructor.name);
 

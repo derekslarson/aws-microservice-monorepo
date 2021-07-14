@@ -136,14 +136,19 @@ export class MeetingController extends BaseController implements MeetingControll
       const {
         jwtId,
         pathParameters: { userId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { exclusiveStartKey, limit, sortBy },
       } = this.validationService.validate({ dto: GetMeetingsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByUserId({
+        userId,
+        sortBy,
+        exclusiveStartKey,
+        limit: limit ? parseInt(limit, 10) : undefined,
+      });
 
       return this.generateSuccessResponse({ meetings, lastEvaluatedKey });
     } catch (error: unknown) {
@@ -163,9 +168,9 @@ export class MeetingController extends BaseController implements MeetingControll
         queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMeetingsByTeamIdDto, request, getUserIdFromJwt: true });
 
-      const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
+      const { isTeamMember } = await this.teamMediatorService.isTeamMember({ teamId, userId: jwtId });
 
-      if (!isTeamAdmin) {
+      if (!isTeamMember) {
         throw new ForbiddenError("Forbidden");
       }
 

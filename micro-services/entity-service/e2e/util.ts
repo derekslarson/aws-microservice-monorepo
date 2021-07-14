@@ -204,13 +204,13 @@ export async function createMeetingConversation(params: CreateMeetingConversatio
     const conversationId = `${KeyPrefix.MeetingConversation}${ksuid.randomSync().string}` as MeetingId;
 
     const conversation: RawConversation = {
-      entityType: EntityType.GroupConversation,
+      entityType: EntityType.MeetingConversation,
       pk: conversationId,
       sk: conversationId,
       gsi1pk: teamId,
       gsi1sk: teamId && conversationId,
       id: conversationId,
-      type: ConversationType.Group,
+      type: ConversationType.Meeting,
       createdAt: new Date().toISOString(),
       dueDate,
       teamId,
@@ -252,7 +252,7 @@ export async function getConversation(params: GetConversationInput): Promise<Get
 
 export async function createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput> {
   try {
-    const { userId, conversationId, role } = params;
+    const { userId, conversationId, role, dueDate } = params;
 
     const updatedAt = new Date().toISOString();
 
@@ -269,6 +269,8 @@ export async function createConversationUserRelationship(params: CreateConversat
       gsi1sk: `${KeyPrefix.Time}${updatedAt}` as `${KeyPrefix.Time}${string}`,
       gsi2pk: userId,
       gsi2sk: `${KeyPrefix.Time}${convoPrefix}${updatedAt}` as `${KeyPrefix.Time}${KeyPrefix.FriendConversation | KeyPrefix.GroupConversation | KeyPrefix.MeetingConversation}${string}`,
+      gsi3pk: dueDate ? userId : undefined,
+      gsi3sk: dueDate ? `${KeyPrefix.Time}${dueDate}` as `${KeyPrefix.Time}${string}` : undefined,
       conversationId,
       userId,
       updatedAt,
@@ -385,6 +387,7 @@ export interface CreateConversationUserRelationshipInput {
   userId: UserId;
   conversationId: ConversationId;
   role: Role;
+  dueDate?: string;
 }
 
 export interface CreateConversationUserRelationshipOutput {

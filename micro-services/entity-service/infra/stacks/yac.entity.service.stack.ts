@@ -333,7 +333,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
 
     const getMeetingsByTeamIdHandler = new Lambda.Function(this, `GetMeetingsByTeamId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getGroupsByTeamId"),
+      code: Lambda.Code.fromAsset("dist/handlers/getMeetingsByTeamId"),
       handler: "getMeetingsByTeamId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
@@ -341,7 +341,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    // Meeting Handlers
+    // Message Handlers
     const createFriendMessageHandler = new Lambda.Function(this, `CreateFriendMessage_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/createFriendMessage"),

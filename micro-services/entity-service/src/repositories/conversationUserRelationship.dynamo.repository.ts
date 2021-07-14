@@ -209,7 +209,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
       const { Items: conversationUserRelationshipsWithSet, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         ...(unread && { FilterExpression: "attribute_exists(unreadMessages)" }),
-        ScanIndexForward: false,
+        ScanIndexForward: type === "due_date",
         Limit: limit ?? 25,
         IndexName: indexName,
         KeyConditionExpression: `#${pk} = :${pk} AND begins_with(#${sk}, :skPrefix)`,

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
 import { Role } from "@yac/core";
 import { createConversationUserRelationship, createMeetingConversation, getConversationUserRelationship } from "../util";
@@ -40,7 +41,6 @@ describe("POST /meetings/{meetingId}/users (Add User to Meeting)", () => {
         expect(status).toBe(200);
         expect(data).toEqual({ message: "User added to meeting." });
       } catch (error) {
-        console.log(JSON.stringify(error.response.data, null, 2));
         fail(error);
       }
     });
@@ -62,9 +62,12 @@ describe("POST /meetings/{meetingId}/users (Add User to Meeting)", () => {
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: otherUser.id,
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
+          gsi3pk: otherUser.id,
+          gsi3sk: `${KeyPrefix.Time}${meeting.dueDate as string}` as `${KeyPrefix.Time}${string}`,
           role: Role.User,
           conversationId: meeting.id,
           userId: otherUser.id,
+          dueDate: meeting.dueDate,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });

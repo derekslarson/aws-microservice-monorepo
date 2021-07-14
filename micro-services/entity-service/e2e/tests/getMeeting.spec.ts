@@ -1,44 +1,46 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
 import { Role } from "@yac/core";
-import { createConversationUserRelationship, createGroupConversation } from "../util";
+import { createConversationUserRelationship, createMeetingConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { generateRandomString } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { TeamId } from "../../src/types/teamId.type";
-import { GroupId } from "../../src/types/groupId.type";
+import { MeetingId } from "../../src/types/meetingId.type";
 
-describe("GET /groups/{groupId} (Get Group)", () => {
+describe("GET /meetings/{meetingId} (Get Meeting)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
+  const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId;
+
   describe("under normal conditions", () => {
-    const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId;
-    let group: RawConversation;
+    let meeting: RawConversation;
 
     beforeAll(async () => {
-      ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5), teamId: mockTeamId }));
+      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString(), teamId: mockTeamId }));
 
-      await createConversationUserRelationship({ conversationId: group.id, userId, role: Role.Admin });
+      await createConversationUserRelationship({ conversationId: meeting.id, userId, role: Role.Admin });
     });
 
     it("returns a valid response", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.get(`${baseUrl}/groups/${group.id}`, { headers });
+        const { status, data } = await axios.get(`${baseUrl}/meetings/${meeting.id}`, { headers });
 
         expect(status).toBe(200);
         expect(data).toEqual({
-          group: {
-            id: group.id,
-            name: group.name,
-            createdBy: group.createdBy,
-            createdAt: group.createdAt,
-            teamId: group.teamId,
+          meeting: {
+            id: meeting.id,
+            name: meeting.name,
+            createdBy: meeting.createdBy,
+            createdAt: meeting.createdAt,
+            dueDate: meeting.dueDate,
+            teamId: meeting.teamId,
           },
         });
       } catch (error) {
@@ -49,14 +51,14 @@ describe("GET /groups/{groupId} (Get Group)", () => {
 
   describe("under error conditions", () => {
     const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
-    const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}` as GroupId;
+    const mockMeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}` as MeetingId;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
         const headers = {};
 
         try {
-          await axios.get(`${baseUrl}/groups/${mockGroupId}`, { headers });
+          await axios.get(`${baseUrl}/meetings/${mockMeetingId}`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -66,18 +68,18 @@ describe("GET /groups/{groupId} (Get Group)", () => {
       });
     });
 
-    describe("when a groupId of a group the user is not a member of is passed in", () => {
-      let group: RawConversation;
+    describe("when a meetingId of a group the user is not a member of is passed in", () => {
+      let meeting: RawConversation;
 
       beforeAll(async () => {
-        ({ conversation: group } = await createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5) }));
+        ({ conversation: meeting } = await createMeetingConversation({ createdBy: mockUserId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
       });
 
       it("throws a 403 error", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/groups/${group.id}`, { headers });
+          await axios.get(`${baseUrl}/meetings/${meeting.id}`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -92,7 +94,7 @@ describe("GET /groups/{groupId} (Get Group)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/groups/test`, { headers });
+          await axios.get(`${baseUrl}/meetings/test`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -100,7 +102,7 @@ describe("GET /groups/{groupId} (Get Group)", () => {
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
             message: "Error validating request",
-            validationErrors: { pathParameters: { groupId: "Failed constraint check for string: Must be a group id" } },
+            validationErrors: { pathParameters: { meetingId: "Failed constraint check for string: Must be a meeting id" } },
           });
         }
       });
