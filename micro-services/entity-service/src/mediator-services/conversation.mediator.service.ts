@@ -51,6 +51,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
         return {
           ...conversation,
+          updatedAt: conversationUserRelationship.updatedAt,
           recentMessage: conversationUserRelationship.recentMessageId ? recentMessageMap[conversationUserRelationship.recentMessageId] : undefined,
           unreadMessages: conversationUserRelationship.unreadMessages?.length || 0,
           role: conversationUserRelationship.role,

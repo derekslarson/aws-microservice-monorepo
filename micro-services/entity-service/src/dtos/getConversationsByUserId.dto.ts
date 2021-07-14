@@ -1,4 +1,4 @@
-import { Optional, Record, String, Boolean } from "runtypes";
+import { Optional, Record, String, Literal, Union } from "runtypes";
 import { ConversationType } from "../runtypes/conversationType.runtype";
 import { UserId } from "../runtypes/userId.runtype";
 import { Limit } from "../runtypes/limit.runtype";
@@ -8,7 +8,7 @@ export const GetConversationsByUserIdDto = Record({
   queryStringParameters: Record({
     exclusiveStartKey: Optional(String),
     type: Optional(ConversationType),
-    unread: Optional(Boolean),
+    unread: Optional(Union(Literal("true"), Literal("false"))),
     limit: Optional(Limit),
   }),
 });

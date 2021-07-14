@@ -32,7 +32,7 @@ export class ConversationController extends BaseController implements Conversati
         userId,
         exclusiveStartKey,
         type,
-        unread,
+        unread: unread === "true",
         limit: limit ? parseInt(limit, 10) : undefined,
       });
 
