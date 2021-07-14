@@ -56,7 +56,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
       ({ conversationUserRelationship: friendshipUserRelationship } = await createConversationUserRelationship({ conversationId: friendship.id, userId, role: Role.Admin }));
     });
 
-    describe("when not passed a 'limit' query param", () => {
+    describe("when not passed any query params", () => {
       it("returns a valid response", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
