@@ -9,12 +9,14 @@ import { RawConversation } from "../src/repositories/conversation.dynamo.reposit
 import { RawConversationUserRelationship } from "../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawTeam } from "../src/repositories/team.dynamo.repository";
 import { RawTeamUserRelationship } from "../src/repositories/teamUserRelationship.dynamo.repository";
+import { RawMessage } from "../src/repositories/message.dynamo.repository";
 import { ConversationId } from "../src/types/conversationId.type";
 import { FriendConvoId } from "../src/types/friendConvoId.type";
 import { GroupId } from "../src/types/groupId.type";
 import { MeetingId } from "../src/types/meetingId.type";
 import { TeamId } from "../src/types/teamId.type";
 import { UserId } from "../src/types/userId.type";
+import { MessageId } from "../src/types/messageId.type";
 
 export async function deleteUser(id: UserId): Promise<void> {
   try {
@@ -252,7 +254,7 @@ export async function getConversation(params: GetConversationInput): Promise<Get
 
 export async function createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput> {
   try {
-    const { userId, conversationId, role, dueDate } = params;
+    const { userId, conversationId, role, dueDate, recentMessageId, unreadMessageIds } = params;
 
     const updatedAt = new Date().toISOString();
 
@@ -276,6 +278,8 @@ export async function createConversationUserRelationship(params: CreateConversat
       updatedAt,
       role,
       muted: false,
+      unreadMessages: unreadMessageIds && documentClient.createSet(unreadMessageIds),
+      recentMessageId,
     };
 
     await documentClient.put({
@@ -305,6 +309,52 @@ export async function getConversationUserRelationship(params: GetConversationUse
     return { conversationUserRelationship };
   } catch (error) {
     console.log("Error in getConversationUserRelationship:\n", error);
+
+    throw error;
+  }
+}
+
+export async function createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
+  try {
+    const { from, conversationId, transcript, conversationMemberIds, replyTo } = params;
+
+    const messageId = `${KeyPrefix.Message}${ksuid.randomSync().string}` as MessageId;
+
+    const timestamp = new Date().toISOString();
+
+    const seenAt = conversationMemberIds.reduce((acc: { [key: string]: string | null; }, memberId) => {
+      acc[memberId] = memberId === from ? timestamp : null;
+
+      return acc;
+    }, {});
+
+    const message: RawMessage = {
+      entityType: EntityType.Message,
+      pk: messageId,
+      sk: messageId,
+      gsi1pk: conversationId,
+      gsi1sk: messageId,
+      gsi2pk: replyTo,
+      gsi2sk: replyTo && messageId,
+      id: messageId,
+      conversationId,
+      from,
+      transcript,
+      sentAt: timestamp,
+      seenAt,
+      reactions: {},
+      hasReplies: false,
+      replyTo,
+    };
+
+    await documentClient.put({
+      TableName: process.env["core-table-name"] as string,
+      Item: message,
+    }).promise();
+
+    return { message };
+  } catch (error) {
+    console.log("Error in getConversation:\n", error);
 
     throw error;
   }
@@ -388,6 +438,8 @@ export interface CreateConversationUserRelationshipInput {
   conversationId: ConversationId;
   role: Role;
   dueDate?: string;
+  recentMessageId?: MessageId;
+  unreadMessageIds?: MessageId[];
 }
 
 export interface CreateConversationUserRelationshipOutput {
@@ -401,4 +453,16 @@ export interface GetConversationUserRelationshipInput {
 
 export interface GetConversationUserRelationshipOutput {
   conversationUserRelationship?: RawConversationUserRelationship;
+}
+
+export interface CreateMessageInput {
+  from: UserId;
+  conversationId: ConversationId;
+  transcript: string;
+  conversationMemberIds: UserId[];
+  replyTo?: MessageId;
+}
+
+export interface CreateMessageOutput {
+  message: RawMessage;
 }

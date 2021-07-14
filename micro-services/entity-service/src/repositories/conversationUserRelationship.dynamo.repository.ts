@@ -2,6 +2,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, DynamoSetValues, Role } from "@yac/core";
+import DynamoDB from "aws-sdk/clients/dynamodb";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -36,6 +37,8 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const { conversationUserRelationship } = params;
 
+      const { unreadMessages, ...restOfConversationUserRelationship } = conversationUserRelationship;
+
       const conversationUserRelationshipEntity: RawConversationUserRelationship = {
         entityType: EntityType.ConversationUserRelationship,
         pk: conversationUserRelationship.conversationId,
@@ -46,7 +49,8 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
         gsi2sk: `${this.getGsi2skPrefixById(conversationUserRelationship.conversationId)}${conversationUserRelationship.updatedAt}` as Gsi2sk,
         gsi3pk: conversationUserRelationship.dueDate ? conversationUserRelationship.userId : undefined,
         gsi3sk: conversationUserRelationship.dueDate ? `${KeyPrefix.Time}${conversationUserRelationship.dueDate}` as Gsi3sk : undefined,
-        ...conversationUserRelationship,
+        unreadMessages: unreadMessages && this.documentClient.createSet(unreadMessages),
+        ...restOfConversationUserRelationship,
       };
 
       await this.documentClient.put({
@@ -324,7 +328,7 @@ type Gsi2skPrefix = `${KeyPrefix.Time}${KeyPrefix.FriendConversation | KeyPrefix
 type Gsi2sk = `${Gsi2skPrefix}${string}`;
 type Gsi3sk = `${KeyPrefix.Time}${string}`;
 
-export interface RawConversationUserRelationship extends ConversationUserRelationship {
+export interface RawConversationUserRelationship extends Omit<ConversationUserRelationship, "unreadMessages"> {
   entityType: EntityType.ConversationUserRelationship,
   pk: ConversationId;
   sk: UserId;
@@ -337,6 +341,7 @@ export interface RawConversationUserRelationship extends ConversationUserRelatio
   // allows sorting by meeting dueDate
   gsi3pk?: UserId;
   gsi3sk?: Gsi3sk;
+  unreadMessages?: DynamoDB.DocumentClient.DynamoDbSet;
 }
 
 export interface CreateConversationUserRelationshipInput {

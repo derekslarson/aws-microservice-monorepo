@@ -2,12 +2,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
 import { Role } from "@yac/core";
-import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation } from "../util";
+import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { createRandomUser, generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { TeamId } from "../../src/types/teamId.type";
+import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
+import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 
 describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -17,10 +19,20 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
   describe("under normal conditions", () => {
     let userId: UserId;
     let accessToken: string;
+
     let meeting: RawConversation;
+    let meetingUserRelationship: RawConversationUserRelationship;
+
     let meetingTwo: RawConversation;
+    let meetingUserRelationshipTwo: RawConversationUserRelationship;
+
     let group: RawConversation;
+    let groupUserRelationship: RawConversationUserRelationship;
+
     let friendship: RawConversation;
+    let friendshipUserRelationship: RawConversationUserRelationship;
+
+    let message: RawMessage;
 
     beforeAll(async () => {
       // We have to fetch a new base user and access token here to prevent bleed over from other tests
@@ -35,41 +47,76 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
         createFriendConversation({ userId, friendId: mockUserId }),
       ]));
 
-      // We need to wait create the relationships in sequence, so that we can be sure of the return order in the test
-      await createConversationUserRelationship({ conversationId: meeting.id, userId, role: Role.Admin, dueDate: meeting.dueDate });
-      await createConversationUserRelationship({ conversationId: meetingTwo.id, userId, role: Role.User, dueDate: meetingTwo.dueDate });
-      await createConversationUserRelationship({ conversationId: group.id, userId, role: Role.User });
-      await createConversationUserRelationship({ conversationId: friendship.id, userId, role: Role.Admin });
+      ({ message } = await createMessage({ from: mockUserId, conversationId: group.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ] }));
+
+      // We need to create the relationships in sequence, so that we can be sure of the return order in the test
+      ({ conversationUserRelationship: meetingUserRelationship } = await createConversationUserRelationship({ conversationId: meeting.id, userId, role: Role.Admin, dueDate: meeting.dueDate }));
+      ({ conversationUserRelationship: meetingUserRelationshipTwo } = await createConversationUserRelationship({ conversationId: meetingTwo.id, userId, role: Role.User, dueDate: meetingTwo.dueDate }));
+      ({ conversationUserRelationship: groupUserRelationship } = await createConversationUserRelationship({ conversationId: group.id, userId, role: Role.User, recentMessageId: message.id, unreadMessageIds: [ message.id ] }));
+      ({ conversationUserRelationship: friendshipUserRelationship } = await createConversationUserRelationship({ conversationId: friendship.id, userId, role: Role.Admin }));
     });
 
     describe("when not passed a 'limit' query param", () => {
-      fit("returns a valid response", async () => {
+      it("returns a valid response", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
           const { status, data } = await axios.get(`${baseUrl}/users/${userId}/conversations`, { headers });
 
-          console.log(data);
           expect(status).toBe(200);
           expect(data).toEqual({
             conversations: [
-              // {
-              //   id: meetingTwo.id,
-              //   name: meetingTwo.name,
-              //   createdBy: meetingTwo.createdBy,
-              //   createdAt: meetingTwo.createdAt,
-              //   dueDate: meetingTwo.dueDate,
-              //   role: Role.User,
-              // },
-              // {
-              //   id: meeting.id,
-              //   name: meeting.name,
-              //   createdBy: meeting.createdBy,
-              //   createdAt: meeting.createdAt,
-              //   teamId: meeting.teamId,
-              //   dueDate: meeting.dueDate,
-              //   role: Role.Admin,
-              // },
+              {
+                createdAt: friendship.createdAt,
+                id: friendship.id,
+                type: friendship.type,
+                updatedAt: friendshipUserRelationship.updatedAt,
+                unreadMessages: 0,
+                role: friendshipUserRelationship.role,
+              },
+              {
+                createdAt: group.createdAt,
+                id: group.id,
+                createdBy: group.createdBy,
+                name: group.name,
+                type: group.type,
+                updatedAt: groupUserRelationship.updatedAt,
+                role: groupUserRelationship.role,
+                unreadMessages: 1,
+                recentMessage: {
+                  sentAt: message.sentAt,
+                  hasReplies: message.hasReplies,
+                  conversationId: message.conversationId,
+                  seenAt: message.seenAt,
+                  reactions: message.reactions,
+                  from: message.from,
+                  id: message.id,
+                  transcript: message.transcript,
+                },
+              },
+              {
+                dueDate: meetingTwo.dueDate,
+                createdAt: meetingTwo.createdAt,
+                id: meetingTwo.id,
+                createdBy: meetingTwo.createdBy,
+                name: meetingTwo.name,
+                type: meetingTwo.type,
+                updatedAt: meetingUserRelationshipTwo.updatedAt,
+                unreadMessages: 0,
+                role: meetingUserRelationshipTwo.role,
+              },
+              {
+                dueDate: meeting.dueDate,
+                createdAt: meeting.createdAt,
+                id: meeting.id,
+                createdBy: meeting.createdBy,
+                teamId: meeting.teamId,
+                name: meeting.name,
+                type: meeting.type,
+                updatedAt: meetingUserRelationship.updatedAt,
+                unreadMessages: 0,
+                role: meetingUserRelationship.role,
+              },
             ],
           });
         } catch (error) {
@@ -80,7 +127,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
 
     describe("when passed a 'limit' query param smaller than the number of entities", () => {
       it("returns a valid response", async () => {
-        const params = { limit: 1 };
+        const params = { limit: 2 };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
@@ -89,37 +136,68 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
           expect(status).toBe(200);
           expect(data).toEqual({
             conversations: [
-              // {
-              //   id: meetingTwo.id,
-              //   name: meetingTwo.name,
-              //   createdBy: meetingTwo.createdBy,
-              //   createdAt: meetingTwo.createdAt,
-              //   dueDate: meetingTwo.dueDate,
-              //   role: Role.User,
-              // },
+              {
+                createdAt: friendship.createdAt,
+                id: friendship.id,
+                type: friendship.type,
+                updatedAt: friendshipUserRelationship.updatedAt,
+                unreadMessages: 0,
+                role: friendshipUserRelationship.role,
+              },
+              {
+                createdAt: group.createdAt,
+                id: group.id,
+                createdBy: group.createdBy,
+                name: group.name,
+                type: group.type,
+                updatedAt: groupUserRelationship.updatedAt,
+                role: groupUserRelationship.role,
+                unreadMessages: 1,
+                recentMessage: {
+                  sentAt: message.sentAt,
+                  hasReplies: message.hasReplies,
+                  conversationId: message.conversationId,
+                  seenAt: message.seenAt,
+                  reactions: message.reactions,
+                  from: message.from,
+                  id: message.id,
+                  transcript: message.transcript,
+                },
+              },
             ],
             lastEvaluatedKey: jasmine.any(String),
           });
 
-          const callTwoParams = { limit: 1, exclusiveStartKey: data.lastEvaluatedKey };
+          const callTwoParams = { limit: 2, exclusiveStartKey: data.lastEvaluatedKey };
 
-          const { status: callTwoStatus, data: callTwoData } = await axios.get(
-            `${baseUrl}/users/${userId}/conversations`,
-            { params: callTwoParams, headers },
-          );
+          const { status: callTwoStatus, data: callTwoData } = await axios.get(`${baseUrl}/users/${userId}/conversations`, { params: callTwoParams, headers });
 
           expect(callTwoStatus).toBe(200);
           expect(callTwoData).toEqual({
             conversations: [
-              // {
-              //   id: meeting.id,
-              //   name: meeting.name,
-              //   createdBy: meeting.createdBy,
-              //   createdAt: meeting.createdAt,
-              //   teamId: meeting.teamId,
-              //   dueDate: meeting.dueDate,
-              //   role: Role.Admin,
-              // },
+              {
+                dueDate: meetingTwo.dueDate,
+                createdAt: meetingTwo.createdAt,
+                id: meetingTwo.id,
+                createdBy: meetingTwo.createdBy,
+                name: meetingTwo.name,
+                type: meetingTwo.type,
+                updatedAt: meetingUserRelationshipTwo.updatedAt,
+                unreadMessages: 0,
+                role: meetingUserRelationshipTwo.role,
+              },
+              {
+                dueDate: meeting.dueDate,
+                createdAt: meeting.createdAt,
+                id: meeting.id,
+                createdBy: meeting.createdBy,
+                teamId: meeting.teamId,
+                name: meeting.name,
+                type: meeting.type,
+                updatedAt: meetingUserRelationship.updatedAt,
+                unreadMessages: 0,
+                role: meetingUserRelationship.role,
+              },
             ],
           });
         } catch (error) {
@@ -128,9 +206,9 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
       });
     });
 
-    describe("when passed a 'sortBy=dueDate' query param", () => {
+    describe("when passed a 'type=friend' query param", () => {
       it("returns a valid response", async () => {
-        const params = { sortBy: "dueDate" };
+        const params = { type: "friend" };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
@@ -139,23 +217,176 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
           expect(status).toBe(200);
           expect(data).toEqual({
             conversations: [
-              // {
-              //   id: meeting.id,
-              //   name: meeting.name,
-              //   createdBy: meeting.createdBy,
-              //   createdAt: meeting.createdAt,
-              //   teamId: meeting.teamId,
-              //   dueDate: meeting.dueDate,
-              //   role: Role.Admin,
-              // },
-              // {
-              //   id: meetingTwo.id,
-              //   name: meetingTwo.name,
-              //   createdBy: meetingTwo.createdBy,
-              //   createdAt: meetingTwo.createdAt,
-              //   dueDate: meetingTwo.dueDate,
-              //   role: Role.User,
-              // },
+              {
+                createdAt: friendship.createdAt,
+                id: friendship.id,
+                type: friendship.type,
+                updatedAt: friendshipUserRelationship.updatedAt,
+                unreadMessages: 0,
+                role: friendshipUserRelationship.role,
+              },
+            ],
+          });
+        } catch (error) {
+          fail(error);
+        }
+      });
+    });
+
+    describe("when passed a 'type=group' query param", () => {
+      it("returns a valid response", async () => {
+        const params = { type: "group" };
+        const headers = { Authorization: `Bearer ${accessToken}` };
+
+        try {
+          const { status, data } = await axios.get(`${baseUrl}/users/${userId}/conversations`, { params, headers });
+
+          expect(status).toBe(200);
+          expect(data).toEqual({
+            conversations: [
+              {
+                createdAt: group.createdAt,
+                id: group.id,
+                createdBy: group.createdBy,
+                name: group.name,
+                type: group.type,
+                updatedAt: groupUserRelationship.updatedAt,
+                role: groupUserRelationship.role,
+                unreadMessages: 1,
+                recentMessage: {
+                  sentAt: message.sentAt,
+                  hasReplies: message.hasReplies,
+                  conversationId: message.conversationId,
+                  seenAt: message.seenAt,
+                  reactions: message.reactions,
+                  from: message.from,
+                  id: message.id,
+                  transcript: message.transcript,
+                },
+              },
+            ],
+          });
+        } catch (error) {
+          fail(error);
+        }
+      });
+    });
+
+    describe("when passed a 'type=meeting' query param", () => {
+      it("returns a valid response", async () => {
+        const params = { type: "meeting" };
+        const headers = { Authorization: `Bearer ${accessToken}` };
+
+        try {
+          const { status, data } = await axios.get(`${baseUrl}/users/${userId}/conversations`, { params, headers });
+
+          expect(status).toBe(200);
+          expect(data).toEqual({
+            conversations: [
+              {
+                dueDate: meetingTwo.dueDate,
+                createdAt: meetingTwo.createdAt,
+                id: meetingTwo.id,
+                createdBy: meetingTwo.createdBy,
+                name: meetingTwo.name,
+                type: meetingTwo.type,
+                updatedAt: meetingUserRelationshipTwo.updatedAt,
+                unreadMessages: 0,
+                role: meetingUserRelationshipTwo.role,
+              },
+              {
+                dueDate: meeting.dueDate,
+                createdAt: meeting.createdAt,
+                id: meeting.id,
+                createdBy: meeting.createdBy,
+                teamId: meeting.teamId,
+                name: meeting.name,
+                type: meeting.type,
+                updatedAt: meetingUserRelationship.updatedAt,
+                unreadMessages: 0,
+                role: meetingUserRelationship.role,
+              },
+            ],
+          });
+        } catch (error) {
+          fail(error);
+        }
+      });
+    });
+
+    describe("when passed a 'type=meeting_due_date' query param", () => {
+      it("returns a valid response", async () => {
+        const params = { type: "meeting_due_date" };
+        const headers = { Authorization: `Bearer ${accessToken}` };
+
+        try {
+          const { status, data } = await axios.get(`${baseUrl}/users/${userId}/conversations`, { params, headers });
+
+          expect(status).toBe(200);
+          expect(data).toEqual({
+            conversations: [
+              {
+                dueDate: meeting.dueDate,
+                createdAt: meeting.createdAt,
+                id: meeting.id,
+                createdBy: meeting.createdBy,
+                teamId: meeting.teamId,
+                name: meeting.name,
+                type: meeting.type,
+                updatedAt: meetingUserRelationship.updatedAt,
+                unreadMessages: 0,
+                role: meetingUserRelationship.role,
+              },
+              {
+                dueDate: meetingTwo.dueDate,
+                createdAt: meetingTwo.createdAt,
+                id: meetingTwo.id,
+                createdBy: meetingTwo.createdBy,
+                name: meetingTwo.name,
+                type: meetingTwo.type,
+                updatedAt: meetingUserRelationshipTwo.updatedAt,
+                unreadMessages: 0,
+                role: meetingUserRelationshipTwo.role,
+              },
+            ],
+          });
+        } catch (error) {
+          fail(error);
+        }
+      });
+    });
+
+    describe("when passed a 'unread=true' query param", () => {
+      it("returns a valid response", async () => {
+        const params = { unread: true };
+        const headers = { Authorization: `Bearer ${accessToken}` };
+
+        try {
+          const { status, data } = await axios.get(`${baseUrl}/users/${userId}/conversations`, { params, headers });
+
+          expect(status).toBe(200);
+          expect(data).toEqual({
+            conversations: [
+              {
+                createdAt: group.createdAt,
+                id: group.id,
+                createdBy: group.createdBy,
+                name: group.name,
+                type: group.type,
+                updatedAt: groupUserRelationship.updatedAt,
+                role: groupUserRelationship.role,
+                unreadMessages: 1,
+                recentMessage: {
+                  sentAt: message.sentAt,
+                  hasReplies: message.hasReplies,
+                  conversationId: message.conversationId,
+                  seenAt: message.seenAt,
+                  reactions: message.reactions,
+                  from: message.from,
+                  id: message.id,
+                  transcript: message.transcript,
+                },
+              },
             ],
           });
         } catch (error) {
@@ -201,10 +432,11 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
 
     describe("when passed invalid parameters", () => {
       it("throws a 400 error with a valid structure", async () => {
+        const params = { type: "test", unread: "test" };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/users/test/conversations`, { headers });
+          await axios.get(`${baseUrl}/users/test/conversations`, { params, headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -212,7 +444,13 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
             message: "Error validating request",
-            validationErrors: { pathParameters: { userId: "Failed constraint check for string: Must be a user id" } },
+            validationErrors: {
+              pathParameters: { userId: "Failed constraint check for string: Must be a user id" },
+              queryStringParameters: {
+                type: 'Expected "friend" | "group" | "meeting" | "meeting_due_date", but was string',
+                unread: 'Expected "true" | "false", but was string',
+              },
+            },
           });
         }
       });
