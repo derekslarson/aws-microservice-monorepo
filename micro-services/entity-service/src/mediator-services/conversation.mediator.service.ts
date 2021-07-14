@@ -6,12 +6,15 @@ import { ConversationUserRelationshipServiceInterface } from "../entity-services
 import { UserId } from "../types/userId.type";
 import { ConversationType } from "../enums/conversationType.enum";
 import { ConversationId } from "../types/conversationId.type";
+import { Message, MessageServiceInterface } from "../entity-services/message.service";
+import { MessageId } from "../types/messageId.type";
 
 @injectable()
 export class ConversationMediatorService implements ConversationMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
+    @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
   ) {}
 
@@ -30,12 +33,31 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       });
 
       const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
+      const recentMessageIds = conversationUserRelationships.map((relationship) => relationship.recentMessageId).filter((messageId) => !!messageId) as MessageId[];
 
-      const { conversations } = await this.conversationService.getConversations({ conversationIds });
+      const [ { conversations }, { messages: recentMessages } ] = await Promise.all([
+        this.conversationService.getConversations({ conversationIds }),
+        this.messageService.getMessages({ messageIds: recentMessageIds }),
+      ]);
 
-      const conversationsWithRoles = conversations.map((conversation, i) => ({ ...conversation, role: conversationUserRelationships[i].role }));
+      const recentMessageMap = recentMessages.reduce((acc: { [key: string]: Message; }, message) => {
+        acc[message.id] = message;
 
-      return { conversations: conversationsWithRoles, lastEvaluatedKey };
+        return acc;
+      }, {});
+
+      const conversationsWithRolesAndMessageProps = conversations.map((conversation, i) => {
+        const conversationUserRelationship = conversationUserRelationships[i];
+
+        return {
+          ...conversation,
+          recentMessage: conversationUserRelationship.recentMessageId ? recentMessageMap[conversationUserRelationship.recentMessageId] : undefined,
+          unreadMessages: conversationUserRelationship.unreadMessages?.length || 0,
+          role: conversationUserRelationship.role,
+        };
+      });
+
+      return { conversations: conversationsWithRolesAndMessageProps, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversationsByUserId", { error, params }, this.constructor.name);
 
@@ -71,7 +93,10 @@ export interface ConversationMediatorServiceInterface {
   isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
 }
 
-export type Conversation = ConversationEntity;
+export interface Conversation extends ConversationEntity {
+  unreadMessages: number;
+  recentMessage?: Message;
+}
 
 export interface GetConversationsByUserIdInput {
   userId: UserId;

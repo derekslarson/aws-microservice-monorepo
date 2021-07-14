@@ -72,6 +72,22 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     }
   }
 
+  public async getMessages(params: GetMessagesInput): Promise<GetMessagesOutput> {
+    try {
+      this.loggerService.trace("getMessages called", { params }, this.constructor.name);
+
+      const { messageIds } = params;
+
+      const messages = await this.batchGet({ Keys: messageIds.map((messageId) => ({ pk: messageId, sk: messageId })) });
+
+      return { messages };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMessages", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
     try {
       this.loggerService.trace("updateMessageSeenAt called", { params }, this.constructor.name);
@@ -167,6 +183,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 export interface MessageRepositoryInterface {
   createMessage(params: CreateMessageInput): Promise<CreateMessageOutput>;
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
+  getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
   updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
@@ -211,6 +228,14 @@ export interface GetMessageInput {
 
 export interface GetMessageOutput {
   message: Message;
+}
+
+export interface GetMessagesInput {
+  messageIds: MessageId[];
+}
+
+export interface GetMessagesOutput {
+  messages: Message[];
 }
 
 export interface UpdateMessageSeenAtInput {

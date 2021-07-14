@@ -60,6 +60,30 @@ export class MessageService implements MessageServiceInterface {
     }
   }
 
+  public async getMessages(params: GetMessagesInput): Promise<GetMessagesOutput> {
+    try {
+      this.loggerService.trace("getMessages called", { params }, this.constructor.name);
+
+      const { messageIds } = params;
+
+      const { messages } = await this.messageRepository.getMessages({ messageIds });
+
+      const messageMap = messages.reduce((acc: { [key: string]: Message; }, message) => {
+        acc[message.id] = message;
+
+        return acc;
+      }, {});
+
+      const sortedMessages = messageIds.map((messageId) => messageMap[messageId]);
+
+      return { messages: sortedMessages };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMessages", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
     try {
       this.loggerService.trace("updateMessageSeenAt called", { params }, this.constructor.name);
@@ -112,6 +136,7 @@ export class MessageService implements MessageServiceInterface {
 export interface MessageServiceInterface {
   createMessage(params: CreateMessageInput): Promise<CreateMessageOutput>;
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
+  getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
   updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
@@ -136,6 +161,14 @@ export interface GetMessageInput {
 
 export interface GetMessageOutput {
   message: Message;
+}
+
+export interface GetMessagesInput {
+  messageIds: MessageId[];
+}
+
+export interface GetMessagesOutput {
+  messages: Message[];
 }
 
 export interface UpdateMessageSeenAtInput {
