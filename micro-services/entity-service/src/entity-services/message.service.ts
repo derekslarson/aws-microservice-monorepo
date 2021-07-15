@@ -30,7 +30,7 @@ export class MessageService implements MessageServiceInterface {
         transcript,
         seenAt,
         sentAt: new Date().toISOString(),
-        hasReplies: false,
+        replyCount: 0,
         reactions: {},
       };
 

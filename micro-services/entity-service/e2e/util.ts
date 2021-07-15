@@ -316,9 +316,9 @@ export async function getConversationUserRelationship(params: GetConversationUse
 
 export async function createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
   try {
-    const { from, conversationId, transcript, conversationMemberIds, replyTo } = params;
+    const { from, conversationId, transcript, conversationMemberIds, replyTo, replyCount } = params;
 
-    const messageId = `${KeyPrefix.Message}${ksuid.randomSync().string}` as MessageId;
+    const messageId = `${replyTo ? KeyPrefix.Reply : KeyPrefix.Message}${ksuid.randomSync().string}` as MessageId;
 
     const timestamp = new Date().toISOString();
 
@@ -343,7 +343,7 @@ export async function createMessage(params: CreateMessageInput): Promise<CreateM
       sentAt: timestamp,
       seenAt,
       reactions: {},
-      hasReplies: false,
+      replyCount: replyCount || 0,
       replyTo,
     };
 
@@ -461,6 +461,7 @@ export interface CreateMessageInput {
   transcript: string;
   conversationMemberIds: UserId[];
   replyTo?: MessageId;
+  replyCount?: number;
 }
 
 export interface CreateMessageOutput {

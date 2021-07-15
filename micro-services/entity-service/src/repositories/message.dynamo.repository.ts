@@ -142,6 +142,30 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     }
   }
 
+  public async incrementMessageReplyCount(params: IncrementMessageReplyCountInput): Promise<IncrementMessageReplyCountOutput> {
+    try {
+      this.loggerService.trace("incrementMessageReplyCount called", { params }, this.constructor.name);
+
+      const { messageId } = params;
+
+      const message = await this.update({
+        Key: {
+          pk: messageId,
+          sk: messageId,
+        },
+        UpdateExpression: "ADD #replyCount :one",
+        ExpressionAttributeNames: { "#replyCount": "replyCount" },
+        ExpressionAttributeValues: { ":one": 1 },
+      });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in incrementMessageReplyCount", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput> {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
@@ -150,6 +174,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 
       const { Items: messages, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+        ScanIndexForward: false,
         IndexName: this.gsiOneIndexName,
         Limit: limit ?? 25,
         KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :message)",
@@ -213,6 +238,7 @@ export interface MessageRepositoryInterface {
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
   updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>;
   updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
+  incrementMessageReplyCount(params: IncrementMessageReplyCountInput): Promise<IncrementMessageReplyCountOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
 }
@@ -227,7 +253,7 @@ export interface Message {
   sentAt: string;
   seenAt: { [key: string]: string | null };
   reactions: { [key: string]: number };
-  hasReplies: boolean;
+  replyCount: number;
   replyTo?: MessageId;
 }
 
@@ -305,5 +331,14 @@ export interface UpdateMessageReactionInput {
 }
 
 export interface UpdateMessageReactionOutput {
+  message: Message;
+}
+
+export interface IncrementMessageReplyCountInput {
+  messageId: MessageId;
+
+}
+
+export interface IncrementMessageReplyCountOutput {
   message: Message;
 }

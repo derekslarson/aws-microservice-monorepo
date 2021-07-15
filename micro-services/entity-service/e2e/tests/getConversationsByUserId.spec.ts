@@ -85,7 +85,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 unreadMessages: 1,
                 recentMessage: {
                   sentAt: message.sentAt,
-                  hasReplies: message.hasReplies,
+                  replyCount: message.replyCount,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
@@ -155,7 +155,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 unreadMessages: 1,
                 recentMessage: {
                   sentAt: message.sentAt,
-                  hasReplies: message.hasReplies,
+                  replyCount: message.replyCount,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
@@ -255,7 +255,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 unreadMessages: 1,
                 recentMessage: {
                   sentAt: message.sentAt,
-                  hasReplies: message.hasReplies,
+                  replyCount: message.replyCount,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
@@ -378,7 +378,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 unreadMessages: 1,
                 recentMessage: {
                   sentAt: message.sentAt,
-                  hasReplies: message.hasReplies,
+                  replyCount: message.replyCount,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,
                   reactions: message.reactions,

@@ -117,9 +117,9 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages } = await this.messageMediatorService.getMessagesByUserAndFriendIds({ userId, friendId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByUserAndFriendIds({ userId, friendId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
-      return this.generateSuccessResponse({ messages });
+      return this.generateSuccessResponse({ messages, lastEvaluatedKey });
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByUserAndFriendIds", { error, request }, this.constructor.name);
 
