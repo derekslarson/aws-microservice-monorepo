@@ -7,5 +7,6 @@ export enum KeyPrefix {
   MeetingConversation = "convo-meeting-",
   Message = "message-",
   Reply = "reply-message-",
+  Reaction = "reaction-",
   Time = "time-",
 }

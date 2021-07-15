@@ -29,6 +29,8 @@ import { GroupMediatorService, GroupMediatorServiceInterface } from "../mediator
 import { MeetingMediatorService, MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { MessageMediatorService, MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
 import { UserMediatorService, UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
+import { ReactionDynamoRepository, ReactionRepositoryInterface } from "../repositories/reaction.dynamo.repository";
+import { ReactionService, ReactionServiceInterface } from "../entity-services/reaction.service";
 
 const container = new Container();
 
@@ -63,6 +65,7 @@ try {
   container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
   container.bind<ConversationUserRelationshipServiceInterface>(TYPES.ConversationUserRelationshipServiceInterface).to(ConversationUserRelationshipService);
   container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);
+  container.bind<ReactionServiceInterface>(TYPES.ReactionServiceInterface).to(ReactionService);
   container.bind<TeamServiceInterface>(TYPES.TeamServiceInterface).to(TeamService);
   container.bind<TeamUserRelationshipServiceInterface>(TYPES.TeamUserRelationshipServiceInterface).to(TeamUserRelationshipService);
   container.bind<UserServiceInterface>(TYPES.UserServiceInterface).to(UserService);
@@ -71,6 +74,7 @@ try {
   container.bind<ConversationRepositoryInterface>(TYPES.ConversationRepositoryInterface).to(ConversationDynamoRepository);
   container.bind<ConversationUserRelationshipRepositoryInterface>(TYPES.ConversationUserRelationshipRepositoryInterface).to(ConversationUserRelationshipDynamoRepository);
   container.bind<MessageRepositoryInterface>(TYPES.MessageRepositoryInterface).to(MessageDynamoRepository);
+  container.bind<ReactionRepositoryInterface>(TYPES.ReactionRepositoryInterface).to(ReactionDynamoRepository);
   container.bind<TeamRepositoryInterface>(TYPES.TeamRepositoryInterface).to(TeamDynamoRepository);
   container.bind<TeamUserRelationshipRepositoryInterface>(TYPES.TeamUserRelationshipRepositoryInterface).to(TeamUserRelationshipDynamoRepository);
   container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);

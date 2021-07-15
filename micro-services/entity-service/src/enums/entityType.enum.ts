@@ -8,4 +8,5 @@ export enum EntityType {
   MeetingConversation = "MEETING_CONVERSATION",
   ConversationUserRelationship = "CONVERSATION_USER_RELATIONSHIP",
   Message = "MESSAGE",
+  Reaction = "REACTION",
 }

@@ -6,8 +6,9 @@ import { ConversationUserRelationshipServiceInterface } from "../entity-services
 import { UserId } from "../types/userId.type";
 import { ConversationType } from "../enums/conversationType.enum";
 import { ConversationId } from "../types/conversationId.type";
-import { Message, MessageServiceInterface } from "../entity-services/message.service";
+import { Message as MessageEntity, MessageServiceInterface } from "../entity-services/message.service";
 import { MessageId } from "../types/messageId.type";
+import { ReactionServiceInterface, Reaction as ReactionEntity } from "../entity-services/reaction.service";
 
 @injectable()
 export class ConversationMediatorService implements ConversationMediatorServiceInterface {
@@ -15,6 +16,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
+    @inject(TYPES.ReactionServiceInterface) private reactionService: ReactionServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
   ) {}
 
@@ -35,13 +37,16 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
       const recentMessageIds = conversationUserRelationships.map((relationship) => relationship.recentMessageId).filter((messageId) => !!messageId) as MessageId[];
 
-      const [ { conversations }, { messages: recentMessages } ] = await Promise.all([
+      const [ { conversations }, { messages: recentMessages }, reactionsArray ] = await Promise.all([
         this.conversationService.getConversations({ conversationIds }),
         this.messageService.getMessages({ messageIds: recentMessageIds }),
+        Promise.all(recentMessageIds.map((messageId) => this.reactionService.getReactionsByMessageId({ messageId }))),
       ]);
 
-      const recentMessageMap = recentMessages.reduce((acc: { [key: string]: Message; }, message) => {
-        acc[message.id] = message;
+      const recentMessageMap = recentMessages.reduce((acc: { [key: string]: Message; }, message, i) => {
+        const { reactions } = reactionsArray[i];
+
+        acc[message.id] = { ...message, reactions };
 
         return acc;
       }, {});
@@ -94,6 +99,10 @@ export interface ConversationMediatorServiceInterface {
   isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
 }
 
+export type Reaction = ReactionEntity;
+export interface Message extends MessageEntity {
+  reactions: Reaction[];
+}
 export interface Conversation extends ConversationEntity {
   unreadMessages: number;
   recentMessage?: Message;

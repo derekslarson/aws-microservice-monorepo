@@ -115,6 +115,60 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     }
   }
 
+  public async addMessageReaction(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
+    try {
+      this.loggerService.trace("addMessageReaction called", { params }, this.constructor.name);
+
+      const { messageId, userId, seenAtValue } = params;
+
+      const message = await this.update({
+        Key: {
+          pk: messageId,
+          sk: messageId,
+        },
+        UpdateExpression: "SET #seenAt.#userId = :seenAtValue",
+        ExpressionAttributeNames: {
+          "#seenAt": "seenAt",
+          "#userId": userId,
+        },
+        ExpressionAttributeValues: { ":seenAtValue": seenAtValue },
+      });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addMessageReaction", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async removeMessageReaction(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
+    try {
+      this.loggerService.trace("removeMessageReaction called", { params }, this.constructor.name);
+
+      const { messageId, userId, seenAtValue } = params;
+
+      const message = await this.update({
+        Key: {
+          pk: messageId,
+          sk: messageId,
+        },
+        UpdateExpression: "SET #seenAt.#userId = :seenAtValue",
+        ExpressionAttributeNames: {
+          "#seenAt": "seenAt",
+          "#userId": userId,
+        },
+        ExpressionAttributeValues: { ":seenAtValue": seenAtValue },
+      });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in removeMessageReaction", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput> {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
@@ -198,7 +252,6 @@ export interface Message {
   transcript: string;
   sentAt: string;
   seenAt: { [key: string]: string | null };
-  reactions: { [key: string]: number };
   hasReplies: boolean;
   replyTo?: MessageId;
 }
