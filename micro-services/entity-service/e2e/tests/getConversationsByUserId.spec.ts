@@ -57,13 +57,12 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
     });
 
     describe("when not passed any query params", () => {
-      fit("returns a valid response", async () => {
+      it("returns a valid response", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
           const { status, data } = await axios.get(`${baseUrl}/users/${userId}/conversations`, { headers });
 
-          console.log(JSON.stringify(data, null, 2));
           expect(status).toBe(200);
           expect(data).toEqual({
             conversations: [
@@ -89,7 +88,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   hasReplies: message.hasReplies,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,
-                  reactions: [],
+                  reactions: message.reactions,
                   from: message.from,
                   id: message.id,
                   transcript: message.transcript,
@@ -159,7 +158,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   hasReplies: message.hasReplies,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,
-                  reactions: [],
+                  reactions: message.reactions,
                   from: message.from,
                   id: message.id,
                   transcript: message.transcript,
@@ -259,7 +258,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   hasReplies: message.hasReplies,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,
-                  reactions: [],
+                  reactions: message.reactions,
                   from: message.from,
                   id: message.id,
                   transcript: message.transcript,
@@ -382,7 +381,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   hasReplies: message.hasReplies,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,
-                  reactions: [],
+                  reactions: message.reactions,
                   from: message.from,
                   id: message.id,
                   transcript: message.transcript,

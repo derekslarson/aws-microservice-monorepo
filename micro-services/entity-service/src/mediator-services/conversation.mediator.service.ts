@@ -40,7 +40,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
         this.messageService.getMessages({ messageIds: recentMessageIds }),
       ]);
 
-      const recentMessageMap = recentMessages.reduce((acc: { [key: string]: Message; }, message, i) => {
+      const recentMessageMap = recentMessages.reduce((acc: { [key: string]: Message; }, message) => {
         acc[message.id] = message;
 
         return acc;
