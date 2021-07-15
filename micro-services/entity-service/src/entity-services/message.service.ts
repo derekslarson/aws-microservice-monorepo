@@ -31,6 +31,7 @@ export class MessageService implements MessageServiceInterface {
         seenAt,
         sentAt: new Date().toISOString(),
         hasReplies: false,
+        reactions: {},
       };
 
       await this.messageRepository.createMessage({ message });
@@ -99,6 +100,22 @@ export class MessageService implements MessageServiceInterface {
     }
   }
 
+  public async updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput> {
+    try {
+      this.loggerService.trace("updateMessageReaction called", { params }, this.constructor.name);
+
+      const { messageId, reaction, action } = params;
+
+      const { message } = await this.messageRepository.updateMessageReaction({ messageId, reaction, action });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMessageReaction", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput> {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
@@ -137,6 +154,7 @@ export interface MessageServiceInterface {
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
   updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>;
+  updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
 }
@@ -177,6 +195,16 @@ export interface UpdateMessageSeenAtInput {
 }
 
 export interface UpdateMessageSeenAtOutput {
+  message: Message;
+}
+
+export interface UpdateMessageReactionInput {
+  messageId: MessageId;
+  reaction: string;
+  action: "add" | "remove"
+}
+
+export interface UpdateMessageReactionOutput {
   message: Message;
 }
 

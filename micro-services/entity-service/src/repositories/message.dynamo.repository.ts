@@ -115,55 +115,28 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     }
   }
 
-  public async addMessageReaction(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
+  public async updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput> {
     try {
-      this.loggerService.trace("addMessageReaction called", { params }, this.constructor.name);
+      this.loggerService.trace("updateMessageReaction called", { params }, this.constructor.name);
 
-      const { messageId, userId, seenAtValue } = params;
+      const { messageId, reaction, action } = params;
 
       const message = await this.update({
         Key: {
           pk: messageId,
           sk: messageId,
         },
-        UpdateExpression: "SET #seenAt.#userId = :seenAtValue",
+        UpdateExpression: "ADD #reactions.#reaction :value",
         ExpressionAttributeNames: {
-          "#seenAt": "seenAt",
-          "#userId": userId,
+          "#reactions": "reactions",
+          "#reaction": reaction,
         },
-        ExpressionAttributeValues: { ":seenAtValue": seenAtValue },
+        ExpressionAttributeValues: { ":value": action === "add" ? 1 : -1 },
       });
 
       return { message };
     } catch (error: unknown) {
-      this.loggerService.error("Error in addMessageReaction", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async removeMessageReaction(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
-    try {
-      this.loggerService.trace("removeMessageReaction called", { params }, this.constructor.name);
-
-      const { messageId, userId, seenAtValue } = params;
-
-      const message = await this.update({
-        Key: {
-          pk: messageId,
-          sk: messageId,
-        },
-        UpdateExpression: "SET #seenAt.#userId = :seenAtValue",
-        ExpressionAttributeNames: {
-          "#seenAt": "seenAt",
-          "#userId": userId,
-        },
-        ExpressionAttributeValues: { ":seenAtValue": seenAtValue },
-      });
-
-      return { message };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in removeMessageReaction", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in updateMessageReaction", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -239,6 +212,7 @@ export interface MessageRepositoryInterface {
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
   updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>;
+  updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
 }
@@ -252,6 +226,7 @@ export interface Message {
   transcript: string;
   sentAt: string;
   seenAt: { [key: string]: string | null };
+  reactions: { [key: string]: number };
   hasReplies: boolean;
   replyTo?: MessageId;
 }
@@ -321,4 +296,14 @@ export interface GetRepliesByMessageIdInput {
 export interface GetRepliesByMessageIdOutput {
   replies: Message[];
   lastEvaluatedKey?: string;
+}
+
+export interface UpdateMessageReactionInput {
+  messageId: MessageId;
+  reaction: string;
+  action: "add" | "remove"
+}
+
+export interface UpdateMessageReactionOutput {
+  message: Message;
 }

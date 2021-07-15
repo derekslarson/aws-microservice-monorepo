@@ -77,17 +77,9 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { messageId } = params;
 
-      const [ { message }, { reactions } ] = await Promise.all([
-        this.messageService.getMessage({ messageId }),
-        this.reactionService.getReactionsByMessageId({ messageId }),
-      ]);
+      const { message } = await this.messageService.getMessage({ messageId });
 
-      const messageWithReactions: Message = {
-        ...message,
-        reactions,
-      };
-
-      return { message: messageWithReactions };
+      return { message };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessage", { error, params }, this.constructor.name);
 
@@ -149,31 +141,21 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("updateMessageByUserId called", { params }, this.constructor.name);
 
-      const { messageId, userId, updates } = params;
+      const { messageId, userId, updates: { seen, reactions } } = params;
 
       const updatePromises: Promise<unknown>[] = [];
 
-      if (typeof updates.seen === "boolean") {
-        if (updates.seen) {
-          updatePromises.push(this.markMessageRead({ userId, messageId }));
-        } else {
-          updatePromises.push(this.markMessageUnread({ userId, messageId }));
-        }
+      if (typeof seen === "boolean") {
+        updatePromises.push(this.updateMessageSeenAt({ messageId, userId, seen }));
       }
 
-      if (updates.reactions) {
-        const { additions, removals } = updates.reactions.reduce((acc: { additions: string[], removals: string[] }, reactionObj) => {
-          if (reactionObj.action === "add") {
-            acc.additions.push(reactionObj.reaction);
-          } else {
-            acc.removals.push(reactionObj.reaction);
-          }
-
-          return acc;
-        }, { additions: [], removals: [] });
-
-        updatePromises.push(...additions.map((reaction) => this.reactionService.createReaction({ messageId, userId, type: reaction })));
-        updatePromises.push(...removals.map((reaction) => this.reactionService.deleteReaction({ messageId, userId, type: reaction })));
+      if (reactions) {
+        updatePromises.push(...reactions.map(({ reaction, action }) => this.updateMessageReaction({
+          userId,
+          messageId,
+          reaction,
+          action,
+        })));
       }
 
       await Promise.all(updatePromises);
@@ -188,33 +170,42 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
-  private async markMessageRead(params: MarkMessageReadInput): Promise<MarkMessageReadOutput> {
+  private async updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
     try {
-      this.loggerService.trace("markMessageRead called", { params }, this.constructor.name);
+      this.loggerService.trace("updateMessageSeenAt called", { params }, this.constructor.name);
 
-      const { userId, messageId } = params;
+      const { userId, messageId, seen } = params;
 
-      const { message } = await this.messageService.updateMessageSeenAt({ messageId, userId, seenAtValue: new Date().toISOString() });
+      const { message } = await this.messageService.updateMessageSeenAt({
+        messageId,
+        userId,
+        seenAtValue: seen ? new Date().toISOString() : null,
+      });
 
-      await this.conversationUserRelationshipService.removeUnreadMessageFromConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
+      if (seen) {
+        await this.conversationUserRelationshipService.addMessageToConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
+      } else {
+        await this.conversationUserRelationshipService.removeUnreadMessageFromConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
+      }
     } catch (error: unknown) {
-      this.loggerService.error("Error in markMessageRead", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in updateMessageSeenAt", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  private async markMessageUnread(params: MarkMessageUnreadInput): Promise<MarkMessageUnreadOutput> {
+  private async updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput> {
     try {
-      this.loggerService.trace("markMessageUnread called", { params }, this.constructor.name);
+      this.loggerService.trace("updateMessageReaction called", { params }, this.constructor.name);
 
-      const { userId, messageId } = params;
+      const { reaction, action, messageId, userId } = params;
 
-      const { message } = await this.messageService.updateMessageSeenAt({ messageId, userId, seenAtValue: null });
-
-      await this.conversationUserRelationshipService.addMessageToConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
+      await Promise.all<unknown>([
+        action === "add" ? this.reactionService.createReaction({ messageId, userId, type: reaction }) : this.reactionService.deleteReaction({ messageId, userId, type: reaction }),
+        this.messageService.updateMessageReaction({ messageId, reaction, action }),
+      ]);
     } catch (error: unknown) {
-      this.loggerService.error("Error in markMessageUnread", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in updateMessageReaction", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -260,12 +251,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         sender: relationship.userId === from,
       })));
 
-      const messageWithReactions: Message = {
-        ...message,
-        reactions: [],
-      };
-
-      return { message: messageWithReactions };
+      return { message };
     } catch (error: unknown) {
       this.loggerService.error("Error in createMessage", { error, params }, this.constructor.name);
 
@@ -281,13 +267,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { messages, lastEvaluatedKey } = await this.messageService.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit });
 
-      const messagesWithReactions = await Promise.all(messages.map(async (message) => {
-        const { reactions } = await this.reactionService.getReactionsByMessageId(({ messageId: message.id }));
-
-        return { ...message, reactions };
-      }));
-
-      return { messages: messagesWithReactions, lastEvaluatedKey };
+      return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByConversationId", { error, params }, this.constructor.name);
 
@@ -308,9 +288,7 @@ export interface MessageMediatorServiceInterface {
 }
 
 export type Reaction = ReactionEntity;
-export interface Message extends MessageEntity {
-  reactions: Reaction[];
-}
+export type Message = MessageEntity;
 export interface CreateFriendMessageInput {
   to: UserId;
   from: UserId;
@@ -421,19 +399,22 @@ interface GetMessagesByConversationIdOutput {
   lastEvaluatedKey?: string;
 }
 
-interface MarkMessageReadInput {
+interface UpdateMessageSeenAtInput {
   userId: UserId;
   messageId: MessageId;
+  seen: boolean;
 }
 
-type MarkMessageReadOutput = void;
+type UpdateMessageSeenAtOutput = void;
 
-interface MarkMessageUnreadInput {
+interface UpdateMessageReactionInput {
   userId: UserId;
   messageId: MessageId;
+  reaction: string;
+  action: "add" | "remove"
 }
 
-type MarkMessageUnreadOutput = void;
+type UpdateMessageReactionOutput = void;
 
 // interface MarkConversationReadInput {
 //   userId: UserId;

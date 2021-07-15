@@ -342,6 +342,7 @@ export async function createMessage(params: CreateMessageInput): Promise<CreateM
       transcript,
       sentAt: timestamp,
       seenAt,
+      reactions: {},
       hasReplies: false,
       replyTo,
     };
