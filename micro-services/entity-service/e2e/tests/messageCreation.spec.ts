@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Role } from "@yac/core";
@@ -36,10 +37,6 @@ fdescribe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
           const { data: createMessageResponse } = await axios.post(`${baseUrl}/groups/${group.id}/messages`, body, { headers });
 
           console.log(JSON.stringify(createMessageResponse, null, 2));
-
-          const { data: getMessageResponse } = await axios.get(`${baseUrl}/groups/${group.id}/messages`, { headers });
-
-          console.log(JSON.stringify(getMessageResponse, null, 2));
         } catch (error) {
           fail(error);
         }

@@ -141,6 +141,8 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         replyTo: pendingMessage.replyTo,
       });
 
+      await this.pendingMessageService.deletePendingMessage({ pendingMessageId });
+
       return { message };
     } catch (error: unknown) {
       this.loggerService.error("Error in convertPendingToRegularMessage", { error, params }, this.constructor.name);

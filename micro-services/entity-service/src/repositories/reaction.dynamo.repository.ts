@@ -28,7 +28,7 @@ export class ReactionDynamoRepository extends BaseDynamoRepositoryV2<Reaction> i
       const reactionEntity: RawReaction = {
         entityType: EntityType.Reaction,
         pk: reaction.messageId,
-        sk: `${KeyPrefix.Reaction}${reaction.type}-${reaction.userId}` as ReactionId,
+        sk: `${KeyPrefix.Reaction}${reaction.type}-${reaction.userId}`,
         ...reaction,
       };
 
