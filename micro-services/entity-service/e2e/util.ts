@@ -17,6 +17,7 @@ import { MeetingId } from "../src/types/meetingId.type";
 import { TeamId } from "../src/types/teamId.type";
 import { UserId } from "../src/types/userId.type";
 import { MessageId } from "../src/types/messageId.type";
+import { MimeType } from "../src/enums/mimeType.enum";
 
 export async function deleteUser(id: UserId): Promise<void> {
   try {
@@ -316,7 +317,7 @@ export async function getConversationUserRelationship(params: GetConversationUse
 
 export async function createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
   try {
-    const { from, conversationId, conversationMemberIds, replyTo, replyCount } = params;
+    const { from, conversationId, conversationMemberIds, replyTo, replyCount, mimeType } = params;
 
     const messageId = `${replyTo ? KeyPrefix.Reply : KeyPrefix.Message}${ksuid.randomSync().string}` as MessageId;
 
@@ -344,7 +345,7 @@ export async function createMessage(params: CreateMessageInput): Promise<CreateM
       reactions: {},
       replyCount: replyCount || 0,
       replyTo,
-      mimeType: generateRandomString(5),
+      mimeType,
     };
 
     await documentClient.put({
@@ -460,6 +461,7 @@ export interface CreateMessageInput {
   conversationId: ConversationId;
   transcript: string;
   conversationMemberIds: UserId[];
+  mimeType: MimeType;
   replyTo?: MessageId;
   replyCount?: number;
 }

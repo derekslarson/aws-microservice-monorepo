@@ -10,6 +10,7 @@ import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { TeamId } from "../../src/types/teamId.type";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
+import { MimeType } from "../../src/enums/mimeType.enum";
 
 describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -47,7 +48,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
         createFriendConversation({ userId, friendId: mockUserId }),
       ]));
 
-      ({ message } = await createMessage({ from: mockUserId, conversationId: group.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ] }));
+      ({ message } = await createMessage({ from: mockUserId, conversationId: group.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ], mimeType: MimeType.AudioMp3 }));
 
       // We need to create the relationships in sequence, so that we can be sure of the return order in the test
       ({ conversationUserRelationship: meetingUserRelationship } = await createConversationUserRelationship({ conversationId: meeting.id, userId, role: Role.Admin, dueDate: meeting.dueDate }));

@@ -1,5 +1,5 @@
 import { Container } from "inversify";
-import { coreContainerModule, SnsProcessorServiceInterface } from "@yac/core";
+import { coreContainerModule, S3ProcessorServiceInterface, SnsProcessorServiceInterface } from "@yac/core";
 import { TYPES } from "./types";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { TeamDynamoRepository, TeamRepositoryInterface } from "../repositories/team.dynamo.repository";
@@ -34,6 +34,7 @@ import { ReactionService, ReactionServiceInterface } from "../entity-services/re
 import { PendingMessageDynamoRepository, PendingMessageRepositoryInterface } from "../repositories/pendingMessage.dynamo.repository";
 import { PendingMessageService, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
 import { MessageFileService, MessageFileServiceInterface } from "../entity-services/mesage.file.service";
+import { MessageFileCreatedProcessorService } from "../processor-services/messageFileCreated.processor.service";
 
 const container = new Container();
 
@@ -62,6 +63,7 @@ try {
   container.bind<UserMediatorServiceInterface>(TYPES.UserMediatorServiceInterface).to(UserMediatorService);
 
   // Processor Services
+  container.bind<S3ProcessorServiceInterface>(TYPES.MessageFileCreatedProcessorServiceInterface).to(MessageFileCreatedProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserSignedUpProcessorServiceInterface).to(UserSignedUpProcessorService);
 
   // Entity Services
@@ -85,9 +87,13 @@ try {
   container.bind<TeamUserRelationshipRepositoryInterface>(TYPES.TeamUserRelationshipRepositoryInterface).to(TeamUserRelationshipDynamoRepository);
   container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);
 
-  // Processor Services Array (needs to be below all other bindings for container.get to function correctly)
+  // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
     container.get(TYPES.UserSignedUpProcessorServiceInterface),
+  ]);
+
+  container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([
+    container.get(TYPES.MessageFileCreatedProcessorServiceInterface),
   ]);
 } catch (error: unknown) {
   // eslint-disable-next-line no-console

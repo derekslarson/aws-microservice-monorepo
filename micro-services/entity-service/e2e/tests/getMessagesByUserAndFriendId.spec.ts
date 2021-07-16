@@ -4,6 +4,7 @@ import { Role } from "@yac/core";
 import axios from "axios";
 import { generateRandomString, wait } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
+import { MimeType } from "../../src/enums/mimeType.enum";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
@@ -26,7 +27,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
       ({ conversation: friendship } = await createFriendConversation({ userId, friendId: mockUserId }));
 
       ([ { message } ] = await Promise.all([
-        createMessage({ from: mockUserId, conversationId: friendship.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ], replyCount: 1 }),
+        createMessage({ from: mockUserId, conversationId: friendship.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ], replyCount: 1, mimeType: MimeType.AudioMp3 }),
         createConversationUserRelationship({ conversationId: friendship.id, userId, role: Role.User }),
       ]));
 
@@ -34,9 +35,9 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
 
       // We have to create the messages in sequence to ensure sort order
       ([ { message: messageTwo } ] = await Promise.all([
-        createMessage({ from: userId, conversationId: friendship.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ] }),
+        createMessage({ from: userId, conversationId: friendship.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ], mimeType: MimeType.AudioMp3 }),
         // We have to create a reply to prove that it doesnt get returned at root level
-        createMessage({ from: mockUserId, conversationId: friendship.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ], replyTo: message.id }),
+        createMessage({ from: mockUserId, conversationId: friendship.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ], replyTo: message.id, mimeType: MimeType.AudioMp3 }),
       ]));
     });
 

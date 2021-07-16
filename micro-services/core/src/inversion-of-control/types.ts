@@ -2,6 +2,7 @@ const TYPES = {
   EnvConfigInterface: Symbol.for("EnvConfigInterface"),
 
   DynamoStreamControllerInterface: Symbol.for("DynamoStreamControllerInterface"),
+  S3EventControllerInterface: Symbol.for("S3EventControllerInterface"),
   SnsEventControllerInterface: Symbol.for("SnsEventControllerInterface"),
 
   ClientsUpdatedSnsServiceInterface: Symbol.for("ClientsUpdatedSnsServiceInterface"),
@@ -13,6 +14,7 @@ const TYPES = {
   ValidationServiceV2Interface: Symbol.for("ValidationServiceV2Interface"),
 
   DynamoProcessorServicesInterface: Symbol.for("DynamoProcessorServicesInterface"),
+  S3ProcessorServicesInterface: Symbol.for("S3ProcessorServicesInterface"),
   SnsProcessorServicesInterface: Symbol.for("SnsProcessorServicesInterface"),
 
   MessageS3RepositoryInterface: Symbol.for("MessageS3RepositoryInterface"),

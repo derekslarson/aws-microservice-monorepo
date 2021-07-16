@@ -53,7 +53,7 @@ export class YacCoreServiceStack extends CDK.Stack {
     new Route53.ARecord(this, "ApiRecord", {
       zone: hostedZone,
       recordName: this.recordName,
-      target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2Domain(domainName)),
+      target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2DomainProperties(domainName.regionalDomainName, hostedZoneId)),
     });
 
     // User Pool and Yac Client

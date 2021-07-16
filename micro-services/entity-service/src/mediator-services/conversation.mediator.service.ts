@@ -8,6 +8,7 @@ import { ConversationType } from "../enums/conversationType.enum";
 import { ConversationId } from "../types/conversationId.type";
 import { Message as MessageEntity, MessageServiceInterface } from "../entity-services/message.service";
 import { MessageId } from "../types/messageId.type";
+import { MessageFileServiceInterface } from "../entity-services/mesage.file.service";
 
 @injectable()
 export class ConversationMediatorService implements ConversationMediatorServiceInterface {
@@ -15,6 +16,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
+    @inject(TYPES.MessageFileServiceInterface) private messageFileService: MessageFileServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
   ) {}
 
@@ -41,7 +43,14 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       ]);
 
       const recentMessageMap = recentMessages.reduce((acc: { [key: string]: Message; }, message) => {
-        acc[message.id] = message;
+        const { signedUrl } = this.messageFileService.getSignedUrl({
+          messageId: message.id,
+          conversationId: message.conversationId,
+          mimeType: message.mimeType,
+          operation: "get",
+        });
+
+        acc[message.id] = { ...message, fetchUrl: signedUrl };
 
         return acc;
       }, {});
@@ -94,8 +103,9 @@ export interface ConversationMediatorServiceInterface {
   isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
 }
 
-export type Message = MessageEntity;
-
+export interface Message extends MessageEntity {
+  fetchUrl: string;
+}
 export interface Conversation extends ConversationEntity {
   unreadMessages: number;
   recentMessage?: Message;

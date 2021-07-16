@@ -10,11 +10,11 @@ import { LoggerServiceInterface } from "../services/logger.service";
 @injectable()
 export class MessageS3Repository extends BaseS3Repository implements MessageS3RepositoryInterface {
   constructor(
-  @inject(TYPES.DocumentClientFactory) s3Factory: S3Factory,
+  @inject(TYPES.S3Factory) s3Factory: S3Factory,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: MessageS3RepositoryConfig,
   ) {
-    super(envConfig.bucketNames.messageS3BucketName as string, s3Factory, loggerService);
+    super(envConfig.bucketNames.message as string, s3Factory, loggerService);
   }
 }
 

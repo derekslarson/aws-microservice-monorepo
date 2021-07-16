@@ -18,7 +18,14 @@ export class MessageFileService implements MessageFileServiceInterface {
 
       const { messageId, conversationId, operation, mimeType } = params;
 
-      const [ , fileExtension ] = mimeType.split("/");
+      const mimeTypeToFileExtensionMap: Record<MimeType, FileExtension> = {
+        [MimeType.AudioMp3]: "mp3",
+        [MimeType.AudioMp4]: "mp4",
+        [MimeType.VideoMp4]: "mp4",
+        [MimeType.VideoWebm]: "webm",
+      };
+
+      const fileExtension = mimeTypeToFileExtensionMap[mimeType];
 
       const key = `${conversationId}/${messageId}.${fileExtension}`;
 
@@ -41,6 +48,7 @@ export interface MessageFileServiceInterface {
   getSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput;
 }
 
+type FileExtension = "mp3" | "mp4" | "webm";
 export interface GetSignedUrlInput {
   operation: "get" | "upload",
   messageId: MessageId;

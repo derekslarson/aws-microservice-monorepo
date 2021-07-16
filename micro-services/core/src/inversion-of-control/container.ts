@@ -23,9 +23,11 @@ import { s3Factory, S3Factory } from "../factories/s3.factory";
 import { snsFactory, SnsFactory } from "../factories/sns.factory";
 import { unmarshallFactory, UnmarshallFactory } from "../factories/unmarshall.factory";
 import { uuidV4Factory, UuidV4Factory } from "../factories/uuidV4.factory";
+import { S3EventController, S3EventControllerInterface } from "../controllers/s3Event.controller";
 
 const coreContainerModule = new ContainerModule((bind) => {
   try {
+    bind<S3EventControllerInterface>(TYPES.S3EventControllerInterface).to(S3EventController);
     bind<SnsEventControllerInterface>(TYPES.SnsEventControllerInterface).to(SnsEventController);
 
     bind<ClientsUpdatedSnsServiceInterface>(TYPES.ClientsUpdatedSnsServiceInterface).to(ClientsUpdatedSnsService);
