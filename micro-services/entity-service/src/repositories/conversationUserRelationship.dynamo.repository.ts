@@ -98,7 +98,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
           pk: conversationId,
           sk: userId,
         },
-        UpdateExpression: `SET #updatedAt = :timestamp, #gsi1sk = :keyTimestamp, #gsi2sk = :keyTimestampTwo${sender ? "" : " ADD #unreadMessages = :messageIdSet"}`,
+        UpdateExpression: `SET #updatedAt = :timestamp, #gsi1sk = :keyTimestamp, #gsi2sk = :keyTimestampTwo${sender ? "" : " ADD #unreadMessages :messageIdSet"}`,
         ExpressionAttributeNames: {
           "#updatedAt": "updatedAt",
           "#gsi1sk": "gsi1sk",

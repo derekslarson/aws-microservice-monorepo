@@ -99,7 +99,7 @@ export interface PendingMessage {
 }
 
 export interface RawPendingMessage extends PendingMessage {
-  entityType: EntityType.PendingMessage,
+  entityType: EntityType.PendingMessage;
   pk: PendingMessageId;
   sk: PendingMessageId;
 }

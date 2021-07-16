@@ -4,6 +4,7 @@ export const envConfig: EnvConfigInterface = {
   secret: process.env.SECRET || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   apiDomain: process.env.API_DOMAIN || "",
+  bucketNames: {},
   tableNames: { clientsTableName: process.env.CLIENTS_TABLE_NAME || "" },
   snsTopicArns: {
     clientsUpdated: process.env.CLIENTS_UPDATED_SNS_TOPIC_ARN || "",

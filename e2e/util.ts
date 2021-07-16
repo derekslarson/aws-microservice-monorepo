@@ -199,4 +199,32 @@ export async function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(() => resolve(), ms));
 }
 
+export async function backoff<T>(func: (...args: unknown[]) => Promise<T>, successFunc: (res: T) => boolean, maxBackoff = 4000, currentBackoff = 500): Promise<T> {
+  try {
+    const response = await func();
+
+    if (successFunc(response)) {
+      return response;
+    }
+
+    throw new Error("Success func failed");
+  } catch (error) {
+    if (currentBackoff <= maxBackoff) {
+      console.log(`${new Date().toISOString()} : Error in backoff. Waiting for ${currentBackoff}ms and retrying.`);
+
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(backoff(func, successFunc, maxBackoff, currentBackoff * 2));
+        }, currentBackoff);
+      });
+    }
+
+    console.log(`${new Date().toISOString()} : Error in backoff. maxBackoff of ${maxBackoff}ms already reached.\n`, error);
+
+    throw error;
+  }
+}
+
 export const ISO_DATE_REGEX = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})[Z]/;
+
+export const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;

@@ -18,6 +18,8 @@ import { TeamId } from "../src/types/teamId.type";
 import { UserId } from "../src/types/userId.type";
 import { MessageId } from "../src/types/messageId.type";
 import { MimeType } from "../src/enums/mimeType.enum";
+import { PendingMessageId } from "../src/types/pendingMessageId.type";
+import { RawPendingMessage } from "../src/repositories/pendingMessage.dynamo.repository";
 
 export async function deleteUser(id: UserId): Promise<void> {
   try {
@@ -361,6 +363,44 @@ export async function createMessage(params: CreateMessageInput): Promise<CreateM
   }
 }
 
+export async function getMessage(params: GetMessageInput): Promise<GetMessageOutput> {
+  try {
+    const { messageId } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: messageId, sk: messageId },
+    }).promise();
+
+    const message = Item as RawMessage;
+
+    return { message };
+  } catch (error) {
+    console.log("Error in getMessage:\n", error);
+
+    throw error;
+  }
+}
+
+export async function getPendingMessage(params: GetPendingMessageInput): Promise<GetPendingMessageOutput> {
+  try {
+    const { pendingMessageId } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: pendingMessageId, sk: pendingMessageId },
+    }).promise();
+
+    const pendingMessage = Item as RawPendingMessage;
+
+    return { pendingMessage };
+  } catch (error) {
+    console.log("Error in getMessage:\n", error);
+
+    throw error;
+  }
+}
+
 export interface CreateRandomTeamInput {
   createdBy: UserId;
 }
@@ -468,4 +508,20 @@ export interface CreateMessageInput {
 
 export interface CreateMessageOutput {
   message: RawMessage;
+}
+
+export interface GetMessageInput {
+  messageId: MessageId;
+}
+
+export interface GetMessageOutput {
+  message?: RawMessage;
+}
+
+export interface GetPendingMessageInput {
+  pendingMessageId: PendingMessageId;
+}
+
+export interface GetPendingMessageOutput {
+  pendingMessage?: RawPendingMessage;
 }
