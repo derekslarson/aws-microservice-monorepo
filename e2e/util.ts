@@ -210,8 +210,6 @@ export async function backoff<T>(func: (...args: unknown[]) => Promise<T>, succe
     throw new Error("Success func failed");
   } catch (error) {
     if (currentBackoff <= maxBackoff) {
-      console.log(`${new Date().toISOString()} : Error in backoff. Waiting for ${currentBackoff}ms and retrying.`);
-
       return new Promise((resolve) => {
         setTimeout(() => {
           resolve(backoff(func, successFunc, maxBackoff, currentBackoff * 2));

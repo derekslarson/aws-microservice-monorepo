@@ -41,7 +41,7 @@ export class ConversationUserRelationshipService implements ConversationUserRela
 
   public async getConversationUserRelationship(params: GetConversationUserRelationshipInput): Promise<GetConversationUserRelationshipOutput> {
     try {
-      this.loggerService.trace("removeUserFromConversation called", { params }, this.constructor.name);
+      this.loggerService.trace("getConversationUserRelationship called", { params }, this.constructor.name);
 
       const { conversationId, userId } = params;
 
@@ -49,7 +49,7 @@ export class ConversationUserRelationshipService implements ConversationUserRela
 
       return { conversationUserRelationship };
     } catch (error: unknown) {
-      this.loggerService.error("Error in removeUserFromConversation", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getConversationUserRelationship", { error, params }, this.constructor.name);
 
       throw error;
     }
