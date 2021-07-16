@@ -10,6 +10,7 @@ import { LoggerService, LoggerServiceInterface } from "../services/logger.servic
 import { UserSignedUpSnsService, UserSignedUpSnsServiceInterface } from "../services/userSignedUp.sns.service";
 import { ValidationService, ValidationServiceInterface } from "../services/validation.service";
 import { ValidationServiceV2, ValidationServiceV2Interface } from "../services/validation.service.v2";
+import { MessageS3Repository, MessageS3RepositoryInterface } from "../repositories/message.s3.repository";
 
 import { axiosFactory, AxiosFactory } from "../factories/axios.factory";
 import { classTransformerFactory, ClassTransformerFactory } from "../factories/classTransformer.factory";
@@ -18,6 +19,7 @@ import { documentClientFactory, DocumentClientFactory } from "../factories/docum
 import { errorSerializerFactory, ErrorSerializerFactory } from "../factories/errorSerializer.factory";
 import { logWriterFactory, LogWriterFactory } from "../factories/logWriter.factory";
 import { ksuidFactory, KsuidFactory } from "../factories/ksuid.factory";
+import { s3Factory, S3Factory } from "../factories/s3.factory";
 import { snsFactory, SnsFactory } from "../factories/sns.factory";
 import { unmarshallFactory, UnmarshallFactory } from "../factories/unmarshall.factory";
 import { uuidV4Factory, UuidV4Factory } from "../factories/uuidV4.factory";
@@ -34,6 +36,8 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
     bind<ValidationServiceV2Interface>(TYPES.ValidationServiceV2Interface).to(ValidationServiceV2);
 
+    bind<MessageS3RepositoryInterface>(TYPES.MessageS3RepositoryInterface).to(MessageS3Repository);
+
     bind<AxiosFactory>(TYPES.AxiosFactory).toFactory(() => axiosFactory);
     bind<ClassTransformerFactory>(TYPES.ClassTransformerFactory).toFactory(() => classTransformerFactory);
     bind<ClassValidatorFactory>(TYPES.ClassValidatorFactory).toFactory(() => classValidatorFactory);
@@ -41,6 +45,7 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<ErrorSerializerFactory>(TYPES.ErrorSerializerFactory).toFactory(() => errorSerializerFactory);
     bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
     bind<KsuidFactory>(TYPES.KsuidFactory).toFactory(() => ksuidFactory);
+    bind<S3Factory>(TYPES.S3Factory).toFactory(() => s3Factory);
     bind<SnsFactory>(TYPES.SnsFactory).toFactory(() => snsFactory);
     bind<UnmarshallFactory>(TYPES.UnmarshallFactory).toFactory(() => unmarshallFactory);
     bind<UuidV4Factory>(TYPES.UuidV4Factory).toFactory(() => uuidV4Factory);

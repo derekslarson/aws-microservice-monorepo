@@ -6,6 +6,7 @@ import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { UserId } from "../types/userId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { PendingMessageId } from "../types/pendingMessageId.type";
+import { MimeType } from "../enums/mimeType.enum";
 
 @injectable()
 export class PendingMessageService implements PendingMessageServiceInterface {
@@ -83,7 +84,7 @@ export type PendingMessage = PendingMessageEntity;
 export interface CreatePendingMessageInput {
   conversationId: ConversationId;
   from: UserId;
-  mimeType: string;
+  mimeType: MimeType;
 }
 
 export interface CreatePendingMessageOutput {

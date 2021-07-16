@@ -5,6 +5,7 @@ import { MessageRepositoryInterface, Message as MessageEntity } from "../reposit
 import { UserId } from "../types/userId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { MessageId } from "../types/messageId.type";
+import { MimeType } from "../enums/mimeType.enum";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
@@ -163,7 +164,7 @@ export interface CreateMessageInput {
   conversationId: ConversationId;
   from: UserId;
   seenAt: { [key: string]: string | null; };
-  mimeType: string;
+  mimeType: MimeType;
   replyTo?: MessageId;
 }
 

@@ -1,7 +1,8 @@
-import { Record, String } from "runtypes";
+import { Record } from "runtypes";
 import { GroupId } from "../runtypes/groupId.runtype";
+import { MimeType } from "../runtypes/mimeType.runtype";
 
 export const CreateGroupMessageDto = Record({
   pathParameters: Record({ groupId: GroupId }),
-  body: Record({ mimeType: String }),
+  body: Record({ mimeType: MimeType }),
 });

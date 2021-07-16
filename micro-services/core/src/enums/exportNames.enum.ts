@@ -10,6 +10,7 @@ const ExportNames = {
   ClientsUpdatedSnsTopicArn: "clientsUpdatedSnsTopicArn",
   UserSignedUpSnsTopicArn: "userSignedUpSnsTopicArn",
   CoreTableName: "coreTableName",
+  MessageS3BucketArn: "messageS3BucketArn",
 };
 
 export function generateExportNames(id: string): Readonly<typeof ExportNames> {

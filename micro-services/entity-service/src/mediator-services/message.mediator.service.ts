@@ -13,6 +13,8 @@ import { ReactionServiceInterface, Reaction as ReactionEntity } from "../entity-
 import { PendingMessage as PendingMessageEntity, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
 import { PendingMessageId } from "../types/pendingMessageId.type";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
+import { MimeType } from "../enums/mimeType.enum";
+import { MessageFileServiceInterface } from "../entity-services/mesage.file.service";
 
 @injectable()
 export class MessageMediatorService implements MessageMediatorServiceInterface {
@@ -20,6 +22,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.PendingMessageServiceInterface) private pendingMessageService: PendingMessageServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
+    @inject(TYPES.MessageFileServiceInterface) private messageFileService: MessageFileServiceInterface,
     @inject(TYPES.ReactionServiceInterface) private reactionService: ReactionServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
@@ -35,9 +38,19 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: conversation.id, from, mimeType });
 
+      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessage.id });
+
+      const { signedUrl } = this.messageFileService.getSignedUrl({
+        messageId,
+        conversationId: conversation.id,
+        mimeType,
+        operation: "upload",
+      });
+
       const pendingMessageWithUploadUrl = {
         ...pendingMessage,
-        uploadUrl: "",
+        id: messageId,
+        uploadUrl: signedUrl,
       };
 
       return { pendingMessage: pendingMessageWithUploadUrl };
@@ -56,9 +69,19 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: groupId, from, mimeType });
 
+      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessage.id });
+
+      const { signedUrl } = this.messageFileService.getSignedUrl({
+        messageId,
+        conversationId: groupId,
+        mimeType,
+        operation: "upload",
+      });
+
       const pendingMessageWithUploadUrl = {
         ...pendingMessage,
-        uploadUrl: "",
+        id: messageId,
+        uploadUrl: signedUrl,
       };
 
       return { pendingMessage: pendingMessageWithUploadUrl };
@@ -77,9 +100,19 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: meetingId, from, mimeType });
 
+      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessage.id });
+
+      const { signedUrl } = this.messageFileService.getSignedUrl({
+        messageId,
+        conversationId: meetingId,
+        mimeType,
+        operation: "upload",
+      });
+
       const pendingMessageWithUploadUrl = {
         ...pendingMessage,
-        uploadUrl: "",
+        id: messageId,
+        uploadUrl: signedUrl,
       };
 
       return { pendingMessage: pendingMessageWithUploadUrl };
@@ -98,7 +131,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { pendingMessage } = await this.pendingMessageService.getPendingMessage({ pendingMessageId });
 
-      const messageId = pendingMessageId.replace(KeyPrefix.PendingMessage, KeyPrefix.Message) as MessageId;
+      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
 
       const { message } = await this.createMessage({
         messageId,
@@ -124,7 +157,19 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { message } = await this.messageService.getMessage({ messageId });
 
-      return { message };
+      const { signedUrl } = this.messageFileService.getSignedUrl({
+        messageId,
+        conversationId: message.conversationId,
+        mimeType: message.mimeType,
+        operation: "get",
+      });
+
+      const messageWithFetchUrl = {
+        ...message,
+        fetchUrl: signedUrl,
+      };
+
+      return { message: messageWithFetchUrl };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessage", { error, params }, this.constructor.name);
 
@@ -312,9 +357,39 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { messages, lastEvaluatedKey } = await this.messageService.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit });
 
-      return { messages, lastEvaluatedKey };
+      const messagesWithFetchUrls = messages.map((message) => {
+        const { signedUrl } = this.messageFileService.getSignedUrl({
+          messageId: message.id,
+          conversationId: message.conversationId,
+          mimeType: message.mimeType,
+          operation: "get",
+        });
+
+        return {
+          ...message,
+          fetchUrl: signedUrl,
+        };
+      });
+
+      return { messages: messagesWithFetchUrls, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByConversationId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private convertPendingToRegularMessageId(params: ConvertPendingToRegularMessageIdInput): ConvertPendingToRegularMessageIdOutput {
+    try {
+      this.loggerService.trace("convertPendingToRegularMessageId called", { params }, this.constructor.name);
+
+      const { pendingMessageId } = params;
+
+      const messageId = pendingMessageId.replace(KeyPrefix.PendingMessage, KeyPrefix.Message) as MessageId;
+
+      return { messageId };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in convertPendingToRegularMessageId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -334,16 +409,19 @@ export interface MessageMediatorServiceInterface {
 }
 
 export type Reaction = ReactionEntity;
-export interface PendingMessage extends PendingMessageEntity {
+export interface PendingMessage extends Omit<PendingMessageEntity, "id"> {
+  id: MessageId
   uploadUrl: string;
 }
 
-export type Message = MessageEntity;
+export interface Message extends MessageEntity {
+  fetchUrl: string;
+}
 
 export interface CreateFriendMessageInput {
   to: UserId;
   from: UserId;
-  mimeType: string;
+  mimeType: MimeType;
 }
 
 export interface CreateFriendMessageOutput {
@@ -353,7 +431,7 @@ export interface CreateFriendMessageOutput {
 export interface CreateGroupMessageInput {
   groupId: GroupId;
   from: UserId;
-  mimeType: string;
+  mimeType: MimeType;
 }
 
 export interface CreateGroupMessageOutput {
@@ -363,7 +441,7 @@ export interface CreateGroupMessageOutput {
 export interface CreateMeetingMessageInput {
   meetingId: MeetingId;
   from: UserId;
-  mimeType: string;
+  mimeType: MimeType;
 }
 
 export interface CreateMeetingMessageOutput {
@@ -434,19 +512,19 @@ export interface ConvertPendingToRegularMessageInput {
 }
 
 export interface ConvertPendingToRegularMessageOutput {
-  message: Message;
+  message: MessageEntity;
 }
 
 interface CreateMessageInput {
   messageId: MessageId;
   conversationId: ConversationId;
   from: UserId;
-  mimeType: string;
+  mimeType: MimeType;
   replyTo?: MessageId;
 }
 
 interface CreateMessageOutput {
-  message: Message;
+  message: MessageEntity;
 }
 
 interface GetMessagesByConversationIdInput {
@@ -483,3 +561,11 @@ type UpdateMessageReactionOutput = void;
 // }
 
 // type MarkConversationReadOutput = void;
+
+interface ConvertPendingToRegularMessageIdInput {
+  pendingMessageId: PendingMessageId;
+}
+
+interface ConvertPendingToRegularMessageIdOutput {
+  messageId: MessageId;
+}

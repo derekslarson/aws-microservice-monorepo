@@ -28,6 +28,7 @@ const TYPES = {
   ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
   ConversationUserRelationshipServiceInterface: Symbol.for("ConversationUserRelationshipServiceInterface"),
   MessageServiceInterface: Symbol.for("MessageServiceInterface"),
+  MessageFileServiceInterface: Symbol.for("MessageFileServiceInterface"),
   PendingMessageServiceInterface: Symbol.for("PendingMessageServiceInterface"),
   ReactionServiceInterface: Symbol.for("ReactionServiceInterface"),
   TeamServiceInterface: Symbol.for("TeamServiceInterface"),

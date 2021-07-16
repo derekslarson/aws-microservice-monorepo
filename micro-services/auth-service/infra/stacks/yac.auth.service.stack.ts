@@ -67,6 +67,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       websiteIndexDocument: "index.html",
       publicReadAccess: true,
       removalPolicy: CDK.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
     });
 
     const distributionOriginRequestPolicy = new CloudFront.OriginRequestPolicy(this, `${id}-idYacComDistributionOriginRequestPolicy`, {

@@ -11,6 +11,7 @@ import * as Route53Targets from "@aws-cdk/aws-route53-targets";
 import * as SNS from "@aws-cdk/aws-sns";
 import * as Cognito from "@aws-cdk/aws-cognito";
 import * as Lambda from "@aws-cdk/aws-lambda";
+import * as S3 from "@aws-cdk/aws-s3";
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as IAM from "@aws-cdk/aws-iam";
 import { generateExportNames } from "../../src/enums/exportNames.enum";
@@ -68,6 +69,8 @@ export class YacCoreServiceStack extends CDK.Stack {
       actions: [ "*" ],
       resources: [ "*" ],
     });
+
+    const messageS3Bucket = new S3.Bucket(this, `MessageS3Bucket-${id}`, {});
 
     const clientsUpdatedSnsTopic = new SNS.Topic(this, `${id}-ClientsUpdatedSnsTopic`, { topicName: `${id}-ClientsUpdatedSnsTopic` });
     const userSignedUpSnsTopic = new SNS.Topic(this, `${id}-UserSignedUpSnsTopic`, { topicName: `${id}-UserSignedUpSnsTopic` });
@@ -133,6 +136,11 @@ export class YacCoreServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `${id}-CoreTableNameExport`, {
       exportName: ExportNames.CoreTableName,
       value: coreTable.tableName,
+    });
+
+    new CDK.CfnOutput(this, `${id}-MessageS3BucketArnExport`, {
+      exportName: ExportNames.MessageS3BucketArn,
+      value: messageS3Bucket.bucketArn,
     });
   }
 

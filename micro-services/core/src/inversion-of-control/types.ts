@@ -15,6 +15,8 @@ const TYPES = {
   DynamoProcessorServicesInterface: Symbol.for("DynamoProcessorServicesInterface"),
   SnsProcessorServicesInterface: Symbol.for("SnsProcessorServicesInterface"),
 
+  MessageS3RepositoryInterface: Symbol.for("MessageS3RepositoryInterface"),
+
   AxiosFactory: Symbol.for("AxiosFactory"),
   ClassTransformerFactory: Symbol.for("ClassTransformerFactory"),
   ClassValidatorFactory: Symbol.for("ClassValidatorFactory"),
@@ -22,6 +24,7 @@ const TYPES = {
   ErrorSerializerFactory: Symbol.for("ErrorSerializerFactory"),
   KsuidFactory: Symbol.for("KsuidFactory"),
   LogWriterFactory: Symbol.for("LogWriterFactory"),
+  S3Factory: Symbol.for("S3Factory"),
   SnsFactory: Symbol.for("SnsFactory"),
   UnmarshallFactory: Symbol.for("UnmarshallFactory"),
   UuidV4Factory: Symbol.for("UuidV4Factory"),

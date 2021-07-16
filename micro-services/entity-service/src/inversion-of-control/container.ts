@@ -33,6 +33,7 @@ import { ReactionDynamoRepository, ReactionRepositoryInterface } from "../reposi
 import { ReactionService, ReactionServiceInterface } from "../entity-services/reaction.service";
 import { PendingMessageDynamoRepository, PendingMessageRepositoryInterface } from "../repositories/pendingMessage.dynamo.repository";
 import { PendingMessageService, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
+import { MessageFileService, MessageFileServiceInterface } from "../entity-services/mesage.file.service";
 
 const container = new Container();
 
@@ -67,6 +68,7 @@ try {
   container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
   container.bind<ConversationUserRelationshipServiceInterface>(TYPES.ConversationUserRelationshipServiceInterface).to(ConversationUserRelationshipService);
   container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);
+  container.bind<MessageFileServiceInterface>(TYPES.MessageFileServiceInterface).to(MessageFileService);
   container.bind<PendingMessageServiceInterface>(TYPES.PendingMessageServiceInterface).to(PendingMessageService);
   container.bind<ReactionServiceInterface>(TYPES.ReactionServiceInterface).to(ReactionService);
   container.bind<TeamServiceInterface>(TYPES.TeamServiceInterface).to(TeamService);

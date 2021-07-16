@@ -8,6 +8,7 @@ import { PendingMessageId } from "../types/pendingMessageId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { UserId } from "../types/userId.type";
 import { MessageId } from "../types/messageId.type";
+import { MimeType } from "../enums/mimeType.enum";
 
 @injectable()
 export class PendingMessageDynamoRepository extends BaseDynamoRepositoryV2<PendingMessage> implements PendingMessageRepositoryInterface {
@@ -93,7 +94,7 @@ export interface PendingMessage {
   conversationId: ConversationId;
   from: UserId;
   sentAt: string;
-  mimeType: string;
+  mimeType: MimeType;
   replyTo?: MessageId;
 }
 
