@@ -3,7 +3,6 @@ import axios from "axios";
 import { Role } from "@yac/core";
 import { getConversation, getConversationUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { FriendConvoId } from "../../src/types/friendConvoId.type";
 import { createRandomUser, generateRandomString, ISO_DATE_REGEX } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
@@ -23,7 +22,7 @@ describe("POST /users/{userId}/friends (Add User as Friend)", () => {
     beforeEach(async () => {
       ({ user: otherUser } = await createRandomUser());
 
-      conversationId = `${KeyPrefix.FriendConversation}${[ userId, otherUser.id ].sort().join("-")}` as FriendConvoId;
+      conversationId = `${KeyPrefix.FriendConversation}${[ userId, otherUser.id ].sort().join("-")}`;
     });
 
     it("returns a valid response", async () => {
@@ -132,7 +131,7 @@ describe("POST /users/{userId}/friends (Add User as Friend)", () => {
     });
 
     describe("when an id of a user different than the one in the access token is passed in", () => {
-      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       it("throws a 403 error", async () => {
         const body = { friendId: mockUserId };

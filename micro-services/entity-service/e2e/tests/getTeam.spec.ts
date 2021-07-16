@@ -44,7 +44,7 @@ describe("GET /teams/{teamId} (Get Team)", () => {
   });
 
   describe("under error conditions", () => {
-    const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId;
+    const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
@@ -62,7 +62,7 @@ describe("GET /teams/{teamId} (Get Team)", () => {
     });
 
     describe("when a teamId of a team the user is not a member of is passed in", () => {
-      const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+      const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       let team: RawTeam;
 

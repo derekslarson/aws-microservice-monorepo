@@ -15,8 +15,8 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
-  const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId;
+  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let team: RawTeam;

@@ -13,8 +13,8 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
-  const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}` as GroupId;
+  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const mockGroupId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let group: RawConversation;
@@ -76,7 +76,7 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
 
     describe("when an id of a group the user is not an admin of is passed in", () => {
       let groupTwo: RawConversation;
-      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+      const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
         ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserIdTwo, name: generateRandomString(5) }));

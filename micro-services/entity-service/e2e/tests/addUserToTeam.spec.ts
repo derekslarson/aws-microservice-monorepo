@@ -88,7 +88,7 @@ describe("POST /teams/{teamId}/users (Add User to Team)", () => {
 
     describe("when an id of a team the user is not an admin of is passed in", () => {
       let teamTwo: RawTeam;
-      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+      const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
         ({ team: teamTwo } = await createRandomTeam({ createdBy: mockUserIdTwo }));

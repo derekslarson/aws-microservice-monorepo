@@ -13,8 +13,8 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
-  const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId;
+  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let team: RawTeam;
@@ -76,7 +76,7 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
 
     describe("when an id of a team the user is not an admin of is passed in", () => {
       let teamTwo: RawTeam;
-      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+      const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
         ({ team: teamTwo } = await createRandomTeam({ createdBy: mockUserIdTwo }));

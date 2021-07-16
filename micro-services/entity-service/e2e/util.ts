@@ -49,7 +49,7 @@ export async function createRandomTeam(params: CreateRandomTeamInput): Promise<C
   try {
     const { createdBy } = params;
 
-    const teamId = `${KeyPrefix.Team}${ksuid.randomSync().string}` as TeamId;
+    const teamId: TeamId = `${KeyPrefix.Team}${ksuid.randomSync().string}`;
 
     const team: RawTeam = {
       entityType: EntityType.Team,
@@ -143,7 +143,7 @@ export async function createFriendConversation(params: CreateFriendConversationI
   try {
     const { userId, friendId } = params;
 
-    const conversationId = `${KeyPrefix.FriendConversation}${[ userId, friendId ].sort().join("-")}` as FriendConvoId;
+    const conversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, friendId ].sort().join("-")}`;
 
     const conversation: RawConversation = {
       entityType: EntityType.FriendConversation,
@@ -171,7 +171,7 @@ export async function createGroupConversation(params: CreateGroupConversationInp
   try {
     const { name, createdBy, teamId } = params;
 
-    const conversationId = `${KeyPrefix.GroupConversation}${ksuid.randomSync().string}` as GroupId;
+    const conversationId: GroupId = `${KeyPrefix.GroupConversation}${ksuid.randomSync().string}`;
 
     const conversation: RawConversation = {
       entityType: EntityType.GroupConversation,
@@ -204,7 +204,7 @@ export async function createMeetingConversation(params: CreateMeetingConversatio
   try {
     const { name, createdBy, teamId, dueDate } = params;
 
-    const conversationId = `${KeyPrefix.MeetingConversation}${ksuid.randomSync().string}` as MeetingId;
+    const conversationId: MeetingId = `${KeyPrefix.MeetingConversation}${ksuid.randomSync().string}`;
 
     const conversation: RawConversation = {
       entityType: EntityType.MeetingConversation,
@@ -269,11 +269,11 @@ export async function createConversationUserRelationship(params: CreateConversat
       pk: conversationId,
       sk: userId,
       gsi1pk: userId,
-      gsi1sk: `${KeyPrefix.Time}${updatedAt}` as `${KeyPrefix.Time}${string}`,
+      gsi1sk: `${KeyPrefix.Time}${updatedAt}`,
       gsi2pk: userId,
-      gsi2sk: `${KeyPrefix.Time}${convoPrefix}${updatedAt}` as `${KeyPrefix.Time}${KeyPrefix.FriendConversation | KeyPrefix.GroupConversation | KeyPrefix.MeetingConversation}${string}`,
+      gsi2sk: `${KeyPrefix.Time}${convoPrefix}${updatedAt}`,
       gsi3pk: dueDate ? userId : undefined,
-      gsi3sk: dueDate ? `${KeyPrefix.Time}${dueDate}` as `${KeyPrefix.Time}${string}` : undefined,
+      gsi3sk: dueDate ? `${KeyPrefix.Time}${dueDate}` : undefined,
       conversationId,
       userId,
       updatedAt,

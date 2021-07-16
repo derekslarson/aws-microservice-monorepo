@@ -11,7 +11,7 @@ import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let userId: UserId;

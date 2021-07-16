@@ -187,7 +187,7 @@ export async function createRandomUser(): Promise<{ user: { id: `${KeyPrefix.Use
       Password: `YAC-${process.env.secret as string}`,
     }).promise();
 
-    return { user: { id: `user-${UserSub}` as `user-${string}`, email } };
+    return { user: { id: `user-${UserSub}`, email } };
   } catch (error) {
     console.log("Error in createRandomUser:\n", error);
 

@@ -1,18 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import axios from "axios";
 import { Role } from "@yac/core";
-import { createConversationUserRelationship, createGroupConversation } from "../util";
-import { UserId } from "../../src/types/userId.type";
-import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import axios from "axios";
 import { createRandomUser, generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { TeamId } from "../../src/types/teamId.type";
+import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { UserId } from "../../src/types/userId.type";
+import { createConversationUserRelationship, createGroupConversation } from "../util";
 
 describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let userId: UserId;
@@ -27,7 +26,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
 
       ([ { accessToken }, { conversation: group }, { conversation: groupTwo } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createGroupConversation({ createdBy: userId, name: generateRandomString(5), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId }),
+        createGroupConversation({ createdBy: userId, name: generateRandomString(5), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
         createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5) }),
       ]));
 

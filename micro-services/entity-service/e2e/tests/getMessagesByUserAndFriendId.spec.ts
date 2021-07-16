@@ -15,7 +15,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let friendship: RawConversation;
@@ -131,7 +131,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
   });
 
   describe("under error conditions", () => {
-    const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+    const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {

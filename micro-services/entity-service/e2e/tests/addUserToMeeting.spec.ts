@@ -63,7 +63,7 @@ describe("POST /meetings/{meetingId}/users (Add User to Meeting)", () => {
           gsi2pk: otherUser.id,
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
           gsi3pk: otherUser.id,
-          gsi3sk: `${KeyPrefix.Time}${meeting.dueDate as string}` as `${KeyPrefix.Time}${string}`,
+          gsi3sk: `${KeyPrefix.Time}${meeting.dueDate as string}`,
           role: Role.User,
           conversationId: meeting.id,
           userId: otherUser.id,
@@ -95,7 +95,7 @@ describe("POST /meetings/{meetingId}/users (Add User to Meeting)", () => {
 
     describe("when an id of a meeting that the user is not an admin of is passed in", () => {
       let meetingTwo: RawConversation;
-      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+      const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
         ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserIdTwo, name: generateRandomString(5), dueDate: new Date().toISOString() }));

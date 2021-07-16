@@ -16,7 +16,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let meeting: RawConversation;
@@ -132,7 +132,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
   });
 
   describe("under error conditions", () => {
-    const mockMeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}` as MeetingId;
+    const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {

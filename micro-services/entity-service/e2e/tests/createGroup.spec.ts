@@ -127,7 +127,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
       let teamTwo: RawTeam;
 
       beforeEach(async () => {
-        ({ team: teamTwo } = await createRandomTeam({ createdBy: `${KeyPrefix.User}${generateRandomString(5)}` as UserId }));
+        ({ team: teamTwo } = await createRandomTeam({ createdBy: `${KeyPrefix.User}${generateRandomString(5)}` }));
 
         await createTeamUserRelationship({ teamId: teamTwo.id, userId, role: Role.User });
       });

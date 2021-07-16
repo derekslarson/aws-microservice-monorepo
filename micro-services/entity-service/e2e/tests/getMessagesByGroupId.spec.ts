@@ -16,7 +16,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let group: RawConversation;
@@ -132,7 +132,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
   });
 
   describe("under error conditions", () => {
-    const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}` as GroupId;
+    const mockGroupId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {

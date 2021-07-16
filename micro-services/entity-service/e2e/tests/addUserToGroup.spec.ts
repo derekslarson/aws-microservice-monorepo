@@ -91,7 +91,7 @@ describe("POST /groups/{groupId}/users (Add User to Group)", () => {
 
     describe("when an id of a group that the user is not an admin of is passed in", () => {
       let groupTwo: RawConversation;
-      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+      const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
         ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserIdTwo, name: generateRandomString(5) }));

@@ -12,7 +12,7 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };

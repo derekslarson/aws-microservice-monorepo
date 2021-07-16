@@ -1,21 +1,20 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import axios from "axios";
 import { Role } from "@yac/core";
-import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage } from "../util";
-import { UserId } from "../../src/types/userId.type";
-import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import axios from "axios";
 import { createRandomUser, generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { TeamId } from "../../src/types/teamId.type";
+import { MimeType } from "../../src/enums/mimeType.enum";
+import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
-import { MimeType } from "../../src/enums/mimeType.enum";
+import { UserId } from "../../src/types/userId.type";
+import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage } from "../util";
 
 describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let userId: UserId;
@@ -42,7 +41,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
 
       ([ { accessToken }, { conversation: meeting }, { conversation: meetingTwo }, { conversation: group }, { conversation: friendship } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId }),
+        createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
         createMeetingConversation({ createdBy: mockUserId, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
         createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5) }),
         createFriendConversation({ userId, friendId: mockUserId }),

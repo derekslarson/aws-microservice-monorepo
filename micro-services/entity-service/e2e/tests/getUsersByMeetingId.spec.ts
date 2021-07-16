@@ -15,7 +15,7 @@ describe("GET /meetings/{meetingId}/users (Get Users by Group Id)", () => {
   const userEmail = process.env.userEmail as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockMeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}` as MeetingId;
+  const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let meeting: RawConversation;

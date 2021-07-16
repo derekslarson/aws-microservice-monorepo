@@ -13,8 +13,8 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
-  const mockMeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}` as MeetingId;
+  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let meeting: RawConversation;
@@ -76,7 +76,7 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
 
     describe("when an id of a meeting the user is not an admin of is passed in", () => {
       let meetingTwo: RawConversation;
-      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
+      const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
         ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserIdTwo, name: generateRandomString(5), dueDate: new Date().toISOString() }));

@@ -7,8 +7,8 @@ import { UserId } from "../../src/types/userId.type";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { generateRandomString } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { TeamId } from "../../src/types/teamId.type";
 import { GroupId } from "../../src/types/groupId.type";
+import { TeamId } from "../../src/types/teamId.type";
 
 describe("GET /groups/{groupId} (Get Group)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -16,7 +16,7 @@ describe("GET /groups/{groupId} (Get Group)", () => {
   const accessToken = process.env.accessToken as string;
 
   describe("under normal conditions", () => {
-    const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}` as TeamId;
+    const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
     let group: RawConversation;
 
     beforeAll(async () => {
@@ -48,8 +48,8 @@ describe("GET /groups/{groupId} (Get Group)", () => {
   });
 
   describe("under error conditions", () => {
-    const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}` as UserId;
-    const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}` as GroupId;
+    const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+    const mockGroupId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {

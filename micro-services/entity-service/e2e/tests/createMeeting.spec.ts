@@ -101,7 +101,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
           gsi2pk: userId,
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
           gsi3pk: userId,
-          gsi3sk: `${KeyPrefix.Time}${data.meeting.dueDate as string}` as `${KeyPrefix.Time}${string}`,
+          gsi3sk: `${KeyPrefix.Time}${data.meeting.dueDate as string}`,
           role: Role.Admin,
           conversationId: data.meeting.id,
           dueDate: data.meeting.dueDate,
@@ -137,7 +137,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
       let teamTwo: RawTeam;
 
       beforeEach(async () => {
-        ({ team: teamTwo } = await createRandomTeam({ createdBy: `${KeyPrefix.User}${generateRandomString(5)}` as UserId }));
+        ({ team: teamTwo } = await createRandomTeam({ createdBy: `${KeyPrefix.User}${generateRandomString(5)}` }));
 
         await createTeamUserRelationship({ teamId: teamTwo.id, userId, role: Role.User });
       });
