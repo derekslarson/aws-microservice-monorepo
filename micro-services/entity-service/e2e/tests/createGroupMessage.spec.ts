@@ -81,7 +81,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
       }
     });
 
-    describe("before a file is updated to the 'uploadUrl' in the response", () => {
+    describe("before a file is uploaded to the 'uploadUrl' in the response", () => {
       it("doesn't create a Message entity", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
         const body = { mimeType };
@@ -100,7 +100,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
       });
     });
 
-    describe("after a file is updated to the 'uploadUrl' in the response", () => {
+    describe("after a file is uploaded to the 'uploadUrl' in the response", () => {
       it("a creates a valid Message entity", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
         const body = { mimeType };
