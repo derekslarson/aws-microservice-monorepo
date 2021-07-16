@@ -1,8 +1,7 @@
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
+import { LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageRepositoryInterface, Message as MessageEntity } from "../repositories/message.dynamo.repository";
-import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { UserId } from "../types/userId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { MessageId } from "../types/messageId.type";
@@ -11,7 +10,6 @@ import { MessageId } from "../types/messageId.type";
 export class MessageService implements MessageServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
     @inject(TYPES.MessageRepositoryInterface) private messageRepository: MessageRepositoryInterface,
   ) {}
 
@@ -19,16 +17,15 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("createMessage called", { params }, this.constructor.name);
 
-      const { conversationId, from, transcript, seenAt } = params;
-
-      const messageId = `${KeyPrefix.Message}${this.idService.generateId()}` as MessageId;
+      const { messageId, conversationId, from, mimeType, seenAt, replyTo } = params;
 
       const message: MessageEntity = {
         id: messageId,
         conversationId,
         from,
-        transcript,
         seenAt,
+        replyTo,
+        mimeType,
         sentAt: new Date().toISOString(),
         replyCount: 0,
         reactions: {},
@@ -162,10 +159,12 @@ export interface MessageServiceInterface {
 export type Message = MessageEntity;
 
 export interface CreateMessageInput {
+  messageId: MessageId;
   conversationId: ConversationId;
   from: UserId;
-  transcript: string;
-  seenAt: { [key: string]: string | null; }
+  seenAt: { [key: string]: string | null; };
+  mimeType: string;
+  replyTo?: MessageId;
 }
 
 export interface CreateMessageOutput {

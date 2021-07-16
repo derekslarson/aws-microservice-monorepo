@@ -249,11 +249,12 @@ export interface Message {
   id: MessageId;
   conversationId: ConversationId;
   from: UserId;
-  transcript: string;
   sentAt: string;
   seenAt: { [key: string]: string | null };
   reactions: { [key: string]: number };
   replyCount: number;
+  mimeType: string;
+  transcript?: string;
   replyTo?: MessageId;
 }
 

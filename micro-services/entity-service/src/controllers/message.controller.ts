@@ -34,16 +34,16 @@ export class MessageController extends BaseController implements MessageControll
       const {
         jwtId,
         pathParameters: { userId, friendId },
-        body: { transcript },
+        body: { mimeType },
       } = this.validationService.validate({ dto: CreateFriendMessageDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { message } = await this.messageMediatorService.createFriendMessage({ to: friendId, from: userId, transcript });
+      const { pendingMessage } = await this.messageMediatorService.createFriendMessage({ to: friendId, from: userId, mimeType });
 
-      return this.generateCreatedResponse({ message });
+      return this.generateCreatedResponse({ pendingMessage });
     } catch (error: unknown) {
       this.loggerService.error("Error in createFriendMessage", { error, request }, this.constructor.name);
 
@@ -58,7 +58,7 @@ export class MessageController extends BaseController implements MessageControll
       const {
         jwtId,
         pathParameters: { groupId },
-        body: { transcript },
+        body: { mimeType },
       } = this.validationService.validate({ dto: CreateGroupMessageDto, request, getUserIdFromJwt: true });
 
       const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
@@ -67,9 +67,9 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { message } = await this.messageMediatorService.createGroupMessage({ groupId, from: jwtId, transcript });
+      const { pendingMessage } = await this.messageMediatorService.createGroupMessage({ groupId, from: jwtId, mimeType });
 
-      return this.generateCreatedResponse({ message });
+      return this.generateCreatedResponse({ pendingMessage });
     } catch (error: unknown) {
       this.loggerService.error("Error in createGroupMessage", { error, request }, this.constructor.name);
 
@@ -84,7 +84,7 @@ export class MessageController extends BaseController implements MessageControll
       const {
         jwtId,
         pathParameters: { meetingId },
-        body: { transcript },
+        body: { mimeType },
       } = this.validationService.validate({ dto: CreateMeetingMessageDto, request, getUserIdFromJwt: true });
 
       const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
@@ -93,9 +93,9 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { message } = await this.messageMediatorService.createMeetingMessage({ meetingId, from: jwtId, transcript });
+      const { pendingMessage } = await this.messageMediatorService.createMeetingMessage({ meetingId, from: jwtId, mimeType });
 
-      return this.generateCreatedResponse({ message });
+      return this.generateCreatedResponse({ pendingMessage });
     } catch (error: unknown) {
       this.loggerService.error("Error in createMeetingMessage", { error, request }, this.constructor.name);
 

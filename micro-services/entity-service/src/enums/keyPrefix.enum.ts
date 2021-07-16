@@ -5,6 +5,7 @@ export enum KeyPrefix {
   FriendConversation = "convo-friend-",
   GroupConversation = "convo-group-",
   MeetingConversation = "convo-meeting-",
+  PendingMessage = "pending-message-",
   Message = "message-",
   Reply = "reply-message-",
   Reaction = "reaction-",

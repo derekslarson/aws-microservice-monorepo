@@ -316,7 +316,7 @@ export async function getConversationUserRelationship(params: GetConversationUse
 
 export async function createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
   try {
-    const { from, conversationId, transcript, conversationMemberIds, replyTo, replyCount } = params;
+    const { from, conversationId, conversationMemberIds, replyTo, replyCount } = params;
 
     const messageId = `${replyTo ? KeyPrefix.Reply : KeyPrefix.Message}${ksuid.randomSync().string}` as MessageId;
 
@@ -339,12 +339,12 @@ export async function createMessage(params: CreateMessageInput): Promise<CreateM
       id: messageId,
       conversationId,
       from,
-      transcript,
       sentAt: timestamp,
       seenAt,
       reactions: {},
       replyCount: replyCount || 0,
       replyTo,
+      mimeType: generateRandomString(5),
     };
 
     await documentClient.put({

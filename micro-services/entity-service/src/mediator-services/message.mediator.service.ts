@@ -10,11 +10,15 @@ import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
 import { ConversationServiceInterface } from "../entity-services/conversation.service";
 import { ReactionServiceInterface, Reaction as ReactionEntity } from "../entity-services/reaction.service";
+import { PendingMessage as PendingMessageEntity, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
+import { PendingMessageId } from "../types/pendingMessageId.type";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
 export class MessageMediatorService implements MessageMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.PendingMessageServiceInterface) private pendingMessageService: PendingMessageServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.ReactionServiceInterface) private reactionService: ReactionServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
@@ -25,13 +29,18 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("createFriendMessage called", { params }, this.constructor.name);
 
-      const { to, from, transcript } = params;
+      const { to, from, mimeType } = params;
 
       const { conversation } = await this.conversationService.getFriendConversationByUserIds({ userIds: [ to, from ] });
 
-      const { message } = await this.createMessage({ conversationId: conversation.id, from, transcript });
+      const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: conversation.id, from, mimeType });
 
-      return { message };
+      const pendingMessageWithUploadUrl = {
+        ...pendingMessage,
+        uploadUrl: "",
+      };
+
+      return { pendingMessage: pendingMessageWithUploadUrl };
     } catch (error: unknown) {
       this.loggerService.error("Error in createFriendMessage", { error, params }, this.constructor.name);
 
@@ -43,11 +52,16 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("createGroupMessage called", { params }, this.constructor.name);
 
-      const { groupId, from, transcript } = params;
+      const { groupId, from, mimeType } = params;
 
-      const { message } = await this.createMessage({ conversationId: groupId, from, transcript });
+      const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: groupId, from, mimeType });
 
-      return { message };
+      const pendingMessageWithUploadUrl = {
+        ...pendingMessage,
+        uploadUrl: "",
+      };
+
+      return { pendingMessage: pendingMessageWithUploadUrl };
     } catch (error: unknown) {
       this.loggerService.error("Error in createGroupMessage", { error, params }, this.constructor.name);
 
@@ -59,13 +73,44 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("createMeetingMessage called", { params }, this.constructor.name);
 
-      const { meetingId, from, transcript } = params;
+      const { meetingId, from, mimeType } = params;
 
-      const { message } = await this.createMessage({ conversationId: meetingId, from, transcript });
+      const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: meetingId, from, mimeType });
+
+      const pendingMessageWithUploadUrl = {
+        ...pendingMessage,
+        uploadUrl: "",
+      };
+
+      return { pendingMessage: pendingMessageWithUploadUrl };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in createMeetingMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async convertPendingToRegularMessage(params: ConvertPendingToRegularMessageInput): Promise<ConvertPendingToRegularMessageOutput> {
+    try {
+      this.loggerService.trace("convertPendingToRegularMessage called", { params }, this.constructor.name);
+
+      const { pendingMessageId } = params;
+
+      const { pendingMessage } = await this.pendingMessageService.getPendingMessage({ pendingMessageId });
+
+      const messageId = pendingMessageId.replace(KeyPrefix.PendingMessage, KeyPrefix.Message) as MessageId;
+
+      const { message } = await this.createMessage({
+        messageId,
+        conversationId: pendingMessage.conversationId,
+        from: pendingMessage.from,
+        mimeType: pendingMessage.mimeType,
+        replyTo: pendingMessage.replyTo,
+      });
 
       return { message };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createMeetingMessage", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in convertPendingToRegularMessage", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -230,7 +275,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("createMessage called", { params }, this.constructor.name);
 
-      const { conversationId, from, transcript } = params;
+      const { messageId, conversationId, from, replyTo, mimeType } = params;
 
       const timestamp = new Date().toISOString();
 
@@ -242,7 +287,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         return acc;
       }, {});
 
-      const { message } = await this.messageService.createMessage({ conversationId, from, transcript, seenAt });
+      const { message } = await this.messageService.createMessage({ messageId, conversationId, from, replyTo, mimeType, seenAt });
 
       await Promise.all(conversationUserRelationships.map((relationship) => this.conversationUserRelationshipService.addMessageToConversationUserRelationship({
         conversationId,
@@ -280,6 +325,7 @@ export interface MessageMediatorServiceInterface {
   createFriendMessage(params: CreateFriendMessageInput): Promise<CreateFriendMessageOutput>;
   createGroupMessage(params: CreateGroupMessageInput): Promise<CreateGroupMessageOutput>;
   createMeetingMessage(params: CreateMeetingMessageInput): Promise<CreateMeetingMessageOutput>;
+  convertPendingToRegularMessage(params: ConvertPendingToRegularMessageInput): Promise<ConvertPendingToRegularMessageOutput>;
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
   getMessagesByUserAndFriendIds(params: GetMessagesByUserAndFriendIdsInput): Promise<GetMessagesByUserAndFriendIdsOutput>;
   getMessagesByGroupId(params: GetMessagesByGroupIdInput): Promise<GetMessagesByGroupIdOutput>;
@@ -288,35 +334,40 @@ export interface MessageMediatorServiceInterface {
 }
 
 export type Reaction = ReactionEntity;
+export interface PendingMessage extends PendingMessageEntity {
+  uploadUrl: string;
+}
+
 export type Message = MessageEntity;
+
 export interface CreateFriendMessageInput {
   to: UserId;
   from: UserId;
-  transcript: string;
+  mimeType: string;
 }
 
 export interface CreateFriendMessageOutput {
-  message: Message;
+  pendingMessage: PendingMessage;
 }
 
 export interface CreateGroupMessageInput {
   groupId: GroupId;
   from: UserId;
-  transcript: string;
+  mimeType: string;
 }
 
 export interface CreateGroupMessageOutput {
-  message: Message;
+  pendingMessage: PendingMessage;
 }
 
 export interface CreateMeetingMessageInput {
   meetingId: MeetingId;
   from: UserId;
-  transcript: string;
+  mimeType: string;
 }
 
 export interface CreateMeetingMessageOutput {
-  message: Message;
+  pendingMessage: PendingMessage;
 }
 
 export interface GetMessageInput {
@@ -378,10 +429,20 @@ export interface UpdateMessageByUserIdOutput {
   message: Message;
 }
 
+export interface ConvertPendingToRegularMessageInput {
+  pendingMessageId: PendingMessageId;
+}
+
+export interface ConvertPendingToRegularMessageOutput {
+  message: Message;
+}
+
 interface CreateMessageInput {
+  messageId: MessageId;
   conversationId: ConversationId;
   from: UserId;
-  transcript: string;
+  mimeType: string;
+  replyTo?: MessageId;
 }
 
 interface CreateMessageOutput {
