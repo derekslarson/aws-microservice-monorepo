@@ -9,7 +9,6 @@ import { MessageId } from "../types/messageId.type";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
 import { ConversationServiceInterface } from "../entity-services/conversation.service";
-import { ReactionServiceInterface, Reaction as ReactionEntity } from "../entity-services/reaction.service";
 import { PendingMessage as PendingMessageEntity, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
 import { PendingMessageId } from "../types/pendingMessageId.type";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -23,7 +22,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     @inject(TYPES.PendingMessageServiceInterface) private pendingMessageService: PendingMessageServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.MessageFileServiceInterface) private messageFileService: MessageFileServiceInterface,
-    @inject(TYPES.ReactionServiceInterface) private reactionService: ReactionServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
   ) {}
@@ -242,7 +240,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
       }
 
       if (reactions) {
-        updatePromises.push(...reactions.map(({ reaction, action }) => this.updateMessageReaction({
+        updatePromises.push(...reactions.map(({ reaction, action }) => this.messageService.updateMessageReaction({
           userId,
           messageId,
           reaction,
@@ -286,22 +284,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
-  private async updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput> {
-    try {
-      this.loggerService.trace("updateMessageReaction called", { params }, this.constructor.name);
-
-      const { reaction, action, messageId, userId } = params;
-
-      await Promise.all<unknown>([
-        action === "add" ? this.reactionService.createReaction({ messageId, userId, type: reaction }) : this.reactionService.deleteReaction({ messageId, userId, type: reaction }),
-        this.messageService.updateMessageReaction({ messageId, reaction, action }),
-      ]);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in updateMessageReaction", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
   // private async markConversationRead(params: MarkConversationReadInput): Promise<MarkConversationReadOutput> {
   //   try {
   //     this.loggerService.trace("markConversationRead called", { params }, this.constructor.name);
@@ -409,8 +391,6 @@ export interface MessageMediatorServiceInterface {
   getMessagesByMeetingId(params: GetMessagesByMeetingIdInput): Promise<GetMessagesByMeetingIdOutput>;
   updateMessageByUserId(params: UpdateMessageByUserIdInput): Promise<UpdateMessageByUserIdOutput>;
 }
-
-export type Reaction = ReactionEntity;
 export interface PendingMessage extends Omit<PendingMessageEntity, "id"> {
   id: MessageId
   uploadUrl: string;

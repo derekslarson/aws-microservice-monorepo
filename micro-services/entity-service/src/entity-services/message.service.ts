@@ -102,9 +102,9 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("updateMessageReaction called", { params }, this.constructor.name);
 
-      const { messageId, reaction, action } = params;
+      const { messageId, userId, reaction, action } = params;
 
-      const { message } = await this.messageRepository.updateMessageReaction({ messageId, reaction, action });
+      const { message } = await this.messageRepository.updateMessageReaction({ messageId, userId, reaction, action });
 
       return { message };
     } catch (error: unknown) {
@@ -200,6 +200,7 @@ export interface UpdateMessageSeenAtOutput {
 
 export interface UpdateMessageReactionInput {
   messageId: MessageId;
+  userId: UserId;
   reaction: string;
   action: "add" | "remove"
 }

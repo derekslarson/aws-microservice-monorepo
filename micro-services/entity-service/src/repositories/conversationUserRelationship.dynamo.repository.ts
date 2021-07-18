@@ -134,7 +134,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
           pk: conversationId,
           sk: userId,
         },
-        UpdateExpression: "DELETE #unreadMessages = :messageIdSet",
+        UpdateExpression: "DELETE #unreadMessages :messageIdSet",
         ExpressionAttributeNames: { "#unreadMessages": "unreadMessages" },
         ExpressionAttributeValues: { ":messageIdSet": this.documentClient.createSet([ messageId ]) },
       });

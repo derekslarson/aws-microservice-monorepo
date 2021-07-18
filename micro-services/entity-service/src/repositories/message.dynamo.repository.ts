@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/core";
+import DynamoDB from "aws-sdk/clients/dynamodb";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -11,7 +12,7 @@ import { UserId } from "../types/userId.type";
 import { MimeType } from "../enums/mimeType.enum";
 
 @injectable()
-export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> implements MessageRepositoryInterface {
+export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithReactionsSet> implements MessageRepositoryInterface {
   private gsiOneIndexName: string;
 
   private gsiTwoIndexName: string;
@@ -32,6 +33,16 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 
       const { message } = params;
 
+      const { reactions, ...restOfMessage } = message;
+
+      const rawReactions = Object.entries(reactions).reduce((acc: Record<string, DynamoDB.DocumentClient.DynamoDbSet>, entry) => {
+        const [ reaction, userIds ] = entry;
+
+        acc[reaction] = this.documentClient.createSet(userIds);
+
+        return acc;
+      }, {});
+
       const messageEntity: RawMessage = {
         entityType: EntityType.Message,
         pk: message.id,
@@ -40,7 +51,8 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
         gsi1sk: message.id,
         gsi2pk: message.replyTo,
         gsi2sk: message.replyTo && message.id,
-        ...message,
+        reactions: rawReactions,
+        ...restOfMessage,
       };
 
       await this.documentClient.put({
@@ -63,7 +75,9 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 
       const { messageId } = params;
 
-      const message = await this.get({ Key: { pk: messageId, sk: messageId } });
+      const rawMessage = await this.get({ Key: { pk: messageId, sk: messageId } });
+
+      const message = this.cleanseSet(rawMessage);
 
       return { message };
     } catch (error: unknown) {
@@ -79,7 +93,9 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 
       const { messageIds } = params;
 
-      const messages = await this.batchGet({ Keys: messageIds.map((messageId) => ({ pk: messageId, sk: messageId })) });
+      const rawMessages = await this.batchGet({ Keys: messageIds.map((messageId) => ({ pk: messageId, sk: messageId })) });
+
+      const messages = rawMessages.map((message) => this.cleanseSet(message));
 
       return { messages };
     } catch (error: unknown) {
@@ -95,7 +111,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 
       const { messageId, userId, seenAtValue } = params;
 
-      const message = await this.update({
+      const rawMessage = await this.update({
         Key: {
           pk: messageId,
           sk: messageId,
@@ -107,6 +123,8 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
         },
         ExpressionAttributeValues: { ":seenAtValue": seenAtValue },
       });
+
+      const message = this.cleanseSet(rawMessage);
 
       return { message };
     } catch (error: unknown) {
@@ -120,20 +138,22 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     try {
       this.loggerService.trace("updateMessageReaction called", { params }, this.constructor.name);
 
-      const { messageId, reaction, action } = params;
+      const { messageId, userId, reaction, action } = params;
 
-      const message = await this.update({
+      const rawMessage = await this.update({
         Key: {
           pk: messageId,
           sk: messageId,
         },
-        UpdateExpression: "ADD #reactions.#reaction :value",
+        UpdateExpression: `${action === "add" ? "ADD" : "DELETE"} #reactions.#reaction :value`,
         ExpressionAttributeNames: {
           "#reactions": "reactions",
           "#reaction": reaction,
         },
-        ExpressionAttributeValues: { ":value": action === "add" ? 1 : -1 },
+        ExpressionAttributeValues: { ":value": this.documentClient.createSet([ userId ]) },
       });
+
+      const message = this.cleanseSet(rawMessage);
 
       return { message };
     } catch (error: unknown) {
@@ -149,7 +169,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 
       const { messageId } = params;
 
-      const message = await this.update({
+      const rawMessage = await this.update({
         Key: {
           pk: messageId,
           sk: messageId,
@@ -158,6 +178,8 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
         ExpressionAttributeNames: { "#replyCount": "replyCount" },
         ExpressionAttributeValues: { ":one": 1 },
       });
+
+      const message = this.cleanseSet(rawMessage);
 
       return { message };
     } catch (error: unknown) {
@@ -173,7 +195,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 
       const { conversationId, exclusiveStartKey, limit } = params;
 
-      const { Items: messages, LastEvaluatedKey } = await this.query({
+      const { Items: rawMessages, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         ScanIndexForward: false,
         IndexName: this.gsiOneIndexName,
@@ -188,6 +210,8 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
           ":message": KeyPrefix.Message,
         },
       });
+
+      const messages = rawMessages.map((message) => this.cleanseSet(message));
 
       return {
         messages,
@@ -206,7 +230,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 
       const { messageId, exclusiveStartKey, limit } = params;
 
-      const { Items: replies, LastEvaluatedKey } = await this.query({
+      const { Items: rawReplies, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         IndexName: this.gsiTwoIndexName,
@@ -221,12 +245,39 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
         },
       });
 
+      const replies = rawReplies.map((reply) => this.cleanseSet(reply));
+
       return {
         replies,
         ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
       };
     } catch (error: unknown) {
       this.loggerService.error("Error in getRepliesByMessageId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private cleanseSet(messageWithReactionsSet: MessageWithReactionsSet): Message {
+    try {
+      this.loggerService.trace("cleanseSet called", { messageWithReactionsSet }, this.constructor.name);
+
+      const { reactions: rawReactions, ...rest } = messageWithReactionsSet;
+
+      const reactions = Object.entries(rawReactions).reduce((acc: Record<string, UserId[]>, entry) => {
+        const [ reaction, userIdSet ] = entry;
+
+        acc[reaction] = userIdSet.values as UserId[];
+
+        return acc;
+      }, {});
+
+      return {
+        ...rest,
+        reactions,
+      };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in cleanseSet", { error, messageWithReactionsSet }, this.constructor.name);
 
       throw error;
     }
@@ -245,21 +296,24 @@ export interface MessageRepositoryInterface {
 }
 
 type MessageRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
-
 export interface Message {
   id: MessageId;
   conversationId: ConversationId;
   from: UserId;
   sentAt: string;
-  seenAt: { [key: string]: string | null };
-  reactions: { [key: string]: number };
+  seenAt: Record<UserId, string | null>;
+  reactions: Record<string, UserId[]>;
   replyCount: number;
   mimeType: MimeType;
   transcript?: string;
   replyTo?: MessageId;
 }
 
-export interface RawMessage extends Message {
+interface MessageWithReactionsSet extends Omit<Message, "reactions"> {
+  reactions: Record<string, DynamoDB.DocumentClient.DynamoDbSet>;
+}
+
+export interface RawMessage extends Omit<Message, "reactions"> {
   entityType: EntityType.Message,
   pk: MessageId;
   sk: MessageId;
@@ -268,6 +322,7 @@ export interface RawMessage extends Message {
   // Message replying to (if a reply)
   gsi2pk?: MessageId;
   gsi2sk?: MessageId;
+  reactions: Record<string, DynamoDB.DocumentClient.DynamoDbSet>;
 }
 
 export interface CreateMessageInput {
@@ -328,6 +383,7 @@ export interface GetRepliesByMessageIdOutput {
 
 export interface UpdateMessageReactionInput {
   messageId: MessageId;
+  userId: UserId;
   reaction: string;
   action: "add" | "remove"
 }
