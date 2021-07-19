@@ -51,7 +51,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
 
       const { teamId } = params;
 
-      const team = await this.get({ Key: { pk: teamId, sk: teamId } });
+      const team = await this.get({ Key: { pk: teamId, sk: teamId } }, "Team");
 
       return { team };
     } catch (error: unknown) {

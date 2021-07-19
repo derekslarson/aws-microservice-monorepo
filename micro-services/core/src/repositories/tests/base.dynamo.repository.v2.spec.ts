@@ -61,7 +61,7 @@ class TestDynamoRepository extends BaseDynamoRepositoryV2<Test> {
   }
 }
 
-fdescribe("BaseDynamoRepositoryV2", () => {
+describe("BaseDynamoRepositoryV2", () => {
   let documentClient: Spied<DocumentClient>;
   let loggerService: Spied<LoggerService>;
   let testDynamoRepository: TestDynamoRepository;

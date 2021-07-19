@@ -59,7 +59,7 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
       const { conversationId } = params;
 
-      const conversation = await this.get({ Key: { pk: conversationId, sk: conversationId } });
+      const conversation = await this.get({ Key: { pk: conversationId, sk: conversationId } }, "Conversation");
 
       return { conversation };
     } catch (error: unknown) {
@@ -128,7 +128,7 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
         ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
       };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getConversations", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getConversationsByTeamId", { error, params }, this.constructor.name);
 
       throw error;
     }

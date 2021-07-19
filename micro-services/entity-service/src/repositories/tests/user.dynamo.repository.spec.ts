@@ -1,191 +1,204 @@
-// /* eslint-disable @typescript-eslint/unbound-method */
-// import { DocumentClientFactory, generateAwsResponse, IdService, LoggerService, Role, Spied, TestSupport } from "@yac/core";
-// import { DocumentClient } from "aws-sdk/clients/dynamodb";
-// import { User } from "../../models/user.model";
-// import { UserDynamoRepository, UserRepositoryInterface } from "../user.dynamo.repository";
+/* eslint-disable @typescript-eslint/unbound-method */
+import { DocumentClientFactory, generateAwsResponse, LoggerService, Spied, TestSupport } from "@yac/core";
+import { DocumentClient } from "aws-sdk/clients/dynamodb";
+import { EntityType } from "../../enums/entityType.enum";
+import { KeyPrefix } from "../../enums/keyPrefix.enum";
+import { UserId } from "../../types/userId.type";
+import { User, UserDynamoRepository, UserRepositoryInterface } from "../user.dynamo.repository";
 
-// interface UserDynamoRepositoryWithAnyMethod extends UserRepositoryInterface {
-//   [key: string]: any;
-// }
+interface UserDynamoRepositoryWithAnyMethod extends UserRepositoryInterface {
+  [key: string]: any;
+}
 
-// describe("UserDynamoRepository", () => {
-//   let documentClient: Spied<DocumentClient>;
-//   let idService: Spied<IdService>;
-//   let loggerService: Spied<LoggerService>;
-//   let userDynamoRepository: UserDynamoRepositoryWithAnyMethod;
-//   const documentClientFactory: DocumentClientFactory = () => documentClient;
+describe("UserDynamoRepository", () => {
+  let documentClient: Spied<DocumentClient>;
+  let loggerService: Spied<LoggerService>;
+  let userDynamoRepository: UserDynamoRepositoryWithAnyMethod;
+  const documentClientFactory: DocumentClientFactory = () => documentClient;
 
-//   const mockCoreTableName = "mock-core-table-name";
-//   const mockGsiOneIndexName = "mock-gsi-one-index-name";
-//   const mockEnvConfig = {
-//     tableNames: { core: mockCoreTableName },
-//     globalSecondaryIndexNames: { one: mockGsiOneIndexName },
-//   };
-//   const mockCognitoId = "mock-id";
-//   const mockUserId = `USER-${mockCognitoId}`;
-//   const mockTeamId = "mock-teamId";
-//   const mockKey = { pk: mockTeamId, sk: mockUserId };
-//   const mockRole = Role.User;
-//   const mockEmail = "mock@email.com";
-//   const mockUser: User = {
-//     id: mockUserId,
-//     email: mockEmail,
-//   };
-//   const mockError = new Error("mock-error");
-//   const mockTeamUserRelationship = { userId: mockUserId, teamId: mockTeamId, role: mockRole };
+  const mockCoreTableName = "mock-core-table-name";
+  const mockEnvConfig = { tableNames: { core: mockCoreTableName } };
+  const mockUserId: UserId = `${KeyPrefix.User}mock-id`;
+  const mockEmail = "mock@email.com";
 
-//   beforeEach(() => {
-//     documentClient = TestSupport.spyOnClass(DocumentClient);
-//     loggerService = TestSupport.spyOnClass(LoggerService);
-//     idService = TestSupport.spyOnClass(IdService);
+  const mockUser: User = {
+    id: mockUserId,
+    email: mockEmail,
+  };
 
-//     userDynamoRepository = new UserDynamoRepository(documentClientFactory, idService, loggerService, mockEnvConfig);
-//   });
+  const mockError = new Error("mock-error");
 
-//   describe("createUser", () => {
-//     const mockUserInput: User = {
-//       id: mockCognitoId,
-//       email: mockEmail,
-//     };
+  beforeEach(() => {
+    documentClient = TestSupport.spyOnClass(DocumentClient);
+    loggerService = TestSupport.spyOnClass(LoggerService);
 
-//     describe("under normal conditions", () => {
-//       beforeEach(() => {
-//         documentClient.put.and.returnValue(generateAwsResponse({}));
-//       });
+    userDynamoRepository = new UserDynamoRepository(documentClientFactory, loggerService, mockEnvConfig);
+  });
 
-//       it("calls documentClient.put with the correct params", async () => {
-//         const expectedDynamoInput = {
-//           TableName: mockCoreTableName,
-//           Item: {
-//             type: "USER",
-//             pk: mockUserId,
-//             sk: mockUserId,
-//             id: mockUserId,
-//             email: mockEmail,
-//           },
-//         };
+  describe("createUser", () => {
+    const params = { user: mockUser };
 
-//         await userDynamoRepository.createUser(mockUserInput);
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        documentClient.put.and.returnValue(generateAwsResponse({}));
+      });
 
-//         expect(documentClient.put).toHaveBeenCalledTimes(1);
-//         expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoInput);
-//       });
+      it("calls documentClient.put with the correct params", async () => {
+        const expectedDynamoInput = {
+          TableName: mockCoreTableName,
+          ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
+          Item: {
+            entityType: EntityType.User,
+            pk: mockUser.id,
+            sk: mockUser.id,
+            ...mockUser,
+          },
+        };
 
-//       it("returns a cleansed version of the created user", async () => {
-//         const createdUser = await userDynamoRepository.createUser(mockUserInput);
+        await userDynamoRepository.createUser(params);
 
-//         expect(createdUser).toEqual(mockUser);
-//       });
-//     });
+        expect(documentClient.put).toHaveBeenCalledTimes(1);
+        expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoInput);
+      });
 
-//     describe("under error conditions", () => {
-//       describe("when documentClient.put throws an error", () => {
-//         beforeEach(() => {
-//           documentClient.put.and.throwError(mockError);
-//         });
+      it("returns a cleansed version of the created user", async () => {
+        const response = await userDynamoRepository.createUser(params);
 
-//         it("calls loggerService.error with the correct params", async () => {
-//           try {
-//             await userDynamoRepository.createUser(mockUserInput);
+        expect(response).toEqual({ user: mockUser });
+      });
+    });
 
-//             fail("Should have thrown");
-//           } catch (error) {
-//             expect(loggerService.error).toHaveBeenCalledTimes(1);
-//             expect(loggerService.error).toHaveBeenCalledWith("Error in createUser", { error: mockError, user: mockUserInput }, userDynamoRepository.constructor.name);
-//           }
-//         });
+    describe("under error conditions", () => {
+      describe("when documentClient.put throws an error", () => {
+        beforeEach(() => {
+          documentClient.put.and.throwError(mockError);
+        });
 
-//         it("throws the caught error", async () => {
-//           try {
-//             await userDynamoRepository.createUser(mockUserInput);
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await userDynamoRepository.createUser(params);
 
-//             fail("Should have thrown");
-//           } catch (error) {
-//             expect(error).toBe(mockError);
-//           }
-//         });
-//       });
-//     });
-//   });
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in createUser", { error: mockError, params }, userDynamoRepository.constructor.name);
+          }
+        });
 
-//   describe("getUsersByTeamId", () => {
-//     describe("under normal conditions", () => {
-//       beforeEach(() => {
-//         spyOn(userDynamoRepository, "query").and.returnValue({ Items: [ mockTeamUserRelationship ], LastEvaluatedKey: mockKey });
-//       });
+        it("throws the caught error", async () => {
+          try {
+            await userDynamoRepository.createUser(params);
 
-//       it("calls this.query with the correct params", async () => {
-//         const expectedDynamoInput = {
-//           KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
-//           ExpressionAttributeNames: {
-//             "#pk": "pk",
-//             "#sk": "sk",
-//           },
-//           ExpressionAttributeValues: {
-//             ":pk": mockTeamId,
-//             ":user": "USER-",
-//           },
-//         };
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
 
-//         await userDynamoRepository.getUsersByTeamId(mockTeamId);
+  describe("getUser", () => {
+    const params = { userId: mockUserId };
 
-//         expect(userDynamoRepository.query).toHaveBeenCalledTimes(1);
-//         expect(userDynamoRepository.query).toHaveBeenCalledWith(expectedDynamoInput);
-//       });
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        spyOn(userDynamoRepository, "get").and.returnValue(Promise.resolve(mockUser));
+      });
 
-//       it("calls this.batchGet with the correct params", async () => {
-//         const expectedDynamoInput = {
-//           KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
-//           ExpressionAttributeNames: {
-//             "#pk": "pk",
-//             "#sk": "sk",
-//           },
-//           ExpressionAttributeValues: {
-//             ":pk": mockTeamId,
-//             ":user": "USER-",
-//           },
-//         };
+      it("calls this.get with the correct params", async () => {
+        await userDynamoRepository.getUser(params);
 
-//         await userDynamoRepository.getUsersByTeamId(mockTeamId);
+        expect(userDynamoRepository.get).toHaveBeenCalledTimes(1);
+        expect(userDynamoRepository.get).toHaveBeenCalledWith({ Key: { pk: mockUserId, sk: mockUserId } }, "User");
+      });
 
-//         expect(userDynamoRepository.query).toHaveBeenCalledTimes(1);
-//         expect(userDynamoRepository.query).toHaveBeenCalledWith(expectedDynamoInput);
-//       });
+      it("returns the user fetched via get", async () => {
+        const response = await userDynamoRepository.getUser(params);
 
-//       it("returns the Items returned by this.query", async () => {
-//         const userUserRelationships = await userDynamoRepository.getUsersByTeamId(mockUserId);
+        expect(response).toEqual({ user: mockUser });
+      });
+    });
 
-//         expect(userUserRelationships).toEqual({ users: [ { ...mockUser, role: mockRole } ] });
-//       });
-//     });
+    describe("under error conditions", () => {
+      describe("when this.get throws an error", () => {
+        beforeEach(() => {
+          spyOn(userDynamoRepository, "get").and.returnValue(Promise.reject(mockError));
+        });
 
-//     describe("under error conditions", () => {
-//       describe("when this.query throws an error", () => {
-//         beforeEach(() => {
-//           spyOn(userDynamoRepository, "query").and.throwError(mockError);
-//         });
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await userDynamoRepository.getUser(params);
 
-//         it("calls loggerService.error with the correct params", async () => {
-//           try {
-//             await userDynamoRepository.getUsersByTeamId(mockUserId);
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in getUser", { error: mockError, params }, userDynamoRepository.constructor.name);
+          }
+        });
 
-//             fail("Should have thrown");
-//           } catch (error) {
-//             expect(loggerService.error).toHaveBeenCalledTimes(1);
-//             expect(loggerService.error).toHaveBeenCalledWith("Error in getUsersByTeamId", { error: mockError, userId: mockUserId }, userDynamoRepository.constructor.name);
-//           }
-//         });
+        it("throws the caught error", async () => {
+          try {
+            await userDynamoRepository.getUser(params);
 
-//         it("throws the caught error", async () => {
-//           try {
-//             await userDynamoRepository.getUsersByTeamId(mockUserId);
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
 
-//             fail("Should have thrown");
-//           } catch (error) {
-//             expect(error).toBe(mockError);
-//           }
-//         });
-//       });
-//     });
-//   });
-// });
+  describe("getUsers", () => {
+    const params = { userIds: [ mockUserId ] };
+
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        spyOn(userDynamoRepository, "batchGet").and.returnValue(Promise.resolve([ mockUser ]));
+      });
+
+      it("calls this.batchGet with the correct params", async () => {
+        await userDynamoRepository.getUsers(params);
+
+        expect(userDynamoRepository.batchGet).toHaveBeenCalledTimes(1);
+        expect(userDynamoRepository.batchGet).toHaveBeenCalledWith({ Keys: [ { pk: mockUserId, sk: mockUserId } ] });
+      });
+
+      it("returns the user fetched via batchGet", async () => {
+        const response = await userDynamoRepository.getUsers(params);
+
+        expect(response).toEqual({ users: [ mockUser ] });
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when this.get throws an error", () => {
+        beforeEach(() => {
+          spyOn(userDynamoRepository, "batchGet").and.returnValue(Promise.reject(mockError));
+        });
+
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await userDynamoRepository.getUsers(params);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in getUsers", { error: mockError, params }, userDynamoRepository.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await userDynamoRepository.getUsers(params);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
+});
