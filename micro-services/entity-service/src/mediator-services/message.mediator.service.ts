@@ -528,15 +528,6 @@ interface UpdateMessageSeenAtInput {
 
 type UpdateMessageSeenAtOutput = void;
 
-interface UpdateMessageReactionInput {
-  userId: UserId;
-  messageId: MessageId;
-  reaction: string;
-  action: "add" | "remove"
-}
-
-type UpdateMessageReactionOutput = void;
-
 // interface MarkConversationReadInput {
 //   userId: UserId;
 //   conversationId: ConversationId;

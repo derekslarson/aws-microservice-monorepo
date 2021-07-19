@@ -163,7 +163,7 @@ export interface CreateMessageInput {
   messageId: MessageId;
   conversationId: ConversationId;
   from: UserId;
-  seenAt: { [key: string]: string | null; };
+  seenAt: Record<UserId, string | null>;
   mimeType: MimeType;
   replyTo?: MessageId;
 }
