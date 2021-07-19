@@ -59,9 +59,9 @@ export class ConversationUserRelationshipService implements ConversationUserRela
     try {
       this.loggerService.trace("addMessageToConversationUserRelationship called", { params }, this.constructor.name);
 
-      const { conversationId, userId, messageId, sender } = params;
+      const { conversationId, userId, messageId, sender, updateUpdatedAt } = params;
 
-      const { conversationUserRelationship } = await this.conversationUserRelationshipRepository.addMessageToConversationUserRelationship({ conversationId, userId, messageId, sender });
+      const { conversationUserRelationship } = await this.conversationUserRelationshipRepository.addMessageToConversationUserRelationship({ conversationId, userId, messageId, sender, updateUpdatedAt });
 
       return { conversationUserRelationship };
     } catch (error: unknown) {
@@ -211,6 +211,7 @@ export interface AddMessageToConversationUserRelationshipInput {
   userId: UserId;
   messageId: MessageId;
   sender?: boolean;
+  updateUpdatedAt?: boolean;
 }
 export interface AddMessageToConversationUserRelationshipOutput {
   conversationUserRelationship: ConversationUserRelationship;

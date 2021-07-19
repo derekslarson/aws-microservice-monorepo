@@ -344,9 +344,9 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
       });
 
       if (seen) {
-        await this.conversationUserRelationshipService.addMessageToConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
-      } else {
         await this.conversationUserRelationshipService.removeUnreadMessageFromConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
+      } else {
+        await this.conversationUserRelationshipService.addMessageToConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
       }
     } catch (error: unknown) {
       this.loggerService.error("Error in updateMessageSeenAt", { error, params }, this.constructor.name);
@@ -378,6 +378,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         userId: relationship.userId,
         messageId: message.id,
         sender: relationship.userId === from,
+        updateUpdatedAt: true,
       })));
 
       return { message };

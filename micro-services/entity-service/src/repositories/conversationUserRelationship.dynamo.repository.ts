@@ -89,33 +89,44 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     try {
       this.loggerService.trace("addUnreadMessageToConversationUserRelationship called", { params }, this.constructor.name);
 
-      const { conversationId, userId, messageId, sender } = params;
+      const { conversationId, userId, messageId, sender, updateUpdatedAt } = params;
+
+      if (sender && !updateUpdatedAt) {
+        // nothing to update, just return
+        const { conversationUserRelationship } = await this.getConversationUserRelationship({ conversationId, userId });
+
+        return { conversationUserRelationship };
+      }
 
       const timestamp = new Date().toISOString();
 
-      const conversationUserRelationshipWithSet = await this.update({
+      const conversationUserRelationshipWithSetUpdated = await this.update({
         Key: {
           pk: conversationId,
           sk: userId,
         },
-        UpdateExpression: `SET #updatedAt = :timestamp, #gsi1sk = :keyTimestamp, #gsi2sk = :keyTimestampTwo${sender ? "" : " ADD #unreadMessages :messageIdSet"}`,
+        UpdateExpression: `${updateUpdatedAt ? "SET #updatedAt = :timestamp, #gsi1sk = :keyTimestamp, #gsi2sk = :keyTimestampTwo" : ""}${sender ? "" : " ADD #unreadMessages :messageIdSet"}`,
         ExpressionAttributeNames: {
-          "#updatedAt": "updatedAt",
-          "#gsi1sk": "gsi1sk",
-          "#gsi2sk": "gsi2sk",
+          ...(updateUpdatedAt && {
+            "#updatedAt": "updatedAt",
+            "#gsi1sk": "gsi1sk",
+            "#gsi2sk": "gsi2sk",
+          }),
           ...(!sender && { "#unreadMessages": "unreadMessages" }),
         },
         ExpressionAttributeValues: {
-          ":timestamp": timestamp,
-          ":keyTimestamp": `${KeyPrefix.Time}${timestamp}`,
-          ":keyTimestampTwo": `${this.getGsi2skPrefixById(conversationId)}${timestamp}`,
+          ...(updateUpdatedAt && {
+            ":timestamp": timestamp,
+            ":keyTimestamp": `${KeyPrefix.Time}${timestamp}`,
+            ":keyTimestampTwo": `${this.getGsi2skPrefixById(conversationId)}${timestamp}`,
+          }),
           ...(!sender && { ":messageIdSet": this.documentClient.createSet([ messageId ]) }),
         },
       });
 
-      const conversationUserRelationship = this.cleanseSet(conversationUserRelationshipWithSet);
+      const conversationUserRelationshipUpdated = this.cleanseSet(conversationUserRelationshipWithSetUpdated);
 
-      return { conversationUserRelationship };
+      return { conversationUserRelationship: conversationUserRelationshipUpdated };
     } catch (error: unknown) {
       this.loggerService.error("Error in addUnreadMessageToConversationUserRelationship", { error, params }, this.constructor.name);
 
@@ -365,6 +376,7 @@ export interface AddMessageToConversationUserRelationshipInput {
   userId: UserId;
   messageId: MessageId;
   sender?: boolean;
+  updateUpdatedAt?: boolean;
 }
 
 export interface AddMessageToConversationUserRelationshipOutput {

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Role } from "@yac/core";
 import axios from "axios";
-import { createRandomUser, generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
+import { createRandomUser, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MimeType } from "../../src/enums/mimeType.enum";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
@@ -47,7 +47,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
         createFriendConversation({ userId, friendId: mockUserId }),
       ]));
 
-      ({ message } = await createMessage({ from: mockUserId, conversationId: group.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ], mimeType: MimeType.AudioMp3 }));
+      ({ message } = await createMessage({ from: mockUserId, conversationId: group.id, conversationMemberIds: [ userId, mockUserId ], mimeType: MimeType.AudioMp3 }));
 
       // We need to create the relationships in sequence, so that we can be sure of the return order in the test
       ({ conversationUserRelationship: meetingUserRelationship } = await createConversationUserRelationship({ conversationId: meeting.id, userId, role: Role.Admin, dueDate: meeting.dueDate }));
@@ -91,7 +91,8 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   reactions: message.reactions,
                   from: message.from,
                   id: message.id,
-                  transcript: message.transcript,
+                  mimeType: message.mimeType,
+                  fetchUrl: jasmine.stringMatching(URL_REGEX),
                 },
               },
               {
@@ -161,7 +162,8 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   reactions: message.reactions,
                   from: message.from,
                   id: message.id,
-                  transcript: message.transcript,
+                  mimeType: message.mimeType,
+                  fetchUrl: jasmine.stringMatching(URL_REGEX),
                 },
               },
             ],
@@ -261,7 +263,8 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   reactions: message.reactions,
                   from: message.from,
                   id: message.id,
-                  transcript: message.transcript,
+                  mimeType: message.mimeType,
+                  fetchUrl: jasmine.stringMatching(URL_REGEX),
                 },
               },
             ],
@@ -384,7 +387,8 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   reactions: message.reactions,
                   from: message.from,
                   id: message.id,
-                  transcript: message.transcript,
+                  mimeType: message.mimeType,
+                  fetchUrl: jasmine.stringMatching(URL_REGEX),
                 },
               },
             ],

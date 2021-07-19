@@ -10,6 +10,7 @@ import { RemoveUserFromMeetingDto } from "../dtos/removeUserFromMeeting.dto";
 import { GetMeetingsByUserIdDto } from "../dtos/getMeetingsByUserId.dto";
 import { GetMeetingsByTeamIdDto } from "../dtos/getMeetingsByTeamId.dto";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
+
 @injectable()
 export class MeetingController extends BaseController implements MeetingControllerInterface {
   constructor(

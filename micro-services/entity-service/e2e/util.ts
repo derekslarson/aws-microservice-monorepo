@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import { Role } from "@yac/core";
 import ksuid from "ksuid";
+import { DynamoDB } from "aws-sdk";
 import { documentClient, cognito, generateRandomString } from "../../../e2e/util";
 import { ConversationType } from "../src/enums/conversationType.enum";
 import { EntityType } from "../src/enums/entityType.enum";
@@ -60,8 +61,8 @@ export async function createRandomTeam(params: CreateRandomTeamInput): Promise<C
       id: teamId,
       name: generateRandomString(5),
       createdBy,
-
     };
+
     await documentClient.put({
       TableName: process.env["core-table-name"] as string,
       Item: team,
@@ -184,9 +185,9 @@ export async function createGroupConversation(params: CreateGroupConversationInp
       id: conversationId,
       type: ConversationType.Group,
       createdAt: new Date().toISOString(),
-      teamId,
       name,
       createdBy,
+      ...(teamId && { teamId }),
     };
 
     await documentClient.put({
@@ -218,9 +219,9 @@ export async function createMeetingConversation(params: CreateMeetingConversatio
       type: ConversationType.Meeting,
       createdAt: new Date().toISOString(),
       dueDate,
-      teamId,
       name,
       createdBy,
+      ...(teamId && { teamId }),
     };
 
     await documentClient.put({
@@ -257,7 +258,7 @@ export async function getConversation(params: GetConversationInput): Promise<Get
 
 export async function createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput> {
   try {
-    const { userId, conversationId, role, dueDate, recentMessageId, unreadMessageIds } = params;
+    const { userId, conversationId, role, dueDate, recentMessageId, unreadMessageIds = [] } = params;
 
     const updatedAt = new Date().toISOString();
 
@@ -274,15 +275,15 @@ export async function createConversationUserRelationship(params: CreateConversat
       gsi1sk: `${KeyPrefix.Time}${updatedAt}`,
       gsi2pk: userId,
       gsi2sk: `${KeyPrefix.Time}${convoPrefix}${updatedAt}`,
-      gsi3pk: dueDate ? userId : undefined,
-      gsi3sk: dueDate ? `${KeyPrefix.Time}${dueDate}` : undefined,
       conversationId,
       userId,
       updatedAt,
       role,
       muted: false,
-      unreadMessages: unreadMessageIds && documentClient.createSet(unreadMessageIds),
-      recentMessageId,
+      ...(recentMessageId && { recentMessageId }),
+      ...(dueDate && { gsi3pk: userId }),
+      ...(dueDate && { gsi3sk: `${KeyPrefix.Time}${dueDate}` }),
+      ...(unreadMessageIds.length && { unreadMessages: documentClient.createSet(unreadMessageIds) }),
     };
 
     await documentClient.put({
@@ -292,7 +293,7 @@ export async function createConversationUserRelationship(params: CreateConversat
 
     return { conversationUserRelationship };
   } catch (error) {
-    console.log("Error in getConversation:\n", error);
+    console.log("Error in createConversationUserRelationship:\n", error);
 
     throw error;
   }
@@ -319,14 +320,22 @@ export async function getConversationUserRelationship(params: GetConversationUse
 
 export async function createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
   try {
-    const { from, conversationId, conversationMemberIds, replyTo, replyCount, mimeType } = params;
+    const { from, conversationId, conversationMemberIds, mimeType, replyTo, markSeenByAll, reactions = {}, replyCount = 0 } = params;
 
     const messageId = `${replyTo ? KeyPrefix.Reply : KeyPrefix.Message}${ksuid.randomSync().string}` as MessageId;
 
     const timestamp = new Date().toISOString();
 
     const seenAt = conversationMemberIds.reduce((acc: { [key: string]: string | null; }, memberId) => {
-      acc[memberId] = memberId === from ? timestamp : null;
+      acc[memberId] = memberId === from || markSeenByAll ? timestamp : null;
+
+      return acc;
+    }, {});
+
+    const rawReactions = Object.entries(reactions).reduce((acc: Record<string, DynamoDB.DocumentClient.DynamoDbSet>, entry) => {
+      const [ reaction, userIds ] = entry;
+
+      acc[reaction] = documentClient.createSet(userIds);
 
       return acc;
     }, {});
@@ -337,17 +346,17 @@ export async function createMessage(params: CreateMessageInput): Promise<CreateM
       sk: messageId,
       gsi1pk: conversationId,
       gsi1sk: messageId,
-      gsi2pk: replyTo,
-      gsi2sk: replyTo && messageId,
       id: messageId,
       conversationId,
       from,
       sentAt: timestamp,
       seenAt,
-      reactions: {},
-      replyCount: replyCount || 0,
-      replyTo,
+      reactions: rawReactions,
       mimeType,
+      replyCount,
+      ...(replyTo && { gsi2pk: replyTo }),
+      ...(replyTo && { gsi2sk: messageId }),
+      ...(replyTo && { replyTo }),
     };
 
     await documentClient.put({
@@ -357,7 +366,7 @@ export async function createMessage(params: CreateMessageInput): Promise<CreateM
 
     return { message };
   } catch (error) {
-    console.log("Error in getConversation:\n", error);
+    console.log("Error in createMessage:\n", error);
 
     throw error;
   }
@@ -499,11 +508,12 @@ export interface GetConversationUserRelationshipOutput {
 export interface CreateMessageInput {
   from: UserId;
   conversationId: ConversationId;
-  transcript: string;
   conversationMemberIds: UserId[];
   mimeType: MimeType;
+  reactions?: Record<string, UserId[]>
   replyTo?: MessageId;
   replyCount?: number;
+  markSeenByAll?: boolean;
 }
 
 export interface CreateMessageOutput {

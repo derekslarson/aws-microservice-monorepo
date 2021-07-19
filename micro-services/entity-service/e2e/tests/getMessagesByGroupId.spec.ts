@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Role } from "@yac/core";
 import axios from "axios";
-import { generateRandomString, wait } from "../../../../e2e/util";
+import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MimeType } from "../../src/enums/mimeType.enum";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
@@ -28,7 +28,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
       ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
 
       ([ { message } ] = await Promise.all([
-        createMessage({ from: mockUserId, conversationId: group.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ], replyCount: 1, mimeType: MimeType.AudioMp3 }),
+        createMessage({ from: mockUserId, conversationId: group.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 1, mimeType: MimeType.AudioMp3 }),
         createConversationUserRelationship({ conversationId: group.id, userId, role: Role.User }),
       ]));
 
@@ -36,9 +36,9 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
 
       // We have to create the messages in sequence to ensure sort order
       ([ { message: messageTwo } ] = await Promise.all([
-        createMessage({ from: mockUserId, conversationId: group.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ], mimeType: MimeType.AudioMp3 }),
+        createMessage({ from: mockUserId, conversationId: group.id, conversationMemberIds: [ userId, mockUserId ], mimeType: MimeType.AudioMp3 }),
         // We have to create a reply to prove that it doesnt get returned at root level
-        createMessage({ from: mockUserId, conversationId: group.id, transcript: generateRandomString(5), conversationMemberIds: [ userId, mockUserId ], replyTo: message.id, mimeType: MimeType.AudioMp3 }),
+        createMessage({ from: mockUserId, conversationId: group.id, conversationMemberIds: [ userId, mockUserId ], replyTo: message.id, mimeType: MimeType.AudioMp3 }),
       ]));
     });
 
@@ -59,8 +59,10 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 sentAt: messageTwo.sentAt,
                 seenAt: messageTwo.seenAt,
                 reactions: messageTwo.reactions,
-                transcript: messageTwo.transcript,
+                mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
+                fetchUrl: jasmine.stringMatching(URL_REGEX),
+
               },
               {
                 id: message.id,
@@ -69,8 +71,9 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 sentAt: message.sentAt,
                 seenAt: message.seenAt,
                 reactions: message.reactions,
-                transcript: message.transcript,
+                mimeType: message.mimeType,
                 replyCount: message.replyCount,
+                fetchUrl: jasmine.stringMatching(URL_REGEX),
               },
             ],
           });
@@ -98,8 +101,9 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 sentAt: messageTwo.sentAt,
                 seenAt: messageTwo.seenAt,
                 reactions: messageTwo.reactions,
-                transcript: messageTwo.transcript,
+                mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
+                fetchUrl: jasmine.stringMatching(URL_REGEX),
               },
             ],
             lastEvaluatedKey: jasmine.any(String),
@@ -119,8 +123,9 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 sentAt: message.sentAt,
                 seenAt: message.seenAt,
                 reactions: message.reactions,
-                transcript: message.transcript,
+                mimeType: message.mimeType,
                 replyCount: message.replyCount,
+                fetchUrl: jasmine.stringMatching(URL_REGEX),
               },
             ],
           });

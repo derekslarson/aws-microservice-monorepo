@@ -352,16 +352,6 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const updateMeetingMessagesByUserIdHandler = new Lambda.Function(this, `UpdateMeetingMessagesByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/updateMeetingMessagesByUserId"),
-      handler: "updateMeetingMessagesByUserId.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
     // Message Handlers
     const messageFileCreatedHandler = new Lambda.Function(this, `MessageFileCreated_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
@@ -452,6 +442,36 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const updateFriendMessagesByUserIdHandler = new Lambda.Function(this, `UpdateFriendMessagesByUserId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateFriendMessagesByUserId"),
+      handler: "updateFriendMessagesByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const updateGroupMessagesByUserIdHandler = new Lambda.Function(this, `UpdateGroupMessagesByUserId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateGroupMessagesByUserId"),
+      handler: "updateGroupMessagesByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const updateMeetingMessagesByUserIdHandler = new Lambda.Function(this, `UpdateMeetingMessagesByUserId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateMeetingMessagesByUserId"),
+      handler: "updateMeetingMessagesByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -622,6 +642,18 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingsByTeamIdHandler,
         authorizationScopes: [ "yac/team.read", "yac/meeting.read" ],
+      },
+      {
+        path: "/users/{userId}/friends/{friendId}/messages",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateFriendMessagesByUserIdHandler,
+        authorizationScopes: [ "yac/user.read", "yac/friend.read", "yac/message.write" ],
+      },
+      {
+        path: "/users/{userId}/groups/{groupId}/messages",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateGroupMessagesByUserIdHandler,
+        authorizationScopes: [ "yac/user.read", "yac/group.read", "yac/message.write" ],
       },
       {
         path: "/users/{userId}/meetings/{meetingId}/messages",
