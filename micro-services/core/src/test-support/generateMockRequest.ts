@@ -1,6 +1,6 @@
 import { Request } from "../models/http/request.model";
 
-export function generateMockRequest(overrideParams: Partial<Request> = {}): Request {
+export function generateMockRequest(overrideParams: Partial<Request> = {}, jwtUserId?: string): Request {
   return {
 
     version: "mock-version",
@@ -15,7 +15,10 @@ export function generateMockRequest(overrideParams: Partial<Request> = {}): Requ
       apiId: "mock-api-id",
       authorizer: {
         jwt: {
-          claims: { mockClaim: "mock-claim" },
+          claims: {
+            mockClaim: "mock-claim",
+            ...(jwtUserId && { sub: jwtUserId }),
+          },
           scopes: [ "mock-scope" ],
         },
       },

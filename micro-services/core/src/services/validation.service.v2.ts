@@ -29,7 +29,7 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
           throw new ForbiddenError("Forbidden");
         }
 
-        jwtId = `user-${rawUserId as string}` as `user-${string}`;
+        jwtId = `user-${rawUserId as string}`;
       }
 
       let parsedBody: unknown;

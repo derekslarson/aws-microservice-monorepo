@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "include": [
-    "**/*.spec.ts"
+    "./src/**/*.spec.ts"
   ],
   "compilerOptions": {
     "outDir": "./compiled_tests",

@@ -8,7 +8,6 @@ import { UnauthorizedError } from "../../errors/unauthorized.error";
 import { RequestValidationError } from "../../errors/request.validation.error";
 import { RequestPortion } from "../../enums/request.portion.enum";
 import { BadRequestError } from "../../errors/badRequest.error";
-import { generateMockRequest } from "../../test-support/generateMockRequest";
 
 // Need to extend the abstract class and expose its protected methods in order to test them
 class TestController extends BaseController {
