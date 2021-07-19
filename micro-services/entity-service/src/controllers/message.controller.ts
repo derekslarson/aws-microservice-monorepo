@@ -14,6 +14,10 @@ import { UpdateMessageByUserIdDto } from "../dtos/updateMessageByUserId.dto";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
+import { UpdateMeetingMessagesByUserIdDto } from "../dtos/updateMeetingMessagesByUserId.dto";
+import { UpdateGroupMessagesByUserIdDto } from "../dtos/updateGroupMessagesByUserId.dto";
+import { UpdateFriendMessagesByUserIdDto } from "../dtos/updateFriendMessagesByUserId.dto";
+
 @injectable()
 export class MessageController extends BaseController implements MessageControllerInterface {
   constructor(
@@ -235,6 +239,90 @@ export class MessageController extends BaseController implements MessageControll
       return this.generateErrorResponse(error);
     }
   }
+
+  public async updateFriendMessagesByUserId(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("updateFriendMessagesByUserId called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { userId, friendId },
+        body,
+      } = this.validationService.validate({ dto: UpdateFriendMessagesByUserIdDto, request, getUserIdFromJwt: true });
+
+      if (jwtId !== userId) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      await this.messageMediatorService.updateFriendMessagesByUserId({ userId, friendId, updates: body });
+
+      return this.generateSuccessResponse({ message: "Friend messages updated." });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateFriendMessagesByUserId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async updateGroupMessagesByUserId(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("updateGroupMessagesByUserId called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { userId, groupId },
+        body,
+      } = this.validationService.validate({ dto: UpdateGroupMessagesByUserIdDto, request, getUserIdFromJwt: true });
+
+      if (jwtId !== userId) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
+
+      if (!isGroupMember) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      await this.messageMediatorService.updateGroupMessagesByUserId({ userId, groupId, updates: body });
+
+      return this.generateSuccessResponse({ message: "Group messages updated." });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateGroupMessagesByUserId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async updateMeetingMessagesByUserId(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("updateMeetingMessagesByUserId called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { userId, meetingId },
+        body,
+      } = this.validationService.validate({ dto: UpdateMeetingMessagesByUserIdDto, request, getUserIdFromJwt: true });
+
+      if (jwtId !== userId) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
+
+      if (!isMeetingMember) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      await this.messageMediatorService.updateMeetingMessagesByUserId({ userId, meetingId, updates: body });
+
+      return this.generateSuccessResponse({ message: "Meeting messages updated." });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMeetingMessagesByUserId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
 }
 
 export interface MessageControllerInterface {
@@ -246,4 +334,7 @@ export interface MessageControllerInterface {
   getMessagesByMeetingId(request: Request): Promise<Response>;
   getMessage(request: Request): Promise<Response>;
   updateMessageByUserId(request: Request): Promise<Response>;
+  updateFriendMessagesByUserId(request: Request): Promise<Response>;
+  updateGroupMessagesByUserId(request: Request): Promise<Response>;
+  updateMeetingMessagesByUserId(request: Request): Promise<Response>;
 }

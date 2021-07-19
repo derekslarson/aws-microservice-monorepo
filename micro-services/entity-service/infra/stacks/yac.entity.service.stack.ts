@@ -352,6 +352,16 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const updateMeetingMessagesByUserIdHandler = new Lambda.Function(this, `UpdateMeetingMessagesByUserId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateMeetingMessagesByUserId"),
+      handler: "updateMeetingMessagesByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     // Message Handlers
     const messageFileCreatedHandler = new Lambda.Function(this, `MessageFileCreated_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
@@ -612,6 +622,12 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingsByTeamIdHandler,
         authorizationScopes: [ "yac/team.read", "yac/meeting.read" ],
+      },
+      {
+        path: "/users/{userId}/meetings/{meetingId}/messages",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateMeetingMessagesByUserIdHandler,
+        authorizationScopes: [ "yac/user.read", "yac/meeting.read", "yac/message.write" ],
       },
     ];
 

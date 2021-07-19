@@ -260,6 +260,77 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
+  public async updateFriendMessagesByUserId(params: UpdateFriendMessagesByUserIdInput): Promise<UpdateFriendMessagesByUserIdOutput> {
+    try {
+      this.loggerService.trace("updateFriendMessagesByUserId called", { params }, this.constructor.name);
+
+      const { userId, friendId, updates } = params;
+
+      const { conversation } = await this.conversationService.getFriendConversationByUserIds({ userIds: [ userId, friendId ] });
+
+      await this.updateConversationMessagesByUserId({ userId, conversationId: conversation.id, updates });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateFriendMessagesByUserId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async updateGroupMessagesByUserId(params: UpdateGroupMessagesByUserIdInput): Promise<UpdateGroupMessagesByUserIdOutput> {
+    try {
+      this.loggerService.trace("updateGroupMessagesByUserId called", { params }, this.constructor.name);
+
+      const { userId, groupId, updates } = params;
+
+      await this.updateConversationMessagesByUserId({ userId, conversationId: groupId, updates });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateGroupMessagesByUserId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async updateMeetingMessagesByUserId(params: UpdateMeetingMessagesByUserIdInput): Promise<UpdateMeetingMessagesByUserIdOutput> {
+    try {
+      this.loggerService.trace("updateMeetingMessagesByUserId called", { params }, this.constructor.name);
+
+      const { userId, meetingId, updates } = params;
+
+      await this.updateConversationMessagesByUserId({ userId, conversationId: meetingId, updates });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMeetingMessagesByUserId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async updateConversationMessagesByUserId(params: UpdateConversationMessagesByUserIdInput): Promise<UpdateConversationMessagesByUserIdOutput> {
+    try {
+      this.loggerService.trace("updateConversationMessagesByUserId called", { params }, this.constructor.name);
+
+      const { userId, conversationId, updates: { seen } } = params;
+
+      const updatePromises: Promise<unknown>[] = [];
+
+      if (typeof seen === "boolean") {
+        const { conversationUserRelationship } = await this.conversationUserRelationshipService.getConversationUserRelationship({
+          userId,
+          conversationId,
+        });
+
+        const { unreadMessages = [] } = conversationUserRelationship;
+
+        updatePromises.push(...unreadMessages.map((messageId) => this.updateMessageSeenAt({ messageId, userId, seen })));
+      }
+
+      await Promise.all(updatePromises);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateConversationMessagesByUserId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   private async updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
     try {
       this.loggerService.trace("updateMessageSeenAt called", { params }, this.constructor.name);
@@ -283,22 +354,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
       throw error;
     }
   }
-
-  // private async markConversationRead(params: MarkConversationReadInput): Promise<MarkConversationReadOutput> {
-  //   try {
-  //     this.loggerService.trace("markConversationRead called", { params }, this.constructor.name);
-
-  //     const { userId, conversationId } = params;
-
-  //     const { conversationUserRelationship: { unreadMessages = [] } } = await this.conversationUserRelationshipService.getConversationUserRelationship({ conversationId, userId });
-
-  //     await Promise.all(unreadMessages.map((messageId) => this.markMessageRead({ userId, messageId })));
-  //   } catch (error: unknown) {
-  //     this.loggerService.error("Error in markConversationRead", { error, params }, this.constructor.name);
-
-  //     throw error;
-  //   }
-  // }
 
   private async createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
     try {
@@ -390,6 +445,9 @@ export interface MessageMediatorServiceInterface {
   getMessagesByGroupId(params: GetMessagesByGroupIdInput): Promise<GetMessagesByGroupIdOutput>;
   getMessagesByMeetingId(params: GetMessagesByMeetingIdInput): Promise<GetMessagesByMeetingIdOutput>;
   updateMessageByUserId(params: UpdateMessageByUserIdInput): Promise<UpdateMessageByUserIdOutput>;
+  updateFriendMessagesByUserId(params: UpdateFriendMessagesByUserIdInput): Promise<UpdateFriendMessagesByUserIdOutput>;
+  updateMeetingMessagesByUserId(params: UpdateMeetingMessagesByUserIdInput): Promise<UpdateMeetingMessagesByUserIdOutput>;
+  updateGroupMessagesByUserId(params: UpdateGroupMessagesByUserIdInput): Promise<UpdateGroupMessagesByUserIdOutput>;
 }
 export interface PendingMessage extends Omit<PendingMessageEntity, "id"> {
   id: MessageId
@@ -489,6 +547,36 @@ export interface UpdateMessageByUserIdOutput {
   message: Message;
 }
 
+export interface UpdateFriendMessagesByUserIdInput {
+  userId: UserId;
+  friendId: UserId;
+  updates: {
+    seen?: boolean;
+  }
+}
+
+export type UpdateFriendMessagesByUserIdOutput = void;
+
+export interface UpdateGroupMessagesByUserIdInput {
+  userId: UserId;
+  groupId: GroupId;
+  updates: {
+    seen?: boolean;
+  }
+}
+
+export type UpdateGroupMessagesByUserIdOutput = void;
+
+export interface UpdateMeetingMessagesByUserIdInput {
+  userId: UserId;
+  meetingId: MeetingId;
+  updates: {
+    seen?: boolean;
+  }
+}
+
+export type UpdateMeetingMessagesByUserIdOutput = void;
+
 export interface ConvertPendingToRegularMessageInput {
   pendingMessageId: PendingMessageId;
 }
@@ -496,6 +584,16 @@ export interface ConvertPendingToRegularMessageInput {
 export interface ConvertPendingToRegularMessageOutput {
   message: MessageEntity;
 }
+
+interface UpdateConversationMessagesByUserIdInput {
+  userId: UserId;
+  conversationId: ConversationId;
+  updates: {
+    seen?: boolean;
+  }
+}
+
+type UpdateConversationMessagesByUserIdOutput = void;
 
 interface CreateMessageInput {
   messageId: MessageId;
