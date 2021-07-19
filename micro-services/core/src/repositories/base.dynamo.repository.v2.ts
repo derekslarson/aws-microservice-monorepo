@@ -30,6 +30,10 @@ export abstract class BaseDynamoRepositoryV2<T> {
 
       const { Attributes } = await this.documentClient.update(updateItemInput).promise();
 
+      if (!Attributes) {
+        throw new Error("documentClient.update response missing Attributes");
+      }
+
       return this.cleanse(Attributes as RawEntity<T>);
     } catch (error: unknown) {
       this.loggerService.error("Error in partialUpdate", { error, update }, this.constructor.name);
@@ -68,6 +72,10 @@ export abstract class BaseDynamoRepositoryV2<T> {
         ReturnValues: "ALL_NEW",
         ...params,
       }).promise();
+
+      if (!Attributes) {
+        throw new Error("documentClient.update response missing Attributes");
+      }
 
       return this.cleanse(Attributes as RawEntity<T>);
     } catch (error: unknown) {
@@ -207,7 +215,13 @@ export abstract class BaseDynamoRepositoryV2<T> {
     try {
       this.loggerService.trace("decodeExclusiveStartKey called", { key }, this.constructor.name);
 
-      const decodedKey = JSON.parse(Buffer.from(key, "base64").toString()) as unknown;
+      let decodedKey: DynamoDB.DocumentClient.Key | unknown;
+
+      try {
+        decodedKey = JSON.parse(Buffer.from(key, "base64").toString()) as unknown;
+      } catch (error) {
+        throw new BadRequestError("Malformed start key");
+      }
 
       if (!this.isDyanmoKey(decodedKey)) {
         throw new BadRequestError("Malformed start key");

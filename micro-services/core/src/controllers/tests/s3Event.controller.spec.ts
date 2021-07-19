@@ -1,34 +1,34 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { SNSEvent } from "aws-lambda/trigger/sns";
+import { S3Event } from "aws-lambda/trigger/s3";
 import { DynamoProcessorServiceInterface } from "../../services/interfaces/dynamo.processor.service.interface";
 import { Spied, TestSupport } from "../../test-support";
-import { SnsEventController, SnsEventControllerInterface } from "../snsEvent.controller";
+import { S3EventController, S3EventControllerInterface } from "../s3Event.controller";
 import { LoggerService } from "../../services/logger.service";
-import { SnsProcessorServiceRecord } from "../../services/interfaces/sns.processor.service.interface";
-import { generateMockSNSEventRecord } from "../../test-support/generateMockSnsEventRecord";
+import { S3ProcessorServiceRecord } from "../../services/interfaces/s3.processor.service.interface";
+import { generateMockS3EventRecord } from "../../test-support/generateMockS3EventRecord";
 
-describe("SnsEventController", () => {
+describe("S3EventController", () => {
   let loggerService: Spied<LoggerService>;
-  let snsEventController: SnsEventControllerInterface;
+  let s3EventController: S3EventControllerInterface;
   let mockProcessorServiceA: Spied<DynamoProcessorServiceInterface>;
   let mockProcessorServiceB: Spied<DynamoProcessorServiceInterface>;
 
-  const mockSnsTopicArn = "mock-sns-topic-arm";
+  const mockBucketName = "mock-bucket-name";
+  const mockObjectKey = "mock/file.test";
   const mockError = new Error("mock-error");
-  const mockMessage = { a: 1, b: "two" };
 
-  const mockRawRecord = generateMockSNSEventRecord(mockMessage, mockSnsTopicArn);
+  const mockRawRecord = generateMockS3EventRecord(mockObjectKey, mockBucketName);
 
-  const mockEvent: SNSEvent = { Records: [ mockRawRecord ] };
+  const mockEvent: S3Event = { Records: [ mockRawRecord ] };
 
-  const mockPreparedRecord: SnsProcessorServiceRecord = {
-    topicArn: mockSnsTopicArn,
-    message: mockMessage,
+  const mockPreparedRecord: S3ProcessorServiceRecord = {
+    bucketName: mockBucketName,
+    key: mockObjectKey,
   };
 
-  const mockDummyPreparedRecord: SnsProcessorServiceRecord = {
-    topicArn: "",
-    message: {},
+  const mockDummyPreparedRecord: S3ProcessorServiceRecord = {
+    bucketName: "",
+    key: "",
   };
 
   beforeEach(() => {
@@ -44,14 +44,14 @@ describe("SnsEventController", () => {
       processRecord: jasmine.createSpy("processRecord"),
     };
 
-    snsEventController = new SnsEventController(loggerService, [ mockProcessorServiceA, mockProcessorServiceB ]);
+    s3EventController = new S3EventController(loggerService, [ mockProcessorServiceA, mockProcessorServiceB ]);
   });
 
-  describe("handleSnsEvent", () => {
+  describe("handleS3Event", () => {
     describe("under normal conditions", () => {
       describe("when passed an event containing a record", () => {
         it("calls determineRecordSupport for every processor service", async () => {
-          await snsEventController.handleSnsEvent(mockEvent);
+          await s3EventController.handleS3Event(mockEvent);
 
           expect(mockProcessorServiceA.determineRecordSupport).toHaveBeenCalledTimes(1);
           expect(mockProcessorServiceA.determineRecordSupport).toHaveBeenCalledWith(mockPreparedRecord);
@@ -69,14 +69,14 @@ describe("SnsEventController", () => {
           });
 
           it("calls that processor service's processRecord with the correct params", async () => {
-            await snsEventController.handleSnsEvent(mockEvent);
+            await s3EventController.handleS3Event(mockEvent);
 
             expect(mockProcessorServiceA.processRecord).toHaveBeenCalledTimes(1);
             expect(mockProcessorServiceA.processRecord).toHaveBeenCalledWith(mockPreparedRecord);
           });
 
           it("doesnt call the other processor service's processRecord", async () => {
-            await snsEventController.handleSnsEvent(mockEvent);
+            await s3EventController.handleS3Event(mockEvent);
 
             expect(mockProcessorServiceB.processRecord).toHaveBeenCalledTimes(0);
           });
@@ -92,18 +92,18 @@ describe("SnsEventController", () => {
         });
 
         it("calls loggerService with the correct params", async () => {
-          await snsEventController.handleSnsEvent(mockEvent);
+          await s3EventController.handleS3Event(mockEvent);
 
           expect(loggerService.error).toHaveBeenCalledTimes(1);
-          expect(loggerService.error).toHaveBeenCalledWith("Error calling 1 of 2 processor services.", { errors: [ mockError ], record: mockPreparedRecord }, snsEventController.constructor.name);
+          expect(loggerService.error).toHaveBeenCalledWith("Error calling 1 of 2 processor services.", { errors: [ mockError ], record: mockPreparedRecord }, s3EventController.constructor.name);
         });
       });
 
-      describe("when the sns record is missing necessary properties", () => {
+      describe("when the s3 record is missing necessary properties", () => {
         const mockEventWithoutNecessaryProps = { Records: [ {} ] };
 
         it("returns a dummy record", async () => {
-          await snsEventController.handleSnsEvent(mockEventWithoutNecessaryProps as SNSEvent);
+          await s3EventController.handleS3Event(mockEventWithoutNecessaryProps as S3Event);
 
           expect(mockProcessorServiceA.determineRecordSupport).toHaveBeenCalledTimes(1);
           expect(mockProcessorServiceA.determineRecordSupport).toHaveBeenCalledWith(mockDummyPreparedRecord);
