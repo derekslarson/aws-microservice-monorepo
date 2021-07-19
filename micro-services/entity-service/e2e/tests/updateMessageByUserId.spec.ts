@@ -53,7 +53,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                 id: message.id,
                 from: message.from,
                 conversationId: message.conversationId,
-                sentAt: message.sentAt,
+                createdAt: message.createdAt,
                 seenAt: {
                   ...message.seenAt,
                   [userId]: jasmine.stringMatching(ISO_DATE_REGEX),
@@ -130,7 +130,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                 id: message.id,
                 from: message.from,
                 conversationId: message.conversationId,
-                sentAt: message.sentAt,
+                createdAt: message.createdAt,
                 seenAt: {
                   ...message.seenAt,
                   [userId]: null,
@@ -210,7 +210,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                 id: message.id,
                 from: message.from,
                 conversationId: message.conversationId,
-                sentAt: message.sentAt,
+                createdAt: message.createdAt,
                 seenAt: message.seenAt,
                 reactions: {
                   ...message.reactions,
@@ -275,7 +275,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                 id: message.id,
                 from: message.from,
                 conversationId: message.conversationId,
-                sentAt: message.sentAt,
+                createdAt: message.createdAt,
                 seenAt: message.seenAt,
                 reactions: {},
                 replyCount: message.replyCount,

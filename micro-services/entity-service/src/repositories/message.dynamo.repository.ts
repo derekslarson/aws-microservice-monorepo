@@ -300,7 +300,7 @@ export interface Message {
   id: MessageId;
   conversationId: ConversationId;
   from: UserId;
-  sentAt: string;
+  createdAt: string;
   seenAt: Record<UserId, string | null>;
   reactions: Record<string, UserId[]>;
   replyCount: number;

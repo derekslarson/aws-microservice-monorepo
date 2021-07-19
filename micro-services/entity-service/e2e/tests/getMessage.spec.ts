@@ -41,7 +41,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
             id: message.id,
             from: message.from,
             conversationId: message.conversationId,
-            sentAt: message.sentAt,
+            createdAt: message.createdAt,
             seenAt: message.seenAt,
             reactions: message.reactions,
             replyCount: message.replyCount,

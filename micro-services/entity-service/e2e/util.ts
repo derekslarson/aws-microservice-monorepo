@@ -349,7 +349,7 @@ export async function createMessage(params: CreateMessageInput): Promise<CreateM
       id: messageId,
       conversationId,
       from,
-      sentAt: timestamp,
+      createdAt: timestamp,
       seenAt,
       reactions: rawReactions,
       mimeType,

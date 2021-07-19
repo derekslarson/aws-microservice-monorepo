@@ -27,7 +27,7 @@ export class MessageService implements MessageServiceInterface {
         seenAt,
         replyTo,
         mimeType,
-        sentAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         replyCount: 0,
         reactions: {},
       };

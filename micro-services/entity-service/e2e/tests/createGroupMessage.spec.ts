@@ -52,7 +52,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
             conversationId: group.id,
             from: userId,
             mimeType,
-            sentAt: jasmine.stringMatching(ISO_DATE_REGEX),
+            createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             uploadUrl: jasmine.stringMatching(URL_REGEX),
           },
         });
@@ -79,7 +79,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
           id: pendingMessageId,
           conversationId: group.id,
           from: userId,
-          sentAt: jasmine.stringMatching(ISO_DATE_REGEX),
+          createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
           mimeType,
         });
       } catch (error) {
@@ -133,7 +133,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
             gsi1sk: data.pendingMessage.id,
             id: data.pendingMessage.id,
             mimeType,
-            sentAt: jasmine.stringMatching(ISO_DATE_REGEX),
+            createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             conversationId: group.id,
             seenAt: {
               [userId]: jasmine.stringMatching(ISO_DATE_REGEX),

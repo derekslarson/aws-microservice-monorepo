@@ -51,7 +51,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
             conversationId: friendship.id,
             from: userId,
             mimeType,
-            sentAt: jasmine.stringMatching(ISO_DATE_REGEX),
+            createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             uploadUrl: jasmine.stringMatching(URL_REGEX),
           },
         });
@@ -78,7 +78,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
           id: pendingMessageId,
           conversationId: friendship.id,
           from: userId,
-          sentAt: jasmine.stringMatching(ISO_DATE_REGEX),
+          createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
           mimeType,
         });
       } catch (error) {
@@ -132,7 +132,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
             gsi1sk: data.pendingMessage.id,
             id: data.pendingMessage.id,
             mimeType,
-            sentAt: jasmine.stringMatching(ISO_DATE_REGEX),
+            createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             conversationId: friendship.id,
             seenAt: {
               [userId]: jasmine.stringMatching(ISO_DATE_REGEX),

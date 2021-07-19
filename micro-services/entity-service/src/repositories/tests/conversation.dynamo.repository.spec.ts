@@ -16,7 +16,7 @@ interface ConversationDynamoRepositoryWithAnyMethod extends ConversationReposito
 describe("ConversationDynamoRepository", () => {
   let documentClient: Spied<DocumentClient>;
   let loggerService: Spied<LoggerService>;
-  let teamDynamoRepository: ConversationDynamoRepositoryWithAnyMethod;
+  let conversationDynamoRepository: ConversationDynamoRepositoryWithAnyMethod;
   const documentClientFactory: DocumentClientFactory = () => documentClient;
 
   const mockCoreTableName = "mock-core-table-name";
@@ -50,7 +50,7 @@ describe("ConversationDynamoRepository", () => {
     documentClient = TestSupport.spyOnClass(DocumentClient);
     loggerService = TestSupport.spyOnClass(LoggerService);
 
-    teamDynamoRepository = new ConversationDynamoRepository(documentClientFactory, loggerService, mockEnvConfig);
+    conversationDynamoRepository = new ConversationDynamoRepository(documentClientFactory, loggerService, mockEnvConfig);
   });
 
   describe("createConversation", () => {
@@ -62,7 +62,7 @@ describe("ConversationDynamoRepository", () => {
       it("returns a cleansed version of the created user", async () => {
         const params = { conversation: mockConversation };
 
-        const response = await teamDynamoRepository.createConversation(params);
+        const response = await conversationDynamoRepository.createConversation(params);
 
         expect(response).toEqual({ conversation: mockConversation });
       });
@@ -84,7 +84,7 @@ describe("ConversationDynamoRepository", () => {
             },
           };
 
-          await teamDynamoRepository.createConversation(params);
+          await conversationDynamoRepository.createConversation(params);
 
           expect(documentClient.put).toHaveBeenCalledTimes(1);
           expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoInput);
@@ -109,7 +109,7 @@ describe("ConversationDynamoRepository", () => {
             },
           };
 
-          await teamDynamoRepository.createConversation(params);
+          await conversationDynamoRepository.createConversation(params);
 
           expect(documentClient.put).toHaveBeenCalledTimes(1);
           expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoInput);
@@ -134,7 +134,7 @@ describe("ConversationDynamoRepository", () => {
             },
           };
 
-          await teamDynamoRepository.createConversation(params);
+          await conversationDynamoRepository.createConversation(params);
 
           expect(documentClient.put).toHaveBeenCalledTimes(1);
           expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoInput);
@@ -152,12 +152,12 @@ describe("ConversationDynamoRepository", () => {
           const params = { conversation: mockConversation };
 
           try {
-            await teamDynamoRepository.createConversation(params);
+            await conversationDynamoRepository.createConversation(params);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in createConversation", { error: mockError, params }, teamDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in createConversation", { error: mockError, params }, conversationDynamoRepository.constructor.name);
           }
         });
 
@@ -165,7 +165,7 @@ describe("ConversationDynamoRepository", () => {
           const params = { conversation: mockConversation };
 
           try {
-            await teamDynamoRepository.createConversation(params);
+            await conversationDynamoRepository.createConversation(params);
 
             fail("Should have thrown");
           } catch (error) {
@@ -181,18 +181,18 @@ describe("ConversationDynamoRepository", () => {
 
     describe("under normal conditions", () => {
       beforeEach(() => {
-        spyOn(teamDynamoRepository, "get").and.returnValue(Promise.resolve(mockConversation));
+        spyOn(conversationDynamoRepository, "get").and.returnValue(Promise.resolve(mockConversation));
       });
 
       it("calls this.get with the correct params", async () => {
-        await teamDynamoRepository.getConversation(params);
+        await conversationDynamoRepository.getConversation(params);
 
-        expect(teamDynamoRepository.get).toHaveBeenCalledTimes(1);
-        expect(teamDynamoRepository.get).toHaveBeenCalledWith({ Key: { pk: mockConversationId, sk: mockConversationId } }, "Conversation");
+        expect(conversationDynamoRepository.get).toHaveBeenCalledTimes(1);
+        expect(conversationDynamoRepository.get).toHaveBeenCalledWith({ Key: { pk: mockConversationId, sk: mockConversationId } }, "Conversation");
       });
 
       it("returns the user fetched via get", async () => {
-        const response = await teamDynamoRepository.getConversation(params);
+        const response = await conversationDynamoRepository.getConversation(params);
 
         expect(response).toEqual({ conversation: mockConversation });
       });
@@ -201,23 +201,23 @@ describe("ConversationDynamoRepository", () => {
     describe("under error conditions", () => {
       describe("when this.get throws an error", () => {
         beforeEach(() => {
-          spyOn(teamDynamoRepository, "get").and.returnValue(Promise.reject(mockError));
+          spyOn(conversationDynamoRepository, "get").and.returnValue(Promise.reject(mockError));
         });
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamDynamoRepository.getConversation(params);
+            await conversationDynamoRepository.getConversation(params);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in getConversation", { error: mockError, params }, teamDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in getConversation", { error: mockError, params }, conversationDynamoRepository.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamDynamoRepository.getConversation(params);
+            await conversationDynamoRepository.getConversation(params);
 
             fail("Should have thrown");
           } catch (error) {
@@ -237,7 +237,7 @@ describe("ConversationDynamoRepository", () => {
       });
 
       it("calls documentClient.delete with the correct params", async () => {
-        await teamDynamoRepository.deleteConversation(params);
+        await conversationDynamoRepository.deleteConversation(params);
 
         expect(documentClient.delete).toHaveBeenCalledTimes(1);
         expect(documentClient.delete).toHaveBeenCalledWith({
@@ -255,18 +255,18 @@ describe("ConversationDynamoRepository", () => {
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamDynamoRepository.deleteConversation(params);
+            await conversationDynamoRepository.deleteConversation(params);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in deleteConversation", { error: mockError, params }, teamDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in deleteConversation", { error: mockError, params }, conversationDynamoRepository.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamDynamoRepository.deleteConversation(params);
+            await conversationDynamoRepository.deleteConversation(params);
 
             fail("Should have thrown");
           } catch (error) {
@@ -282,18 +282,18 @@ describe("ConversationDynamoRepository", () => {
 
     describe("under normal conditions", () => {
       beforeEach(() => {
-        spyOn(teamDynamoRepository, "batchGet").and.returnValue(Promise.resolve([ mockConversation ]));
+        spyOn(conversationDynamoRepository, "batchGet").and.returnValue(Promise.resolve([ mockConversation ]));
       });
 
       it("calls this.batchGet with the correct params", async () => {
-        await teamDynamoRepository.getConversations(params);
+        await conversationDynamoRepository.getConversations(params);
 
-        expect(teamDynamoRepository.batchGet).toHaveBeenCalledTimes(1);
-        expect(teamDynamoRepository.batchGet).toHaveBeenCalledWith({ Keys: [ { pk: mockConversationId, sk: mockConversationId } ] });
+        expect(conversationDynamoRepository.batchGet).toHaveBeenCalledTimes(1);
+        expect(conversationDynamoRepository.batchGet).toHaveBeenCalledWith({ Keys: [ { pk: mockConversationId, sk: mockConversationId } ] });
       });
 
       it("returns the user fetched via batchGet", async () => {
-        const response = await teamDynamoRepository.getConversations(params);
+        const response = await conversationDynamoRepository.getConversations(params);
 
         expect(response).toEqual({ conversations: [ mockConversation ] });
       });
@@ -302,23 +302,23 @@ describe("ConversationDynamoRepository", () => {
     describe("under error conditions", () => {
       describe("when this.get throws an error", () => {
         beforeEach(() => {
-          spyOn(teamDynamoRepository, "batchGet").and.returnValue(Promise.reject(mockError));
+          spyOn(conversationDynamoRepository, "batchGet").and.returnValue(Promise.reject(mockError));
         });
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamDynamoRepository.getConversations(params);
+            await conversationDynamoRepository.getConversations(params);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in getConversations", { error: mockError, params }, teamDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in getConversations", { error: mockError, params }, conversationDynamoRepository.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamDynamoRepository.getConversations(params);
+            await conversationDynamoRepository.getConversations(params);
 
             fail("Should have thrown");
           } catch (error) {
@@ -340,27 +340,27 @@ describe("ConversationDynamoRepository", () => {
 
     describe("under normal conditions", () => {
       beforeEach(() => {
-        spyOn(teamDynamoRepository, "query").and.returnValue(Promise.resolve({
+        spyOn(conversationDynamoRepository, "query").and.returnValue(Promise.resolve({
           Items: [ mockConversation ],
           LastEvaluatedKey: mockLastEvaluatedKey,
         }));
 
-        spyOn(teamDynamoRepository, "decodeExclusiveStartKey").and.returnValue(mockExclusiveStartKey);
-        spyOn(teamDynamoRepository, "encodeLastEvaluatedKey").and.returnValue(mockEncodedLastEvaluatedKey);
+        spyOn(conversationDynamoRepository, "decodeExclusiveStartKey").and.returnValue(mockExclusiveStartKey);
+        spyOn(conversationDynamoRepository, "encodeLastEvaluatedKey").and.returnValue(mockEncodedLastEvaluatedKey);
       });
 
       it("calls this.decodeExclusiveStartKey with the correct params", async () => {
-        await teamDynamoRepository.getConversationsByTeamId(params);
+        await conversationDynamoRepository.getConversationsByTeamId(params);
 
-        expect(teamDynamoRepository.decodeExclusiveStartKey).toHaveBeenCalledTimes(1);
-        expect(teamDynamoRepository.decodeExclusiveStartKey).toHaveBeenCalledWith(mockEncodedExclusiveStartKey);
+        expect(conversationDynamoRepository.decodeExclusiveStartKey).toHaveBeenCalledTimes(1);
+        expect(conversationDynamoRepository.decodeExclusiveStartKey).toHaveBeenCalledWith(mockEncodedExclusiveStartKey);
       });
 
       it("calls this.query with the correct params", async () => {
-        await teamDynamoRepository.getConversationsByTeamId(params);
+        await conversationDynamoRepository.getConversationsByTeamId(params);
 
-        expect(teamDynamoRepository.query).toHaveBeenCalledTimes(1);
-        expect(teamDynamoRepository.query).toHaveBeenCalledWith({
+        expect(conversationDynamoRepository.query).toHaveBeenCalledTimes(1);
+        expect(conversationDynamoRepository.query).toHaveBeenCalledWith({
           ExclusiveStartKey: mockExclusiveStartKey,
           Limit: mockLimit,
           IndexName: mockGsiOneIndexName,
@@ -377,14 +377,14 @@ describe("ConversationDynamoRepository", () => {
       });
 
       it("calls this.encodeLastEvaluatedKey with the correct params", async () => {
-        await teamDynamoRepository.getConversationsByTeamId(params);
+        await conversationDynamoRepository.getConversationsByTeamId(params);
 
-        expect(teamDynamoRepository.encodeLastEvaluatedKey).toHaveBeenCalledTimes(1);
-        expect(teamDynamoRepository.encodeLastEvaluatedKey).toHaveBeenCalledWith(mockLastEvaluatedKey);
+        expect(conversationDynamoRepository.encodeLastEvaluatedKey).toHaveBeenCalledTimes(1);
+        expect(conversationDynamoRepository.encodeLastEvaluatedKey).toHaveBeenCalledWith(mockLastEvaluatedKey);
       });
 
       it("returns the correct response structure", async () => {
-        const response = await teamDynamoRepository.getConversationsByTeamId(params);
+        const response = await conversationDynamoRepository.getConversationsByTeamId(params);
 
         expect(response).toEqual({ conversations: [ mockConversation ], lastEvaluatedKey: mockEncodedLastEvaluatedKey });
       });
@@ -393,26 +393,26 @@ describe("ConversationDynamoRepository", () => {
     describe("under error conditions", () => {
       describe("when this.query throws an error", () => {
         beforeEach(() => {
-          spyOn(teamDynamoRepository, "query").and.returnValue(Promise.reject(mockError));
+          spyOn(conversationDynamoRepository, "query").and.returnValue(Promise.reject(mockError));
 
-          spyOn(teamDynamoRepository, "decodeExclusiveStartKey").and.returnValue(mockExclusiveStartKey);
-          spyOn(teamDynamoRepository, "encodeLastEvaluatedKey").and.returnValue(mockEncodedLastEvaluatedKey);
+          spyOn(conversationDynamoRepository, "decodeExclusiveStartKey").and.returnValue(mockExclusiveStartKey);
+          spyOn(conversationDynamoRepository, "encodeLastEvaluatedKey").and.returnValue(mockEncodedLastEvaluatedKey);
         });
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamDynamoRepository.getConversationsByTeamId(params);
+            await conversationDynamoRepository.getConversationsByTeamId(params);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in getConversationsByTeamId", { error: mockError, params }, teamDynamoRepository.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in getConversationsByTeamId", { error: mockError, params }, conversationDynamoRepository.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamDynamoRepository.getConversationsByTeamId(params);
+            await conversationDynamoRepository.getConversationsByTeamId(params);
 
             fail("Should have thrown");
           } catch (error) {

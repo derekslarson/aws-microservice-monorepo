@@ -39,7 +39,7 @@ export class PendingMessageDynamoRepository extends BaseDynamoRepositoryV2<Pendi
         Item: pendingMessageEntity,
       }).promise();
 
-      return { pendingMessage: pendingMessageEntity };
+      return { pendingMessage };
     } catch (error: unknown) {
       this.loggerService.error("Error in createPendingMessage", { error, params }, this.constructor.name);
 
@@ -53,7 +53,7 @@ export class PendingMessageDynamoRepository extends BaseDynamoRepositoryV2<Pendi
 
       const { pendingMessageId } = params;
 
-      const pendingMessage = await this.get({ Key: { pk: pendingMessageId, sk: pendingMessageId } });
+      const pendingMessage = await this.get({ Key: { pk: pendingMessageId, sk: pendingMessageId } }, "Pending Message");
 
       return { pendingMessage };
     } catch (error: unknown) {
@@ -93,7 +93,7 @@ export interface PendingMessage {
   id: PendingMessageId;
   conversationId: ConversationId;
   from: UserId;
-  sentAt: string;
+  createdAt: string;
   mimeType: MimeType;
   replyTo?: MessageId;
 }

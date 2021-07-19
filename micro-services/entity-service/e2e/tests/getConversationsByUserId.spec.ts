@@ -84,7 +84,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 role: groupUserRelationship.role,
                 unreadMessages: 1,
                 recentMessage: {
-                  sentAt: message.sentAt,
+                  createdAt: message.createdAt,
                   replyCount: message.replyCount,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,
@@ -155,7 +155,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 role: groupUserRelationship.role,
                 unreadMessages: 1,
                 recentMessage: {
-                  sentAt: message.sentAt,
+                  createdAt: message.createdAt,
                   replyCount: message.replyCount,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,
@@ -256,7 +256,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 role: groupUserRelationship.role,
                 unreadMessages: 1,
                 recentMessage: {
-                  sentAt: message.sentAt,
+                  createdAt: message.createdAt,
                   replyCount: message.replyCount,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,
@@ -380,7 +380,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 role: groupUserRelationship.role,
                 unreadMessages: 1,
                 recentMessage: {
-                  sentAt: message.sentAt,
+                  createdAt: message.createdAt,
                   replyCount: message.replyCount,
                   conversationId: message.conversationId,
                   seenAt: message.seenAt,

@@ -52,7 +52,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
             conversationId: meeting.id,
             from: userId,
             mimeType,
-            sentAt: jasmine.stringMatching(ISO_DATE_REGEX),
+            createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             uploadUrl: jasmine.stringMatching(URL_REGEX),
           },
         });
@@ -79,7 +79,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
           id: pendingMessageId,
           conversationId: meeting.id,
           from: userId,
-          sentAt: jasmine.stringMatching(ISO_DATE_REGEX),
+          createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
           mimeType,
         });
       } catch (error) {
@@ -133,7 +133,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
             gsi1sk: data.pendingMessage.id,
             id: data.pendingMessage.id,
             mimeType,
-            sentAt: jasmine.stringMatching(ISO_DATE_REGEX),
+            createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             conversationId: meeting.id,
             seenAt: {
               [userId]: jasmine.stringMatching(ISO_DATE_REGEX),

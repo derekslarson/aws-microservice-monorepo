@@ -22,14 +22,14 @@ export class PendingMessageService implements PendingMessageServiceInterface {
 
       const { conversationId, from, mimeType } = params;
 
-      const pendingMessageId = `${KeyPrefix.PendingMessage}${this.idService.generateId()}` as PendingMessageId;
+      const pendingMessageId: PendingMessageId = `${KeyPrefix.PendingMessage}${this.idService.generateId()}`;
 
       const pendingMessage: PendingMessageEntity = {
         id: pendingMessageId,
         conversationId,
         from,
         mimeType,
-        sentAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
       };
 
       await this.pendingMessageRepository.createPendingMessage({ pendingMessage });
