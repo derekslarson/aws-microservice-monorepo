@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/core";
+import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface, User as UserEntity } from "../repositories/user.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -9,6 +9,7 @@ import { UserId } from "../types/userId.type";
 export class UserService implements UserServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
     @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
   ) {}
 
@@ -16,9 +17,9 @@ export class UserService implements UserServiceInterface {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const { rawId, email } = params;
+      const { email } = params;
 
-      const userId = `${KeyPrefix.User}${rawId}` as UserId;
+      const userId: UserId = `${KeyPrefix.User}${this.idService.generateId()}`;
 
       const user: UserEntity = {
         id: userId,
@@ -85,7 +86,6 @@ export interface UserServiceInterface {
 }
 
 export interface CreateUserInput {
-  rawId: string;
   email: string;
 }
 

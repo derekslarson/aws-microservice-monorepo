@@ -3,7 +3,6 @@ import { Spied, TestSupport, LoggerService, HttpRequestService, AuthServiceOauth
 import { EnvConfigInterface } from "../../config/env.config";
 import { ConfirmationInputDto } from "../../models/confirmation/confirmation.input.model";
 import { LoginInputDto } from "../../models/login/login.input.model";
-import { SignUpInputDto } from "../../models/sign-up/signUp.input.model";
 import { AuthenticationService } from "../authentication.service";
 
 describe("AuthenticationService", () => {
@@ -23,44 +22,6 @@ describe("AuthenticationService", () => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     httpRequestService = TestSupport.spyOnClass(HttpRequestService);
     authenticationService = new AuthenticationService(loggerService, httpRequestService, config);
-  });
-
-  describe("signUp", () => {
-    const mockSignUpBody: SignUpInputDto = { email: "mock-email" };
-
-    describe("fails correctly", () => {
-      it("fails when HttpRequestService.post errors", async () => {
-        httpRequestService.post.and.returnValue(Promise.reject(mockedError));
-
-        try {
-          await authenticationService.signUp(mockSignUpBody);
-          fail("Should've failed");
-        } catch (error: unknown) {
-          expect(httpRequestService.post).toHaveBeenCalledTimes(1);
-          expect(httpRequestService.post).toHaveBeenCalledWith(`${config.authServiceDomain}/sign-up`, { email: mockSignUpBody.email });
-          expect(error).toEqual(mockedError);
-        }
-      });
-    });
-
-    describe("success correctly", () => {
-      it("calls HttpRequestService.post correctly", async () => {
-        httpRequestService.post.and.returnValue(Promise.resolve({ body: "mock" }));
-
-        await authenticationService.signUp(mockSignUpBody);
-        expect(httpRequestService.post).toHaveBeenCalledTimes(1);
-        expect(httpRequestService.post).toHaveBeenCalledWith(`${config.authServiceDomain}/sign-up`, { email: mockSignUpBody.email });
-      });
-
-      it("returns the right value", async () => {
-        const mockResponse = { session: "mock-session" };
-        httpRequestService.post.and.returnValue(Promise.resolve({ body: mockResponse }));
-
-        const res = await authenticationService.signUp(mockSignUpBody);
-
-        expect(res).toEqual(mockResponse);
-      });
-    });
   });
 
   describe("login", () => {

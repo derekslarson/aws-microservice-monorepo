@@ -13,6 +13,7 @@ export const handler = async (event: PreSignUpTriggerEvent): Promise<PreSignUpTr
     loggerService.trace("preSignUp called", { event }, "preSignUp handler");
 
     event.response.autoConfirmUser = true;
+    event.response.autoVerifyEmail = true;
 
     return event;
   } catch (error: unknown) {

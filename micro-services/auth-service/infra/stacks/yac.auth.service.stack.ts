@@ -1,9 +1,11 @@
 /* eslint-disable no-new */
 import * as CDK from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
+import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Cognito from "@aws-cdk/aws-cognito";
 import * as SSM from "@aws-cdk/aws-ssm";
+import * as SNS from "@aws-cdk/aws-sns";
 import * as CustomResources from "@aws-cdk/custom-resources";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as S3 from "@aws-cdk/aws-s3";
@@ -18,8 +20,6 @@ import {
   RouteProps,
   generateExportNames,
   ProxyRouteProps,
-  AuthServiceSignUpPath,
-  AuthServiceSignUpMethod,
   AuthServiceLoginPath,
   AuthServiceLoginMethod,
   AuthServiceConfirmPath,
@@ -54,7 +54,9 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
     const clientsUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.ClientsUpdatedSnsTopicArn);
-    const userSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.UserSignedUpSnsTopicArn);
+    // const userSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.UserSignedUpSnsTopicArn);
+    const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
+
     const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
 
     // Layers
@@ -189,11 +191,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       resources: [ clientsUpdatedSnsTopicArn ],
     });
 
-    const userSignedUpSnsPublishPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "SNS:Publish" ],
-      resources: [ userSignedUpSnsTopicArn ],
-    });
-
     const basePolicy: IAM.PolicyStatement[] = [];
 
     // Environment Variables
@@ -209,18 +206,21 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       MAIL_SENDER: "no-reply@yac.com",
       YAC_AUTH_UI: yacUserPoolClientRedirectUri,
       CLIENTS_UPDATED_SNS_TOPIC_ARN: clientsUpdatedSnsTopicArn,
-      USER_SIGNED_UP_SNS_TOPIC_ARN: userSignedUpSnsTopicArn,
+      USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
     };
 
     // Handlers
-    const signUpHandler = new Lambda.Function(this, `SignUpHandler_${id}`, {
+    new Lambda.Function(this, `UserCreatedHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/signUp"),
-      handler: "signUp.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/userCreated"),
+      handler: "userCreated.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
+      events: [
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserCreatedSnsTopicArn${id}`, userCreatedSnsTopicArn)),
+      ],
     });
 
     const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
@@ -278,17 +278,8 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       code: Lambda.Code.fromAsset("dist/handlers/preSignUp"),
       handler: "preSignUp.handler",
       layers: [ dependencyLayer ],
-      initialPolicy: basePolicy,
-      timeout: CDK.Duration.seconds(15),
-    });
-
-    const postConfirmationHandler = new Lambda.Function(this, `PostConfirmationHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/postConfirmation"),
-      handler: "postConfirmation.handler",
       environment: environmentVariables,
-      layers: [ dependencyLayer ],
-      initialPolicy: [ ...basePolicy, userSignedUpSnsPublishPolicyStatement ],
+      initialPolicy: basePolicy,
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -297,6 +288,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       code: Lambda.Code.fromAsset("dist/handlers/defineAuthChallenge"),
       handler: "defineAuthChallenge.handler",
       layers: [ dependencyLayer ],
+      environment: environmentVariables,
       initialPolicy: basePolicy,
       timeout: CDK.Duration.seconds(15),
     });
@@ -306,6 +298,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       code: Lambda.Code.fromAsset("dist/handlers/createAuthChallenge"),
       handler: "createAuthChallenge.handler",
       layers: [ dependencyLayer ],
+      environment: environmentVariables,
       initialPolicy: basePolicy,
       timeout: CDK.Duration.seconds(15),
     });
@@ -315,16 +308,12 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       code: Lambda.Code.fromAsset("dist/handlers/verifyAuthChallengeResponse"),
       handler: "verifyAuthChallengeResponse.handler",
       layers: [ dependencyLayer ],
+      environment: environmentVariables,
       initialPolicy: basePolicy,
       timeout: CDK.Duration.seconds(15),
     });
 
     preSignUpHandler.addPermission(`UserPoolPreSignUpPermission-${id}`, {
-      principal: new IAM.ServicePrincipal("cognito-idp.amazonaws.com"),
-      sourceArn: userPool.userPoolArn,
-    });
-
-    postConfirmationHandler.addPermission(`UserPoolPostConfirmationPermission-${id}`, {
       principal: new IAM.ServicePrincipal("cognito-idp.amazonaws.com"),
       sourceArn: userPool.userPoolArn,
     });
@@ -354,7 +343,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
           UserPoolId: userPool.userPoolId,
           LambdaConfig: {
             PreSignUp: preSignUpHandler.functionArn,
-            PostConfirmation: postConfirmationHandler.functionArn,
             DefineAuthChallenge: defineAuthChallengeHandler.functionArn,
             CreateAuthChallenge: createAuthChallengeHandler.functionArn,
             VerifyAuthChallengeResponse: verifyAuthChallengeResponseHandler.functionArn,
@@ -387,13 +375,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       ]),
     });
 
-    // Lambda Routes
-    const signUpRoute: RouteProps<AuthServiceSignUpPath, AuthServiceSignUpMethod> = {
-      path: "/sign-up",
-      method: ApiGatewayV2.HttpMethod.POST,
-      handler: signUpHandler,
-    };
-
     const loginRoute: RouteProps<AuthServiceLoginPath, AuthServiceLoginMethod> = {
       path: "/login",
       method: ApiGatewayV2.HttpMethod.POST,
@@ -425,7 +406,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     };
 
     const routes: RouteProps<string, ApiGatewayV2.HttpMethod>[] = [
-      signUpRoute,
       loginRoute,
       confirmRoute,
       createClientRoute,

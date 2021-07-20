@@ -23,13 +23,13 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
       let jwtId: `user-${string}` | undefined;
 
       if (getUserIdFromJwt) {
-        const rawUserId = request.requestContext.authorizer?.jwt.claims.sub;
+        const userId = request.requestContext.authorizer?.jwt.claims.username as `user-${string}` | undefined;
 
-        if (!rawUserId) {
+        if (!userId) {
           throw new ForbiddenError("Forbidden");
         }
 
-        jwtId = `user-${rawUserId as string}`;
+        jwtId = userId;
       }
 
       let parsedBody: unknown;

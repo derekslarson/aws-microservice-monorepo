@@ -7,7 +7,6 @@ import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
 import { MailServiceInterface } from "./mail.service";
 import { Crypto, CryptoFactory } from "../factories/crypto.factory";
-import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
 import { LoginInputDto } from "../models/login/login.input.model";
 import { ConfirmationInput } from "../models/confirmation/confirmation.input.model";
 
@@ -22,7 +21,6 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MailServiceInterface) private mailService: MailServiceInterface,
     @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestServiceInterface,
-    // @inject(TYPES.UserSignedUpSnsServiceInterface) private userSignedUpSnsService: UserSignedUpSnsServiceInterface,
     @inject(TYPES.CognitoFactory) cognitoFactory: CognitoFactory,
     @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
   ) {
@@ -30,28 +28,34 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     this.crypto = cryptoFactory();
   }
 
-  public async signUp(signUpInput: SignUpInputDto): Promise<void> {
+  public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
     try {
-      this.loggerService.trace("signUp called", { signUpInput }, this.constructor.name);
+      this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const secretHash = this.createUserPoolClientSecretHash(signUpInput.email);
+      const { email, id } = params;
+
+      const secretHash = this.createUserPoolClientSecretHash(id);
 
       const signUpParams: CognitoIdentityServiceProvider.Types.SignUpRequest = {
         ClientId: this.config.userPool.yacClientId,
         SecretHash: secretHash,
-        Username: signUpInput.email,
+        Username: id,
         Password: `YAC-${this.config.secret}`,
+        UserAttributes: [
+          {
+            Name: "email",
+            Value: email,
+          },
+        ],
       };
 
       await this.cognito.signUp(signUpParams).promise();
-
-      // await this.userSignedUpSnsService.sendMessage({ id: signupResponse.UserSub, email: signUpInput.email });
     } catch (error: unknown) {
       if (this.isAwsError(error) && error.code === "UsernameExistsException") {
         throw new BadRequestError(error.message);
       }
 
-      this.loggerService.error("Error in signUp", { error, signUpInput }, this.constructor.name);
+      this.loggerService.error("Error in createUser", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -231,8 +235,15 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 export type AuthenticationServiceConfigInterface = Pick<EnvConfigInterface, "userPool" | "apiDomain" | "secret">;
 
 export interface AuthenticationServiceInterface {
-  signUp(signUpInput: SignUpInputDto): Promise<void>;
+  createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   login(loginInput: LoginInputDto): Promise<{ session: string; }>;
   confirm(confirmationInput: ConfirmationInput): Promise<{ confirmed: boolean; session?: string; authorizationCode?: string }>;
   getXsrfToken(clientId: string, redirectUri: string): Promise<{ xsrfToken: string }>;
 }
+
+export interface CreateUserInput {
+  email: string;
+  id: string;
+}
+
+export type CreateUserOutput = void;

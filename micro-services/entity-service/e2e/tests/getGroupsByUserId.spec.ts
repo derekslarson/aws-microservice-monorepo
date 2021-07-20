@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Role } from "@yac/core";
 import axios from "axios";
-import { createRandomUser, generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
+import { generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createGroupConversation } from "../util";
+import { createConversationUserRelationship, createGroupConversation, createRandomUser } from "../util";
 
 describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;

@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, WithRole } from "@yac/core";
+import { BadRequestError, LoggerServiceInterface, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserServiceInterface, User as UserEntity } from "../entity-services/user.service";
 import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";
@@ -8,6 +8,8 @@ import { TeamId } from "../types/teamId.type";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
 import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
+import { UniquePropertyServiceInterface } from "../entity-services/uniqueProperty.service";
+import { UniqueProperty } from "../enums/uniqueProperty.enum";
 
 @injectable()
 export class UserMediatorService implements UserMediatorServiceInterface {
@@ -16,7 +18,32 @@ export class UserMediatorService implements UserMediatorServiceInterface {
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.TeamUserRelationshipServiceInterface) private teamUserRelationshipService: TeamUserRelationshipServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
+    @inject(TYPES.UniquePropertyServiceInterface) private uniquePropertyService: UniquePropertyServiceInterface,
   ) {}
+
+  public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
+    try {
+      this.loggerService.trace("createUser called", { params }, this.constructor.name);
+
+      const { email } = params;
+
+      const { isPropertyUnique } = await this.uniquePropertyService.isPropertyUnique({ property: UniqueProperty.Email, value: email });
+
+      if (!isPropertyUnique) {
+        throw new BadRequestError(`User already exists with email ${email}`);
+      }
+
+      const { user } = await this.userService.createUser({ email });
+
+      await this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Email, value: email, userId: user.id });
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in createUser", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 
   public async getUser(params: GetUserInput): Promise<GetUserOutput> {
     try {
@@ -110,6 +137,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 }
 
 export interface UserMediatorServiceInterface {
+  createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
   getUsersByTeamId(params: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput>;
   getUsersByGroupId(params: GetUsersByGroupIdInput): Promise<GetUsersByGroupIdOutput>;
@@ -118,6 +146,14 @@ export interface UserMediatorServiceInterface {
 
 export type User = UserEntity;
 export type TeamUserRelationship = TeamUserRelationshipEntity;
+
+export interface CreateUserInput {
+  email: string;
+}
+
+export interface CreateUserOutput {
+  user: User;
+}
 
 export interface GetUserInput {
   userId: UserId;

@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role, WithRole } from "@yac/core";
-import { createRandomUser, generateRandomString } from "../../../../e2e/util";
+import { generateRandomString } from "../../../../e2e/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createRandomTeam, createTeamUserRelationship } from "../util";
+import { createRandomUser, createRandomTeam, createTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { User } from "../../src/mediator-services/user.mediator.service";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";

@@ -3,7 +3,6 @@ import { Spied, TestSupport, LoggerService, ValidationService, RequestPortion, R
 import { AuthorizationService } from "../../services/authorization.service";
 import { AuthenticationService } from "../../services/authentication.service";
 import { AuthController, AuthControllerInterface } from "../auth.controller";
-import { SignUpInputDto } from "../../models/sign-up/signUp.input.model";
 import { LoginInputDto } from "../../models/login/login.input.model";
 import { ConfirmationInputDto } from "../../models/confirmation/confirmation.input.model";
 
@@ -18,7 +17,6 @@ describe("AuthController", () => {
   let authenticationService: Spied<AuthenticationService>;
   let authController: AuthControllerWithAnyMethod;
   let spyGenerateSuccessResponse: jasmine.Spy;
-  let spyGenerateCreatedResponse: jasmine.Spy;
   let spyGenerateErrorResponse: jasmine.Spy;
 
   const mockRequest: Request = generateMockRequest({});
@@ -31,73 +29,7 @@ describe("AuthController", () => {
     authController = new AuthController(validationService, loggerService, authenticationService, authorizationService);
 
     spyGenerateSuccessResponse = spyOn(authController, "generateSuccessResponse");
-    spyGenerateCreatedResponse = spyOn(authController, "generateCreatedResponse");
     spyGenerateErrorResponse = spyOn(authController, "generateErrorResponse");
-  });
-
-  describe("signUp", () => {
-    describe("fails correctly", () => {
-      const mockedError = new Error("Invalid");
-      it("when ValidationService.validate errors", async () => {
-        validationService.validate.and.returnValue(Promise.reject(mockedError));
-
-        await authController.signUp(mockRequest);
-        expect(validationService.validate).toHaveBeenCalledTimes(1);
-        expect(validationService.validate).toHaveBeenCalledWith(SignUpInputDto, RequestPortion.Body, mockRequest.body);
-        expect(spyGenerateErrorResponse).toHaveBeenCalledWith(mockedError);
-      });
-
-      it("when AuthenticationService.signUp errors", async () => {
-        validationService.validate.and.returnValue(Promise.resolve({}));
-        authenticationService.signUp.and.returnValue(Promise.reject(mockedError));
-
-        await authController.signUp(mockRequest);
-        expect(authenticationService.signUp).toHaveBeenCalledTimes(1);
-        expect(authenticationService.signUp).toHaveBeenCalledWith({});
-        expect(spyGenerateErrorResponse).toHaveBeenCalledWith(mockedError);
-      });
-
-      it("logs an error whenever something fails", async () => {
-        validationService.validate.and.returnValue(Promise.reject(mockedError));
-
-        await authController.signUp(mockRequest);
-
-        expect(loggerService.error).toHaveBeenCalled();
-        expect(loggerService.error).toHaveBeenCalledWith("Error in signUp", { error: mockedError, request: mockRequest }, authController.constructor.name);
-      });
-    });
-
-    describe("success correctly", () => {
-      it("calls ValidationService.validate correctly", async () => {
-        validationService.validate.and.returnValue(Promise.resolve({}));
-        authenticationService.signUp.and.returnValue(Promise.resolve({}));
-
-        await authController.signUp(mockRequest);
-        expect(validationService.validate).toHaveBeenCalledTimes(1);
-        expect(validationService.validate).toHaveBeenCalledWith(SignUpInputDto, RequestPortion.Body, mockRequest.body);
-        expect(spyGenerateCreatedResponse).toHaveBeenCalled();
-      });
-
-      it("calls AuthenticationService.signUp  correctly", async () => {
-        const mockResponse = { is: "atest" };
-        validationService.validate.and.returnValue(Promise.resolve(mockResponse));
-        authenticationService.signUp.and.returnValue(Promise.resolve({}));
-
-        await authController.signUp(mockRequest);
-        expect(authenticationService.signUp).toHaveBeenCalledTimes(1);
-        expect(authenticationService.signUp).toHaveBeenCalledWith(mockResponse);
-        expect(spyGenerateCreatedResponse).toHaveBeenCalled();
-      });
-    });
-
-    it("returns the right thing", async () => {
-      const mockResponse = { is: "atest" };
-      validationService.validate.and.returnValue(Promise.resolve());
-      authenticationService.signUp.and.returnValue(Promise.resolve(mockResponse));
-
-      await authController.signUp(mockRequest);
-      expect(spyGenerateCreatedResponse).toHaveBeenCalledWith(mockResponse);
-    });
   });
 
   describe("login", () => {

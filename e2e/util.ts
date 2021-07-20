@@ -3,7 +3,6 @@
 import { CognitoIdentityServiceProvider, DynamoDB, SSM } from "aws-sdk";
 import crypto from "crypto";
 import axios from "axios";
-import { KeyPrefix } from "../micro-services/entity-service/src/enums/keyPrefix.enum";
 
 const ssm = new SSM({ region: "us-east-1" });
 export const cognito = new CognitoIdentityServiceProvider({ region: "us-east-1" });
@@ -67,10 +66,6 @@ export function setEnvVars(vars: Record<string, string>): void {
 
 export function generateRandomString(length = 8): string {
   return crypto.randomBytes(length / 2).toString("hex");
-}
-
-function createSecretHash(email: string): string {
-  return crypto.createHmac("SHA256", process.env["yac-client-secret"] as string).update(`${email}${process.env["yac-client-id"] as string}`).digest("base64");
 }
 
 async function getXsrfToken(): Promise<{ xsrfToken: string }> {
@@ -143,16 +138,17 @@ async function getAuthorizationCode(email: string, xsrfToken: string): Promise<{
 
 async function getToken(authorizationCode: string): Promise<{ accessToken: string }> {
   try {
-    const oauth2AuthorizeBody = `grant_type=authorization_code&code=${authorizationCode}&client_id=${process.env["yac-client-id"] as string}&redirect_uri=${process.env["yac-client-redirect-uri"] as string}`;
+    const oauth2AuthorizeBody = `scopes=openid&grant_type=authorization_code&code=${authorizationCode}&client_id=${process.env["yac-client-id"] as string}&redirect_uri=${process.env["yac-client-redirect-uri"] as string}`;
 
     const headers = {
       "Content-Type": "application/x-www-form-urlencoded",
       Authorization: `Basic ${Buffer.from(`${process.env["yac-client-id"] as string}:${process.env["yac-client-secret"] as string}`).toString("base64")}`,
     };
 
-    const { data: { access_token: accessToken } } = await axios.post<{ access_token: string; }>(`${process.env["user-pool-domain-url"] as string}/oauth2/token`, oauth2AuthorizeBody, { headers });
+    const { data } = await axios.post<{ access_token: string; }>(`${process.env["user-pool-domain-url"] as string}/oauth2/token`, oauth2AuthorizeBody, { headers });
 
-    return { accessToken };
+    console.log(data);
+    return { accessToken: data.access_token };
   } catch (error: unknown) {
     console.log("Error in getTokens:\n", error);
 
@@ -171,25 +167,6 @@ export async function getAccessTokenByEmail(email: string): Promise<{ accessToke
     return { accessToken };
   } catch (error) {
     console.log("Error in getAccessTokenByEmail:\n", error);
-
-    throw error;
-  }
-}
-
-export async function createRandomUser(): Promise<{ user: { id: `${KeyPrefix.User}${string}`; email: string; } }> {
-  try {
-    const email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
-
-    const { UserSub } = await cognito.signUp({
-      ClientId: process.env["yac-client-id"] as string,
-      SecretHash: createSecretHash(email),
-      Username: email,
-      Password: `YAC-${process.env.secret as string}`,
-    }).promise();
-
-    return { user: { id: `user-${UserSub}`, email } };
-  } catch (error) {
-    console.log("Error in createRandomUser:\n", error);
 
     throw error;
   }

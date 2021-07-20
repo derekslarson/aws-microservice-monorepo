@@ -2,9 +2,9 @@
 import axios from "axios";
 import { Role } from "@yac/core";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createRandomTeam, createTeamUserRelationship, getTeamUserRelationship } from "../util";
+import { createRandomUser, createRandomTeam, createTeamUserRelationship, getTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { createRandomUser, generateRandomString } from "../../../../e2e/util";
+import { generateRandomString } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 

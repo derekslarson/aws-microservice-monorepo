@@ -26,6 +26,8 @@ export class AuthorizationService implements AuthorizationServiceInterface {
 
       const tokenResponse = await this.httpRequestService.post<{ accessToken: string; refreshToken: string; }>(`${this.config.authServiceDomain}/oauth2/token`, oauth2AuthorizeBody, {}, oauth2AuthorizeHeaders);
 
+      this.loggerService.trace("tokenResponse", { tokenResponse }, this.constructor.name);
+
       return tokenResponse.body;
     } catch (error: unknown) {
       this.loggerService.error("Error in getTokens", { error, authorizationCode }, this.constructor.name);

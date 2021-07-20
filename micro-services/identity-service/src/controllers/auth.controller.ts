@@ -4,7 +4,6 @@ import { injectable, inject } from "inversify";
 import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
-import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
 import { LoginInputDto } from "../models/login/login.input.model";
 import { ConfirmationInputDto } from "../models/confirmation/confirmation.input.model";
 import { AuthorizationServiceInterface } from "../services/authorization.service";
@@ -18,22 +17,6 @@ export class AuthController extends BaseController implements AuthControllerInte
     @inject(TYPES.AuthorizationServiceInterface) private authorizationService: AuthorizationServiceInterface,
   ) {
     super();
-  }
-
-  public async signUp(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("signUp called", { request }, this.constructor.name);
-
-      const signUpInput = await this.validationService.validate(SignUpInputDto, RequestPortion.Body, request.body);
-
-      const responseBody = await this.authenticationService.signUp(signUpInput);
-
-      return this.generateCreatedResponse(responseBody);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in signUp", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
   }
 
   public async login(request: Request): Promise<Response> {
@@ -76,7 +59,6 @@ export class AuthController extends BaseController implements AuthControllerInte
 }
 
 export interface AuthControllerInterface {
-  signUp(request: Request): Promise<Response>;
   login(request: Request): Promise<Response>;
   confirm(request: Request): Promise<Response>;
 }

@@ -1,11 +1,10 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, AuthServiceSignUpResponseBody, AuthServiceLoginResponseBody } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, AuthServiceLoginResponseBody } from "@yac/core";
 
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
-import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
 import { LoginInputDto } from "../models/login/login.input.model";
 import { Oauth2AuthorizeInputDto } from "../models/oauth2-authorize/oauth2.authorize.input.model";
 import { ConfirmationInput, ConfirmationRequestBodyDto, ConfirmationRequestCookiesDto } from "../models/confirmation/confirmation.input.model";
@@ -20,26 +19,6 @@ export class AuthenticationController extends BaseController implements Authenti
     @inject(TYPES.EnvConfigInterface) private config: AuthenticationControllerConfigInterface,
   ) {
     super();
-  }
-
-  public async signUp(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("signUp called", { request }, this.constructor.name);
-
-      const signUpInput = await this.validationService.validate(SignUpInputDto, RequestPortion.Body, request.body);
-
-      await this.authenticationService.signUp(signUpInput);
-
-      const { session } = await this.authenticationService.login(signUpInput);
-
-      const responseBody: AuthServiceSignUpResponseBody = { session };
-
-      return this.generateCreatedResponse(responseBody);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in signUp", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
   }
 
   public async login(request: Request): Promise<Response> {
@@ -126,7 +105,6 @@ export class AuthenticationController extends BaseController implements Authenti
 export type AuthenticationControllerConfigInterface = Pick<EnvConfigInterface, "userPool" | "authUI">;
 
 export interface AuthenticationControllerInterface {
-  signUp(request: Request): Promise<Response>;
   login(request: Request): Promise<Response>;
   confirm(request: Request): Promise<Response>;
   oauth2Authorize(request: Request): Promise<Response>;

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { LoggerService, Spied, TestSupport, generateAwsResponse, HttpRequestService, UserSignedUpSnsService, BadRequestError } from "@yac/core";
-import { AWSError, CognitoIdentityServiceProvider } from "aws-sdk";
+import { LoggerService, Spied, TestSupport, generateAwsResponse, HttpRequestService } from "@yac/core";
+import { CognitoIdentityServiceProvider } from "aws-sdk";
 import { Hmac } from "crypto";
 import { CognitoFactory } from "../../factories/cognito.factory";
 import { Crypto, CryptoFactory, cryptoWithRandomDigits } from "../../factories/crypto.factory";
@@ -16,7 +16,6 @@ describe("AuthenticationService", () => {
   let loggerService: Spied<LoggerService>;
   let mailService: Spied<MailService>;
   let httpRequestService: Spied<HttpRequestService>;
-  let userSignedUpSnsService: Spied<UserSignedUpSnsService>;
   let authenticationService: AuthenticationServiceInterface;
 
   const cognitoFactory: CognitoFactory = () => cognito as unknown as CognitoIdentityServiceProvider;
@@ -58,7 +57,6 @@ describe("AuthenticationService", () => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     mailService = TestSupport.spyOnClass(MailService);
     httpRequestService = TestSupport.spyOnClass(HttpRequestService);
-    userSignedUpSnsService = TestSupport.spyOnClass(UserSignedUpSnsService);
 
     httpRequestService.post.and.returnValue(Promise.resolve({ redirect: { path: mockRedirectPath } }));
     httpRequestService.get.and.returnValue(Promise.resolve({ headers: { "set-cookie": mockSetCookieHeader } }));
@@ -80,91 +78,6 @@ describe("AuthenticationService", () => {
     crypto.createHmac.and.returnValue(hmac);
 
     authenticationService = new AuthenticationService(mockConfig, loggerService, mailService, httpRequestService, cognitoFactory, cryptoFactory);
-  });
-
-  describe("signUp", () => {
-    const mockSignUpInput = { email: mockEmail };
-
-    describe("under normal conditions", () => {
-      it("calls cognito.signUp with the correct params", async () => {
-        await authenticationService.signUp(mockSignUpInput);
-
-        expect(cognito.signUp).toHaveBeenCalledTimes(1);
-        expect(cognito.signUp).toHaveBeenCalledWith({
-          ClientId: mockYacClientId,
-          SecretHash: mockSecretHash,
-          Username: mockEmail,
-          Password: `YAC-${mockSecret}`,
-        });
-      });
-
-      it("calls userSignedUpSnsService.sendMessage with the correct params", async () => {
-        await authenticationService.signUp(mockSignUpInput);
-
-        expect(userSignedUpSnsService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(userSignedUpSnsService.sendMessage).toHaveBeenCalledWith({ id: mockSignUpResponse.UserSub, email: mockEmail });
-      });
-    });
-
-    describe("under error conditions", () => {
-      describe("when an UsernameExistsException is thrown", () => {
-        const mockUsernameExistsException = new Error("An account with the given email already exists.") as AWSError;
-        mockUsernameExistsException.code = "UsernameExistsException";
-
-        beforeEach(() => {
-          cognito.signUp.and.throwError(mockUsernameExistsException);
-        });
-
-        it("doesn't call loggerService.error", async () => {
-          try {
-            await authenticationService.signUp(mockSignUpInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(loggerService.error).not.toHaveBeenCalled();
-          }
-        });
-
-        it("throws a BadRequestError with the UsernameExistsException's message", async () => {
-          try {
-            await authenticationService.signUp(mockSignUpInput);
-
-            fail("Should have thrown");
-          } catch (error: unknown) {
-            expect(error).toBeInstanceOf(BadRequestError);
-            expect((error as BadRequestError).message).toBe("An account with the given email already exists.");
-          }
-        });
-      });
-
-      describe("when an unexpected error is thrown", () => {
-        beforeEach(() => {
-          crypto.createHmac.and.throwError(mockError);
-        });
-
-        it("calls loggerService.error with the correct params", async () => {
-          try {
-            await authenticationService.signUp(mockSignUpInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(loggerService.error).toHaveBeenCalledTimes(2);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in createUserPoolClientSecretHash", { error: mockError, username: mockEmail }, authenticationService.constructor.name);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in signUp", { error: mockError, signUpInput: mockSignUpInput }, authenticationService.constructor.name);
-          }
-        });
-
-        it("throws the caught error", async () => {
-          try {
-            await authenticationService.signUp(mockSignUpInput);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(error).toBe(mockError);
-          }
-        });
-      });
-    });
   });
 
   describe("login", () => {

@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role } from "@yac/core";
-import { createRandomUser, generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
+import { generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
 import { User } from "../../src/mediator-services/user.mediator.service";
-import { createConversationUserRelationship, createFriendConversation } from "../util";
+import { createConversationUserRelationship, createFriendConversation, createRandomUser } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
+import { RawUser } from "../../src/repositories/user.dynamo.repository";
 
 describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -16,8 +17,8 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
   describe("under normal conditions", () => {
     let userId: UserId;
     let accessToken: string;
-    let otherUserA: { id: `${KeyPrefix.User}${string}`, email: string; };
-    let otherUserB: { id: `${KeyPrefix.User}${string}`, email: string; };
+    let otherUserA: RawUser;
+    let otherUserB: RawUser;
     let conversationA: RawConversation;
     let conversationB: RawConversation;
 

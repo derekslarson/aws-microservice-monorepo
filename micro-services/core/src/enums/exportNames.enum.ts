@@ -9,6 +9,7 @@ const ExportNames = {
   RegionalHostedZoneId: "regionalHostedZoneId",
   ClientsUpdatedSnsTopicArn: "clientsUpdatedSnsTopicArn",
   UserSignedUpSnsTopicArn: "userSignedUpSnsTopicArn",
+  UserCreatedSnsTopicArn: "userCreatedSnsTopicArn",
   CoreTableName: "coreTableName",
   MessageS3BucketArn: "messageS3BucketArn",
 };

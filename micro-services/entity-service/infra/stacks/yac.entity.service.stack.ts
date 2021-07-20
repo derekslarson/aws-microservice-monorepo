@@ -3,6 +3,7 @@ import * as CDK from "@aws-cdk/core";
 import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Lambda from "@aws-cdk/aws-lambda";
+import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as S3 from "@aws-cdk/aws-s3";
@@ -14,8 +15,6 @@ import {
   RouteProps,
 } from "@yac/core";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/core/infra/stacks/yac.http.service.stack";
-import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
-import * as SNS from "@aws-cdk/aws-sns";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacEntityServiceStack extends YacHttpServiceStack {
@@ -33,7 +32,9 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
 
     const ExportNames = generateExportNames(stackPrefix);
 
-    const userSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.UserSignedUpSnsTopicArn);
+    // const userSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.UserSignedUpSnsTopicArn);
+    const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
+
     const messageS3BucketArn = CDK.Fn.importValue(ExportNames.MessageS3BucketArn);
 
     const messageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket-${id}`, messageS3BucketArn);
@@ -50,6 +51,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
       removalPolicy: CDK.RemovalPolicy.DESTROY,
+      stream: DynamoDB.StreamViewType.NEW_AND_OLD_IMAGES,
     });
 
     coreTable.addGlobalSecondaryIndex({
@@ -83,6 +85,11 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       resources: [ messageS3Bucket.bucketArn, `${messageS3Bucket.bucketArn}/*` ],
     });
 
+    const userCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ userCreatedSnsTopicArn ],
+    });
+
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
@@ -90,22 +97,46 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
       GSI_TWO_INDEX_NAME: GlobalSecondaryIndex.Two,
       GSI_THREE_INDEX_NAME: GlobalSecondaryIndex.Three,
-      USER_SIGNED_UP_SNS_TOPIC_ARN: userSignedUpSnsTopicArn,
+      USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
       MESSAGE_S3_BUCKET_NAME: messageS3Bucket.bucketName,
     };
 
-    // User Handlers
-    new Lambda.Function(this, `UserSignedUp_${id}`, {
+    // Dynamo Stream Handler
+    new Lambda.Function(this, `CoreTableChanged_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/userSignedUp"),
-      handler: "userSignedUp.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/coreTableChanged"),
+      handler: "coreTableChanged.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, userCreatedSnsPublishPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+      events: [
+        new LambdaEventSources.DynamoEventSource(coreTable, { startingPosition: Lambda.StartingPosition.LATEST }),
+      ],
+    });
+
+    // User Handlers
+    // new Lambda.Function(this, `UserSignedUp_${id}`, {
+    //   runtime: Lambda.Runtime.NODEJS_12_X,
+    //   code: Lambda.Code.fromAsset("dist/handlers/userSignedUp"),
+    //   handler: "userSignedUp.handler",
+    //   layers: [ dependencyLayer ],
+    //   environment: environmentVariables,
+    //   initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+    //   timeout: CDK.Duration.seconds(15),
+    //   events: [
+    //     new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserSignedUpSnsTopic_${id}`, userSignedUpSnsTopicArn)),
+    //   ],
+    // });
+
+    const createUserHandler = new Lambda.Function(this, `CreateUser_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/createUser"),
+      handler: "createUser.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
-      events: [
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserSignedUpSnsTopic_${id}`, userSignedUpSnsTopicArn)),
-      ],
     });
 
     const getUserHandler = new Lambda.Function(this, `GetUser_${id}`, {
@@ -487,6 +518,11 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
     });
 
     const userRoutes: RouteProps[] = [
+      {
+        path: "/users",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: createUserHandler,
+      },
       {
         path: "/users/{userId}",
         method: ApiGatewayV2.HttpMethod.GET,

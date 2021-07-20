@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions */
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { DynamoDBRecord, DynamoDBStreamEvent } from "aws-lambda";

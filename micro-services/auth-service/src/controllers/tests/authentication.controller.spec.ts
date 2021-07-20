@@ -4,7 +4,6 @@ import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, Te
 import { ConfirmationRequestBodyDto, ConfirmationRequestCookiesDto } from "../../models/confirmation/confirmation.input.model";
 import { LoginInputDto } from "../../models/login/login.input.model";
 import { Oauth2AuthorizeInputDto } from "../../models/oauth2-authorize/oauth2.authorize.input.model";
-import { SignUpInputDto } from "../../models/sign-up/signUp.input.model";
 import { AuthenticationService } from "../../services/authentication.service";
 import { AuthenticationController, AuthenticationControllerInterface, AuthenticationControllerConfigInterface } from "../authentication.controller";
 
@@ -52,7 +51,6 @@ describe("AuthenticationController", () => {
 
     validationService.validate.and.returnValue(Promise.resolve(mockValidationResponse));
 
-    authenticationService.signUp.and.returnValue(Promise.resolve());
     authenticationService.login.and.returnValue(Promise.resolve({ session: mockSession }));
     authenticationService.confirm.and.returnValue({ confirmed: true, authorizationCode: mockAuthorizationCode });
     authenticationService.getXsrfToken.and.returnValue(Promise.resolve({ xsrfToken: mockXsrfToken }));
@@ -63,72 +61,6 @@ describe("AuthenticationController", () => {
     spyOn(authenticationController, "generateSuccessResponse").and.returnValue(mockSuccessResponse);
     spyOn(authenticationController, "generateSeeOtherResponse").and.returnValue(mockSeeOtherResponse);
     spyOn(authenticationController, "generateErrorResponse").and.returnValue(mockErrorResponse);
-  });
-
-  describe("signUp", () => {
-    const mockRequest = generateMockRequest();
-
-    describe("under normal conditions", () => {
-      it("calls validationService.validate with the correct params", async () => {
-        await authenticationController.signUp(mockRequest);
-
-        expect(validationService.validate).toHaveBeenCalledTimes(1);
-        expect(validationService.validate).toHaveBeenCalledWith(SignUpInputDto, RequestPortion.Body, mockRequest.body);
-      });
-
-      it("calls authenticationService.signUp with the correct params", async () => {
-        await authenticationController.signUp(mockRequest);
-
-        expect(authenticationService.signUp).toHaveBeenCalledTimes(1);
-        expect(authenticationService.signUp).toHaveBeenCalledWith(mockValidationResponse);
-      });
-
-      it("calls authenticationService.login with the correct params", async () => {
-        await authenticationController.login(mockRequest);
-
-        expect(authenticationService.login).toHaveBeenCalledTimes(1);
-        expect(authenticationService.login).toHaveBeenCalledWith(mockValidationResponse);
-      });
-
-      it("calls this.generateCreatedResponse with the correct params", async () => {
-        await authenticationController.signUp(mockRequest);
-
-        expect(authenticationController.generateCreatedResponse).toHaveBeenCalledTimes(1);
-        expect(authenticationController.generateCreatedResponse).toHaveBeenCalledWith({ session: mockSession });
-      });
-
-      it("returns the response of this.generateCreatedResponse", async () => {
-        const response = await authenticationController.signUp(mockRequest);
-
-        expect(response).toBe(mockCreatedResponse as Response);
-      });
-    });
-
-    describe("under error conditions", () => {
-      describe("when an error is thrown", () => {
-        beforeEach(() => validationService.validate.and.throwError(mockError));
-
-        it("calls loggerService.error with the correct params", async () => {
-          await authenticationController.signUp(mockRequest);
-
-          expect(loggerService.error).toHaveBeenCalledTimes(1);
-          expect(loggerService.error).toHaveBeenCalledWith("Error in signUp", { error: mockError, request: mockRequest }, authenticationController.constructor.name);
-        });
-
-        it("calls this.generateErrorResponse with the correct params", async () => {
-          await authenticationController.signUp(mockRequest);
-
-          expect(authenticationController.generateErrorResponse).toHaveBeenCalledTimes(1);
-          expect(authenticationController.generateErrorResponse).toHaveBeenCalledWith(mockError);
-        });
-
-        it("returns the response of this.generateErrorResponse", async () => {
-          const response = await authenticationController.signUp(mockRequest);
-
-          expect(response).toBe(mockErrorResponse as Response);
-        });
-      });
-    });
   });
 
   describe("login", () => {

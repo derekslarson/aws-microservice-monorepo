@@ -1,4 +1,6 @@
-export type DynamoProcessorServiceRecord<T extends Record<string, unknown> = Record<string, unknown>> = {
+import { RawEntity } from "../../types";
+
+export type DynamoProcessorServiceRecord<T extends Partial<RawEntity> = Partial<RawEntity>> = {
   tableName: string;
   eventName: "INSERT" | "MODIFY" | "REMOVE" | "UNKNOWN";
   newImage: T;

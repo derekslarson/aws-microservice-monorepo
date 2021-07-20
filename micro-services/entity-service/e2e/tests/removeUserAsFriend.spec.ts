@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role } from "@yac/core";
-import { createConversationUserRelationship, createFriendConversation, getConversation, getConversationUserRelationship } from "../util";
+import { createRandomUser, createConversationUserRelationship, createFriendConversation, getConversation, getConversationUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { createRandomUser, generateRandomString } from "../../../../e2e/util";
+import { generateRandomString } from "../../../../e2e/util";
 import { ConversationId } from "../../src/types/conversationId.type";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 

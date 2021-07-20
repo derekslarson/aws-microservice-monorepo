@@ -24,8 +24,12 @@ const TYPES = {
   // Processor Services
   MessageFileCreatedProcessorServiceInterface: Symbol.for("MessageFileCreatedProcessorServiceInterface"),
   UserSignedUpProcessorServiceInterface: Symbol.for("UserSignedUpProcessorServiceInterface"),
+  UserCreatedProcessorServiceInterface: Symbol.for("UserCreatedProcessorServiceInterface"),
 
-  // Services
+  // SNS Services
+  UserCreatedSnsServiceInterface: Symbol.for("UserCreatedSnsServiceInterface"),
+
+  // Entity Services
   ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
   ConversationUserRelationshipServiceInterface: Symbol.for("ConversationUserRelationshipServiceInterface"),
   MessageServiceInterface: Symbol.for("MessageServiceInterface"),
@@ -33,6 +37,7 @@ const TYPES = {
   PendingMessageServiceInterface: Symbol.for("PendingMessageServiceInterface"),
   TeamServiceInterface: Symbol.for("TeamServiceInterface"),
   TeamUserRelationshipServiceInterface: Symbol.for("TeamUserRelationshipServiceInterface"),
+  UniquePropertyServiceInterface: Symbol.for("UniquePropertyServiceInterface"),
   UserServiceInterface: Symbol.for("UserServiceInterface"),
 
   // Repositories
@@ -42,6 +47,7 @@ const TYPES = {
   PendingMessageRepositoryInterface: Symbol.for("PendingMessageRepositoryInterface"),
   TeamRepositoryInterface: Symbol.for("TeamRepositoryInterface"),
   TeamUserRelationshipRepositoryInterface: Symbol.for("TeamUserRelationshipRepositoryInterface"),
+  UniquePropertyRepositoryInterface: Symbol.for("UniquePropertyRepositoryInterface"),
   UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
 };
 

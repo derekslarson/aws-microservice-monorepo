@@ -27,7 +27,7 @@ describe("ValidationServiceV2", () => {
 
   describe("validate", () => {
     describe("under normal conditions", () => {
-      const mockUserId = "mock-user-id";
+      const mockUserId = "user-mock-user-id";
 
       const mockBody = { c: 3 };
 
@@ -55,7 +55,7 @@ describe("ValidationServiceV2", () => {
 
           expect(response).toEqual({
             ...mockRawRequestWithParsedBody,
-            jwtId: `user-${mockUserId}`,
+            jwtId: mockUserId,
           } as any);
         });
       });

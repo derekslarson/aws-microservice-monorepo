@@ -10,6 +10,7 @@ import { GroupMediatorServiceInterface } from "../mediator-services/group.mediat
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { GetUsersByGroupIdDto } from "../dtos/getUsersByGroupId.dto";
 import { GetUsersByMeetingIdDto } from "../dtos/getUsersByMeetingId.dto";
+import { CreateUserDto } from "../dtos/createUser.dto";
 
 @injectable()
 export class UserController extends BaseController implements UserControllerInterface {
@@ -24,6 +25,22 @@ export class UserController extends BaseController implements UserControllerInte
     super();
   }
 
+  public async createUser(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("createUser called", { request }, this.constructor.name);
+
+      const { body: { email } } = this.validationService.validate({ dto: CreateUserDto, request });
+
+      const { user } = await this.userMediatorService.createUser({ email });
+
+      return this.generateSuccessResponse({ user });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in createUsersByTeamId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
   public async getUser(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("getUser called", { request }, this.constructor.name);
@@ -34,7 +51,7 @@ export class UserController extends BaseController implements UserControllerInte
 
       return this.generateSuccessResponse({ user });
     } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByTeamId", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in getUser", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -86,7 +103,7 @@ export class UserController extends BaseController implements UserControllerInte
 
       return this.generateSuccessResponse({ users, lastEvaluatedKey });
     } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByConversationId", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in getUsersByGroupId", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -120,6 +137,7 @@ export class UserController extends BaseController implements UserControllerInte
 }
 
 export interface UserControllerInterface {
+  createUser(request: Request): Promise<Response>;
   getUser(request: Request): Promise<Response>;
   getUsersByTeamId(request: Request): Promise<Response>;
   getUsersByGroupId(request: Request): Promise<Response>;

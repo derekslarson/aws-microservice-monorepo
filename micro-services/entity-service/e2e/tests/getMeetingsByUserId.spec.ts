@@ -2,10 +2,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
 import { Role } from "@yac/core";
-import { createConversationUserRelationship, createMeetingConversation } from "../util";
+import { createRandomUser, createConversationUserRelationship, createMeetingConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
-import { createRandomUser, generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
+import { generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {

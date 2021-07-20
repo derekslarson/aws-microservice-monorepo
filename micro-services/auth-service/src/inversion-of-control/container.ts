@@ -1,5 +1,5 @@
 import { Container } from "inversify";
-import { coreContainerModule } from "@yac/core";
+import { coreContainerModule, SnsProcessorServiceInterface } from "@yac/core";
 import { TYPES } from "./types";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 
@@ -13,6 +13,7 @@ import { cryptoFactory, CryptoFactory } from "../factories/crypto.factory";
 import { sesFactory, SesFactory } from "../factories/ses.factory";
 import { ClientService, ClientServiceInterface } from "../services/client.service";
 import { ClientController, ClientControllerInterface } from "../controllers/client.controller";
+import { UserCreatedProcessorService } from "../processor-services/userCreated.processor.service";
 
 const container = new Container();
 
@@ -28,9 +29,15 @@ try {
   container.bind<ClientServiceInterface>(TYPES.ClientServiceInterface).to(ClientService);
   container.bind<MailServiceInterface>(TYPES.MailServiceInterface).to(MailService);
 
+  container.bind<SnsProcessorServiceInterface>(TYPES.UserCreatedProcessorServiceInterface).to(UserCreatedProcessorService);
+
   container.bind<CognitoFactory>(TYPES.CognitoFactory).toFactory(() => cognitoFactory);
   container.bind<CryptoFactory>(TYPES.CryptoFactory).toFactory(() => cryptoFactory);
   container.bind<SesFactory>(TYPES.SesFactory).toFactory(() => sesFactory);
+
+  container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
+    container.get(TYPES.UserCreatedProcessorServiceInterface),
+  ]);
 } catch (error: unknown) {
   // eslint-disable-next-line no-console
   console.log("Error initializing container. Error:\n", error);

@@ -115,6 +115,7 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
       if (error instanceof NotFoundError) {
         return { isTeamMember: false };
       }
+
       this.loggerService.error("Error in isTeamMember", { error, params }, this.constructor.name);
 
       throw error;
@@ -134,6 +135,7 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
       if (error instanceof NotFoundError) {
         return { isTeamAdmin: false };
       }
+
       this.loggerService.error("Error in isTeamAdmin", { error, params }, this.constructor.name);
 
       throw error;

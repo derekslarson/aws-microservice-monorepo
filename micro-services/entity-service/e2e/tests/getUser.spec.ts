@@ -10,7 +10,7 @@ describe("GET /users/{userId} (Get User)", () => {
   const accessToken = process.env.accessToken as string;
 
   describe("under normal conditions", () => {
-    it("returns a valid response", async () => {
+    fit("returns a valid response", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {

@@ -21,7 +21,34 @@ import { MessageId } from "../src/types/messageId.type";
 import { MimeType } from "../src/enums/mimeType.enum";
 import { PendingMessageId } from "../src/types/pendingMessageId.type";
 import { RawPendingMessage } from "../src/repositories/pendingMessage.dynamo.repository";
+import { RawUser } from "../src/repositories/user.dynamo.repository";
 
+export async function createRandomUser(): Promise<CreateRandomUserOutput> {
+  try {
+    const email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
+
+    const userId: UserId = `${KeyPrefix.User}${ksuid.randomSync().string}`;
+
+    const user: RawUser = {
+      entityType: EntityType.User,
+      pk: userId,
+      sk: userId,
+      id: userId,
+      email,
+    };
+
+    await documentClient.put({
+      TableName: process.env["core-table-name"] as string,
+      Item: user,
+    }).promise();
+
+    return { user };
+  } catch (error) {
+    console.log("Error in createRandomUser:\n", error);
+
+    throw error;
+  }
+}
 export async function deleteUser(id: UserId): Promise<void> {
   try {
     const { Item } = await documentClient.get({
@@ -408,6 +435,10 @@ export async function getPendingMessage(params: GetPendingMessageInput): Promise
 
     throw error;
   }
+}
+
+export interface CreateRandomUserOutput {
+  user: RawUser;
 }
 
 export interface CreateRandomTeamInput {

@@ -55,16 +55,6 @@ export class YacIdentityServiceStack extends YacHttpServiceStack {
     };
 
     // Handlers
-    const signUpHandler = new Lambda.Function(this, `SignUpHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/signUp"),
-      handler: "signUp.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      initialPolicy: [ ...basePolicy ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
     const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/login"),
@@ -87,11 +77,6 @@ export class YacIdentityServiceStack extends YacHttpServiceStack {
 
     // Lambda Routes
     const routes: RouteProps[] = [
-      {
-        path: "/sign-up",
-        method: ApiGatewayV2.HttpMethod.POST,
-        handler: signUpHandler,
-      },
       {
         path: "/login",
         method: ApiGatewayV2.HttpMethod.POST,

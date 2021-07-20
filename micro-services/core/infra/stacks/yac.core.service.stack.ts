@@ -57,10 +57,12 @@ export class YacCoreServiceStack extends CDK.Stack {
     });
 
     // User Pool and Yac Client
+    // MODIFYING THIS COULD POTENTIALLY LEAD TO THE LAMBDA TRIGGERS BEING REMOVED,
+    // REQUIRING A RE-DEPLOY OF AUTH_SERVICE
     const userPool = new Cognito.UserPool(this, `${id}UserPool`, {
       selfSignUpEnabled: true,
-      autoVerify: { email: true },
-      signInAliases: { email: true },
+      autoVerify: { email: true, phone: true },
+      signInAliases: { username: true, email: true, phone: true },
       removalPolicy: CDK.RemovalPolicy.DESTROY,
       customAttributes: { authChallenge: new Cognito.StringAttribute({ mutable: true }) },
     });
@@ -74,6 +76,8 @@ export class YacCoreServiceStack extends CDK.Stack {
 
     const clientsUpdatedSnsTopic = new SNS.Topic(this, `${id}-ClientsUpdatedSnsTopic`, { topicName: `${id}-ClientsUpdatedSnsTopic` });
     const userSignedUpSnsTopic = new SNS.Topic(this, `${id}-UserSignedUpSnsTopic`, { topicName: `${id}-UserSignedUpSnsTopic` });
+
+    const userCreatedSnsTopic = new SNS.Topic(this, `${id}-UserCreatedSnsTopic`, { topicName: `${id}-UserCreatedSnsTopic` });
 
     new Lambda.Function(this, `${id}-SetAuthorizerAudiencesHandler`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
@@ -131,6 +135,11 @@ export class YacCoreServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `${id}-UserSignedUpSnsTopicExport`, {
       exportName: ExportNames.UserSignedUpSnsTopicArn,
       value: userSignedUpSnsTopic.topicArn,
+    });
+
+    new CDK.CfnOutput(this, `${id}-UserCreatedSnsTopicExport`, {
+      exportName: ExportNames.UserCreatedSnsTopicArn,
+      value: userCreatedSnsTopic.topicArn,
     });
 
     new CDK.CfnOutput(this, `${id}-CoreTableNameExport`, {
