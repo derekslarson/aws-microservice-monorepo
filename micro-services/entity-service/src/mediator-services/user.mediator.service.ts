@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { BadRequestError, LoggerServiceInterface, WithRole } from "@yac/core";
+import { BadRequestError, LoggerServiceInterface, NotFoundError, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserServiceInterface, User as UserEntity } from "../entity-services/user.service";
 import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";
@@ -52,6 +52,29 @@ export class UserMediatorService implements UserMediatorServiceInterface {
       const { userId } = params;
 
       const { user } = await this.userService.getUser({ userId });
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUser", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput> {
+    try {
+      this.loggerService.trace("getUser called", { params }, this.constructor.name);
+
+      const { email } = params;
+      let userId: UserId;
+
+      try {
+        ({ uniqueProperty: { userId } } = await this.uniquePropertyService.getUniqueProperty({ property: UniqueProperty.Email, value: email }));
+      } catch (error) {
+        throw new NotFoundError("User not found");
+      }
+
+      const { user } = await this.getUser({ userId });
 
       return { user };
     } catch (error: unknown) {
@@ -139,6 +162,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 export interface UserMediatorServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
+  getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput>;
   getUsersByTeamId(params: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput>;
   getUsersByGroupId(params: GetUsersByGroupIdInput): Promise<GetUsersByGroupIdOutput>;
   getUsersByMeetingId(params: GetUsersByMeetingIdInput): Promise<GetUsersByMeetingIdOutput>;
@@ -160,6 +184,14 @@ export interface GetUserInput {
 }
 
 export interface GetUserOutput {
+  user: User;
+}
+
+export interface GetUserByEmailInput {
+  email: string;
+}
+
+export interface GetUserByEmailOutput {
   user: User;
 }
 

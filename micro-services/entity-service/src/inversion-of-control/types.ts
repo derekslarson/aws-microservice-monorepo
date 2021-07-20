@@ -12,6 +12,9 @@ const TYPES = {
   TeamControllerInterface: Symbol.for("TeamControllerInterface"),
   UserControllerInterface: Symbol.for("UserControllerInterface"),
 
+  // Orchestrator Services
+  InvitationOrchestratorServiceInterface: Symbol.for("InvitationOrchestratorServiceInterface"),
+
   // Mediator Services
   ConversationMediatorServiceInterface: Symbol.for("ConversationMediatorServiceInterface"),
   FriendshipMediatorServiceInterface: Symbol.for("FriendshipMediatorServiceInterface"),

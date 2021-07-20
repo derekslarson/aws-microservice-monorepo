@@ -147,6 +147,7 @@ export interface TeamMediatorServiceInterface {
   createTeam(params: CreateTeamInput): Promise<CreateTeamOutput>;
   getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
   addUserToTeam(params: AddUserToTeamInput): Promise<AddUserToTeamOutput>;
+  addUserToTeam(params: AddUserToTeamInput): Promise<AddUserToTeamOutput>;
   removeUserFromTeam(params: RemoveUserFromTeamInput): Promise<RemoveUserFromTeamOutput>;
   getTeamsByUserId(params: GetTeamsByUserIdInput): Promise<GetTeamsByUserIdOutput>;
   isTeamMember(params: IsTeamMemberInput): Promise<IsTeamMemberOutput>;

@@ -9,6 +9,7 @@ import { GetTeamDto } from "../dtos/getTeam.dto";
 import { AddUserToTeamDto } from "../dtos/addUserToTeam.dto";
 import { RemoveUserFromTeamDto } from "../dtos/removeUserFromTeam.dto";
 import { GetTeamsByUserIdDto } from "../dtos/getTeamsByUserId.dto";
+import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 
 @injectable()
 export class TeamController extends BaseController implements TeamControllerInterface {
@@ -17,6 +18,7 @@ export class TeamController extends BaseController implements TeamControllerInte
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
+    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
   ) {
     super();
   }
@@ -77,7 +79,7 @@ export class TeamController extends BaseController implements TeamControllerInte
       const {
         jwtId,
         pathParameters: { teamId },
-        body: { userId, role },
+        body: { email, role },
       } = this.validationService.validate({ dto: AddUserToTeamDto, request, getUserIdFromJwt: true });
 
       const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
@@ -86,7 +88,7 @@ export class TeamController extends BaseController implements TeamControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.teamMediatorService.addUserToTeam({ teamId, userId, role });
+      await this.invitationOrchestratorService.inviteUserToTeam({ teamId, email, role });
 
       return this.generateSuccessResponse({ message: "User added to team." });
     } catch (error: unknown) {

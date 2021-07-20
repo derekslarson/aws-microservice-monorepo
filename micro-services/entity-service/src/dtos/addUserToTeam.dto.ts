@@ -1,12 +1,12 @@
 import { Record } from "runtypes";
+import { Email } from "../runtypes/email.runtype";
 import { Role } from "../runtypes/role.runtype";
 import { TeamId } from "../runtypes/teamId.runtype";
-import { UserId } from "../runtypes/userId.runtype";
 
 export const AddUserToTeamDto = Record({
   pathParameters: Record({ teamId: TeamId }),
   body: Record({
-    userId: UserId,
+    email: Email,
     role: Role,
   }),
 });

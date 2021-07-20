@@ -37,6 +37,7 @@ import { UserCreatedSnsService, UserCreatedSnsServiceInterface } from "../sns-se
 import { UserCreatedProcessorService } from "../processor-services/userCreated.processor.service";
 import { UniquePropertyDynamoRepository, UniquePropertyRepositoryInterface } from "../repositories/uniqueProperty.dynamo.repository";
 import { UniquePropertyService, UniquePropertyServiceInterface } from "../entity-services/uniqueProperty.service";
+import { InvitationOrchestratorService, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 
 const container = new Container();
 
@@ -54,6 +55,9 @@ try {
   container.bind<MessageControllerInterface>(TYPES.MessageControllerInterface).to(MessageController);
   container.bind<TeamControllerInterface>(TYPES.TeamControllerInterface).to(TeamController);
   container.bind<UserControllerInterface>(TYPES.UserControllerInterface).to(UserController);
+
+  // Orchestrator Services
+  container.bind<InvitationOrchestratorServiceInterface>(TYPES.InvitationOrchestratorServiceInterface).to(InvitationOrchestratorService);
 
   // Mediator Services
   container.bind<ConversationMediatorServiceInterface>(TYPES.ConversationMediatorServiceInterface).to(ConversationMediatorService);
