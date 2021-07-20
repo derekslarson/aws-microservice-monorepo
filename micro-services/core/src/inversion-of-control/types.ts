@@ -9,6 +9,7 @@ const TYPES = {
   HttpRequestServiceInterface: Symbol.for("HttpRequestServiceInterface"),
   IdServiceInterface: Symbol.for("IdServiceInterface"),
   LoggerServiceInterface: Symbol.for("LoggerServiceInterface"),
+  SmsServiceInterface: Symbol.for("SmsServiceInterface"),
   UserSignedUpSnsServiceInterface: Symbol.for("UserSignedUpSnsServiceInterface"),
   ValidationServiceInterface: Symbol.for("ValidationServiceInterface"),
   ValidationServiceV2Interface: Symbol.for("ValidationServiceV2Interface"),

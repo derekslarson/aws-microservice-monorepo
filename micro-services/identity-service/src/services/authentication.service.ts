@@ -5,9 +5,7 @@ import {
   LoggerServiceInterface,
   HttpRequestServiceInterface,
   AuthServiceLoginResponseBody,
-  AuthServiceLoginRequestBody,
   AuthServiceConfirmationResponseBody,
-  AuthServiceConfirmationRequestBody,
   AuthServiceOauth2AuthorizeRequestQueryParameters,
 } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
@@ -27,7 +25,12 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("login called", { loginInput }, this.constructor.name);
 
-      const body: AuthServiceLoginRequestBody = { email: loginInput.email };
+      const { email, phone } = loginInput;
+
+      const body = {
+        ...(email && { email }),
+        ...(phone && { phone }),
+      };
 
       const response = await this.httpRequestService.post<AuthServiceLoginResponseBody>(`${this.config.authServiceDomain}/login`, body);
 
@@ -43,6 +46,8 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("confirm called", { confirmInput }, this.constructor.name);
 
+      const { email, phone } = confirmInput;
+
       const authorizeQueryParams: AuthServiceOauth2AuthorizeRequestQueryParameters = {
         responseType: "code",
         clientId: this.config.userPoolClientId,
@@ -53,8 +58,9 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       const confirmHeaders = { Cookie: `XSRF-TOKEN=${authorizeResponse.body.xsrfToken}` };
 
-      const confirmBody: AuthServiceConfirmationRequestBody = {
-        email: confirmInput.email,
+      const confirmBody = {
+        ...(email && { email }),
+        ...(phone && { phone }),
         confirmationCode: confirmInput.confirmationCode,
         session: confirmInput.session,
         clientId: this.config.userPoolClientId,

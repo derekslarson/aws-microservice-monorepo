@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Role } from "@yac/core";
+import { BadRequestError, LoggerServiceInterface, Role } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamId } from "../types/teamId.type";
 import { User, UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
@@ -13,23 +13,51 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
   ) {}
 
-  public async inviteUserToTeam(params: InviteUserToTeamInput): Promise<InviteUserToTeamOutput> {
+  public async addUsersToTeam(params: AddUsersToTeamInput): Promise<AddUsersToTeamOutput> {
     try {
-      this.loggerService.trace("inviteUserToTeam called", { params }, this.constructor.name);
+      this.loggerService.trace("addUsersToTeam called", { params }, this.constructor.name);
 
-      const { email, teamId, role } = params;
+      const { teamId, users } = params;
+
+      const settledPromises = await Promise.allSettled(users.map(({ email, phone, role }) => this.addUserToTeam({ teamId, email, phone, role })));
+
+      const failures = settledPromises.reduce((acc: Invitee[], settledPromise, i) => {
+        if (settledPromise.status === "rejected") {
+          acc.push(users[i]);
+        }
+
+        return acc;
+      }, []);
+
+      return { failures };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addUsersToTeam", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async addUserToTeam(params: AddUserToTeamInput): Promise<AddUserToTeamOutput> {
+    try {
+      this.loggerService.trace("addUserToTeam called", { params }, this.constructor.name);
+
+      const { email, phone, teamId, role } = params;
+
+      if (!email && !phone) {
+        throw new BadRequestError("'email' or 'phone' is required.");
+      }
 
       let user: User;
 
       try {
-        ({ user } = await this.userMediatorService.getUserByEmail({ email }));
+        ({ user } = email ? await this.userMediatorService.getUserByEmail({ email }) : await this.userMediatorService.getUserByPhone({ phone: phone as string }));
       } catch (error) {
-        ({ user } = await this.userMediatorService.createUser({ email }));
+        ({ user } = await this.userMediatorService.createUser({ email, phone }));
       }
 
       await this.teamMediatorService.addUserToTeam({ userId: user.id, teamId, role });
     } catch (error: unknown) {
-      this.loggerService.error("Error in inviteUserToTeam", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in addUserToTeam", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -37,13 +65,29 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 }
 
 export interface InvitationOrchestratorServiceInterface {
-  inviteUserToTeam(params: InviteUserToTeamInput): Promise<InviteUserToTeamOutput>;
+  addUsersToTeam(params: AddUsersToTeamInput): Promise<AddUsersToTeamOutput>;
 }
 
-export interface InviteUserToTeamInput {
-  email: string;
+export interface Invitee {
+  role: Role;
+  phone?: string;
+  email?: string;
+}
+
+export interface AddUsersToTeamInput {
+  teamId: TeamId;
+  users: Invitee[];
+}
+
+export interface AddUsersToTeamOutput {
+  failures: Invitee[]
+}
+
+interface AddUserToTeamInput {
   teamId: TeamId;
   role: Role;
+  phone?: string;
+  email?: string;
 }
 
-export type InviteUserToTeamOutput = void;
+type AddUserToTeamOutput = void;

@@ -87,7 +87,8 @@ type UserRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
 
 export interface User {
   id: UserId;
-  email: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface RawUser extends User {

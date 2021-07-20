@@ -8,7 +8,7 @@ import { TeamId } from "../types/teamId.type";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
 import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
-import { UniquePropertyServiceInterface } from "../entity-services/uniqueProperty.service";
+import { IsPropertyUniqueOutput, UniquePropertyServiceInterface } from "../entity-services/uniqueProperty.service";
 import { UniqueProperty } from "../enums/uniqueProperty.enum";
 
 @injectable()
@@ -25,17 +25,31 @@ export class UserMediatorService implements UserMediatorServiceInterface {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const { email } = params;
+      const { email, phone } = params;
 
-      const { isPropertyUnique } = await this.uniquePropertyService.isPropertyUnique({ property: UniqueProperty.Email, value: email });
+      if (!email && !phone) {
+        throw new BadRequestError("'email' or 'phone' is required.");
+      }
 
-      if (!isPropertyUnique) {
+      const [ { isPropertyUnique: isEmailUnique }, { isPropertyUnique: isPhoneUnique } ] = await Promise.all<IsPropertyUniqueOutput | Record<string, never>>([
+        email ? this.uniquePropertyService.isPropertyUnique({ property: UniqueProperty.Email, value: email }) : {},
+        phone ? this.uniquePropertyService.isPropertyUnique({ property: UniqueProperty.Phone, value: phone }) : {},
+      ]);
+
+      if (email && !isEmailUnique) {
         throw new BadRequestError(`User already exists with email ${email}`);
       }
 
-      const { user } = await this.userService.createUser({ email });
+      if (phone && !isPhoneUnique) {
+        throw new BadRequestError(`User already exists with phone ${phone}`);
+      }
 
-      await this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Email, value: email, userId: user.id });
+      const { user } = await this.userService.createUser({ email, phone });
+
+      await Promise.all<unknown>([
+        email && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Email, value: email, userId: user.id }),
+        phone && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Phone, value: phone, userId: user.id }),
+      ]);
 
       return { user };
     } catch (error: unknown) {
@@ -63,7 +77,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
   public async getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput> {
     try {
-      this.loggerService.trace("getUser called", { params }, this.constructor.name);
+      this.loggerService.trace("getUserByEmail called", { params }, this.constructor.name);
 
       const { email } = params;
       let userId: UserId;
@@ -78,7 +92,30 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       return { user };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getUser", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getUserByEmail", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput> {
+    try {
+      this.loggerService.trace("getUserByPhone called", { params }, this.constructor.name);
+
+      const { phone } = params;
+      let userId: UserId;
+
+      try {
+        ({ uniqueProperty: { userId } } = await this.uniquePropertyService.getUniqueProperty({ property: UniqueProperty.Phone, value: phone }));
+      } catch (error) {
+        throw new NotFoundError("User not found");
+      }
+
+      const { user } = await this.getUser({ userId });
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUserByPhone", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -163,6 +200,7 @@ export interface UserMediatorServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
   getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput>;
+  getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput>;
   getUsersByTeamId(params: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput>;
   getUsersByGroupId(params: GetUsersByGroupIdInput): Promise<GetUsersByGroupIdOutput>;
   getUsersByMeetingId(params: GetUsersByMeetingIdInput): Promise<GetUsersByMeetingIdOutput>;
@@ -172,7 +210,8 @@ export type User = UserEntity;
 export type TeamUserRelationship = TeamUserRelationshipEntity;
 
 export interface CreateUserInput {
-  email: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface CreateUserOutput {
@@ -192,6 +231,14 @@ export interface GetUserByEmailInput {
 }
 
 export interface GetUserByEmailOutput {
+  user: User;
+}
+
+export interface GetUserByPhoneInput {
+  phone: string;
+}
+
+export interface GetUserByPhoneOutput {
   user: User;
 }
 

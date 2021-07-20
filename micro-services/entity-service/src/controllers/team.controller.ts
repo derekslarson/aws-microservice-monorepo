@@ -1,12 +1,13 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
+import { Failcode, ValidationError } from "runtypes";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamServiceInterface } from "../entity-services/team.service";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { CreateTeamDto } from "../dtos/createTeam.dto";
 import { GetTeamDto } from "../dtos/getTeam.dto";
-import { AddUserToTeamDto } from "../dtos/addUserToTeam.dto";
+import { AddUsersToTeamDto } from "../dtos/addUsersToTeam.dto";
 import { RemoveUserFromTeamDto } from "../dtos/removeUserFromTeam.dto";
 import { GetTeamsByUserIdDto } from "../dtos/getTeamsByUserId.dto";
 import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
@@ -72,27 +73,47 @@ export class TeamController extends BaseController implements TeamControllerInte
     }
   }
 
-  public async addUserToTeam(request: Request): Promise<Response> {
+  public async addUsersToTeam(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("addUserToTeam called", { request }, this.constructor.name);
+      this.loggerService.trace("addUsersToTeam called", { request }, this.constructor.name);
 
       const {
         jwtId,
         pathParameters: { teamId },
-        body: { email, role },
-      } = this.validationService.validate({ dto: AddUserToTeamDto, request, getUserIdFromJwt: true });
+        body: { users },
+      } = this.validationService.validate({ dto: AddUsersToTeamDto, request, getUserIdFromJwt: true });
 
+      if (users.some((user) => !!user.email && !!user.phone)) {
+        throw new ValidationError({
+          success: false,
+          code: Failcode.VALUE_INCORRECT,
+          message: "Error validating body.",
+          details: {
+            users: [
+              {
+                phone: "Required if email is missing",
+                email: "Required if phone is missing",
+              },
+            ],
+          },
+        });
+      }
       const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
 
       if (!isTeamAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.invitationOrchestratorService.inviteUserToTeam({ teamId, email, role });
+      const { failures } = await this.invitationOrchestratorService.addUsersToTeam({ teamId, users });
 
-      return this.generateSuccessResponse({ message: "User added to team." });
+      const response = {
+        message: `Users added to team${failures.length ? ", but with some failures." : "."}`,
+        ...(failures.length && { failures }),
+      };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
-      this.loggerService.error("Error in addUserToTeam", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in addUsersToTeam", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -151,7 +172,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 export interface TeamControllerInterface {
   createTeam(request: Request): Promise<Response>;
   getTeam(request: Request): Promise<Response>;
-  addUserToTeam(request: Request): Promise<Response>;
+  addUsersToTeam(request: Request): Promise<Response>;
   removeUserFromTeam(request: Request): Promise<Response>;
   getTeamsByUserId(request: Request): Promise<Response>;
 }

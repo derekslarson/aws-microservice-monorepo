@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
+import { BadRequestError, IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface, User as UserEntity } from "../repositories/user.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -17,13 +17,18 @@ export class UserService implements UserServiceInterface {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const { email } = params;
+      const { email, phone } = params;
+
+      if (!email && !phone) {
+        throw new BadRequestError("'email' or 'phone' is required.");
+      }
 
       const userId: UserId = `${KeyPrefix.User}${this.idService.generateId()}`;
 
       const user: UserEntity = {
         id: userId,
         email,
+        phone,
       };
 
       await this.userRepository.createUser({ user });
@@ -86,7 +91,8 @@ export interface UserServiceInterface {
 }
 
 export interface CreateUserInput {
-  email: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface CreateUserOutput {

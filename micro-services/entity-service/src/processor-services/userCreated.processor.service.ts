@@ -41,7 +41,7 @@ export class UserCreatedProcessorService implements DynamoProcessorServiceInterf
 
       const { newImage: user } = record;
 
-      await this.userCreatedSnsService.sendMessage({ id: user.id, email: user.email });
+      await this.userCreatedSnsService.sendMessage({ id: user.id, email: user.email, phone: user.phone });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

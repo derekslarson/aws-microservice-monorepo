@@ -200,10 +200,10 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const addUserToTeamHandler = new Lambda.Function(this, `AddUserToTeam_${id}`, {
+    const addUsersToTeamHandler = new Lambda.Function(this, `AddUsersToTeam_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/addUserToTeam"),
-      handler: "addUserToTeam.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/addUsersToTeam"),
+      handler: "addUsersToTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
@@ -571,7 +571,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       {
         path: "/teams/{teamId}/users",
         method: ApiGatewayV2.HttpMethod.POST,
-        handler: addUserToTeamHandler,
+        handler: addUsersToTeamHandler,
         authorizationScopes: [ "yac/team.write" ],
       },
       {

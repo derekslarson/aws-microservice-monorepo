@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, BadRequestError } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
 import { LoginInputDto } from "../models/login/login.input.model";
@@ -25,6 +25,10 @@ export class AuthController extends BaseController implements AuthControllerInte
 
       const loginInput = await this.validationService.validate(LoginInputDto, RequestPortion.Body, request.body);
 
+      if (!loginInput.email && !loginInput.phone) {
+        throw new BadRequestError("'email' or 'phone' are required");
+      }
+
       const responseBody = await this.authenticationService.login(loginInput);
 
       return this.generateSuccessResponse(responseBody);
@@ -40,6 +44,10 @@ export class AuthController extends BaseController implements AuthControllerInte
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
 
       const confirmInput = await this.validationService.validate(ConfirmationInputDto, RequestPortion.Body, request.body);
+
+      if (!confirmInput.email && !confirmInput.phone) {
+        throw new BadRequestError("'email' or 'phone' are required");
+      }
 
       const { confirmed, session, authorizationCode } = await this.authenticationService.confirm(confirmInput);
 

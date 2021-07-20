@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, AuthServiceLoginResponseBody } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, AuthServiceLoginResponseBody, BadRequestError } from "@yac/core";
 
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
@@ -27,6 +27,10 @@ export class AuthenticationController extends BaseController implements Authenti
 
       const loginInput = await this.validationService.validate(LoginInputDto, RequestPortion.Body, request.body);
 
+      if (!loginInput.email && !loginInput.phone) {
+        throw new BadRequestError("'email' or 'phone' are required");
+      }
+
       const { session } = await this.authenticationService.login(loginInput);
 
       const responseBody: AuthServiceLoginResponseBody = { session };
@@ -50,6 +54,10 @@ export class AuthenticationController extends BaseController implements Authenti
         ...confirmationRequestBody,
         xsrfToken: confirmationRequestCookies["XSRF-TOKEN"],
       };
+
+      if (!confirmationRequestBody.email && !confirmationRequestBody.phone) {
+        throw new BadRequestError("'email' or 'phone' are required");
+      }
 
       const confirmResponse = await this.authenticationService.confirm(confirmationRequestInput);
 

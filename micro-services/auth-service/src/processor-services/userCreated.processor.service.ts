@@ -35,7 +35,7 @@ export class UserCreatedProcessorService implements SnsProcessorServiceInterface
 
       const { message } = record;
 
-      await this.authenticationService.createUser({ id: message.id, email: message.email });
+      await this.authenticationService.createUser({ id: message.id, email: message.email, phone: message.phone });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

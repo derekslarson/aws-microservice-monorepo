@@ -9,5 +9,6 @@ export type UserSignedUpSnsMessage = {
 
 export type UserCreatedSnsMessage = {
   id: string;
-  email: string;
+  email?: string;
+  phone?: string;
 };

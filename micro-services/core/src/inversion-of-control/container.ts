@@ -25,6 +25,7 @@ import { unmarshallFactory, UnmarshallFactory } from "../factories/unmarshall.fa
 import { uuidV4Factory, UuidV4Factory } from "../factories/uuidV4.factory";
 import { S3EventController, S3EventControllerInterface } from "../controllers/s3Event.controller";
 import { DynamoStreamController, DynamoStreamControllerInterface } from "../controllers/dynamoStream.controller";
+import { SmsService, SmsServiceInterface } from "../services/sms.service";
 
 const coreContainerModule = new ContainerModule((bind) => {
   try {
@@ -36,6 +37,7 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<HttpRequestServiceInterface>(TYPES.HttpRequestServiceInterface).to(HttpRequestService);
     bind<IdServiceInterface>(TYPES.IdServiceInterface).to(IdService);
     bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);
+    bind<SmsServiceInterface>(TYPES.SmsServiceInterface).to(SmsService);
     // bind<UserSignedUpSnsServiceInterface>(TYPES.UserSignedUpSnsServiceInterface).to(UserSignedUpSnsService);
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
     bind<ValidationServiceV2Interface>(TYPES.ValidationServiceV2Interface).to(ValidationServiceV2);

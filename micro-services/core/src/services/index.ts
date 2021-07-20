@@ -3,6 +3,7 @@ export * from "./id.service";
 export * from "./http.request.service";
 export * from "./logger.service";
 export * from "./base.sns.service";
+export * from "./sms.service";
 export * from "./validation.service";
 export * from "./validation.service.v2";
 export * from "./interfaces/dynamo.processor.service.interface";

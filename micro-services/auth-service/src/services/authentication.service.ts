@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { AWSError, CognitoIdentityServiceProvider } from "aws-sdk";
-import { BadRequestError, HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
+import { BadRequestError, HttpRequestServiceInterface, LoggerServiceInterface, SmsServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
@@ -20,6 +20,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     @inject(TYPES.EnvConfigInterface) private config: AuthenticationServiceConfigInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MailServiceInterface) private mailService: MailServiceInterface,
+    @inject(TYPES.SmsServiceInterface) private smsService: SmsServiceInterface,
     @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestServiceInterface,
     @inject(TYPES.CognitoFactory) cognitoFactory: CognitoFactory,
     @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
@@ -32,7 +33,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const { email, id } = params;
+      const { id, email, phone } = params;
 
       const secretHash = this.createUserPoolClientSecretHash(id);
 
@@ -41,13 +42,22 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         SecretHash: secretHash,
         Username: id,
         Password: `YAC-${this.config.secret}`,
-        UserAttributes: [
-          {
-            Name: "email",
-            Value: email,
-          },
-        ],
+        UserAttributes: [],
       };
+
+      if (email) {
+        signUpParams.UserAttributes?.push({
+          Name: "email",
+          Value: email,
+        },);
+      }
+
+      if (phone) {
+        signUpParams.UserAttributes?.push({
+          Name: "phone_number",
+          Value: phone,
+        },);
+      }
 
       await this.cognito.signUp(signUpParams).promise();
     } catch (error: unknown) {
@@ -65,6 +75,14 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("login called", { loginInput }, this.constructor.name);
 
+      const { email, phone } = loginInput;
+
+      if (!email && !phone) {
+        throw new BadRequestError("'email' or 'phone' are required");
+      }
+
+      const username = email || phone;
+
       const authChallenge = this.crypto.randomDigits(6).join("");
 
       const updateUserAttributesParams: CognitoIdentityServiceProvider.Types.AdminUpdateUserAttributesRequest = {
@@ -75,19 +93,19 @@ export class AuthenticationService implements AuthenticationServiceInterface {
           },
         ],
         UserPoolId: this.config.userPool.id,
-        Username: loginInput.email,
+        Username: username,
       };
 
       await this.cognito.adminUpdateUserAttributes(updateUserAttributesParams).promise();
 
-      const secretHash = this.createUserPoolClientSecretHash(loginInput.email);
+      const secretHash = this.createUserPoolClientSecretHash(username);
 
       const initiateAuthParams: CognitoIdentityServiceProvider.Types.AdminInitiateAuthRequest = {
         UserPoolId: this.config.userPool.id,
         ClientId: this.config.userPool.yacClientId,
         AuthFlow: "CUSTOM_AUTH",
         AuthParameters: {
-          USERNAME: loginInput.email,
+          USERNAME: username,
           SECRET_HASH: secretHash,
         },
       };
@@ -98,7 +116,11 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         throw new Error("No session returned from initiateAuth.");
       }
 
-      await this.mailService.sendConfirmationCode(loginInput.email, authChallenge);
+      if (email) {
+        await this.mailService.sendConfirmationCode(loginInput.email, authChallenge);
+      } else {
+        await this.smsService.publish({ phoneNumber: phone, message: `Your Yac login code is ${authChallenge}` });
+      }
 
       return { session: initiateAuthResponse.Session };
     } catch (error: unknown) {
@@ -112,7 +134,15 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("confirm called", { confirmationInput }, this.constructor.name);
 
-      const secretHash = this.createUserPoolClientSecretHash(confirmationInput.email);
+      const { email, phone } = confirmationInput;
+
+      if (!email && !phone) {
+        throw new BadRequestError("'email' or 'phone' are required");
+      }
+
+      const username = email || phone;
+
+      const secretHash = this.createUserPoolClientSecretHash(username);
 
       const respondToAuthChallengeParams: CognitoIdentityServiceProvider.Types.AdminRespondToAuthChallengeRequest = {
         UserPoolId: this.config.userPool.id,
@@ -120,14 +150,14 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         Session: confirmationInput.session,
         ChallengeName: "CUSTOM_CHALLENGE",
         ChallengeResponses: {
-          USERNAME: confirmationInput.email,
+          USERNAME: username,
           ANSWER: confirmationInput.confirmationCode,
           SECRET_HASH: secretHash,
         },
       };
 
       const [ authorizationCode, respondToAuthChallengeResponse ] = await Promise.all([
-        this.getAuthorizationCode(confirmationInput.email, confirmationInput.clientId, confirmationInput.redirectUri, confirmationInput.xsrfToken),
+        this.getAuthorizationCode(username, confirmationInput.clientId, confirmationInput.redirectUri, confirmationInput.xsrfToken),
         this.cognito.adminRespondToAuthChallenge(respondToAuthChallengeParams).promise(),
       ]);
 
@@ -242,8 +272,9 @@ export interface AuthenticationServiceInterface {
 }
 
 export interface CreateUserInput {
-  email: string;
   id: string;
+  email?: string;
+  phone?: string;
 }
 
 export type CreateUserOutput = void;
