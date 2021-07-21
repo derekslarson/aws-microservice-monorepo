@@ -207,7 +207,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("getAuthorizationCode called", { username, clientId, redirectUri, xsrfToken }, this.constructor.name);
 
-      const data = `_csrf=${xsrfToken}&username=${username}&password=YAC-${this.config.secret}`;
+      const data = `_csrf=${xsrfToken}&username=${encodeURIComponent(username)}&password=YAC-${this.config.secret}`;
 
       const queryParameters = {
         response_type: "code",

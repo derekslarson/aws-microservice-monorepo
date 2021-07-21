@@ -186,6 +186,13 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       resources: [ "*" ],
     });
 
+    // Because we can't reference a resource for a phone number to allow,
+    // we have to allow everything except all valid arns, effectively only allowing phone numbers
+    const sendTextPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "sns:Publish" ],
+      notResources: [ "arn:aws:sns:*:*:*" ],
+    });
+
     const clientsUpdatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
       resources: [ clientsUpdatedSnsTopicArn ],
@@ -229,7 +236,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "login.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement, sendTextPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 

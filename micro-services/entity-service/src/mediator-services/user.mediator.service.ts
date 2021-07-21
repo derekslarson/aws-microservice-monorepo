@@ -24,16 +24,16 @@ export class UserMediatorService implements UserMediatorServiceInterface {
   public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
+      const { email, phone, username, realName } = params;
 
-      const { email, phone } = params;
-
-      if (!email && !phone) {
-        throw new BadRequestError("'email' or 'phone' is required.");
-      }
-
-      const [ { isPropertyUnique: isEmailUnique }, { isPropertyUnique: isPhoneUnique } ] = await Promise.all<IsPropertyUniqueOutput | Record<string, never>>([
+      const [
+        { isPropertyUnique: isEmailUnique },
+        { isPropertyUnique: isPhoneUnique },
+        { isPropertyUnique: isUsernameUnique },
+      ] = await Promise.all<IsPropertyUniqueOutput | Record<string, never>>([
         email ? this.uniquePropertyService.isPropertyUnique({ property: UniqueProperty.Email, value: email }) : {},
         phone ? this.uniquePropertyService.isPropertyUnique({ property: UniqueProperty.Phone, value: phone }) : {},
+        username ? this.uniquePropertyService.isPropertyUnique({ property: UniqueProperty.Username, value: username }) : {},
       ]);
 
       if (email && !isEmailUnique) {
@@ -44,11 +44,23 @@ export class UserMediatorService implements UserMediatorServiceInterface {
         throw new BadRequestError(`User already exists with phone ${phone}`);
       }
 
-      const { user } = await this.userService.createUser({ email, phone });
+      if (username && !isUsernameUnique) {
+        throw new BadRequestError(`User already exists with username ${username}`);
+      }
+
+      // Typescript loses the union type details during the param destructuring, so we need to cast below.
+      // We know at this point that email and/or phone is defined.
+      const { user } = await this.userService.createUser({
+        email: email as string,
+        phone: phone as string,
+        username,
+        realName,
+      });
 
       await Promise.all<unknown>([
         email && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Email, value: email, userId: user.id }),
         phone && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Phone, value: phone, userId: user.id }),
+        username && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Username, value: username, userId: user.id }),
       ]);
 
       return { user };
@@ -116,6 +128,29 @@ export class UserMediatorService implements UserMediatorServiceInterface {
       return { user };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUserByPhone", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getUserByUsername(params: GetUserByUsernameInput): Promise<GetUserByUsernameOutput> {
+    try {
+      this.loggerService.trace("getUserByUsername called", { params }, this.constructor.name);
+
+      const { username } = params;
+      let userId: UserId;
+
+      try {
+        ({ uniqueProperty: { userId } } = await this.uniquePropertyService.getUniqueProperty({ property: UniqueProperty.Username, value: username }));
+      } catch (error) {
+        throw new NotFoundError("User not found");
+      }
+
+      const { user } = await this.getUser({ userId });
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUserByUsername", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -201,6 +236,7 @@ export interface UserMediatorServiceInterface {
   getUser(params: GetUserInput): Promise<GetUserOutput>;
   getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput>;
   getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput>;
+  getUserByUsername(params: GetUserByUsernameInput): Promise<GetUserByUsernameOutput>;
   getUsersByTeamId(params: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput>;
   getUsersByGroupId(params: GetUsersByGroupIdInput): Promise<GetUsersByGroupIdOutput>;
   getUsersByMeetingId(params: GetUsersByMeetingIdInput): Promise<GetUsersByMeetingIdOutput>;
@@ -209,10 +245,21 @@ export interface UserMediatorServiceInterface {
 export type User = UserEntity;
 export type TeamUserRelationship = TeamUserRelationshipEntity;
 
-export interface CreateUserInput {
+interface BaseCreateUserInput {
   email?: string;
   phone?: string;
+  username?: string;
+  realName?: string;
 }
+interface CreateUserEmailRequiredInput extends Omit<BaseCreateUserInput, "email"> {
+  email: string;
+}
+
+interface CreateUserPhoneRequiredInput extends Omit<BaseCreateUserInput, "phone"> {
+  phone: string;
+}
+
+export type CreateUserInput = CreateUserEmailRequiredInput | CreateUserPhoneRequiredInput;
 
 export interface CreateUserOutput {
   user: User;
@@ -239,6 +286,14 @@ export interface GetUserByPhoneInput {
 }
 
 export interface GetUserByPhoneOutput {
+  user: User;
+}
+
+export interface GetUserByUsernameInput {
+  username: string;
+}
+
+export interface GetUserByUsernameOutput {
   user: User;
 }
 

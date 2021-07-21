@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/core";
-import { Failcode, ValidationError } from "runtypes";
 import { TYPES } from "../inversion-of-control/types";
 import { GetUserDto } from "../dtos/getUser.dto";
 import { GetUsersByTeamIdDto } from "../dtos/getUsersByTeamId.dto";
@@ -30,21 +29,9 @@ export class UserController extends BaseController implements UserControllerInte
     try {
       this.loggerService.trace("createUser called", { request }, this.constructor.name);
 
-      const { body: { email, phone } } = this.validationService.validate({ dto: CreateUserDto, request });
+      const { body } = this.validationService.validate({ dto: CreateUserDto, request });
 
-      if (!email && !phone) {
-        throw new ValidationError({
-          success: false,
-          code: Failcode.VALUE_INCORRECT,
-          message: "Error validating body.",
-          details: {
-            phone: "Required if email is missing",
-            email: "Required if phone is missing",
-          },
-        });
-      }
-
-      const { user } = await this.userMediatorService.createUser({ email, phone });
+      const { user } = await this.userMediatorService.createUser(body);
 
       return this.generateSuccessResponse({ user });
     } catch (error: unknown) {

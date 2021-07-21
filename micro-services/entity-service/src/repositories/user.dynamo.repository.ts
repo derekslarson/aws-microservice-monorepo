@@ -89,6 +89,8 @@ export interface User {
   id: UserId;
   email?: string;
   phone?: string;
+  username?: string;
+  realName?: string;
 }
 
 export interface RawUser extends User {

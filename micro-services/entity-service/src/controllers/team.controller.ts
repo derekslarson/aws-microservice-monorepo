@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
-import { Failcode, ValidationError } from "runtypes";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamServiceInterface } from "../entity-services/team.service";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
@@ -83,21 +82,6 @@ export class TeamController extends BaseController implements TeamControllerInte
         body: { users },
       } = this.validationService.validate({ dto: AddUsersToTeamDto, request, getUserIdFromJwt: true });
 
-      if (users.some((user) => !!user.email && !!user.phone)) {
-        throw new ValidationError({
-          success: false,
-          code: Failcode.VALUE_INCORRECT,
-          message: "Error validating body.",
-          details: {
-            users: [
-              {
-                phone: "Required if email is missing",
-                email: "Required if phone is missing",
-              },
-            ],
-          },
-        });
-      }
       const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
 
       if (!isTeamAdmin) {
