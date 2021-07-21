@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { BadRequestError, LoggerServiceInterface, NotFoundError, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { UserServiceInterface, User as UserEntity } from "../entity-services/user.service";
+import { UserServiceInterface, CreateUserInput as UserServiceCreateUserInput, User as UserEntity } from "../entity-services/user.service";
 import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
@@ -24,13 +24,14 @@ export class UserMediatorService implements UserMediatorServiceInterface {
   public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
+
       const { email, phone, username, realName } = params;
 
       const [
         { isPropertyUnique: isEmailUnique },
         { isPropertyUnique: isPhoneUnique },
         { isPropertyUnique: isUsernameUnique },
-      ] = await Promise.all<IsPropertyUniqueOutput | Record<string, never>>([
+      ] = await Promise.all<IsPropertyUniqueOutput | Record<string, undefined>>([
         email ? this.uniquePropertyService.isPropertyUnique({ property: UniqueProperty.Email, value: email }) : {},
         phone ? this.uniquePropertyService.isPropertyUnique({ property: UniqueProperty.Phone, value: phone }) : {},
         username ? this.uniquePropertyService.isPropertyUnique({ property: UniqueProperty.Username, value: username }) : {},
@@ -50,12 +51,15 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       // Typescript loses the union type details during the param destructuring, so we need to cast below.
       // We know at this point that email and/or phone is defined.
-      const { user } = await this.userService.createUser({
-        email: email as string,
-        phone: phone as string,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const userServiceCreateUserInput = {
+        email,
+        phone,
         username,
         realName,
-      });
+      } as UserServiceCreateUserInput;
+
+      const { user } = await this.userService.createUser(userServiceCreateUserInput);
 
       await Promise.all<unknown>([
         email && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Email, value: email, userId: user.id }),
@@ -92,19 +96,19 @@ export class UserMediatorService implements UserMediatorServiceInterface {
       this.loggerService.trace("getUserByEmail called", { params }, this.constructor.name);
 
       const { email } = params;
-      let userId: UserId;
 
-      try {
-        ({ uniqueProperty: { userId } } = await this.uniquePropertyService.getUniqueProperty({ property: UniqueProperty.Email, value: email }));
-      } catch (error) {
-        throw new NotFoundError("User not found");
-      }
+      const { uniqueProperty: { userId } } = await this.uniquePropertyService.getUniqueProperty({ property: UniqueProperty.Email, value: email });
 
       const { user } = await this.getUser({ userId });
 
       return { user };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUserByEmail", { error, params }, this.constructor.name);
+
+      if (error instanceof NotFoundError) {
+        // to mask potential 'Unique Property not found.'
+        error.message = "User not found.";
+      }
 
       throw error;
     }
@@ -115,19 +119,19 @@ export class UserMediatorService implements UserMediatorServiceInterface {
       this.loggerService.trace("getUserByPhone called", { params }, this.constructor.name);
 
       const { phone } = params;
-      let userId: UserId;
 
-      try {
-        ({ uniqueProperty: { userId } } = await this.uniquePropertyService.getUniqueProperty({ property: UniqueProperty.Phone, value: phone }));
-      } catch (error) {
-        throw new NotFoundError("User not found");
-      }
+      const { uniqueProperty: { userId } } = await this.uniquePropertyService.getUniqueProperty({ property: UniqueProperty.Phone, value: phone });
 
       const { user } = await this.getUser({ userId });
 
       return { user };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUserByPhone", { error, params }, this.constructor.name);
+
+      if (error instanceof NotFoundError) {
+        // to mask potential 'Unique Property not found.'
+        error.message = "User not found.";
+      }
 
       throw error;
     }
@@ -138,19 +142,63 @@ export class UserMediatorService implements UserMediatorServiceInterface {
       this.loggerService.trace("getUserByUsername called", { params }, this.constructor.name);
 
       const { username } = params;
-      let userId: UserId;
 
-      try {
-        ({ uniqueProperty: { userId } } = await this.uniquePropertyService.getUniqueProperty({ property: UniqueProperty.Username, value: username }));
-      } catch (error) {
-        throw new NotFoundError("User not found");
-      }
+      const { uniqueProperty: { userId } } = await this.uniquePropertyService.getUniqueProperty({ property: UniqueProperty.Username, value: username });
 
       const { user } = await this.getUser({ userId });
 
       return { user };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUserByUsername", { error, params }, this.constructor.name);
+
+      if (error instanceof NotFoundError) {
+        // to mask potential 'Unique Property not found.'
+        error.message = "User not found.";
+      }
+
+      throw error;
+    }
+  }
+
+  public async getOrCreateUserByEmail(params: GetOrCreateUserByEmailInput): Promise<GetOrCreateUserByEmailOutput> {
+    try {
+      this.loggerService.trace("getOrCreateUserByEmail called", { params }, this.constructor.name);
+
+      const { email } = params;
+
+      let user: User;
+
+      try {
+        ({ user } = await this.getUserByEmail({ email }));
+      } catch (error) {
+        ({ user } = await this.createUser({ email }));
+      }
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getOrCreateUserByEmail", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getOrCreateUserByPhone(params: GetOrCreateUserByPhoneInput): Promise<GetOrCreateUserByPhoneOutput> {
+    try {
+      this.loggerService.trace("getOrCreateUserByPhone called", { params }, this.constructor.name);
+
+      const { phone } = params;
+
+      let user: User;
+
+      try {
+        ({ user } = await this.getUserByPhone({ phone }));
+      } catch (error) {
+        ({ user } = await this.createUser({ phone }));
+      }
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getOrCreateUserByPhone", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -237,6 +285,8 @@ export interface UserMediatorServiceInterface {
   getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput>;
   getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput>;
   getUserByUsername(params: GetUserByUsernameInput): Promise<GetUserByUsernameOutput>;
+  getOrCreateUserByEmail(params: GetOrCreateUserByEmailInput): Promise<GetUserByEmailOutput>;
+  getOrCreateUserByPhone(params: GetOrCreateUserByPhoneInput): Promise<GetUserByPhoneOutput>;
   getUsersByTeamId(params: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput>;
   getUsersByGroupId(params: GetUsersByGroupIdInput): Promise<GetUsersByGroupIdOutput>;
   getUsersByMeetingId(params: GetUsersByMeetingIdInput): Promise<GetUsersByMeetingIdOutput>;
@@ -328,4 +378,20 @@ export interface GetUsersByMeetingIdInput {
 export interface GetUsersByMeetingIdOutput {
   users: WithRole<User>[];
   lastEvaluatedKey?: string;
+}
+
+export interface GetOrCreateUserByEmailInput {
+  email: string;
+}
+
+export interface GetOrCreateUserByEmailOutput {
+  user: User;
+}
+
+export interface GetOrCreateUserByPhoneInput {
+  phone: string;
+}
+
+export interface GetOrCreateUserByPhoneOutput {
+  user: User;
 }
