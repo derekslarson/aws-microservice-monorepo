@@ -26,10 +26,10 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     try {
       this.loggerService.trace("addUsersAsFriends called", { params }, this.constructor.name);
 
-      const { userId, invitations } = params;
+      const { userId, users } = params;
 
       const { failures } = await this.handleInvitations({
-        invitations,
+        invitations: users,
         invitationFunc: (invitation) => this.addUserAsFriend({ userId, invitation }),
       });
 
@@ -45,10 +45,10 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     try {
       this.loggerService.trace("addUsersToTeam called", { params }, this.constructor.name);
 
-      const { teamId, invitations } = params;
+      const { teamId, users } = params;
 
       const { failures } = await this.handleInvitations({
-        invitations,
+        invitations: users,
         invitationFunc: (invitation) => this.addUserToTeam({ teamId, invitation }),
       });
 
@@ -64,10 +64,10 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     try {
       this.loggerService.trace("addUsersToGroup called", { params }, this.constructor.name);
 
-      const { groupId, invitations } = params;
+      const { groupId, users } = params;
 
       const { failures } = await this.handleInvitations({
-        invitations,
+        invitations: users,
         invitationFunc: (invitation) => this.addUserToGroup({ groupId, invitation }),
       });
 
@@ -83,10 +83,10 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     try {
       this.loggerService.trace("addUsersToMeeting called", { params }, this.constructor.name);
 
-      const { meetingId, invitations } = params;
+      const { meetingId, users } = params;
 
       const { failures } = await this.handleInvitations({
-        invitations,
+        invitations: users,
         invitationFunc: (invitation) => this.addUserToMeeting({ meetingId, invitation }),
       });
 
@@ -246,7 +246,7 @@ export type FriendInvitation = Omit<Invitation, "role">;
 
 export interface AddUsersAsFriendsInput {
   userId: UserId;
-  invitations: FriendInvitation[];
+  users: FriendInvitation[];
 }
 
 export interface AddUsersAsFriendsOutput {
@@ -255,7 +255,7 @@ export interface AddUsersAsFriendsOutput {
 
 export interface AddUsersToTeamInput {
   teamId: TeamId;
-  invitations: Invitation[];
+  users: Invitation[];
 }
 
 export interface AddUsersToTeamOutput {
@@ -264,7 +264,7 @@ export interface AddUsersToTeamOutput {
 
 export interface AddUsersToGroupInput {
   groupId: GroupId;
-  invitations: Invitation[];
+  users: Invitation[];
 }
 
 export interface AddUsersToGroupOutput {
@@ -273,7 +273,7 @@ export interface AddUsersToGroupOutput {
 
 export interface AddUsersToMeetingInput {
   meetingId: MeetingId;
-  invitations: Invitation[];
+  users: Invitation[];
 }
 
 export interface AddUsersToMeetingOutput {

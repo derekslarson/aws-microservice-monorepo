@@ -88,7 +88,7 @@ export class TeamController extends BaseController implements TeamControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { failures } = await this.invitationOrchestratorService.addUsersToTeam({ teamId, invitations: users });
+      const { failures } = await this.invitationOrchestratorService.addUsersToTeam({ teamId, users });
 
       const response = {
         message: `Users added to team${failures.length ? ", but with some failures." : "."}`,
