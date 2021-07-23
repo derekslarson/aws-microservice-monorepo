@@ -173,6 +173,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { conversations, lastEvaluatedKey } = await this.conversationService.getConversationsByTeamId({
         teamId,
+        type: ConversationType.Meeting,
         exclusiveStartKey,
         limit,
       });

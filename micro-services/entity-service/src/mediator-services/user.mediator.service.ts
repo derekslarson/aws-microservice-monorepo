@@ -52,26 +52,39 @@ export class UserMediatorService implements UserMediatorServiceInterface {
         throw new BadRequestError(`User already exists with username ${username}`);
       }
 
+      const { image, mimeType } = this.imageFileService.createDefaultImage();
+
       // Typescript loses the union type details during the param destructuring, so we need to cast below.
       // We know at this point that email and/or phone is defined.
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       const userServiceCreateUserInput = {
+        imageMimeType: mimeType,
         email,
         phone,
         username,
         realName,
       } as UserServiceCreateUserInput;
 
-      const { user } = await this.userService.createUser(userServiceCreateUserInput);
-
-      const { image, mimeType } = this.imageFileService.createDefaultImage();
+      const { user: userEntity } = await this.userService.createUser(userServiceCreateUserInput);
 
       await Promise.all<unknown>([
-        this.imageFileService.uploadFile({ entityType: EntityType.User, entityId: user.id, file: image, mimeType }),
-        email && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Email, value: email, userId: user.id }),
-        phone && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Phone, value: phone, userId: user.id }),
-        username && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Username, value: username, userId: user.id }),
+        this.imageFileService.uploadFile({ entityType: EntityType.User, entityId: userEntity.id, file: image, mimeType }),
+        email && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Email, value: email, userId: userEntity.id }),
+        phone && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Phone, value: phone, userId: userEntity.id }),
+        username && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Username, value: username, userId: userEntity.id }),
       ]);
+
+      const { signedUrl } = this.imageFileService.getSignedUrl({
+        operation: "get",
+        entityType: EntityType.User,
+        entityId: userEntity.id,
+        mimeType: userEntity.imageMimeType,
+      });
+
+      const user: User = {
+        ...userEntity,
+        image: signedUrl,
+      };
 
       return { user };
     } catch (error: unknown) {
@@ -87,7 +100,19 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const { userId } = params;
 
-      const { user } = await this.userService.getUser({ userId });
+      const { user: userEntity } = await this.userService.getUser({ userId });
+
+      const { signedUrl } = this.imageFileService.getSignedUrl({
+        operation: "get",
+        entityType: EntityType.User,
+        entityId: userEntity.id,
+        mimeType: userEntity.imageMimeType,
+      });
+
+      const user: User = {
+        ...userEntity,
+        image: signedUrl,
+      };
 
       return { user };
     } catch (error: unknown) {
@@ -220,11 +245,26 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const userIds = teamUserRelationships.map((relationship) => relationship.userId);
 
-      const { users } = await this.userService.getUsers({ userIds });
+      const { users: userEntities } = await this.userService.getUsers({ userIds });
 
-      const usersWithRoles = users.map((user, i) => ({ ...user, role: teamUserRelationships[i].role }));
+      const users = userEntities.map((userEntity, i) => {
+        const { signedUrl } = this.imageFileService.getSignedUrl({
+          operation: "get",
+          entityType: EntityType.User,
+          entityId: userEntity.id,
+          mimeType: userEntity.imageMimeType,
+        });
 
-      return { users: usersWithRoles, lastEvaluatedKey };
+        const user: WithRole<User> = {
+          ...userEntity,
+          image: signedUrl,
+          role: teamUserRelationships[i].role,
+        };
+
+        return user;
+      });
+
+      return { users, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUsersByTeamId", { error, params }, this.constructor.name);
 
@@ -246,11 +286,26 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const userIds = conversationUserRelationships.map((relationship) => relationship.userId);
 
-      const { users } = await this.userService.getUsers({ userIds });
+      const { users: userEntities } = await this.userService.getUsers({ userIds });
 
-      const usersWithRoles: WithRole<User>[] = users.map((user, i) => ({ ...user, role: conversationUserRelationships[i].role }));
+      const users = userEntities.map((userEntity, i) => {
+        const { signedUrl } = this.imageFileService.getSignedUrl({
+          operation: "get",
+          entityType: EntityType.User,
+          entityId: userEntity.id,
+          mimeType: userEntity.imageMimeType,
+        });
 
-      return { users: usersWithRoles, lastEvaluatedKey };
+        const user: WithRole<User> = {
+          ...userEntity,
+          image: signedUrl,
+          role: conversationUserRelationships[i].role,
+        };
+
+        return user;
+      });
+
+      return { users, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUsersByGroupId", { error, params }, this.constructor.name);
 
@@ -272,11 +327,26 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const userIds = conversationUserRelationships.map((relationship) => relationship.userId);
 
-      const { users } = await this.userService.getUsers({ userIds });
+      const { users: userEntities } = await this.userService.getUsers({ userIds });
 
-      const usersWithRoles: WithRole<User>[] = users.map((user, i) => ({ ...user, role: conversationUserRelationships[i].role }));
+      const users = userEntities.map((userEntity, i) => {
+        const { signedUrl } = this.imageFileService.getSignedUrl({
+          operation: "get",
+          entityType: EntityType.User,
+          entityId: userEntity.id,
+          mimeType: userEntity.imageMimeType,
+        });
 
-      return { users: usersWithRoles, lastEvaluatedKey };
+        const user: WithRole<User> = {
+          ...userEntity,
+          image: signedUrl,
+          role: conversationUserRelationships[i].role,
+        };
+
+        return user;
+      });
+
+      return { users, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUsersByMeetingId", { error, params }, this.constructor.name);
 
@@ -298,7 +368,10 @@ export interface UserMediatorServiceInterface {
   getUsersByMeetingId(params: GetUsersByMeetingIdInput): Promise<GetUsersByMeetingIdOutput>;
 }
 
-export type User = UserEntity;
+export interface User extends Omit<UserEntity, "imageMimeType"> {
+  image: string;
+}
+
 export type TeamUserRelationship = TeamUserRelationshipEntity;
 
 interface BaseCreateUserInput {

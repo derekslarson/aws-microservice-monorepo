@@ -7,6 +7,8 @@ import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { GroupId } from "../types/groupId.type";
 import { ConversationType } from "../enums/conversationType.enum";
+import { ImageFileServiceInterface } from "../entity-services/image.file.service";
+import { EntityType } from "../enums/entityType.enum";
 
 @injectable()
 export class GroupMediatorService implements GroupMediatorServiceInterface {
@@ -14,6 +16,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
+    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
   ) {}
 
   public async createGroup(params: CreateGroupInput): Promise<CreateGroupOutput> {
@@ -22,17 +25,33 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { name, createdBy, teamId } = params;
 
-      const { conversation } = await this.conversationService.createGroupConversation({
+      const { image, mimeType } = this.imageFileService.createDefaultImage();
+
+      const { conversation: groupEntity } = await this.conversationService.createGroupConversation({
+        imageMimeType: mimeType,
         name,
         createdBy,
         teamId,
       });
 
-      await this.conversationUserRelationshipService.createConversationUserRelationship({ userId: createdBy, conversationId: conversation.id, role: Role.Admin });
+      await Promise.all([
+        this.imageFileService.uploadFile({ entityType: EntityType.GroupConversation, entityId: groupEntity.id, file: image, mimeType }),
+        this.conversationUserRelationshipService.createConversationUserRelationship({ userId: createdBy, conversationId: groupEntity.id, role: Role.Admin }),
+      ]);
 
-      const { type, ...restOfGroup } = conversation;
+      const { signedUrl } = this.imageFileService.getSignedUrl({
+        operation: "get",
+        entityType: EntityType.User,
+        entityId: groupEntity.id,
+        mimeType: groupEntity.imageMimeType,
+      });
 
-      const group: Group = restOfGroup;
+      const { type, ...restOfGroupEntity } = groupEntity;
+
+      const group: Group = {
+        ...restOfGroupEntity,
+        image: signedUrl,
+      };
 
       return { group };
     } catch (error: unknown) {
@@ -48,11 +67,21 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { groupId } = params;
 
-      const { conversation } = await this.conversationService.getConversation({ conversationId: groupId });
+      const { conversation: groupEntity } = await this.conversationService.getConversation({ conversationId: groupId });
 
-      const { type, ...restOfGroup } = conversation as GroupConversation;
+      const { signedUrl } = this.imageFileService.getSignedUrl({
+        operation: "get",
+        entityType: EntityType.User,
+        entityId: groupEntity.id,
+        mimeType: groupEntity.imageMimeType,
+      });
 
-      const group: Group = restOfGroup;
+      const { type, ...restOfGroupEntity } = groupEntity;
+
+      const group: Group = {
+        ...restOfGroupEntity,
+        image: signedUrl,
+      };
 
       return { group };
     } catch (error: unknown) {
@@ -140,15 +169,26 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
 
-      const { conversations } = await this.conversationService.getConversations({ conversationIds });
+      const { conversations: groupEntities } = await this.conversationService.getConversations({ conversationIds });
 
-      const groupsWithRoles: WithRole<Group>[] = (conversations as GroupConversation[]).map((group, i) => {
-        const { type, ...rest } = group;
+      const groups = groupEntities.map((groupEntity, i) => {
+        const { signedUrl } = this.imageFileService.getSignedUrl({
+          operation: "get",
+          entityType: EntityType.User,
+          entityId: groupEntity.id,
+          mimeType: groupEntity.imageMimeType,
+        });
 
-        return { ...rest, role: conversationUserRelationships[i].role };
+        const { type, ...restOfGroupEntity } = groupEntity;
+
+        return {
+          ...restOfGroupEntity,
+          image: signedUrl,
+          role: conversationUserRelationships[i].role,
+        };
       });
 
-      return { groups: groupsWithRoles, lastEvaluatedKey };
+      return { groups, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroupsByUserId", { error, params }, this.constructor.name);
 
@@ -162,13 +202,28 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { teamId, exclusiveStartKey, limit } = params;
 
-      const { conversations, lastEvaluatedKey } = await this.conversationService.getConversationsByTeamId({
+      const { conversations: groupEntities, lastEvaluatedKey } = await this.conversationService.getConversationsByTeamId({
         teamId,
+        type: ConversationType.Group,
         exclusiveStartKey,
         limit,
       });
 
-      const groups = conversations.map(({ type, ...group }) => group) as GroupConversation[];
+      const groups = groupEntities.map((groupEntity) => {
+        const { signedUrl } = this.imageFileService.getSignedUrl({
+          operation: "get",
+          entityType: EntityType.User,
+          entityId: groupEntity.id,
+          mimeType: groupEntity.imageMimeType,
+        });
+
+        const { type, ...restOfGroupEntity } = groupEntity;
+
+        return {
+          ...restOfGroupEntity,
+          image: signedUrl,
+        };
+      });
 
       return { groups, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -235,7 +290,10 @@ export interface GroupMediatorServiceInterface {
   isGroupAdmin(params: IsGroupAdminInput): Promise<IsGroupAdminOutput>;
 }
 
-export type Group = Omit<GroupConversation, "type">;
+export interface Group extends Omit<GroupConversation, "type" | "imageMimeType"> {
+  image: string;
+}
+
 export interface Membership { groupId: string; userId: string; role: Role; }
 
 export interface CreateGroupInput {

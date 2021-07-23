@@ -5,6 +5,7 @@ import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface, User as UserEntity } from "../repositories/user.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { UserId } from "../types/userId.type";
+import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
 export class UserService implements UserServiceInterface {
@@ -18,12 +19,13 @@ export class UserService implements UserServiceInterface {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const { email, phone, username, realName } = params;
+      const { email, phone, username, realName, imageMimeType } = params;
 
       const userId: UserId = `${KeyPrefix.User}${this.idService.generateId()}`;
 
       const user: UserEntity = {
         id: userId,
+        imageMimeType,
         email,
         phone,
         username,
@@ -90,6 +92,7 @@ export interface UserServiceInterface {
 }
 
 interface BaseCreateUserInput {
+  imageMimeType: ImageMimeType;
   email?: string;
   phone?: string;
   username?: string;

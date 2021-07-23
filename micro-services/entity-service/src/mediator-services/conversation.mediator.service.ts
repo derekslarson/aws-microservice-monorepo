@@ -106,10 +106,10 @@ export interface ConversationMediatorServiceInterface {
 export interface Message extends MessageEntity {
   fetchUrl: string;
 }
-export interface Conversation extends ConversationEntity {
+export type Conversation<T extends ConversationId = ConversationId> = ConversationEntity<T> & {
   unreadMessages: number;
   recentMessage?: Message;
-}
+};
 
 export interface GetConversationsByUserIdInput {
   userId: UserId;

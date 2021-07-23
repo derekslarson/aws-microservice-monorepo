@@ -5,6 +5,8 @@ import { TeamServiceInterface, Team as TeamEntity } from "../entity-services/tea
 import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
+import { ImageFileServiceInterface } from "../entity-services/image.file.service";
+import { EntityType } from "../enums/entityType.enum";
 
 @injectable()
 export class TeamMediatorService implements TeamMediatorServiceInterface {
@@ -12,6 +14,7 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
     @inject(TYPES.TeamUserRelationshipServiceInterface) private teamUserRelationshipService: TeamUserRelationshipServiceInterface,
+    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
   ) {}
 
   public async createTeam(params: CreateTeamInput): Promise<CreateTeamOutput> {
@@ -20,13 +23,33 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { name, createdBy } = params;
 
-      const { team } = await this.teamService.createTeam({ name, createdBy });
+      const { image, mimeType } = this.imageFileService.createDefaultImage();
 
-      const { teamUserRelationship } = await this.teamUserRelationshipService.createTeamUserRelationship({ teamId: team.id, userId: createdBy, role: Role.Admin });
+      const { team: teamEntity } = await this.teamService.createTeam({
+        name,
+        createdBy,
+        imageMimeType: mimeType,
+      });
 
-      const teamWithRole = { ...team, role: teamUserRelationship.role };
+      const [ { teamUserRelationship } ] = await Promise.all([
+        this.teamUserRelationshipService.createTeamUserRelationship({ teamId: teamEntity.id, userId: createdBy, role: Role.Admin }),
+        this.imageFileService.uploadFile({ entityType: EntityType.Team, entityId: teamEntity.id, file: image, mimeType }),
+      ]);
 
-      return { team: teamWithRole };
+      const { signedUrl } = this.imageFileService.getSignedUrl({
+        operation: "get",
+        entityType: EntityType.Team,
+        entityId: teamEntity.id,
+        mimeType: teamEntity.imageMimeType,
+      });
+
+      const team: WithRole<Team> = {
+        ...teamEntity,
+        image: signedUrl,
+        role: teamUserRelationship.role,
+      };
+
+      return { team };
     } catch (error: unknown) {
       this.loggerService.error("Error in createTeam", { error, params }, this.constructor.name);
 
@@ -40,7 +63,19 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { teamId } = params;
 
-      const { team } = await this.teamService.getTeam({ teamId });
+      const { team: teamEntity } = await this.teamService.getTeam({ teamId });
+
+      const { signedUrl } = this.imageFileService.getSignedUrl({
+        operation: "get",
+        entityType: EntityType.Team,
+        entityId: teamEntity.id,
+        mimeType: teamEntity.imageMimeType,
+      });
+
+      const team: Team = {
+        ...teamEntity,
+        image: signedUrl,
+      };
 
       return { team };
     } catch (error: unknown) {
@@ -90,11 +125,24 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const teamIds = teamUserRelationships.map((relationship) => relationship.teamId);
 
-      const { teams } = await this.teamService.getTeams({ teamIds });
+      const { teams: teamEntities } = await this.teamService.getTeams({ teamIds });
 
-      const teamsWithRoles = teams.map((user, i) => ({ ...user, role: teamUserRelationships[i].role }));
+      const teams = teamEntities.map((teamEntity, i) => {
+        const { signedUrl } = this.imageFileService.getSignedUrl({
+          operation: "get",
+          entityType: EntityType.User,
+          entityId: teamEntity.id,
+          mimeType: teamEntity.imageMimeType,
+        });
 
-      return { teams: teamsWithRoles, lastEvaluatedKey };
+        return {
+          ...teamEntity,
+          image: signedUrl,
+          role: teamUserRelationships[i].role,
+        };
+      });
+
+      return { teams, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getTeamsByUserId", { error, params }, this.constructor.name);
 
@@ -152,8 +200,10 @@ export interface TeamMediatorServiceInterface {
   isTeamMember(params: IsTeamMemberInput): Promise<IsTeamMemberOutput>;
   isTeamAdmin(params: IsTeamAdminInput): Promise<IsTeamAdminOutput>;
 }
+export interface Team extends Omit<TeamEntity, "imageMimeType"> {
+  image: string;
+}
 
-export type Team = TeamEntity;
 export type TeamUserRelationship = TeamUserRelationshipEntity;
 
 export interface CreateTeamInput {
@@ -162,7 +212,7 @@ export interface CreateTeamInput {
 }
 
 export interface CreateTeamOutput {
-  team: Team;
+  team: WithRole<Team>;
 }
 
 export interface GetTeamInput {

@@ -6,6 +6,7 @@ import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
 import { UserId } from "../types/userId.type";
+import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
 export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implements UserRepositoryInterface {
@@ -87,6 +88,7 @@ type UserRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
 
 export interface User {
   id: UserId;
+  imageMimeType: ImageMimeType;
   email?: string;
   phone?: string;
   username?: string;

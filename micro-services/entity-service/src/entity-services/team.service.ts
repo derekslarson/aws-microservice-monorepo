@@ -5,6 +5,7 @@ import { TeamRepositoryInterface, Team as TeamEntity } from "../repositories/tea
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { TeamId } from "../types/teamId.type";
 import { UserId } from "../types/userId.type";
+import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
 export class TeamService implements TeamServiceInterface {
@@ -18,12 +19,13 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("createTeam called", { params }, this.constructor.name);
 
-      const { name, createdBy } = params;
+      const { imageMimeType, name, createdBy } = params;
 
       const teamId: TeamId = `${KeyPrefix.Team}${this.idService.generateId()}`;
 
       const team: TeamEntity = {
         id: teamId,
+        imageMimeType,
         name,
         createdBy,
       };
@@ -88,6 +90,7 @@ export interface TeamServiceInterface {
 }
 
 export interface CreateTeamInput {
+  imageMimeType: ImageMimeType;
   name: string;
   createdBy: UserId;
 }

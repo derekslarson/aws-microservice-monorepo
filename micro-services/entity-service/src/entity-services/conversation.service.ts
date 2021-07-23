@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationRepositoryInterface, Conversation as ConversationEntity } from "../repositories/conversation.dynamo.repository";
+import { Conversation as ConversationEntity, ConversationRepositoryInterface, FriendConversation, GroupConversation, MeetingConversation } from "../repositories/conversation.dynamo.repository";
 import { ConversationType } from "../enums/conversationType.enum";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { FriendConvoId } from "../types/friendConvoId.type";
@@ -10,6 +10,7 @@ import { MeetingId } from "../types/meetingId.type";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { ConversationId } from "../types/conversationId.type";
+import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
 export class ConversationService implements ConversationServiceInterface {
@@ -23,11 +24,12 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createFriendConversation called", { params }, this.constructor.name);
 
-      const { userIds, teamId } = params;
+      const { imageMimeType, userIds, teamId } = params;
 
       const conversationId = `${KeyPrefix.FriendConversation}${userIds.sort().join("-")}` as FriendConvoId;
 
       const conversation: FriendConversation = {
+        imageMimeType,
         id: conversationId,
         type: ConversationType.Friend,
         createdAt: new Date().toISOString(),
@@ -54,7 +56,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { conversation } = await this.conversationRepository.getConversation({ conversationId });
 
-      return { conversation: conversation as FriendConversation };
+      return { conversation };
     } catch (error: unknown) {
       this.loggerService.error("Error in getFriendConversationByUserIds", { error, params }, this.constructor.name);
 
@@ -66,11 +68,12 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createGroupConversation called", { params }, this.constructor.name);
 
-      const { name, createdBy, teamId } = params;
+      const { imageMimeType, name, createdBy, teamId } = params;
 
       const conversationId = `${KeyPrefix.GroupConversation}${this.idService.generateId()}` as GroupId;
 
       const conversation: GroupConversation = {
+        imageMimeType,
         id: conversationId,
         name,
         createdBy,
@@ -93,11 +96,12 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createMeetingConversation called", { params }, this.constructor.name);
 
-      const { name, createdBy, teamId, dueDate } = params;
+      const { imageMimeType, name, createdBy, teamId, dueDate } = params;
 
       const conversationId = `${KeyPrefix.MeetingConversation}${this.idService.generateId()}` as MeetingId;
 
       const conversation: MeetingConversation = {
+        imageMimeType,
         id: conversationId,
         name,
         createdBy,
@@ -117,7 +121,7 @@ export class ConversationService implements ConversationServiceInterface {
     }
   }
 
-  public async getConversation(params: GetConversationInput): Promise<GetConversationOutput> {
+  public async getConversation<T extends ConversationId>(params: GetConversationInput<T>): Promise<GetConversationOutput<T>> {
     try {
       this.loggerService.trace("getConversation called", { params }, this.constructor.name);
 
@@ -147,7 +151,7 @@ export class ConversationService implements ConversationServiceInterface {
     }
   }
 
-  public async getConversations(params: GetConversationsInput): Promise<GetConversationsOutput> {
+  public async getConversations<T extends ConversationId>(params: GetConversationsInput<T>): Promise<GetConversationsOutput<T>> {
     try {
       this.loggerService.trace("getConversations called", { params }, this.constructor.name);
 
@@ -155,7 +159,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { conversations } = await this.conversationRepository.getConversations({ conversationIds });
 
-      const conversationMap = conversations.reduce((acc: { [key: string]: Conversation; }, conversation) => {
+      const conversationMap = conversations.reduce((acc: { [key: string]: Conversation<T>; }, conversation) => {
         acc[conversation.id] = conversation;
 
         return acc;
@@ -171,13 +175,13 @@ export class ConversationService implements ConversationServiceInterface {
     }
   }
 
-  public async getConversationsByTeamId(params: GetConversationsByTeamIdInput): Promise<GetConversationsByTeamIdOutput> {
+  public async getConversationsByTeamId<T extends ConversationType>(params: GetConversationsByTeamIdInput<T>): Promise<GetConversationsByTeamIdOutput<T>> {
     try {
       this.loggerService.trace("getConversationsByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, exclusiveStartKey, limit } = params;
+      const { teamId, type, exclusiveStartKey, limit } = params;
 
-      const { conversations, lastEvaluatedKey } = await this.conversationRepository.getConversationsByTeamId({ teamId, exclusiveStartKey, limit });
+      const { conversations, lastEvaluatedKey } = await this.conversationRepository.getConversationsByTeamId({ teamId, type, exclusiveStartKey, limit });
 
       return { conversations, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -193,33 +197,17 @@ export interface ConversationServiceInterface {
   getFriendConversationByUserIds(params: GetFriendConversationsByUserIdsInput): Promise<GetFriendConversationsByUserIdsOutput>;
   createGroupConversation(params: CreateGroupConversationInput): Promise<CreateGroupConversationOutput>;
   createMeetingConversation(params: CreateMeetingConversationInput): Promise<CreateMeetingConversationOutput>;
-  getConversation(params: GetConversationInput): Promise<GetConversationOutput>;
+  getConversation<T extends ConversationId>(params: GetConversationInput<T>): Promise<GetConversationOutput<T>>;
   deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput>;
-  getConversations(params: GetConversationsInput): Promise<GetConversationsOutput>;
-  getConversationsByTeamId(params: GetConversationsByTeamIdInput): Promise<GetConversationsByTeamIdOutput>;
+  getConversations<T extends ConversationId>(params: GetConversationsInput<T>): Promise<GetConversationsOutput<T>>;
+  getConversationsByTeamId<T extends ConversationType>(params: GetConversationsByTeamIdInput<T>): Promise<GetConversationsByTeamIdOutput<T>>;
 }
 
-export type Conversation = ConversationEntity;
 
-export interface FriendConversation extends ConversationEntity {
-  id: FriendConvoId;
-  type: ConversationType.Friend;
-}
-export interface GroupConversation extends ConversationEntity {
-  id: GroupId;
-  type: ConversationType.Group;
-  createdBy: UserId;
-  name: string;
-}
-
-export interface MeetingConversation extends Omit<GroupConversation, "type" | "id"> {
-  id: MeetingId;
-  type: ConversationType.Meeting;
-  dueDate: string;
-  outcomes?: string;
-}
+export type Conversation<T extends ConversationId = ConversationId> = ConversationEntity<T>
 
 export interface CreateFriendConversationInput {
+  imageMimeType: ImageMimeType;
   userIds: [UserId, UserId];
   teamId?: TeamId;
 }
@@ -229,6 +217,7 @@ export interface CreateFriendConversationOutput {
 }
 
 export interface CreateGroupConversationInput {
+  imageMimeType: ImageMimeType;
   name: string;
   createdBy: UserId;
   teamId?: TeamId;
@@ -239,6 +228,7 @@ export interface CreateGroupConversationOutput {
 }
 
 export interface CreateMeetingConversationInput {
+  imageMimeType: ImageMimeType;
   name: string;
   createdBy: UserId;
   dueDate: string;
@@ -249,30 +239,31 @@ export interface CreateMeetingConversationOutput {
   conversation: MeetingConversation;
 }
 
-export interface GetConversationInput {
-  conversationId: ConversationId;
+export interface GetConversationInput<T extends ConversationId> {
+  conversationId: T;
 }
 
-export interface GetConversationOutput {
-  conversation: Conversation;
+export interface GetConversationOutput<T extends ConversationId> {
+  conversation: Conversation<T>
+}
+export interface GetConversationsInput<T extends ConversationId> {
+  conversationIds: T[];
 }
 
-export interface GetConversationsInput {
-  conversationIds: ConversationId[];
+export interface GetConversationsOutput<T extends ConversationId> {
+  conversations: Conversation<T>[];
 }
 
-export interface GetConversationsOutput {
-  conversations: Conversation[];
-}
 
-export interface GetConversationsByTeamIdInput {
+export interface GetConversationsByTeamIdInput<T extends ConversationType>  {
   teamId: TeamId;
+  type?: T;
   limit?: number;
   exclusiveStartKey?: string;
 }
 
-export interface GetConversationsByTeamIdOutput {
-  conversations: Conversation[];
+export interface GetConversationsByTeamIdOutput<T extends ConversationType> {
+  conversations: Conversation<ConversationId<T>>[];
   lastEvaluatedKey?: string;
 }
 

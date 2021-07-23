@@ -7,6 +7,7 @@ import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
 import { TeamId } from "../types/teamId.type";
 import { UserId } from "../types/userId.type";
+import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
 export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implements TeamRepositoryInterface {
@@ -88,6 +89,7 @@ type TeamRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
 
 export interface Team {
   id: TeamId;
+  imageMimeType: ImageMimeType;
   createdBy: UserId;
   name: string;
 }
