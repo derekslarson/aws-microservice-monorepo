@@ -179,7 +179,6 @@ type ConversationRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "glo
 
 export interface BaseConversation<T extends ConversationType> {
   id: ConversationId<T>;
-  imageMimeType: ImageMimeType;
   type: T;
   createdAt: string;
   teamId?: TeamId;
@@ -192,11 +191,13 @@ export type FriendConversation = BaseConversation<ConversationType.Friend>;
 export interface GroupConversation extends BaseConversation<ConversationType.Group> {
   createdBy: UserId;
   name: string;
+  imageMimeType: ImageMimeType;
 }
 
 export interface MeetingConversation extends BaseConversation<ConversationType.Meeting> {
   createdBy: UserId;
   name: string;
+  imageMimeType: ImageMimeType;
   dueDate: string;
   outcomes?: string;
 }

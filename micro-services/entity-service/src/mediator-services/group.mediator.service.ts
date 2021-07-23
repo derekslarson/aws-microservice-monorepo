@@ -41,7 +41,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { signedUrl } = this.imageFileService.getSignedUrl({
         operation: "get",
-        entityType: EntityType.User,
+        entityType: EntityType.GroupConversation,
         entityId: groupEntity.id,
         mimeType: groupEntity.imageMimeType,
       });
@@ -71,7 +71,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { signedUrl } = this.imageFileService.getSignedUrl({
         operation: "get",
-        entityType: EntityType.User,
+        entityType: EntityType.GroupConversation,
         entityId: groupEntity.id,
         mimeType: groupEntity.imageMimeType,
       });
@@ -174,7 +174,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
       const groups = groupEntities.map((groupEntity, i) => {
         const { signedUrl } = this.imageFileService.getSignedUrl({
           operation: "get",
-          entityType: EntityType.User,
+          entityType: EntityType.GroupConversation,
           entityId: groupEntity.id,
           mimeType: groupEntity.imageMimeType,
         });
@@ -212,7 +212,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
       const groups = groupEntities.map((groupEntity) => {
         const { signedUrl } = this.imageFileService.getSignedUrl({
           operation: "get",
-          entityType: EntityType.User,
+          entityType: EntityType.GroupConversation,
           entityId: groupEntity.id,
           mimeType: groupEntity.imageMimeType,
         });

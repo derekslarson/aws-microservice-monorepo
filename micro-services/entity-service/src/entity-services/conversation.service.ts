@@ -30,12 +30,11 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createFriendConversation called", { params }, this.constructor.name);
 
-      const { imageMimeType, userIds, teamId } = params;
+      const { userIds, teamId } = params;
 
       const conversationId = `${KeyPrefix.FriendConversation}${userIds.sort().join("-")}` as FriendConvoId;
 
       const conversation: FriendConversation = {
-        imageMimeType,
         id: conversationId,
         type: ConversationType.Friend,
         createdAt: new Date().toISOString(),
@@ -217,7 +216,6 @@ export type GroupConversation = GroupConversationEntity;
 export type MeetingConversation = MeetingConversationEntity;
 
 export interface CreateFriendConversationInput {
-  imageMimeType: ImageMimeType;
   userIds: [UserId, UserId];
   teamId?: TeamId;
 }

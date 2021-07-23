@@ -8,7 +8,6 @@ import {
   GetConversationUserRelationshipsByUserIdTypeToConversationId,
 
 } from "../repositories/conversationUserRelationship.dynamo.repository";
-import { ConversationType } from "../enums/conversationType.enum";
 import { ConversationId } from "../types/conversationId.type";
 import { UserId } from "../types/userId.type";
 import { MessageId } from "../types/messageId.type";

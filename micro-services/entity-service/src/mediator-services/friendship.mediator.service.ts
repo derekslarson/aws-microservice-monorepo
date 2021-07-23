@@ -8,6 +8,8 @@ import { UserId } from "../types/userId.type";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { ConversationId } from "../types/conversationId.type";
 import { ConversationType } from "../enums/conversationType.enum";
+import { ImageFileServiceInterface } from "../entity-services/image.file.service";
+import { EntityType } from "../enums/entityType.enum";
 @injectable()
 export class FriendshipMediatorService implements FriendshipMediatorServiceInterface {
   constructor(
@@ -15,6 +17,7 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
+    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
   ) {}
 
   public async createFriendship(params: CreateFriendshipInput): Promise<CreateFriendshipOutput> {
@@ -81,9 +84,24 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
 
       const friendIds = conversationUserRelationships.map((relationship) => relationship.conversationId.replace(KeyPrefix.FriendConversation, "").replace(userId, "").replace(/^-|-$/, "") as UserId);
 
-      const { users } = await this.userService.getUsers({ userIds: friendIds });
+      const { users: userEntities } = await this.userService.getUsers({ userIds: friendIds });
+      
+      const friends = userEntities.map((userEntity) => {
+        const { signedUrl } = this.imageFileService.getSignedUrl({
+          operation: "get",
+          entityType: EntityType.User,
+          entityId: userEntity.id,
+          mimeType: userEntity.imageMimeType,
+        });
 
-      return { friends: users, lastEvaluatedKey };
+
+        return {
+          ...userEntity,
+          image: signedUrl,
+        };
+      })
+      
+      return { friends, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getFriendsByUserId", { error, params }, this.constructor.name);
 
@@ -92,7 +110,10 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
   }
 }
 
-export type Friend = User;
+export interface Friend extends Omit<User, "imageMimeType"> {
+  image: string;
+}
+
 
 export interface FriendshipMediatorServiceInterface {
   createFriendship(params: CreateFriendshipInput): Promise<CreateFriendshipOutput>;
