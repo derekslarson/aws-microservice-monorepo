@@ -1,7 +1,13 @@
 import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { Conversation as ConversationEntity, ConversationRepositoryInterface, FriendConversation, GroupConversation, MeetingConversation } from "../repositories/conversation.dynamo.repository";
+import { 
+  Conversation as ConversationEntity, 
+  FriendConversation as FriendConversationEntity, 
+  GroupConversation as GroupConversationEntity, 
+  MeetingConversation as MeetingConversationEntity,
+  ConversationRepositoryInterface 
+} from "../repositories/conversation.dynamo.repository";
 import { ConversationType } from "../enums/conversationType.enum";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { FriendConvoId } from "../types/friendConvoId.type";
@@ -205,6 +211,10 @@ export interface ConversationServiceInterface {
 
 
 export type Conversation<T extends ConversationId = ConversationId> = ConversationEntity<T>
+
+export type FriendConversation = FriendConversationEntity;
+export type GroupConversation = GroupConversationEntity;
+export type MeetingConversation = MeetingConversationEntity;
 
 export interface CreateFriendConversationInput {
   imageMimeType: ImageMimeType;
