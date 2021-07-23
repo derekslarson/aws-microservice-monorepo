@@ -4,7 +4,7 @@ import { Role } from "@yac/core";
 import axios from "axios";
 import { generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { MimeType } from "../../src/enums/mimeType.enum";
+import { MessageMimeType } from "../../src/enums/mimeType.enum";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { GroupId } from "../../src/types/groupId.type";
 import { UserId } from "../../src/types/userId.type";
@@ -24,7 +24,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
 
     beforeAll(async () => {
       ([ { message } ] = await Promise.all([
-        createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MimeType.AudioMp3 }),
+        createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
         createConversationUserRelationship({ conversationId: mockConversationId, userId, role: Role.User }),
       ]));
     });
@@ -79,7 +79,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
 
       beforeAll(async () => {
         ([ { message } ] = await Promise.all([
-          createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MimeType.AudioMp3 }),
+          createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
         ]));
       });
 

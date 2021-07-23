@@ -10,6 +10,8 @@ import { MeetingId } from "../types/meetingId.type";
 import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
 import { IsPropertyUniqueOutput, UniquePropertyServiceInterface } from "../entity-services/uniqueProperty.service";
 import { UniqueProperty } from "../enums/uniqueProperty.enum";
+import { ImageFileServiceInterface } from "../entity-services/image.file.service";
+import { EntityType } from "../enums/entityType.enum";
 
 @injectable()
 export class UserMediatorService implements UserMediatorServiceInterface {
@@ -19,6 +21,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
     @inject(TYPES.TeamUserRelationshipServiceInterface) private teamUserRelationshipService: TeamUserRelationshipServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
     @inject(TYPES.UniquePropertyServiceInterface) private uniquePropertyService: UniquePropertyServiceInterface,
+    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
   ) {}
 
   public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
@@ -61,7 +64,10 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const { user } = await this.userService.createUser(userServiceCreateUserInput);
 
+      const { image, mimeType } = this.imageFileService.createDefaultImage();
+
       await Promise.all<unknown>([
+        this.imageFileService.uploadFile({ entityType: EntityType.User, entityId: user.id, file: image, mimeType }),
         email && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Email, value: email, userId: user.id }),
         phone && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Phone, value: phone, userId: user.id }),
         username && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Username, value: username, userId: user.id }),

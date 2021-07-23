@@ -8,7 +8,7 @@ import { S3Factory } from "../factories/s3.factory";
 import { LoggerServiceInterface } from "../services/logger.service";
 
 @injectable()
-export class MessageS3Repository extends BaseS3Repository implements MessageS3RepositoryInterface {
+export class MessageS3Repository extends BaseS3Repository implements MessageFileRepositoryInterface {
   constructor(
   @inject(TYPES.S3Factory) s3Factory: S3Factory,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
@@ -18,7 +18,7 @@ export class MessageS3Repository extends BaseS3Repository implements MessageS3Re
   }
 }
 
-export interface MessageS3RepositoryInterface {
+export interface MessageFileRepositoryInterface {
   getSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput;
 }
 

@@ -12,7 +12,7 @@ import { ConversationServiceInterface } from "../entity-services/conversation.se
 import { PendingMessage as PendingMessageEntity, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
 import { PendingMessageId } from "../types/pendingMessageId.type";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { MimeType } from "../enums/mimeType.enum";
+import { MessageMimeType } from "../enums/message.mimeType.enum";
 import { MessageFileServiceInterface } from "../entity-services/mesage.file.service";
 
 @injectable()
@@ -462,7 +462,7 @@ export interface Message extends MessageEntity {
 export interface CreateFriendMessageInput {
   to: UserId;
   from: UserId;
-  mimeType: MimeType;
+  mimeType: MessageMimeType;
 }
 
 export interface CreateFriendMessageOutput {
@@ -472,7 +472,7 @@ export interface CreateFriendMessageOutput {
 export interface CreateGroupMessageInput {
   groupId: GroupId;
   from: UserId;
-  mimeType: MimeType;
+  mimeType: MessageMimeType;
 }
 
 export interface CreateGroupMessageOutput {
@@ -482,7 +482,7 @@ export interface CreateGroupMessageOutput {
 export interface CreateMeetingMessageInput {
   meetingId: MeetingId;
   from: UserId;
-  mimeType: MimeType;
+  mimeType: MessageMimeType;
 }
 
 export interface CreateMeetingMessageOutput {
@@ -600,7 +600,7 @@ interface CreateMessageInput {
   messageId: MessageId;
   conversationId: ConversationId;
   from: UserId;
-  mimeType: MimeType;
+  mimeType: MessageMimeType;
   replyTo?: MessageId;
 }
 

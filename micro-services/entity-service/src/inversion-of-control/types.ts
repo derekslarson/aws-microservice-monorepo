@@ -35,6 +35,7 @@ const TYPES = {
   // Entity Services
   ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
   ConversationUserRelationshipServiceInterface: Symbol.for("ConversationUserRelationshipServiceInterface"),
+  ImageFileServiceInterface: Symbol.for("ImageFileServiceInterface"),
   MessageServiceInterface: Symbol.for("MessageServiceInterface"),
   MessageFileServiceInterface: Symbol.for("MessageFileServiceInterface"),
   PendingMessageServiceInterface: Symbol.for("PendingMessageServiceInterface"),
@@ -46,12 +47,16 @@ const TYPES = {
   // Repositories
   ConversationRepositoryInterface: Symbol.for("ConversationRepositoryInterface"),
   ConversationUserRelationshipRepositoryInterface: Symbol.for("ConversationUserRelationshipRepositoryInterface"),
+  ImageFileRepositoryInterface: Symbol.for("ImageFileRepositoryInterface"),
   MessageRepositoryInterface: Symbol.for("MessageRepositoryInterface"),
   PendingMessageRepositoryInterface: Symbol.for("PendingMessageRepositoryInterface"),
   TeamRepositoryInterface: Symbol.for("TeamRepositoryInterface"),
   TeamUserRelationshipRepositoryInterface: Symbol.for("TeamUserRelationshipRepositoryInterface"),
   UniquePropertyRepositoryInterface: Symbol.for("UniquePropertyRepositoryInterface"),
   UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
+
+  // Factories
+  IdenticonFactory: Symbol.for("IdenticonFactory"),
 };
 
 export { TYPES };

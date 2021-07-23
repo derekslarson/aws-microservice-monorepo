@@ -18,7 +18,7 @@ import { MeetingId } from "../src/types/meetingId.type";
 import { TeamId } from "../src/types/teamId.type";
 import { UserId } from "../src/types/userId.type";
 import { MessageId } from "../src/types/messageId.type";
-import { MimeType } from "../src/enums/mimeType.enum";
+import { MessageMimeType } from "../src/enums/mimeType.enum";
 import { PendingMessageId } from "../src/types/pendingMessageId.type";
 import { RawPendingMessage } from "../src/repositories/pendingMessage.dynamo.repository";
 import { RawUser } from "../src/repositories/user.dynamo.repository";
@@ -540,7 +540,7 @@ export interface CreateMessageInput {
   from: UserId;
   conversationId: ConversationId;
   conversationMemberIds: UserId[];
-  mimeType: MimeType;
+  mimeType: MessageMimeType;
   reactions?: Record<string, UserId[]>
   replyTo?: MessageId;
   replyCount?: number;

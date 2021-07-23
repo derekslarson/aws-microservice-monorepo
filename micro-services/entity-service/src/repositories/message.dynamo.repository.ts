@@ -9,7 +9,7 @@ import { EntityType } from "../enums/entityType.enum";
 import { MessageId } from "../types/messageId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { UserId } from "../types/userId.type";
-import { MimeType } from "../enums/mimeType.enum";
+import { MessageMimeType } from "../enums/message.mimeType.enum";
 
 @injectable()
 export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithReactionsSet> implements MessageRepositoryInterface {
@@ -304,7 +304,7 @@ export interface Message {
   seenAt: Record<UserId, string | null>;
   reactions: Record<string, UserId[]>;
   replyCount: number;
-  mimeType: MimeType;
+  mimeType: MessageMimeType;
   transcript?: string;
   replyTo?: MessageId;
 }

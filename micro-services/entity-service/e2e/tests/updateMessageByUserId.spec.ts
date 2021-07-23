@@ -4,7 +4,7 @@ import { Role } from "@yac/core";
 import axios from "axios";
 import { documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { MimeType } from "../../src/enums/mimeType.enum";
+import { MessageMimeType } from "../../src/enums/mimeType.enum";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { GroupId } from "../../src/types/groupId.type";
@@ -25,7 +25,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
     let conversationUserRelationship: RawConversationUserRelationship;
 
     beforeEach(async () => {
-      ({ message } = await createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ mockUserId, userId ], replyCount: 0, mimeType: MimeType.AudioMp3 }));
+      ({ message } = await createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ mockUserId, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
 
       ({ conversationUserRelationship } = await createConversationUserRelationship({ conversationId: mockConversationId, userId, role: Role.User, unreadMessageIds: [ message.id ] }));
     });
@@ -35,7 +35,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
         const seen = true;
 
         beforeEach(async () => {
-          ({ message } = await createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ mockUserId, userId ], replyCount: 0, mimeType: MimeType.AudioMp3 }));
+          ({ message } = await createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ mockUserId, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({ conversationId: mockConversationId, userId, role: Role.User, unreadMessageIds: [ message.id ] }));
         });
@@ -112,7 +112,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
         const seen = false;
 
         beforeEach(async () => {
-          ({ message } = await createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ mockUserId, userId ], replyCount: 0, mimeType: MimeType.AudioMp3, markSeenByAll: true }));
+          ({ message } = await createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ mockUserId, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, markSeenByAll: true }));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({ conversationId: mockConversationId, userId, role: Role.User }));
         });
@@ -192,7 +192,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
 
       describe("when 'reactions[0].action: \"add\"'", () => {
         beforeEach(async () => {
-          ({ message } = await createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ mockUserId, userId ], replyCount: 0, mimeType: MimeType.AudioMp3 }));
+          ({ message } = await createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ mockUserId, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({ conversationId: mockConversationId, userId, role: Role.User, unreadMessageIds: [ message.id ] }));
         });
@@ -255,7 +255,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
             conversationId: mockConversationId,
             conversationMemberIds: [ mockUserId, userId ],
             replyCount: 0,
-            mimeType: MimeType.AudioMp3,
+            mimeType: MessageMimeType.AudioMp3,
             reactions: { [mockReaction]: [ userId ] },
           }));
 
@@ -334,7 +334,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
 
       beforeAll(async () => {
         ([ { message } ] = await Promise.all([
-          createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MimeType.AudioMp3 }),
+          createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
         ]));
       });
 

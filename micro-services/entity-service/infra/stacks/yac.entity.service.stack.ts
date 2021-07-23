@@ -38,6 +38,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
     const messageS3BucketArn = CDK.Fn.importValue(ExportNames.MessageS3BucketArn);
 
     const messageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket-${id}`, messageS3BucketArn);
+    const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket-${id}`, {});
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
@@ -85,6 +86,11 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       resources: [ messageS3Bucket.bucketArn, `${messageS3Bucket.bucketArn}/*` ],
     });
 
+    const imageS3BucketFullAccessPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "s3:*" ],
+      resources: [ imageS3Bucket.bucketArn, `${imageS3Bucket.bucketArn}/*` ],
+    });
+
     const userCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
       resources: [ userCreatedSnsTopicArn ],
@@ -99,6 +105,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       GSI_THREE_INDEX_NAME: GlobalSecondaryIndex.Three,
       USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
       MESSAGE_S3_BUCKET_NAME: messageS3Bucket.bucketName,
+      IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
     };
 
     // Dynamo Stream Handler
@@ -135,7 +142,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "createUser.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -145,7 +152,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getUser.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -155,7 +162,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getUsersByTeamId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -165,7 +172,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getUsersByGroupId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -175,7 +182,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getUsersByMeetingId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -186,7 +193,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "createTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -196,7 +203,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -206,7 +213,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "addUsersToTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -216,7 +223,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "removeUserFromTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -237,7 +244,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "addUserAsFriend.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -247,7 +254,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "removeUserAsFriend.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -257,7 +264,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getFriendsByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -268,7 +275,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "createGroup.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -288,7 +295,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "addUserToGroup.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -298,7 +305,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "removeUserFromGroup.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -318,7 +325,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getGroupsByTeamId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -329,7 +336,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "createMeeting.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -349,7 +356,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "addUserToMeeting.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -359,7 +366,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "removeUserFromMeeting.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -369,7 +376,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getMeetingsByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -379,7 +386,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getMeetingsByTeamId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -390,7 +397,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "messageFileCreated.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -402,7 +409,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "createFriendMessage.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -412,7 +419,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "createGroupMessage.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -422,7 +429,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "createMeetingMessage.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -432,7 +439,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getMessage.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -442,7 +449,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "updateMessageByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -452,7 +459,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getMessagesByUserAndFriendIds.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -462,7 +469,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getMessagesByGroupId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -472,7 +479,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getMessagesByMeetingId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -482,7 +489,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "updateFriendMessagesByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -492,7 +499,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "updateGroupMessagesByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -502,7 +509,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "updateMeetingMessagesByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -513,7 +520,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getConversationsByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 

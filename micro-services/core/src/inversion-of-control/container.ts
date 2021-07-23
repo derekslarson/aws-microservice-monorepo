@@ -10,7 +10,7 @@ import { LoggerService, LoggerServiceInterface } from "../services/logger.servic
 // import { UserSignedUpSnsService, UserSignedUpSnsServiceInterface } from "../services/userSignedUp.sns.service";
 import { ValidationService, ValidationServiceInterface } from "../services/validation.service";
 import { ValidationServiceV2, ValidationServiceV2Interface } from "../services/validation.service.v2";
-import { MessageS3Repository, MessageS3RepositoryInterface } from "../repositories/message.s3.repository";
+import { MessageS3Repository, MessageFileRepositoryInterface } from "../repositories/message.s3.repository";
 
 import { axiosFactory, AxiosFactory } from "../factories/axios.factory";
 import { classTransformerFactory, ClassTransformerFactory } from "../factories/classTransformer.factory";
@@ -42,7 +42,7 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
     bind<ValidationServiceV2Interface>(TYPES.ValidationServiceV2Interface).to(ValidationServiceV2);
 
-    bind<MessageS3RepositoryInterface>(TYPES.MessageS3RepositoryInterface).to(MessageS3Repository);
+    bind<MessageFileRepositoryInterface>(TYPES.MessageFileRepositoryInterface).to(MessageS3Repository);
 
     bind<AxiosFactory>(TYPES.AxiosFactory).toFactory(() => axiosFactory);
     bind<ClassTransformerFactory>(TYPES.ClassTransformerFactory).toFactory(() => classTransformerFactory);

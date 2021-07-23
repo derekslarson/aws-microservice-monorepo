@@ -6,7 +6,7 @@ import { readFileSync } from "fs";
 import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { MimeType } from "../../src/enums/mimeType.enum";
+import { MessageMimeType } from "../../src/enums/mimeType.enum";
 import { PendingMessage } from "../../src/mediator-services/message.mediator.service";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
@@ -20,7 +20,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mimeType = MimeType.AudioMp3;
+  const mimeType = MessageMimeType.AudioMp3;
 
   describe("under normal conditions", () => {
     const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;

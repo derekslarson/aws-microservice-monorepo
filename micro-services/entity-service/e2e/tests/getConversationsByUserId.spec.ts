@@ -4,7 +4,7 @@ import { Role } from "@yac/core";
 import axios from "axios";
 import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { MimeType } from "../../src/enums/mimeType.enum";
+import { MessageMimeType } from "../../src/enums/mimeType.enum";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
@@ -47,7 +47,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
         createFriendConversation({ userId, friendId: mockUserId }),
       ]));
 
-      ({ message } = await createMessage({ from: mockUserId, conversationId: group.id, conversationMemberIds: [ userId, mockUserId ], mimeType: MimeType.AudioMp3 }));
+      ({ message } = await createMessage({ from: mockUserId, conversationId: group.id, conversationMemberIds: [ userId, mockUserId ], mimeType: MessageMimeType.AudioMp3 }));
 
       // We need to create the relationships in sequence, so that we can be sure of the return order in the test
       ({ conversationUserRelationship: meetingUserRelationship } = await createConversationUserRelationship({ conversationId: meeting.id, userId, role: Role.Admin, dueDate: meeting.dueDate }));

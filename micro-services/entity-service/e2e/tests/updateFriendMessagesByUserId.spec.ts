@@ -4,7 +4,7 @@ import { Role } from "@yac/core";
 import axios from "axios";
 import { documentClient, generateRandomString, ISO_DATE_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { MimeType } from "../../src/enums/mimeType.enum";
+import { MessageMimeType } from "../../src/enums/mimeType.enum";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
@@ -33,8 +33,8 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
           ({ conversation: friendship } = await createFriendConversation({ userId, friendId: mockUserId }));
 
           ([ { message }, { message: messageTwo } ] = await Promise.all([
-            createMessage({ from: mockUserId, conversationId: friendship.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MimeType.AudioMp3 }),
-            createMessage({ from: mockUserId, conversationId: friendship.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MimeType.AudioMp3 }),
+            createMessage({ from: mockUserId, conversationId: friendship.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+            createMessage({ from: mockUserId, conversationId: friendship.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
           ]));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({
@@ -123,8 +123,8 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
           ({ conversation: friendship } = await createFriendConversation({ userId, friendId: mockUserId }));
 
           ([ { message }, { message: messageTwo } ] = await Promise.all([
-            createMessage({ from: mockUserId, conversationId: friendship.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MimeType.AudioMp3 }),
-            createMessage({ from: mockUserId, conversationId: friendship.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MimeType.AudioMp3 }),
+            createMessage({ from: mockUserId, conversationId: friendship.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+            createMessage({ from: mockUserId, conversationId: friendship.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
           ]));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({

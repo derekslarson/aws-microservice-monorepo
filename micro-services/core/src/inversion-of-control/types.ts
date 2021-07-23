@@ -18,7 +18,7 @@ const TYPES = {
   S3ProcessorServicesInterface: Symbol.for("S3ProcessorServicesInterface"),
   SnsProcessorServicesInterface: Symbol.for("SnsProcessorServicesInterface"),
 
-  MessageS3RepositoryInterface: Symbol.for("MessageS3RepositoryInterface"),
+  MessageFileRepositoryInterface: Symbol.for("MessageFileRepositoryInterface"),
 
   AxiosFactory: Symbol.for("AxiosFactory"),
   ClassTransformerFactory: Symbol.for("ClassTransformerFactory"),

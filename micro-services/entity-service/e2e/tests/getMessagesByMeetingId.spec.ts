@@ -4,7 +4,7 @@ import { Role } from "@yac/core";
 import axios from "axios";
 import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { MimeType } from "../../src/enums/mimeType.enum";
+import { MessageMimeType } from "../../src/enums/mimeType.enum";
 import { RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { MeetingId } from "../../src/types/meetingId.type";
@@ -28,7 +28,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
       ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       ([ { message } ] = await Promise.all([
-        createMessage({ from: mockUserId, conversationId: meeting.id, conversationMemberIds: [ userId, mockUserId ], mimeType: MimeType.AudioMp3 }),
+        createMessage({ from: mockUserId, conversationId: meeting.id, conversationMemberIds: [ userId, mockUserId ], mimeType: MessageMimeType.AudioMp3 }),
         createConversationUserRelationship({ conversationId: meeting.id, userId, role: Role.User }),
       ]));
 
@@ -36,9 +36,9 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
 
       // We have to create the messages in sequence to ensure sort order
       ([ { message: messageTwo } ] = await Promise.all([
-        createMessage({ from: userId, conversationId: meeting.id, conversationMemberIds: [ userId, mockUserId ], mimeType: MimeType.AudioMp3 }),
+        createMessage({ from: userId, conversationId: meeting.id, conversationMemberIds: [ userId, mockUserId ], mimeType: MessageMimeType.AudioMp3 }),
         // We have to create a reply to prove that it doesnt get returned at root level
-        createMessage({ from: mockUserId, conversationId: meeting.id, conversationMemberIds: [ userId, mockUserId ], replyTo: message.id, mimeType: MimeType.AudioMp3 }),
+        createMessage({ from: mockUserId, conversationId: meeting.id, conversationMemberIds: [ userId, mockUserId ], replyTo: message.id, mimeType: MessageMimeType.AudioMp3 }),
       ]));
     });
 

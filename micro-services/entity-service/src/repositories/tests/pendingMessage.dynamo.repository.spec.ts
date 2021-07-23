@@ -3,7 +3,7 @@ import { DocumentClientFactory, generateAwsResponse, LoggerService, Spied, TestS
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
 import { EntityType } from "../../enums/entityType.enum";
 import { KeyPrefix } from "../../enums/keyPrefix.enum";
-import { MimeType } from "../../enums/mimeType.enum";
+import { MessageMimeType } from "../../enums/message.mimeType.enum";
 import { GroupId } from "../../types/groupId.type";
 import { MessageId } from "../../types/messageId.type";
 import { PendingMessageId } from "../../types/pendingMessageId.type";
@@ -34,7 +34,7 @@ describe("PendingMessageDynamoRepository", () => {
   const mockMessageId: MessageId = `${KeyPrefix.Message}mock-id`;
   const mockConversationId: GroupId = `${KeyPrefix.GroupConversation}mock-id`;
   const mockUserId: UserId = `${KeyPrefix.User}mock-id`;
-  const mockMimeType = MimeType.AudioMp3;
+  const mockMimeType = MessageMimeType.AudioMp3;
 
   const mockPendingMessage: PendingMessage = {
     id: mockPendingMessageId,
