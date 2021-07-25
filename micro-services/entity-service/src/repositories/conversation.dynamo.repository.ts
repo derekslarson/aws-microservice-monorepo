@@ -7,12 +7,10 @@ import { EntityType } from "../enums/entityType.enum";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { TeamId } from "../types/teamId.type";
 import { ConversationId } from "../types/conversationId.type";
-import { ConversationType } from "../enums/conversationType.enum";
+import { ConversationType as ConversationTypeEnum } from "../enums/conversationType.enum";
+import { ConversationType } from "../types/conversationType.type";
 import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-import { FriendConvoId } from "../types/friendConvoId.type";
-import { GroupId } from "../types/groupId.type";
-import { MeetingId } from "../types/meetingId.type";
 
 @injectable()
 export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Conversation> implements ConversationRepositoryInterface {
@@ -63,7 +61,7 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
       const { conversationId } = params;
 
-      const conversation = await this.get<Conversation<T>>({ Key: { pk: conversationId, sk: conversationId } }, "Conversation");
+      const conversation = await this.get<Conversation<ConversationType<T>>>({ Key: { pk: conversationId, sk: conversationId } }, "Conversation");
 
       return { conversation };
     } catch (error: unknown) {
@@ -96,7 +94,7 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
       const { conversationIds } = params;
 
-      const conversations = await this.batchGet<Conversation<T>>({ Keys: conversationIds.map((conversationId) => ({ pk: conversationId, sk: conversationId })) });
+      const conversations = await this.batchGet<Conversation<ConversationType<T>>>({ Keys: conversationIds.map((conversationId) => ({ pk: conversationId, sk: conversationId })) });
 
       return { conversations };
     } catch (error: unknown) {
@@ -113,14 +111,14 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
       const { teamId, type, exclusiveStartKey, limit } = params;
 
       const typeToSkPrefixMap = {
-        [ConversationType.Friend]: KeyPrefix.FriendConversation,
-        [ConversationType.Group]: KeyPrefix.GroupConversation,
-        [ConversationType.Meeting]: KeyPrefix.MeetingConversation,
+        [ConversationTypeEnum.Friend]: KeyPrefix.FriendConversation,
+        [ConversationTypeEnum.Group]: KeyPrefix.GroupConversation,
+        [ConversationTypeEnum.Meeting]: KeyPrefix.MeetingConversation,
       };
 
       const skPrefix = type ? typeToSkPrefixMap[type] : KeyPrefix.Conversation;
 
-      const { Items: conversations, LastEvaluatedKey } = await this.query<Conversation<ConversationId<T>>>({
+      const { Items: conversations, LastEvaluatedKey } = await this.query<Conversation<T>>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         IndexName: this.gsiOneIndexName,
@@ -150,11 +148,11 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
     try {
       this.loggerService.trace("getEntityTypeByConversationType called", { conversationType }, this.constructor.name);
 
-      if (conversationType === ConversationType.Friend) {
+      if (conversationType === ConversationTypeEnum.Friend) {
         return EntityType.FriendConversation;
       }
 
-      if (conversationType === ConversationType.Group) {
+      if (conversationType === ConversationTypeEnum.Group) {
         return EntityType.GroupConversation;
       }
 
@@ -177,7 +175,7 @@ export interface ConversationRepositoryInterface {
 
 type ConversationRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
-export interface BaseConversation<T extends ConversationType> {
+export interface BaseConversation<T extends ConversationTypeEnum> {
   id: ConversationId<T>;
   type: T;
   createdAt: string;
@@ -186,15 +184,15 @@ export interface BaseConversation<T extends ConversationType> {
 
 type ConversationEntityType = EntityType.FriendConversation | EntityType.GroupConversation | EntityType.MeetingConversation;
 
-export type FriendConversation = BaseConversation<ConversationType.Friend>;
+export type FriendConversation = BaseConversation<ConversationTypeEnum.Friend>;
 
-export interface GroupConversation extends BaseConversation<ConversationType.Group> {
+export interface GroupConversation extends BaseConversation<ConversationTypeEnum.Group> {
   createdBy: UserId;
   name: string;
   imageMimeType: ImageMimeType;
 }
 
-export interface MeetingConversation extends BaseConversation<ConversationType.Meeting> {
+export interface MeetingConversation extends BaseConversation<ConversationTypeEnum.Meeting> {
   createdBy: UserId;
   name: string;
   imageMimeType: ImageMimeType;
@@ -202,10 +200,10 @@ export interface MeetingConversation extends BaseConversation<ConversationType.M
   outcomes?: string;
 }
 
-export type Conversation<T extends ConversationId | void = void> =
-  T extends FriendConvoId ? FriendConversation :
-    T extends GroupId ? GroupConversation :
-      T extends MeetingId ? MeetingConversation :
+export type Conversation<T extends ConversationType | void = void> =
+  T extends ConversationTypeEnum.Friend ? FriendConversation :
+    T extends ConversationTypeEnum.Group ? GroupConversation :
+      T extends ConversationTypeEnum.Meeting ? MeetingConversation :
         FriendConversation | GroupConversation | MeetingConversation;
 
 export type RawConversation<T extends Conversation> = T & {
@@ -228,7 +226,7 @@ export interface GetConversationInput<T extends ConversationId> {
 }
 
 export interface GetConversationOutput<T extends ConversationId> {
-  conversation: Conversation<T>;
+  conversation: Conversation<ConversationType<T>>;
 }
 
 export interface DeleteConversationInput {
@@ -242,7 +240,7 @@ export interface GetConversationsInput<T extends ConversationId> {
 }
 
 export interface GetConversationsOutput<T extends ConversationId> {
-  conversations: Conversation<T>[];
+  conversations: Conversation<ConversationType<T>>[];
 }
 
 export interface GetConversationsByTeamIdInput<T extends ConversationType> {
@@ -253,6 +251,6 @@ export interface GetConversationsByTeamIdInput<T extends ConversationType> {
 }
 
 export interface GetConversationsByTeamIdOutput<T extends ConversationType> {
-  conversations: Conversation<ConversationId<T>>[];
+  conversations: Conversation<T>[];
   lastEvaluatedKey?: string;
 }

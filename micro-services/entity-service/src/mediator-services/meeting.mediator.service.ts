@@ -37,7 +37,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       await Promise.all([
         this.imageFileService.uploadFile({ entityType: EntityType.MeetingConversation, entityId: meetingEntity.id, file: image, mimeType }),
-        this.conversationUserRelationshipService.createConversationUserRelationship({ userId: createdBy, conversationId: meetingEntity.id, role: Role.Admin, dueDate }),
+        this.conversationUserRelationshipService.createConversationUserRelationship({ type: ConversationType.Meeting, userId: createdBy, conversationId: meetingEntity.id, role: Role.Admin, dueDate }),
       ]);
 
       const { signedUrl } = this.imageFileService.getSignedUrl({
@@ -121,6 +121,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
       const { meeting } = await this.getMeeting({ meetingId });
 
       await this.conversationUserRelationshipService.createConversationUserRelationship({
+        type: ConversationType.Meeting,
         conversationId: meetingId,
         dueDate: meeting.dueDate,
         userId,

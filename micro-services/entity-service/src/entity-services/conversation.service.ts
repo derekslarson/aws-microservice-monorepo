@@ -8,7 +8,8 @@ import {
   MeetingConversation as MeetingConversationEntity,
   ConversationRepositoryInterface 
 } from "../repositories/conversation.dynamo.repository";
-import { ConversationType } from "../enums/conversationType.enum";
+import { ConversationType } from "../types/conversationType.type";
+import { ConversationType as ConversationTypeEnum } from "../enums/conversationType.enum";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { FriendConvoId } from "../types/friendConvoId.type";
 import { GroupId } from "../types/groupId.type";
@@ -36,7 +37,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const conversation: FriendConversation = {
         id: conversationId,
-        type: ConversationType.Friend,
+        type: ConversationTypeEnum.Friend,
         createdAt: new Date().toISOString(),
         ...(teamId && { teamId }),
       };
@@ -82,7 +83,7 @@ export class ConversationService implements ConversationServiceInterface {
         id: conversationId,
         name,
         createdBy,
-        type: ConversationType.Group,
+        type: ConversationTypeEnum.Group,
         createdAt: new Date().toISOString(),
         ...(teamId && { teamId }),
       };
@@ -111,7 +112,7 @@ export class ConversationService implements ConversationServiceInterface {
         name,
         createdBy,
         dueDate,
-        type: ConversationType.Meeting,
+        type: ConversationTypeEnum.Meeting,
         createdAt: new Date().toISOString(),
         ...(teamId && { teamId }),
       };
@@ -164,7 +165,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { conversations } = await this.conversationRepository.getConversations({ conversationIds });
 
-      const conversationMap = conversations.reduce((acc: { [key: string]: Conversation<T>; }, conversation) => {
+      const conversationMap = conversations.reduce((acc: { [key: string]: Conversation<ConversationType<T>>; }, conversation) => {
         acc[conversation.id] = conversation;
 
         return acc;
@@ -209,11 +210,12 @@ export interface ConversationServiceInterface {
 }
 
 
-export type Conversation<T extends ConversationId = ConversationId> = ConversationEntity<T>
+export type Conversation<T extends ConversationType = ConversationType> = ConversationEntity<T>
 
 export type FriendConversation = FriendConversationEntity;
 export type GroupConversation = GroupConversationEntity;
 export type MeetingConversation = MeetingConversationEntity;
+
 
 export interface CreateFriendConversationInput {
   userIds: [UserId, UserId];
@@ -252,14 +254,14 @@ export interface GetConversationInput<T extends ConversationId> {
 }
 
 export interface GetConversationOutput<T extends ConversationId> {
-  conversation: Conversation<T>
+  conversation: Conversation<ConversationType<T>>
 }
 export interface GetConversationsInput<T extends ConversationId> {
   conversationIds: T[];
 }
 
 export interface GetConversationsOutput<T extends ConversationId> {
-  conversations: Conversation<T>[];
+  conversations: Conversation<ConversationType<T>>[];
 }
 
 
@@ -271,7 +273,7 @@ export interface GetConversationsByTeamIdInput<T extends ConversationType>  {
 }
 
 export interface GetConversationsByTeamIdOutput<T extends ConversationType> {
-  conversations: Conversation<ConversationId<T>>[];
+  conversations: Conversation<T>[];
   lastEvaluatedKey?: string;
 }
 

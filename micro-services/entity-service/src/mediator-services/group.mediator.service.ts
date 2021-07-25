@@ -36,7 +36,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       await Promise.all([
         this.imageFileService.uploadFile({ entityType: EntityType.GroupConversation, entityId: groupEntity.id, file: image, mimeType }),
-        this.conversationUserRelationshipService.createConversationUserRelationship({ userId: createdBy, conversationId: groupEntity.id, role: Role.Admin }),
+        this.conversationUserRelationshipService.createConversationUserRelationship({ type: ConversationType.Group, userId: createdBy, conversationId: groupEntity.id, role: Role.Admin }),
       ]);
 
       const { signedUrl } = this.imageFileService.getSignedUrl({
@@ -118,6 +118,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
       const { groupId, userId, role } = params;
 
       await this.conversationUserRelationshipService.createConversationUserRelationship({
+        type: ConversationType.Group,
         conversationId: groupId,
         userId,
         role,

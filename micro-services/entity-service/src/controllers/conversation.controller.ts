@@ -33,7 +33,7 @@ export class ConversationController extends BaseController implements Conversati
       const { conversations, lastEvaluatedKey } = await this.conversationMediatorService.getConversationsByUserId({
         userId,
         exclusiveStartKey,
-        type: "meeting_due_date",
+        type,
         unread: unread === "true",
         limit: limit ? parseInt(limit, 10) : undefined,
       });

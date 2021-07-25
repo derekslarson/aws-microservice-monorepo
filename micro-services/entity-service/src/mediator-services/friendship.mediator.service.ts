@@ -29,6 +29,7 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
       const { conversation } = await this.conversationService.createFriendConversation({ userIds });
 
       await Promise.all(userIds.map((userId) => this.conversationUserRelationshipService.createConversationUserRelationship({
+        type: ConversationType.Friend,
         userId,
         conversationId: conversation.id,
         role: Role.Admin,

@@ -7,7 +7,8 @@ import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
-import { ConversationType } from "../enums/conversationType.enum";
+import { ConversationType } from "../types/conversationType.type";
+import { ConversationType as ConversationTypeEnum } from "../enums/conversationType.enum";
 import { ConversationId } from "../types/conversationId.type";
 import { UserId } from "../types/userId.type";
 import { MessageId } from "../types/messageId.type";
@@ -31,7 +32,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     this.gsiThreeIndexName = envConfig.globalSecondaryIndexNames.three;
   }
 
-  public async createConversationUserRelationship<T extends ConversationId>(params: CreateConversationUserRelationshipInput<T>): Promise<CreateConversationUserRelationshipOutput<T>> {
+  public async createConversationUserRelationship<T extends ConversationType>(params: CreateConversationUserRelationshipInput<T>): Promise<CreateConversationUserRelationshipOutput<T>> {
     try {
       this.loggerService.trace("createConversationUserRelationship called", { params }, this.constructor.name);
 
@@ -39,7 +40,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const { unreadMessages, ...restOfConversationUserRelationship } = conversationUserRelationship;
 
-      const conversationUserRelationshipEntity: RawConversationUserRelationship = {
+      const conversationUserRelationshipEntity: RawConversationUserRelationship<T> = {
         entityType: EntityType.ConversationUserRelationship,
         pk: conversationUserRelationship.conversationId,
         sk: conversationUserRelationship.userId,
@@ -73,7 +74,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const { conversationId, userId } = params;
 
-      const conversationUserRelationshipWithSet = await this.get<ConversationUserRelationshipWithSet<T>>({ Key: { pk: conversationId, sk: userId } }, "Conversation-User Relationship");
+      const conversationUserRelationshipWithSet = await this.get<ConversationUserRelationshipWithSet<ConversationType<T>>>({ Key: { pk: conversationId, sk: userId } }, "Conversation-User Relationship");
 
       const conversationUserRelationship = this.cleanseSet(conversationUserRelationshipWithSet);
 
@@ -100,7 +101,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const timestamp = new Date().toISOString();
 
-      const conversationUserRelationshipWithSetUpdated = await this.update<ConversationUserRelationshipWithSet<T>>({
+      const conversationUserRelationshipWithSetUpdated = await this.update<ConversationUserRelationshipWithSet<ConversationType<T>>>({
         Key: {
           pk: conversationId,
           sk: userId,
@@ -140,7 +141,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const { conversationId, userId, messageId } = params;
 
-      const conversationUserRelationshipWithSet = await this.update<ConversationUserRelationshipWithSet<T>>({
+      const conversationUserRelationshipWithSet = await this.update<ConversationUserRelationshipWithSet<ConversationType<T>>>({
         Key: {
           pk: conversationId,
           sk: userId,
@@ -183,7 +184,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const { conversationId, exclusiveStartKey, limit } = params;
 
-      const { Items: conversationUserRelationshipsWithSet, LastEvaluatedKey } = await this.query<ConversationUserRelationshipWithSet<T>>({
+      const { Items: conversationUserRelationshipsWithSet, LastEvaluatedKey } = await this.query<ConversationUserRelationshipWithSet<ConversationType<T>>>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :user)",
@@ -216,15 +217,15 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       const { userId, exclusiveStartKey, type, unread, limit } = params;
 
-      const indexName = type === "due_date" ? this.gsiThreeIndexName : type ? this.gsiTwoIndexName : this.gsiOneIndexName;
-      const pk = type === "due_date" ? "gsi3pk" : type ? "gsi2pk" : "gsi1pk";
-      const sk = type === "due_date" ? "gsi3sk" : type ? "gsi2sk" : "gsi1sk";
-      const skPrefix = type === "due_date" || !type ? KeyPrefix.Time : this.getGsi2skPrefixByType(type);
+      const indexName = type === "meeting_due_date" ? this.gsiThreeIndexName : type ? this.gsiTwoIndexName : this.gsiOneIndexName;
+      const pk = type === "meeting_due_date" ? "gsi3pk" : type ? "gsi2pk" : "gsi1pk";
+      const sk = type === "meeting_due_date" ? "gsi3sk" : type ? "gsi2sk" : "gsi1sk";
+      const skPrefix = type === "meeting_due_date" || !type ? KeyPrefix.Time : this.getGsi2skPrefixByType(type);
 
-      const { Items: conversationUserRelationshipsWithSet, LastEvaluatedKey } = await this.query<ConversationUserRelationshipWithSet<GetConversationUserRelationshipsByUserIdTypeToConversationId<T>>>({
+      const { Items: conversationUserRelationshipsWithSet, LastEvaluatedKey } = await this.query<ConversationUserRelationshipWithSet<GetConversationUserRelationshipsByUserIdTypeToConversationType<T>>>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         ...(unread && { FilterExpression: "attribute_exists(unreadMessages)" }),
-        ScanIndexForward: type === "due_date",
+        ScanIndexForward: type === "meeting_due_date",
         Limit: limit ?? 25,
         IndexName: indexName,
         KeyConditionExpression: `#${pk} = :${pk} AND begins_with(#${sk}, :skPrefix)`,
@@ -275,11 +276,11 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     try {
       this.loggerService.trace("getGsi2skPrefixByType called", { conversationType }, this.constructor.name);
 
-      if (conversationType === ConversationType.Friend) {
+      if (conversationType === ConversationTypeEnum.Friend) {
         return `${KeyPrefix.Time}${KeyPrefix.FriendConversation}` as Gsi2skPrefix;
       }
 
-      if (conversationType === ConversationType.Group) {
+      if (conversationType === ConversationTypeEnum.Group) {
         return `${KeyPrefix.Time}${KeyPrefix.GroupConversation}` as Gsi2skPrefix;
       }
 
@@ -291,7 +292,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
     }
   }
 
-  private cleanseSet<T extends ConversationId = ConversationId>(conversationUserRelationshipWithSet: ConversationUserRelationshipWithSet<T>): ConversationUserRelationship<T> {
+  private cleanseSet<T extends ConversationType>(conversationUserRelationshipWithSet: ConversationUserRelationshipWithSet<T>): ConversationUserRelationship<T> {
     try {
       this.loggerService.trace("cleanseSet called", { conversationUserRelationshipWithSet }, this.constructor.name);
 
@@ -310,7 +311,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 }
 
 export interface ConversationUserRelationshipRepositoryInterface {
-  createConversationUserRelationship<T extends ConversationId>(params: CreateConversationUserRelationshipInput<T>): Promise<CreateConversationUserRelationshipOutput<T>>;
+  createConversationUserRelationship<T extends ConversationType>(params: CreateConversationUserRelationshipInput<T>): Promise<CreateConversationUserRelationshipOutput<T>>;
   getConversationUserRelationship<T extends ConversationId>(params: GetConversationUserRelationshipInput<T>): Promise<GetConversationUserRelationshipOutput<T>>;
   addMessageToConversationUserRelationship<T extends ConversationId>(params: AddMessageToConversationUserRelationshipInput<T>): Promise<AddMessageToConversationUserRelationshipOutput<T>>;
   removeUnreadMessageFromConversationUserRelationship<T extends ConversationId>(params: RemoveUnreadMessageFromConversationUserRelationshipInput<T>): Promise<RemoveUnreadMessageFromConversationUserRelationshipOutput<T>>;
@@ -321,8 +322,9 @@ export interface ConversationUserRelationshipRepositoryInterface {
 
 type ConversationUserRelationshipConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
-export interface ConversationUserRelationship<T extends ConversationId = ConversationId> {
-  conversationId: T;
+export interface ConversationUserRelationship<T extends ConversationType> {
+  type: T;
+  conversationId: ConversationId<T>;
   userId: UserId;
   role: Role;
   muted: boolean;
@@ -337,7 +339,7 @@ type Gsi2skPrefix = `${KeyPrefix.Time}${KeyPrefix.FriendConversation | KeyPrefix
 type Gsi2sk = `${Gsi2skPrefix}${string}`;
 type Gsi3sk = `${KeyPrefix.Time}${string}`;
 
-export interface RawConversationUserRelationship<T extends ConversationId = ConversationId> extends Omit<ConversationUserRelationship<T>, "unreadMessages"> {
+export interface RawConversationUserRelationship<T extends ConversationType> extends Omit<ConversationUserRelationship<T>, "unreadMessages"> {
   entityType: EntityType.ConversationUserRelationship,
   pk: ConversationId;
   sk: UserId;
@@ -353,11 +355,11 @@ export interface RawConversationUserRelationship<T extends ConversationId = Conv
   unreadMessages?: DynamoDB.DocumentClient.DynamoDbSet;
 }
 
-export interface CreateConversationUserRelationshipInput<T extends ConversationId> {
+export interface CreateConversationUserRelationshipInput<T extends ConversationType> {
   conversationUserRelationship: ConversationUserRelationship<T>;
 }
 
-export interface CreateConversationUserRelationshipOutput<T extends ConversationId> {
+export interface CreateConversationUserRelationshipOutput<T extends ConversationType> {
   conversationUserRelationship: ConversationUserRelationship<T>;
 }
 
@@ -367,7 +369,7 @@ export interface GetConversationUserRelationshipInput<T extends ConversationId> 
 }
 
 export interface GetConversationUserRelationshipOutput<T extends ConversationId> {
-  conversationUserRelationship: ConversationUserRelationship<T>;
+  conversationUserRelationship: ConversationUserRelationship<ConversationType<T>>;
 }
 
 export interface AddMessageToConversationUserRelationshipInput<T extends ConversationId> {
@@ -379,7 +381,7 @@ export interface AddMessageToConversationUserRelationshipInput<T extends Convers
 }
 
 export interface AddMessageToConversationUserRelationshipOutput<T extends ConversationId> {
-  conversationUserRelationship: ConversationUserRelationship<T>;
+  conversationUserRelationship: ConversationUserRelationship<ConversationType<T>>;
 }
 
 export interface RemoveUnreadMessageFromConversationUserRelationshipInput<T extends ConversationId> {
@@ -389,7 +391,7 @@ export interface RemoveUnreadMessageFromConversationUserRelationshipInput<T exte
 }
 
 export interface RemoveUnreadMessageFromConversationUserRelationshipOutput<T extends ConversationId> {
-  conversationUserRelationship: ConversationUserRelationship<T>;
+  conversationUserRelationship: ConversationUserRelationship<ConversationType<T>>;
 }
 export interface DeleteConversationUserRelationshipInput {
   conversationId: ConversationId;
@@ -405,11 +407,11 @@ export interface GetConversationUserRelationshipsByConversationIdInput<T extends
 }
 
 export interface GetConversationUserRelationshipsByConversationIdOutput<T extends ConversationId> {
-  conversationUserRelationships: ConversationUserRelationship<T>[];
+  conversationUserRelationships: ConversationUserRelationship<ConversationType<T>>[];
   lastEvaluatedKey?: string;
 }
 
-export interface GetConversationUserRelationshipsByUserIdInput<T extends ConversationType | "due_date" | void = void> {
+export interface GetConversationUserRelationshipsByUserIdInput<T extends GetConversationUserRelationshipsByUserIdType> {
   userId: UserId;
   unread?: boolean;
   type?: T;
@@ -417,13 +419,14 @@ export interface GetConversationUserRelationshipsByUserIdInput<T extends Convers
   exclusiveStartKey?: string;
 }
 
-export type GetConversationUserRelationshipsByUserIdType = ConversationType | "due_date" | void;
+export type GetConversationUserRelationshipsByUserIdType = ConversationType | "meeting_due_date" | void;
 
-export interface GetConversationUserRelationshipsByUserIdOutput<T extends GetConversationUserRelationshipsByUserIdType = void> {
-  conversationUserRelationships: ConversationUserRelationship<GetConversationUserRelationshipsByUserIdTypeToConversationId<T>>[];
+export interface GetConversationUserRelationshipsByUserIdOutput<T extends GetConversationUserRelationshipsByUserIdType> {
+  conversationUserRelationships: ConversationUserRelationship<GetConversationUserRelationshipsByUserIdTypeToConversationType<T>>[];
   lastEvaluatedKey?: string;
 }
 
-export type GetConversationUserRelationshipsByUserIdTypeToConversationId<T extends GetConversationUserRelationshipsByUserIdType> = ConversationId<T extends "due_date" ? ConversationType.Meeting : T>;
+export type GetConversationUserRelationshipsByUserIdTypeToConversationType<T extends GetConversationUserRelationshipsByUserIdType> =
+  T extends "meeting_due_date" ? ConversationTypeEnum.Meeting : T extends void ? ConversationType : T;
 
-type ConversationUserRelationshipWithSet<T extends ConversationId = ConversationId> = DynamoSetValues<ConversationUserRelationship<T>, "unreadMessages">;
+type ConversationUserRelationshipWithSet<T extends ConversationType = ConversationType> = DynamoSetValues<ConversationUserRelationship<T>, "unreadMessages">;
