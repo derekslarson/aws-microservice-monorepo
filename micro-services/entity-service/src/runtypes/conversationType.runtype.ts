@@ -1,4 +1,4 @@
 import { Literal, Union } from "runtypes";
-import { ConversationType as ConversationTypeEnum } from "../enums/conversationType.enum";
+import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 
-export const ConversationType = Union(Literal(ConversationTypeEnum.Friend), Literal(ConversationTypeEnum.Group), Literal(ConversationTypeEnum.Meeting), Literal("meeting_due_date"));
+export const ConversationType = Union(Literal(ConversationFetchType.Friend), Literal(ConversationFetchType.Group), Literal(ConversationFetchType.Meeting), Literal(ConversationFetchType.MeetingDueDate));
