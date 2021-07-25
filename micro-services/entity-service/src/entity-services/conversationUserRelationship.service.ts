@@ -4,13 +4,13 @@ import { TYPES } from "../inversion-of-control/types";
 import {
   ConversationUserRelationshipRepositoryInterface,
   ConversationUserRelationship as ConversationUserRelationshipEntity,
-  GetConversationUserRelationshipsByUserIdType as RepositoryGetConversationUserRelationshipsByUserIdType,
-  GetConversationUserRelationshipsByUserIdTypeToConversationType as RepositoryGetConversationUserRelationshipsByUserIdTypeToConversationType,
+  ConversationFetchTypeToConversationType as RepositoryConversationFetchTypeToConversationType,
 } from "../repositories/conversationUserRelationship.dynamo.repository";
 import { ConversationId } from "../types/conversationId.type";
 import { UserId } from "../types/userId.type";
 import { MessageId } from "../types/messageId.type";
 import { ConversationType } from "../types/conversationType.type";
+import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 
 @injectable()
 export class ConversationUserRelationshipService implements ConversationUserRelationshipServiceInterface {
@@ -123,7 +123,7 @@ export class ConversationUserRelationshipService implements ConversationUserRela
     }
   }
 
-  public async getConversationUserRelationshipsByUserId<T extends GetConversationUserRelationshipsByUserIdType>(params: GetConversationUserRelationshipsByUserIdInput<T>): Promise<GetConversationUserRelationshipsByUserIdOutput<T>> {
+  public async getConversationUserRelationshipsByUserId<T extends ConversationFetchType>(params: GetConversationUserRelationshipsByUserIdInput<T>): Promise<GetConversationUserRelationshipsByUserIdOutput<T>> {
     try {
       this.loggerService.trace("getConversationUserRelationshipsByUserId called", { params }, this.constructor.name);
 
@@ -147,7 +147,7 @@ export interface ConversationUserRelationshipServiceInterface {
   removeUnreadMessageFromConversationUserRelationship<T extends ConversationId>(params: RemoveUnreadMessageFromConversationUserRelationshipInput<T>): Promise<RemoveUnreadMessageFromConversationUserRelationshipOutput<T>>;
   deleteConversationUserRelationship(params: DeleteConversationUserRelationshipInput): Promise<DeleteConversationUserRelationshipOutput>;
   getConversationUserRelationshipsByConversationId<T extends ConversationId>(params: GetConversationUserRelationshipsByConversationIdInput<T>): Promise<GetConversationUserRelationshipsByConversationIdOutput<T>>;
-  getConversationUserRelationshipsByUserId<T extends GetConversationUserRelationshipsByUserIdType>(params: GetConversationUserRelationshipsByUserIdInput<T>): Promise<GetConversationUserRelationshipsByUserIdOutput<T>>;
+  getConversationUserRelationshipsByUserId<T extends ConversationFetchType>(params: GetConversationUserRelationshipsByUserIdInput<T>): Promise<GetConversationUserRelationshipsByUserIdOutput<T>>;
 }
 
 export type ConversationUserRelationship<T extends ConversationType> = ConversationUserRelationshipEntity<T>;
@@ -200,19 +200,17 @@ export interface GetConversationUserRelationshipsByConversationIdOutput<T extend
   conversationUserRelationships: ConversationUserRelationship<ConversationType<T>>[];
   lastEvaluatedKey?: string;
 }
+export type ConversationFetchTypeToConversationType<T extends ConversationFetchType> = RepositoryConversationFetchTypeToConversationType<T>;
 
-export type GetConversationUserRelationshipsByUserIdType = RepositoryGetConversationUserRelationshipsByUserIdType;
-export type GetConversationUserRelationshipsByUserIdTypeToConversationType<T extends GetConversationUserRelationshipsByUserIdType> = RepositoryGetConversationUserRelationshipsByUserIdTypeToConversationType<T>;
-
-export interface GetConversationUserRelationshipsByUserIdInput<T extends GetConversationUserRelationshipsByUserIdType> {
+export interface GetConversationUserRelationshipsByUserIdInput<T extends ConversationFetchType> {
   userId: UserId;
   unread?: boolean;
   type?: T;
   limit?: number;
   exclusiveStartKey?: string;
 }
-export interface GetConversationUserRelationshipsByUserIdOutput<T extends GetConversationUserRelationshipsByUserIdType = void> {
-  conversationUserRelationships: ConversationUserRelationship<GetConversationUserRelationshipsByUserIdTypeToConversationType<T>>[];
+export interface GetConversationUserRelationshipsByUserIdOutput<T extends ConversationFetchType> {
+  conversationUserRelationships: ConversationUserRelationship<ConversationFetchTypeToConversationType<T>>[];
   lastEvaluatedKey?: string;
 }
 

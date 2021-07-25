@@ -2,9 +2,10 @@ import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationServiceInterface, Conversation as ConversationEntity } from "../entity-services/conversation.service";
-import { ConversationUserRelationshipServiceInterface, GetConversationUserRelationshipsByUserIdType, GetConversationUserRelationshipsByUserIdTypeToConversationType } from "../entity-services/conversationUserRelationship.service";
+import { ConversationUserRelationshipServiceInterface, ConversationFetchTypeToConversationType } from "../entity-services/conversationUserRelationship.service";
 import { UserId } from "../types/userId.type";
-import { ConversationType } from "../enums/conversationType.enum";
+import { ConversationType } from "../types/conversationType.type";
+import { ConversationType as ConversationTypeEnum } from "../enums/conversationType.enum";
 import { ConversationId } from "../types/conversationId.type";
 import { Message as MessageEntity, MessageServiceInterface } from "../entity-services/message.service";
 import { MessageId } from "../types/messageId.type";
@@ -13,6 +14,7 @@ import { ImageFileServiceInterface } from "../entity-services/image.file.service
 import { UserServiceInterface } from "../entity-services/user.service";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
+import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 
 @injectable()
 export class ConversationMediatorService implements ConversationMediatorServiceInterface {
@@ -26,7 +28,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
   ) {}
 
-  public async getConversationsByUserId<T extends GetConversationsByUserIdType>(params: GetConversationsByUserIdInput<T>): Promise<GetConversationsByUserIdOutput<T>> {
+  public async getConversationsByUserId<T extends ConversationFetchType>(params: GetConversationsByUserIdInput<T>): Promise<GetConversationsByUserIdOutput<T>> {
     try {
       this.loggerService.trace("getConversationsByUserId called", { params }, this.constructor.name);
 
@@ -66,6 +68,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
         const { image } = await this.getConversationImage({ conversation: conversationEntity, requestingUserId: userId });
 
+        // Something is messed up with the generic type below, requiring a cast. It should be fixed
         return {
           ...conversationEntity,
           image,
@@ -73,7 +76,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
           recentMessage: conversationUserRelationship.recentMessageId && recentMessageMap[conversationUserRelationship.recentMessageId],
           unreadMessages: conversationUserRelationship.unreadMessages?.length || 0,
           role: conversationUserRelationship.role,
-        };
+        } as unknown as WithRole<Conversation<ConversationFetchTypeToConversationType<T>>>;
       }));
 
       return { conversations, lastEvaluatedKey };
@@ -129,7 +132,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
       const { signedUrl } = this.imageFileService.getSignedUrl({
         entityId: conversation.id,
-        entityType: conversation.type === ConversationType.Group ? EntityType.GroupConversation : EntityType.MeetingConversation,
+        entityType: conversation.type === ConversationTypeEnum.Group ? EntityType.GroupConversation : EntityType.MeetingConversation,
         mimeType: conversation.imageMimeType,
         operation: "get",
       });
@@ -142,7 +145,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
     }
   }
 
-  private isFriendConvo(conversation: ConversationEntity): conversation is ConversationEntity<ConversationType.Friend> {
+  private isFriendConvo(conversation: ConversationEntity): conversation is ConversationEntity<ConversationTypeEnum.Friend> {
     try {
       this.loggerService.trace("isFriendConvoId called", { conversation }, this.constructor.name);
 
@@ -156,7 +159,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 }
 
 export interface ConversationMediatorServiceInterface {
-  getConversationsByUserId<T extends GetConversationUserRelationshipsByUserIdType>(params: GetConversationsByUserIdInput<T>): Promise<GetConversationsByUserIdOutput<T>>;
+  getConversationsByUserId<T extends ConversationFetchType>(params: GetConversationsByUserIdInput<T>): Promise<GetConversationsByUserIdOutput<T>>;
   isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
 }
 
@@ -169,7 +172,7 @@ export type Conversation<T extends ConversationType> = ConversationEntity<T> & {
   recentMessage?: Message;
 };
 
-export interface GetConversationsByUserIdInput<T extends GetConversationsByUserIdType> {
+export interface GetConversationsByUserIdInput<T extends ConversationFetchType> {
   userId: UserId;
   type?: T;
   unread?: boolean;
@@ -177,8 +180,8 @@ export interface GetConversationsByUserIdInput<T extends GetConversationsByUserI
   exclusiveStartKey?: string;
 }
 
-export interface GetConversationsByUserIdOutput<T extends GetConversationsByUserIdType> {
-  conversations: WithRole<Conversation<GetConversationsByUserIdTypeToConversationType<T>>>[];
+export interface GetConversationsByUserIdOutput<T extends ConversationFetchType> {
+  conversations: WithRole<Conversation<ConversationFetchTypeToConversationType<T>>>[];
   lastEvaluatedKey?: string;
 }
 
@@ -199,6 +202,3 @@ export interface GetConversationImageInput {
 export interface GetConversationImageOutput {
   image: string;
 }
-
-export type GetConversationsByUserIdType = GetConversationUserRelationshipsByUserIdType;
-type GetConversationsByUserIdTypeToConversationType<T extends GetConversationsByUserIdType> = GetConversationUserRelationshipsByUserIdTypeToConversationType<T>;
