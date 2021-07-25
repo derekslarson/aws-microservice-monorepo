@@ -70,13 +70,13 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
         // Something is messed up with the generic type below, requiring a cast. It should be fixed
         return {
-          ...conversationEntity,
+          ...conversationEntity as ConversationEntity<ConversationFetchTypeToConversationType<T>>,
           image,
           updatedAt: conversationUserRelationship.updatedAt,
           recentMessage: conversationUserRelationship.recentMessageId && recentMessageMap[conversationUserRelationship.recentMessageId],
           unreadMessages: conversationUserRelationship.unreadMessages?.length || 0,
           role: conversationUserRelationship.role,
-        } as unknown as WithRole<Conversation<ConversationFetchTypeToConversationType<T>>>;
+        };
       }));
 
       return { conversations, lastEvaluatedKey };
