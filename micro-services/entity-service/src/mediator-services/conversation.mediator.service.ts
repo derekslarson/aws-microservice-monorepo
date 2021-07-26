@@ -68,9 +68,8 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
         const { image } = await this.getConversationImage({ conversation: conversationEntity, requestingUserId: userId });
 
-        // Something is messed up with the generic type below, requiring a cast. It should be fixed
         return {
-          ...conversationEntity as ConversationEntity<ConversationFetchTypeToConversationType<T>>,
+          ...conversationEntity,
           image,
           updatedAt: conversationUserRelationship.updatedAt,
           recentMessage: conversationUserRelationship.recentMessageId && recentMessageMap[conversationUserRelationship.recentMessageId],
@@ -181,7 +180,14 @@ export interface GetConversationsByUserIdInput<T extends ConversationFetchType> 
 }
 
 export interface GetConversationsByUserIdOutput<T extends ConversationFetchType> {
-  conversations: WithRole<Conversation<ConversationFetchTypeToConversationType<T>>>[];
+  // This is equivalent to Conversation<ConversationFetchTypeToConversationType<T>>
+  //
+  // Due to the flow of fetching the conversationUserRelationships by userId/type,
+  // then using their conversationIds to fetch the conversations, the generic flow is
+  // ConversationFetchType => ConversationType => ConversationId => ConversationType => Conversation.
+  // Typescript is unable to tell for some reason that this is equal to Conversation<ConversationFetchTypeToConversationType<T>>,
+  // so we have to use this redundancy
+  conversations: WithRole<Conversation<ConversationType<ConversationId<ConversationFetchTypeToConversationType<T>>>>>[];
   lastEvaluatedKey?: string;
 }
 
