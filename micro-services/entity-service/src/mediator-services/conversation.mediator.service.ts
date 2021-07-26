@@ -155,15 +155,32 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
       const { messages: recentMessageEntities } = await this.messageService.getMessages({ messageIds: recentMessageIds });
 
-      const recentMessageMap = recentMessageEntities.reduce((acc: { [key: string]: Message; }, message) => {
-        const { signedUrl } = this.messageFileService.getSignedUrl({
+      const userIds = recentMessageEntities.map((message) => message.from);
+
+      const { users } = await this.userService.getUsers({ userIds });
+
+      const recentMessageMap = recentMessageEntities.reduce((acc: { [key: string]: Message; }, message, i) => {
+        const user = users[i];
+
+        const { signedUrl: messageUrl } = this.messageFileService.getSignedUrl({
           messageId: message.id,
           conversationId: message.conversationId,
           mimeType: message.mimeType,
           operation: "get",
         });
 
-        acc[message.id] = { ...message, fetchUrl: signedUrl };
+        const { signedUrl: imageUrl } = this.imageFileService.getSignedUrl({
+          entityType: EntityType.User,
+          entityId: user.id,
+          mimeType: user.imageMimeType,
+          operation: "get",
+        });
+
+        acc[message.id] = {
+          ...message,
+          fetchUrl: messageUrl,
+          fromImage: imageUrl,
+        };
 
         return acc;
       }, {});
@@ -186,6 +203,7 @@ export interface ConversationMediatorServiceInterface {
 
 export interface Message extends MessageEntity {
   fetchUrl: string;
+  fromImage: string;
 }
 
 export type Conversation<T extends ConversationType> = ConversationEntity<T> & {

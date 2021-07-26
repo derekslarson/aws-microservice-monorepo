@@ -14,6 +14,9 @@ import { PendingMessageId } from "../types/pendingMessageId.type";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
 import { MessageFileServiceInterface } from "../entity-services/mesage.file.service";
+import { ImageFileServiceInterface } from "../entity-services/image.file.service";
+import { UserServiceInterface } from "../entity-services/user.service";
+import { EntityType } from "../enums/entityType.enum";
 
 @injectable()
 export class MessageMediatorService implements MessageMediatorServiceInterface {
@@ -22,6 +25,8 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     @inject(TYPES.PendingMessageServiceInterface) private pendingMessageService: PendingMessageServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.MessageFileServiceInterface) private messageFileService: MessageFileServiceInterface,
+    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
   ) {}
@@ -155,21 +160,31 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { messageId } = params;
 
-      const { message } = await this.messageService.getMessage({ messageId });
+      const { message: messageEntity } = await this.messageService.getMessage({ messageId });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
+      const { user } = await this.userService.getUser({ userId: messageEntity.from });
+
+      const { signedUrl: fetchUrl } = this.messageFileService.getSignedUrl({
         messageId,
-        conversationId: message.conversationId,
-        mimeType: message.mimeType,
+        conversationId: messageEntity.conversationId,
+        mimeType: messageEntity.mimeType,
         operation: "get",
       });
 
-      const messageWithFetchUrl = {
-        ...message,
-        fetchUrl: signedUrl,
+      const { signedUrl: fromImage } = this.imageFileService.getSignedUrl({
+        entityType: EntityType.User,
+        entityId: user.id,
+        mimeType: user.imageMimeType,
+        operation: "get",
+      });
+
+      const message = {
+        ...messageEntity,
+        fetchUrl,
+        fromImage,
       };
 
-      return { message: messageWithFetchUrl };
+      return { message };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessage", { error, params }, this.constructor.name);
 
@@ -395,23 +410,33 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { conversationId, exclusiveStartKey, limit } = params;
 
-      const { messages, lastEvaluatedKey } = await this.messageService.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit });
+      const { messages: messageEntities, lastEvaluatedKey } = await this.messageService.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit });
 
-      const messagesWithFetchUrls = messages.map((message) => {
-        const { signedUrl } = this.messageFileService.getSignedUrl({
-          messageId: message.id,
-          conversationId: message.conversationId,
-          mimeType: message.mimeType,
+      const messages = await Promise.all(messageEntities.map(async (messageEntity) => {
+        const { user } = await this.userService.getUser({ userId: messageEntity.from });
+
+        const { signedUrl: fetchUrl } = this.messageFileService.getSignedUrl({
+          messageId: messageEntity.id,
+          conversationId: messageEntity.conversationId,
+          mimeType: messageEntity.mimeType,
+          operation: "get",
+        });
+
+        const { signedUrl: fromImage } = this.imageFileService.getSignedUrl({
+          entityType: EntityType.User,
+          entityId: user.id,
+          mimeType: user.imageMimeType,
           operation: "get",
         });
 
         return {
-          ...message,
-          fetchUrl: signedUrl,
+          ...messageEntity,
+          fetchUrl,
+          fromImage,
         };
-      });
+      }));
 
-      return { messages: messagesWithFetchUrls, lastEvaluatedKey };
+      return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByConversationId", { error, params }, this.constructor.name);
 
@@ -457,6 +482,7 @@ export interface PendingMessage extends Omit<PendingMessageEntity, "id"> {
 
 export interface Message extends MessageEntity {
   fetchUrl: string;
+  fromImage: string;
 }
 
 export interface CreateFriendMessageInput {
