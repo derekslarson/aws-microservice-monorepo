@@ -50,6 +50,31 @@ function createDefaultImage(): CreateDefaultImageOutput {
   return { image, mimeType: ImageMimeType.Png };
 }
 
+export function generateRandomEmail(): string {
+  return `${generateRandomString(8)}@${generateRandomString(8)}.com`;
+}
+
+export function generateRandomPhone(): string {
+  return `+1${randomDigits(10).join("")}`;
+}
+
+export async function getUniqueProperty(params: GetUniquePropertyInput): Promise<GetUniquePropertyOutput> {
+  try {
+    const { property, value } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: property, sk: value },
+    }).promise();
+
+    return { uniqueProperty: Item as RawUniqueProperty | undefined };
+  } catch (error) {
+    console.log("Error in getTeam:\n", error);
+
+    throw error;
+  }
+}
+
 export async function isUniqueEmail(params: IsUniqueEmailInput): Promise<IsUniqueEmailOutput> {
   try {
     const { email } = params;
@@ -131,9 +156,9 @@ export async function createRandomUser(): Promise<CreateRandomUserOutput> {
   try {
     const realName = generateRandomString(8);
 
-    let email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
+    let email = generateRandomEmail();
     let username = generateRandomString(8);
-    let phone = `+1${randomDigits(10).join("")}`;
+    let phone = generateRandomPhone();
 
     let isUniqueEmailVal: boolean;
     let isUniqueUsernameVal: boolean;
@@ -150,7 +175,7 @@ export async function createRandomUser(): Promise<CreateRandomUserOutput> {
     ]));
 
     while (!isUniqueEmailVal) {
-      email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
+      email = generateRandomEmail();
       ({ isUniqueEmail: isUniqueEmailVal } = await isUniqueEmail({ email }));
     }
 
@@ -160,7 +185,7 @@ export async function createRandomUser(): Promise<CreateRandomUserOutput> {
     }
 
     while (!isUniquePhoneVal) {
-      phone = `+1${randomDigits(10).join("")}`;
+      phone = generateRandomPhone();
       ({ isUniquePhone: isUniquePhoneVal } = await isUniquePhone({ phone }));
     }
 
@@ -176,6 +201,7 @@ export async function createRandomUser(): Promise<CreateRandomUserOutput> {
       id: userId,
       email,
       username,
+      phone,
       realName,
     };
 
@@ -217,6 +243,66 @@ export async function getUser(params: GetUserInput): Promise<GetUserOutput> {
     }).promise();
 
     const user = Item as RawUser;
+
+    return { user };
+  } catch (error) {
+    console.log("Error in getTeam:\n", error);
+
+    throw error;
+  }
+}
+
+export async function getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput> {
+  try {
+    const { email } = params;
+
+    let user: MakeRequired<RawUser, "email"> | undefined;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: UniqueProperty.Email, sk: email },
+    }).promise();
+
+    const uniqueProperty = Item as RawUniqueProperty;
+
+    if (uniqueProperty) {
+      const { Item: ItemTwo } = await documentClient.get({
+        TableName: process.env["core-table-name"] as string,
+        Key: { pk: uniqueProperty.userId, sk: uniqueProperty.userId },
+      }).promise();
+
+      user = ItemTwo as MakeRequired<RawUser, "email">;
+    }
+
+    return { user };
+  } catch (error) {
+    console.log("Error in getTeam:\n", error);
+
+    throw error;
+  }
+}
+
+export async function getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput> {
+  try {
+    const { phone } = params;
+
+    let user: MakeRequired<RawUser, "phone"> | undefined;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: UniqueProperty.Phone, sk: phone },
+    }).promise();
+
+    const uniqueProperty = Item as RawUniqueProperty;
+
+    if (uniqueProperty) {
+      const { Item: ItemTwo } = await documentClient.get({
+        TableName: process.env["core-table-name"] as string,
+        Key: { pk: uniqueProperty.userId, sk: uniqueProperty.userId },
+      }).promise();
+
+      user = ItemTwo as MakeRequired<RawUser, "phone">;
+    }
 
     return { user };
   } catch (error) {
@@ -670,6 +756,15 @@ export interface CreateUniquePropertyOutput {
   uniqueProperty: RawUniqueProperty;
 }
 
+export interface GetUniquePropertyInput {
+  property: UniqueProperty;
+  value: string;
+}
+
+export interface GetUniquePropertyOutput {
+  uniqueProperty?: RawUniqueProperty;
+}
+
 export interface CreateRandomUserOutput {
   user: MakeRequired<RawUser, "email" | "username" | "realName">;
 }
@@ -688,6 +783,22 @@ export interface GetUserInput {
 
 export interface GetUserOutput {
   user?: RawUser;
+}
+
+export interface GetUserByEmailInput {
+  email: string;
+}
+
+export interface GetUserByEmailOutput {
+  user?: MakeRequired<RawUser, "email">;
+}
+
+export interface GetUserByPhoneInput {
+  phone: string;
+}
+
+export interface GetUserByPhoneOutput {
+  user?: MakeRequired<RawUser, "phone">;
 }
 
 export interface IsUniqueEmailInput {

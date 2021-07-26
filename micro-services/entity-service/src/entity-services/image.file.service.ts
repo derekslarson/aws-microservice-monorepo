@@ -39,7 +39,7 @@ export class ImageFileService implements ImageFileServiceInterface {
         backColor: "#fff",
       });
 
-      const image = this.identicon.toPng("default-image", 100);
+      const image = this.identicon.toPng(Date.now(), 100);
 
       return { image, mimeType: ImageMimeType.Png };
     } catch (error: unknown) {

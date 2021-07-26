@@ -125,10 +125,11 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { failures } = await this.invitationOrchestratorService.addUsersToMeeting({ meetingId, users });
+      const { successes, failures } = await this.invitationOrchestratorService.addUsersToMeeting({ meetingId, users });
 
       const response = {
         message: `Users added to meeting${failures.length ? ", but with some failures." : "."}`,
+        successes,
         ...(failures.length && { failures }),
       };
 

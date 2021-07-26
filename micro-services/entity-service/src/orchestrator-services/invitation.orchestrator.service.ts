@@ -28,15 +28,17 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { userId, users: invitations } = params;
 
-      const settledPromises = await Promise.allSettled(invitations.map(async (invitation) => {
+      const settledInvitations = await Promise.allSettled(invitations.map(async (invitation) => {
         const { user } = await this.getOrCreateUser(invitation);
 
         await this.friendshipMediatorService.createFriendship({ userIds: [ user.id, userId ] });
+
+        return { user };
       }));
 
-      const { failures } = this.mapInvitationsToFailures({ invitations, settledPromises });
+      const { successes, failures } = this.mapSettledInvitationsToResponse({ invitations, settledInvitations });
 
-      return { failures };
+      return { successes, failures };
     } catch (error: unknown) {
       this.loggerService.error("Error in addUsersAsFriends", { error, params }, this.constructor.name);
 
@@ -50,15 +52,17 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { teamId, users: invitations } = params;
 
-      const settledPromises = await Promise.allSettled(invitations.map(async (invitation) => {
+      const settledInvitations = await Promise.allSettled(invitations.map(async (invitation) => {
         const { user } = await this.getOrCreateUser(invitation);
 
         await this.teamMediatorService.addUserToTeam({ teamId, userId: user.id, role: invitation.role });
+
+        return { user };
       }));
 
-      const { failures } = this.mapInvitationsToFailures({ invitations, settledPromises });
+      const { successes, failures } = this.mapSettledInvitationsToResponse({ invitations, settledInvitations });
 
-      return { failures };
+      return { successes, failures };
     } catch (error: unknown) {
       this.loggerService.error("Error in addUsersToTeam", { error, params }, this.constructor.name);
 
@@ -72,15 +76,17 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { groupId, users: invitations } = params;
 
-      const settledPromises = await Promise.allSettled(invitations.map(async (invitation) => {
+      const settledInvitations = await Promise.allSettled(invitations.map(async (invitation) => {
         const { user } = await this.getOrCreateUser(invitation);
 
         await this.groupMediatorService.addUserToGroup({ groupId, userId: user.id, role: invitation.role });
+
+        return { user };
       }));
 
-      const { failures } = this.mapInvitationsToFailures({ invitations, settledPromises });
+      const { successes, failures } = this.mapSettledInvitationsToResponse({ invitations, settledInvitations });
 
-      return { failures };
+      return { successes, failures };
     } catch (error: unknown) {
       this.loggerService.error("Error in addUsersToGroup", { error, params }, this.constructor.name);
 
@@ -94,15 +100,17 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { meetingId, users: invitations } = params;
 
-      const settledPromises = await Promise.allSettled(invitations.map(async (invitation) => {
+      const settledInvitations = await Promise.allSettled(invitations.map(async (invitation) => {
         const { user } = await this.getOrCreateUser(invitation);
 
         await this.meetingMediatorService.addUserToMeeting({ meetingId, userId: user.id, role: invitation.role });
+
+        return { user };
       }));
 
-      const { failures } = this.mapInvitationsToFailures({ invitations, settledPromises });
+      const { successes, failures } = this.mapSettledInvitationsToResponse({ invitations, settledInvitations });
 
-      return { failures };
+      return { successes, failures };
     } catch (error: unknown) {
       this.loggerService.error("Error in addUsersToMeeting", { error, params }, this.constructor.name);
 
@@ -157,23 +165,25 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     }
   }
 
-  private mapInvitationsToFailures<T extends Invitation>(params: MapInvitationsToFailuresInput<T>): MapInvitationsToFailuresOutput<T> {
+  private mapSettledInvitationsToResponse<T extends Invitation>(params: MapSettledInvitationsToResponseInput<T>): MapSettledInvitationsToResponseOutput<T> {
     try {
-      this.loggerService.trace("mapInvitationsToFailures called", { params }, this.constructor.name);
+      this.loggerService.trace("mapSettledInvitationsToResponse called", { params }, this.constructor.name);
 
-      const { invitations, settledPromises } = params;
+      const { invitations, settledInvitations } = params;
 
-      const failures = settledPromises.reduce((acc: T[], settledPromise, i) => {
+      const { successes, failures } = settledInvitations.reduce((acc: { successes: User[], failures: T[] }, settledPromise, i) => {
         if (settledPromise.status === "rejected") {
-          acc.push(invitations[i]);
+          acc.failures.push(invitations[i]);
+        } else {
+          acc.successes.push(settledPromise.value.user);
         }
 
         return acc;
-      }, []);
+      }, { successes: [], failures: [] });
 
-      return { failures };
+      return { successes, failures };
     } catch (error: unknown) {
-      this.loggerService.error("Error in mapInvitationsToFailures", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in mapSettledInvitationsToResponse", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -192,6 +202,7 @@ export interface AddUsersAsFriendsInput {
 }
 
 export interface AddUsersAsFriendsOutput {
+  successes: User[];
   failures: InvitationWithoutRole[];
 }
 
@@ -201,6 +212,7 @@ export interface AddUsersToTeamInput {
 }
 
 export interface AddUsersToTeamOutput {
+  successes: User[];
   failures: InvitationWithRole[];
 }
 
@@ -210,6 +222,7 @@ export interface AddUsersToGroupInput {
 }
 
 export interface AddUsersToGroupOutput {
+  successes: User[];
   failures: InvitationWithRole[];
 }
 
@@ -219,6 +232,7 @@ export interface AddUsersToMeetingInput {
 }
 
 export interface AddUsersToMeetingOutput {
+  successes: User[];
   failures: InvitationWithRole[];
 }
 
@@ -228,11 +242,12 @@ interface GetOrCreateUserOutput {
   user: User;
 }
 
-interface MapInvitationsToFailuresInput<T extends Invitation> {
+interface MapSettledInvitationsToResponseInput<T extends Invitation> {
   invitations: T[];
-  settledPromises: PromiseSettledResult<void>[]
+  settledInvitations: PromiseSettledResult<{ user: User; }>[]
 }
-interface MapInvitationsToFailuresOutput<T extends Invitation> {
+interface MapSettledInvitationsToResponseOutput<T extends Invitation> {
+  successes: User[];
   failures: T[];
 }
 

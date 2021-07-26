@@ -33,10 +33,11 @@ export class FriendController extends BaseController implements FriendController
         throw new ForbiddenError("Forbidden");
       }
 
-      const { failures } = await this.invitationOrchestratorService.addUsersAsFriends({ userId, users });
+      const { successes, failures } = await this.invitationOrchestratorService.addUsersAsFriends({ userId, users });
 
       const response = {
         message: `Users added as friends${failures.length ? ", but with some failures." : "."}`,
+        successes,
         ...(failures.length && { failures }),
       };
 

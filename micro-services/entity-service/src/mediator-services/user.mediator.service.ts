@@ -82,8 +82,10 @@ export class UserMediatorService implements UserMediatorServiceInterface {
         mimeType: userEntity.imageMimeType,
       });
 
+      const { imageMimeType, ...restOfUserEntity } = userEntity;
+
       const user: User = {
-        ...userEntity,
+        ...restOfUserEntity,
         image: signedUrl,
       };
 
@@ -110,8 +112,10 @@ export class UserMediatorService implements UserMediatorServiceInterface {
         mimeType: userEntity.imageMimeType,
       });
 
+      const { imageMimeType, ...restOfUserEntity } = userEntity;
+
       const user: User = {
-        ...userEntity,
+        ...restOfUserEntity,
         image: signedUrl,
       };
 
@@ -277,8 +281,10 @@ export class UserMediatorService implements UserMediatorServiceInterface {
           mimeType: userEntity.imageMimeType,
         });
 
+        const { imageMimeType, ...restOfUserEntity } = userEntity;
+
         const user: WithRole<User> = {
-          ...userEntity,
+          ...restOfUserEntity,
           image: signedUrl,
           role: teamUserRelationships[i].role,
         };
@@ -318,8 +324,10 @@ export class UserMediatorService implements UserMediatorServiceInterface {
           mimeType: userEntity.imageMimeType,
         });
 
+        const { imageMimeType, ...restOfUserEntity } = userEntity;
+
         const user: WithRole<User> = {
-          ...userEntity,
+          ...restOfUserEntity,
           image: signedUrl,
           role: conversationUserRelationships[i].role,
         };
@@ -359,8 +367,10 @@ export class UserMediatorService implements UserMediatorServiceInterface {
           mimeType: userEntity.imageMimeType,
         });
 
+        const { imageMimeType, ...restOfUserEntity } = userEntity;
+
         const user: WithRole<User> = {
-          ...userEntity,
+          ...restOfUserEntity,
           image: signedUrl,
           role: conversationUserRelationships[i].role,
         };

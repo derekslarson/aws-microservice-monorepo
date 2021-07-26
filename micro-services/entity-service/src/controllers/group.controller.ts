@@ -125,10 +125,11 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      const { failures } = await this.invitationOrchestratorService.addUsersToGroup({ groupId, users });
+      const { successes, failures } = await this.invitationOrchestratorService.addUsersToGroup({ groupId, users });
 
       const response = {
         message: `Users added to group${failures.length ? ", but with some failures." : "."}`,
+        successes,
         ...(failures.length && { failures }),
       };
 

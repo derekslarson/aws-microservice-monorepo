@@ -139,7 +139,7 @@ async function getAuthorizationCode(email: string, xsrfToken: string): Promise<{
 
 async function getToken(authorizationCode: string): Promise<{ accessToken: string }> {
   try {
-    const oauth2AuthorizeBody = `scopes=openid&grant_type=authorization_code&code=${authorizationCode}&client_id=${process.env["yac-client-id"] as string}&redirect_uri=${process.env["yac-client-redirect-uri"] as string}`;
+    const oauth2AuthorizeBody = `grant_type=authorization_code&code=${authorizationCode}&client_id=${process.env["yac-client-id"] as string}&redirect_uri=${process.env["yac-client-redirect-uri"] as string}`;
 
     const headers = {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -148,7 +148,6 @@ async function getToken(authorizationCode: string): Promise<{ accessToken: strin
 
     const { data } = await axios.post<{ access_token: string; }>(`${process.env["user-pool-domain-url"] as string}/oauth2/token`, oauth2AuthorizeBody, { headers });
 
-    console.log(data);
     return { accessToken: data.access_token };
   } catch (error: unknown) {
     console.log("Error in getTokens:\n", error);
