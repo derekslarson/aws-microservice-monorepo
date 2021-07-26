@@ -43,28 +43,16 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       });
 
       const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
-      const recentMessageIds = conversationUserRelationships.map((relationship) => relationship.recentMessageId).filter((messageId): messageId is MessageId => typeof messageId === "string");
+      const recentMessageIds = conversationUserRelationships.map((relationship) => relationship.recentMessageId);
 
-      const [ { conversations: conversationEntities }, { messages: recentMessageEntities } ] = await Promise.all([
+      const [ { conversations: conversationEntities }, { recentMessages } ] = await Promise.all([
         this.conversationService.getConversations({ conversationIds }),
-        this.messageService.getMessages({ messageIds: recentMessageIds }),
+        this.getRecentMessages({ recentMessageIds }),
       ]);
-
-      const recentMessageMap = recentMessageEntities.reduce((acc: { [key: string]: Message; }, message) => {
-        const { signedUrl } = this.messageFileService.getSignedUrl({
-          messageId: message.id,
-          conversationId: message.conversationId,
-          mimeType: message.mimeType,
-          operation: "get",
-        });
-
-        acc[message.id] = { ...message, fetchUrl: signedUrl };
-
-        return acc;
-      }, {});
 
       const conversations = await Promise.all(conversationEntities.map(async (conversationEntity, i) => {
         const conversationUserRelationship = conversationUserRelationships[i];
+        const recentMessage = recentMessages[i];
 
         const { image } = await this.getConversationImage({ conversation: conversationEntity, requestingUserId: userId });
 
@@ -72,7 +60,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
           ...conversationEntity,
           image,
           updatedAt: conversationUserRelationship.updatedAt,
-          recentMessage: conversationUserRelationship.recentMessageId && recentMessageMap[conversationUserRelationship.recentMessageId],
+          recentMessage,
           unreadMessages: conversationUserRelationship.unreadMessages?.length || 0,
           role: conversationUserRelationship.role,
         };
@@ -102,6 +90,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       if (error instanceof NotFoundError) {
         return { isConversationMember: false };
       }
+
       this.loggerService.error("Error in isConversationMember", { error, params }, this.constructor.name);
 
       throw error;
@@ -155,6 +144,39 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       throw error;
     }
   }
+
+  private async getRecentMessages(params: GetRecentMessagesInput): Promise<GetRecentMessagesOutput> {
+    try {
+      this.loggerService.trace("getRecentMessages called", { params }, this.constructor.name);
+
+      const { recentMessageIds: recentMessageIdsWithUndefined } = params;
+
+      const recentMessageIds = recentMessageIdsWithUndefined.filter((messageId): messageId is MessageId => typeof messageId === "string");
+
+      const { messages: recentMessageEntities } = await this.messageService.getMessages({ messageIds: recentMessageIds });
+
+      const recentMessageMap = recentMessageEntities.reduce((acc: { [key: string]: Message; }, message) => {
+        const { signedUrl } = this.messageFileService.getSignedUrl({
+          messageId: message.id,
+          conversationId: message.conversationId,
+          mimeType: message.mimeType,
+          operation: "get",
+        });
+
+        acc[message.id] = { ...message, fetchUrl: signedUrl };
+
+        return acc;
+      }, {});
+
+      const recentMessages = recentMessageIdsWithUndefined.map((recentMessageId) => recentMessageId && recentMessageMap[recentMessageId]);
+
+      return { recentMessages };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getRecentMessages", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface ConversationMediatorServiceInterface {
@@ -200,11 +222,19 @@ export interface IsConversationMemberOutput {
   isConversationMember: boolean;
 }
 
-export interface GetConversationImageInput {
+interface GetConversationImageInput {
   conversation: ConversationEntity;
   requestingUserId: UserId;
 }
 
-export interface GetConversationImageOutput {
+interface GetConversationImageOutput {
   image: string;
+}
+
+interface GetRecentMessagesInput {
+  recentMessageIds: Array<MessageId | undefined>;
+}
+
+interface GetRecentMessagesOutput {
+  recentMessages: Array<Message | undefined>;
 }
