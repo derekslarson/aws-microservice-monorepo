@@ -8,6 +8,7 @@ import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { ConversationId } from "../../src/types/conversationId.type";
+import { RawUser } from "../../src/repositories/user.dynamo.repository";
 
 describe("POST /users/{userId}/friends (Add User as Friend)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -15,7 +16,7 @@ describe("POST /users/{userId}/friends (Add User as Friend)", () => {
   const accessToken = process.env.accessToken as string;
 
   const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
-  let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
+  let otherUser: RawUser;
   let conversationId: ConversationId;
 
   describe("under normal conditions", () => {

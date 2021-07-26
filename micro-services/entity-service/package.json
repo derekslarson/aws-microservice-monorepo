@@ -71,6 +71,7 @@
     "@yac/core": "0.1.0",
     "aws-sdk": "^2.783.0",
     "axios": "^0.21.1",
+    "crypto-secure-random-digit": "^1.0.9",
     "inversify": "^5.0.1",
     "jdenticon": "^3.1.0",
     "reflect-metadata": "^0.1.13",

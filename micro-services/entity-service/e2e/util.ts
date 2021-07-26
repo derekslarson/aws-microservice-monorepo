@@ -1,12 +1,17 @@
+/* eslint-disable no-await-in-loop */
 /* eslint-disable no-console */
-import { Role } from "@yac/core";
+import { MakeRequired, Role } from "@yac/core";
+import { randomDigits } from "crypto-secure-random-digit";
 import ksuid from "ksuid";
-import { DynamoDB } from "aws-sdk";
-import { documentClient, cognito, generateRandomString } from "../../../e2e/util";
-import { ConversationType } from "../src/enums/conversationType.enum";
+import { DynamoDB, S3 } from "aws-sdk";
+import identicon from "jdenticon";
+import { DocumentClient } from "aws-sdk/lib/dynamodb/document_client";
+import { documentClient, cognito, s3, generateRandomString } from "../../../e2e/util";
+import { ConversationType as ConversationTypeEnum } from "../src/enums/conversationType.enum";
+import { ConversationType } from "../src/types/conversationType.type";
 import { EntityType } from "../src/enums/entityType.enum";
 import { KeyPrefix } from "../src/enums/keyPrefix.enum";
-import { RawConversation } from "../src/repositories/conversation.dynamo.repository";
+import { Conversation, FriendConversation, GroupConversation, MeetingConversation, RawConversation } from "../src/repositories/conversation.dynamo.repository";
 import { RawConversationUserRelationship } from "../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawTeam } from "../src/repositories/team.dynamo.repository";
 import { RawTeamUserRelationship } from "../src/repositories/teamUserRelationship.dynamo.repository";
@@ -18,29 +23,181 @@ import { MeetingId } from "../src/types/meetingId.type";
 import { TeamId } from "../src/types/teamId.type";
 import { UserId } from "../src/types/userId.type";
 import { MessageId } from "../src/types/messageId.type";
-import { MessageMimeType } from "../src/enums/mimeType.enum";
+import { MessageMimeType } from "../src/enums/message.mimeType.enum";
 import { PendingMessageId } from "../src/types/pendingMessageId.type";
 import { RawPendingMessage } from "../src/repositories/pendingMessage.dynamo.repository";
 import { RawUser } from "../src/repositories/user.dynamo.repository";
+import { ImageMimeType } from "../src/enums/image.mimeType.enum";
+import { UniqueProperty } from "../src/enums/uniqueProperty.enum";
+import { RawUniqueProperty } from "../src/repositories/uniqueProperty.dynamo.repository";
 
-export async function createRandomUser(): Promise<CreateRandomUserOutput> {
+function createDefaultImage(): CreateDefaultImageOutput {
+  identicon.configure({
+    hues: [ 48 ],
+    lightness: {
+      color: [ 0.40, 0.69 ],
+      grayscale: [ 0.47, 0.90 ],
+    },
+    saturation: {
+      color: 1.00,
+      grayscale: 0.00,
+    },
+    backColor: "#fff",
+  });
+
+  const image = identicon.toPng("default-image", 100);
+
+  return { image, mimeType: ImageMimeType.Png };
+}
+
+export async function isUniqueEmail(params: IsUniqueEmailInput): Promise<IsUniqueEmailOutput> {
   try {
-    const email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
+    const { email } = params;
 
-    const userId: UserId = `${KeyPrefix.User}${ksuid.randomSync().string}`;
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: UniqueProperty.Email, sk: email },
+    }).promise();
 
-    const user: RawUser = {
-      entityType: EntityType.User,
-      pk: userId,
-      sk: userId,
-      id: userId,
-      email,
+    return { isUniqueEmail: !Item };
+  } catch (error) {
+    console.log("Error in getTeam:\n", error);
+
+    throw error;
+  }
+}
+
+export async function isUniqueUsername(params: IsUniqueUsernameInput): Promise<IsUniqueUsernameOutput> {
+  try {
+    const { username } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: UniqueProperty.Username, sk: username },
+    }).promise();
+
+    return { isUniqueUsername: !Item };
+  } catch (error) {
+    console.log("Error in getTeam:\n", error);
+
+    throw error;
+  }
+}
+
+export async function isUniquePhone(params: IsUniquePhoneInput): Promise<IsUniquePhoneOutput> {
+  try {
+    const { phone } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: UniqueProperty.Phone, sk: phone },
+    }).promise();
+
+    return { isUniquePhone: !Item };
+  } catch (error) {
+    console.log("Error in getTeam:\n", error);
+
+    throw error;
+  }
+}
+
+export async function createUniqueProperty(params: CreateUniquePropertyInput): Promise<CreateUniquePropertyOutput> {
+  try {
+    const { property, value, userId } = params;
+
+    const uniqueProperty: RawUniqueProperty = {
+      entityType: EntityType.UniqueProperty,
+      pk: property,
+      sk: value,
+      property,
+      value,
+      userId,
     };
 
     await documentClient.put({
       TableName: process.env["core-table-name"] as string,
-      Item: user,
+      Item: uniqueProperty,
     }).promise();
+
+    return { uniqueProperty };
+  } catch (error) {
+    console.log("Error in createTeamUserRelationship:\n", error);
+
+    throw error;
+  }
+}
+
+export async function createRandomUser(): Promise<CreateRandomUserOutput> {
+  try {
+    const realName = generateRandomString(8);
+
+    let email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
+    let username = generateRandomString(8);
+    let phone = `+1${randomDigits(10).join("")}`;
+
+    let isUniqueEmailVal: boolean;
+    let isUniqueUsernameVal: boolean;
+    let isUniquePhoneVal: boolean;
+
+    ([
+      { isUniqueEmail: isUniqueEmailVal },
+      { isUniqueUsername: isUniqueUsernameVal },
+      { isUniquePhone: isUniquePhoneVal },
+    ] = await Promise.all([
+      isUniqueEmail({ email }),
+      isUniqueUsername({ username }),
+      isUniquePhone({ phone }),
+    ]));
+
+    while (!isUniqueEmailVal) {
+      email = `${generateRandomString(8)}@${generateRandomString(8)}.com`;
+      ({ isUniqueEmail: isUniqueEmailVal } = await isUniqueEmail({ email }));
+    }
+
+    while (!isUniqueUsernameVal) {
+      username = generateRandomString(8);
+      ({ isUniqueUsername: isUniqueUsernameVal } = await isUniqueUsername({ username }));
+    }
+
+    while (!isUniquePhoneVal) {
+      phone = `+1${randomDigits(10).join("")}`;
+      ({ isUniquePhone: isUniquePhoneVal } = await isUniquePhone({ phone }));
+    }
+
+    const { image, mimeType } = createDefaultImage();
+
+    const userId: UserId = `${KeyPrefix.User}${ksuid.randomSync().string}`;
+
+    const user: MakeRequired<RawUser, "email" | "username" | "realName"> = {
+      entityType: EntityType.User,
+      imageMimeType: mimeType,
+      pk: userId,
+      sk: userId,
+      id: userId,
+      email,
+      username,
+      realName,
+    };
+
+    const s3UploadInput: S3.Types.PutObjectRequest = {
+      Bucket: process.env["image-s3-bucket-name"] as string,
+      Key: `users/${userId}.png`,
+      Body: image,
+      ContentType: mimeType,
+    };
+
+    const dynamoPutInput: DocumentClient.PutItemInput = {
+      TableName: process.env["core-table-name"] as string,
+      Item: user,
+    };
+
+    await Promise.all([
+      s3.upload(s3UploadInput).promise(),
+      documentClient.put(dynamoPutInput).promise(),
+      createUniqueProperty({ property: UniqueProperty.Email, value: email, userId }),
+      createUniqueProperty({ property: UniqueProperty.Username, value: username, userId }),
+      createUniqueProperty({ property: UniqueProperty.Phone, value: phone, userId }),
+    ]);
 
     return { user };
   } catch (error) {
@@ -49,6 +206,26 @@ export async function createRandomUser(): Promise<CreateRandomUserOutput> {
     throw error;
   }
 }
+
+export async function getUser(params: GetUserInput): Promise<GetUserOutput> {
+  try {
+    const { userId } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: userId, sk: userId },
+    }).promise();
+
+    const user = Item as RawUser;
+
+    return { user };
+  } catch (error) {
+    console.log("Error in getTeam:\n", error);
+
+    throw error;
+  }
+}
+
 export async function deleteUser(id: UserId): Promise<void> {
   try {
     const { Item } = await documentClient.get({
@@ -79,10 +256,13 @@ export async function createRandomTeam(params: CreateRandomTeamInput): Promise<C
   try {
     const { createdBy } = params;
 
+    const { image, mimeType } = createDefaultImage();
+
     const teamId: TeamId = `${KeyPrefix.Team}${ksuid.randomSync().string}`;
 
     const team: RawTeam = {
       entityType: EntityType.Team,
+      imageMimeType: mimeType,
       pk: teamId,
       sk: teamId,
       id: teamId,
@@ -90,10 +270,22 @@ export async function createRandomTeam(params: CreateRandomTeamInput): Promise<C
       createdBy,
     };
 
-    await documentClient.put({
+    const s3UploadInput: S3.Types.PutObjectRequest = {
+      Bucket: process.env["image-s3-bucket-name"] as string,
+      Key: `teams/${teamId}.png`,
+      Body: image,
+      ContentType: mimeType,
+    };
+
+    const dynamoPutInput: DocumentClient.PutItemInput = {
       TableName: process.env["core-table-name"] as string,
       Item: team,
-    }).promise();
+    };
+
+    await Promise.all([
+      s3.upload(s3UploadInput).promise(),
+      documentClient.put(dynamoPutInput).promise(),
+    ]);
 
     return { team };
   } catch (error) {
@@ -175,12 +367,12 @@ export async function createFriendConversation(params: CreateFriendConversationI
 
     const conversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, friendId ].sort().join("-")}`;
 
-    const conversation: RawConversation = {
+    const conversation: RawConversation<FriendConversation> = {
       entityType: EntityType.FriendConversation,
       pk: conversationId,
       sk: conversationId,
       id: conversationId,
-      type: ConversationType.Friend,
+      type: ConversationTypeEnum.Friend,
       createdAt: new Date().toISOString(),
     };
 
@@ -201,26 +393,41 @@ export async function createGroupConversation(params: CreateGroupConversationInp
   try {
     const { name, createdBy, teamId } = params;
 
+    const { image, mimeType } = createDefaultImage();
+
     const conversationId: GroupId = `${KeyPrefix.GroupConversation}${ksuid.randomSync().string}`;
 
-    const conversation: RawConversation = {
+    const conversation: RawConversation<GroupConversation> = {
       entityType: EntityType.GroupConversation,
+      imageMimeType: mimeType,
       pk: conversationId,
       sk: conversationId,
       gsi1pk: teamId,
       gsi1sk: teamId && conversationId,
       id: conversationId,
-      type: ConversationType.Group,
+      type: ConversationTypeEnum.Group,
       createdAt: new Date().toISOString(),
       name,
       createdBy,
       ...(teamId && { teamId }),
     };
 
-    await documentClient.put({
+    const s3UploadInput: S3.Types.PutObjectRequest = {
+      Bucket: process.env["image-s3-bucket-name"] as string,
+      Key: `groups/${conversationId}.png`,
+      Body: image,
+      ContentType: mimeType,
+    };
+
+    const dynamoPutInput: DocumentClient.PutItemInput = {
       TableName: process.env["core-table-name"] as string,
       Item: conversation,
-    }).promise();
+    };
+
+    await Promise.all([
+      s3.upload(s3UploadInput).promise(),
+      documentClient.put(dynamoPutInput).promise(),
+    ]);
 
     return { conversation };
   } catch (error) {
@@ -234,16 +441,19 @@ export async function createMeetingConversation(params: CreateMeetingConversatio
   try {
     const { name, createdBy, teamId, dueDate } = params;
 
+    const { image, mimeType } = createDefaultImage();
+
     const conversationId: MeetingId = `${KeyPrefix.MeetingConversation}${ksuid.randomSync().string}`;
 
-    const conversation: RawConversation = {
+    const conversation: RawConversation<MeetingConversation> = {
       entityType: EntityType.MeetingConversation,
+      imageMimeType: mimeType,
       pk: conversationId,
       sk: conversationId,
       gsi1pk: teamId,
       gsi1sk: teamId && conversationId,
       id: conversationId,
-      type: ConversationType.Meeting,
+      type: ConversationTypeEnum.Meeting,
       createdAt: new Date().toISOString(),
       dueDate,
       name,
@@ -251,10 +461,22 @@ export async function createMeetingConversation(params: CreateMeetingConversatio
       ...(teamId && { teamId }),
     };
 
-    await documentClient.put({
+    const s3UploadInput: S3.Types.PutObjectRequest = {
+      Bucket: process.env["image-s3-bucket-name"] as string,
+      Key: `groups/${conversationId}.png`,
+      Body: image,
+      ContentType: mimeType,
+    };
+
+    const dynamoPutInput: DocumentClient.PutItemInput = {
       TableName: process.env["core-table-name"] as string,
       Item: conversation,
-    }).promise();
+    };
+
+    await Promise.all([
+      s3.upload(s3UploadInput).promise(),
+      documentClient.put(dynamoPutInput).promise(),
+    ]);
 
     return { conversation };
   } catch (error) {
@@ -264,7 +486,7 @@ export async function createMeetingConversation(params: CreateMeetingConversatio
   }
 }
 
-export async function getConversation(params: GetConversationInput): Promise<GetConversationOutput> {
+export async function getConversation<T extends ConversationId>(params: GetConversationInput<T>): Promise<GetConversationOutput<T>> {
   try {
     const { conversationId } = params;
 
@@ -273,7 +495,7 @@ export async function getConversation(params: GetConversationInput): Promise<Get
       Key: { pk: conversationId, sk: conversationId },
     }).promise();
 
-    const conversation = Item as RawConversation;
+    const conversation = Item as RawConversation<Conversation<ConversationType<T>>>;
 
     return { conversation };
   } catch (error) {
@@ -283,9 +505,9 @@ export async function getConversation(params: GetConversationInput): Promise<Get
   }
 }
 
-export async function createConversationUserRelationship(params: CreateConversationUserRelationshipInput): Promise<CreateConversationUserRelationshipOutput> {
+export async function createConversationUserRelationship<T extends ConversationType>(params: CreateConversationUserRelationshipInput<T>): Promise<CreateConversationUserRelationshipOutput<T>> {
   try {
-    const { userId, conversationId, role, dueDate, recentMessageId, unreadMessageIds = [] } = params;
+    const { type, userId, conversationId, role, dueDate, recentMessageId, unreadMessageIds = [] } = params;
 
     const updatedAt = new Date().toISOString();
 
@@ -294,7 +516,7 @@ export async function createConversationUserRelationship(params: CreateConversat
       : conversationId.startsWith(KeyPrefix.GroupConversation) ? KeyPrefix.GroupConversation
         : KeyPrefix.MeetingConversation;
 
-    const conversationUserRelationship: RawConversationUserRelationship = {
+    const conversationUserRelationship: RawConversationUserRelationship<T> = {
       entityType: EntityType.ConversationUserRelationship,
       pk: conversationId,
       sk: userId,
@@ -302,6 +524,7 @@ export async function createConversationUserRelationship(params: CreateConversat
       gsi1sk: `${KeyPrefix.Time}${updatedAt}`,
       gsi2pk: userId,
       gsi2sk: `${KeyPrefix.Time}${convoPrefix}${updatedAt}`,
+      type,
       conversationId,
       userId,
       updatedAt,
@@ -326,7 +549,7 @@ export async function createConversationUserRelationship(params: CreateConversat
   }
 }
 
-export async function getConversationUserRelationship(params: GetConversationUserRelationshipInput): Promise<GetConversationUserRelationshipOutput> {
+export async function getConversationUserRelationship<T extends ConversationId>(params: GetConversationUserRelationshipInput<T>): Promise<GetConversationUserRelationshipOutput<T>> {
   try {
     const { conversationId, userId } = params;
 
@@ -335,7 +558,7 @@ export async function getConversationUserRelationship(params: GetConversationUse
       Key: { pk: conversationId, sk: userId },
     }).promise();
 
-    const conversationUserRelationship = Item as RawConversationUserRelationship;
+    const conversationUserRelationship = Item as RawConversationUserRelationship<ConversationType<T>>;
 
     return { conversationUserRelationship };
   } catch (error) {
@@ -437,8 +660,18 @@ export async function getPendingMessage(params: GetPendingMessageInput): Promise
   }
 }
 
+export interface CreateUniquePropertyInput {
+  property: UniqueProperty;
+  value: string;
+  userId: UserId;
+}
+
+export interface CreateUniquePropertyOutput {
+  uniqueProperty: RawUniqueProperty;
+}
+
 export interface CreateRandomUserOutput {
-  user: RawUser;
+  user: MakeRequired<RawUser, "email" | "username" | "realName">;
 }
 
 export interface CreateRandomTeamInput {
@@ -447,6 +680,38 @@ export interface CreateRandomTeamInput {
 
 export interface CreateRandomTeamOutput {
   team: RawTeam;
+}
+
+export interface GetUserInput {
+  userId: UserId;
+}
+
+export interface GetUserOutput {
+  user?: RawUser;
+}
+
+export interface IsUniqueEmailInput {
+  email: string;
+}
+
+export interface IsUniqueEmailOutput {
+  isUniqueEmail: boolean;
+}
+
+export interface IsUniqueUsernameInput {
+  username: string;
+}
+
+export interface IsUniqueUsernameOutput {
+  isUniqueUsername: boolean;
+}
+
+export interface IsUniquePhoneInput {
+  phone: string;
+}
+
+export interface IsUniquePhoneOutput {
+  isUniquePhone: boolean;
 }
 
 export interface GetTeamInput {
@@ -482,7 +747,7 @@ export interface CreateFriendConversationInput {
 }
 
 export interface CreateFriendConversationOutput {
-  conversation: RawConversation;
+  conversation: RawConversation<FriendConversation>;
 }
 
 export interface CreateGroupConversationInput {
@@ -492,7 +757,7 @@ export interface CreateGroupConversationInput {
 }
 
 export interface CreateGroupConversationOutput {
-  conversation: RawConversation;
+  conversation: RawConversation<GroupConversation>;
 }
 
 export interface CreateMeetingConversationInput {
@@ -503,37 +768,38 @@ export interface CreateMeetingConversationInput {
 }
 
 export interface CreateMeetingConversationOutput {
-  conversation: RawConversation;
+  conversation: RawConversation<MeetingConversation>;
 }
 
-export interface GetConversationInput {
-  conversationId: ConversationId;
+export interface GetConversationInput<T extends ConversationId> {
+  conversationId: T;
 }
 
-export interface GetConversationOutput {
-  conversation?: RawConversation;
+export interface GetConversationOutput<T extends ConversationId> {
+  conversation?: RawConversation<Conversation<ConversationType<T>>>;
 }
 
-export interface CreateConversationUserRelationshipInput {
+export interface CreateConversationUserRelationshipInput<T extends ConversationType> {
+  type: T;
   userId: UserId;
-  conversationId: ConversationId;
+  conversationId: ConversationId<T>;
   role: Role;
   dueDate?: string;
   recentMessageId?: MessageId;
   unreadMessageIds?: MessageId[];
 }
 
-export interface CreateConversationUserRelationshipOutput {
-  conversationUserRelationship: RawConversationUserRelationship;
+export interface CreateConversationUserRelationshipOutput<T extends ConversationType> {
+  conversationUserRelationship: RawConversationUserRelationship<T>;
 }
 
-export interface GetConversationUserRelationshipInput {
+export interface GetConversationUserRelationshipInput<T extends ConversationId> {
   userId: UserId;
-  conversationId: ConversationId;
+  conversationId: T;
 }
 
-export interface GetConversationUserRelationshipOutput {
-  conversationUserRelationship?: RawConversationUserRelationship;
+export interface GetConversationUserRelationshipOutput<T extends ConversationId> {
+  conversationUserRelationship?: RawConversationUserRelationship<ConversationType<T>>;
 }
 
 export interface CreateMessageInput {
@@ -565,4 +831,9 @@ export interface GetPendingMessageInput {
 
 export interface GetPendingMessageOutput {
   pendingMessage?: RawPendingMessage;
+}
+
+export interface CreateDefaultImageOutput {
+  image: Buffer;
+  mimeType: ImageMimeType.Png;
 }

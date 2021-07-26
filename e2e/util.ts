@@ -1,10 +1,11 @@
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-floating-promises */
-import { CognitoIdentityServiceProvider, DynamoDB, SSM } from "aws-sdk";
+import { CognitoIdentityServiceProvider, DynamoDB, S3, SSM } from "aws-sdk";
 import crypto from "crypto";
 import axios from "axios";
 
 const ssm = new SSM({ region: "us-east-1" });
+export const s3 = new S3({ region: "us-east-1" });
 export const cognito = new CognitoIdentityServiceProvider({ region: "us-east-1" });
 export const documentClient = new DynamoDB.DocumentClient({ region: "us-east-1" });
 

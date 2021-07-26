@@ -23,6 +23,7 @@ const necessaryParams = [
   "yac-client-secret",
   "yac-client-redirect-uri",
   "core-table-name",
+  "image-s3-bucket-name",
 ];
 
 (async () => {

@@ -843,9 +843,14 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
 
     routes.forEach((route) => this.httpApi.addRoute(route));
 
-    new SSM.StringParameter(this, `UserPoolDomainUrlSsmParameter-${id}`, {
+    new SSM.StringParameter(this, `CoreTableNameSsmParameter-${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/core-table-name`,
       stringValue: coreTable.tableName,
+    });
+
+    new SSM.StringParameter(this, `ImageS3BucketNameSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/image-s3-bucket-name`,
+      stringValue: imageS3Bucket.bucketName,
     });
   }
 }

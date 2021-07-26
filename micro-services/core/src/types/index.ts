@@ -4,3 +4,4 @@ export * from "./recursivePartial.type";
 export * from "./timestamp.type";
 export * from "./withRole.type";
 export * from "./dynamoSetValues.type";
+export * from "./makeRequired.type";
