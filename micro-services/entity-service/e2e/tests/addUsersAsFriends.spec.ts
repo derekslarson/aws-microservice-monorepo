@@ -14,16 +14,14 @@ import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 import { FriendConvoId } from "../../src/types/friendConvoId.type";
 import { UniqueProperty } from "../../src/enums/uniqueProperty.enum";
 
-fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
+describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  const mockUserId = `${KeyPrefix.User}${generateRandomString(5)}`;
-  let otherUser: CreateRandomUserOutput["user"];
-  let conversationId: FriendConvoId;
-
   describe("under normal conditions", () => {
+    let otherUser: CreateRandomUserOutput["user"];
+    let conversationId: FriendConvoId;
     let randomEmail: string;
     let randomPhone: string;
     let randomUsername: string;
@@ -38,7 +36,7 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       conversationId = `${KeyPrefix.FriendConversation}${[ userId, otherUser.id ].sort().join("-")}`;
     });
 
-    fit("returns a valid response", async () => {
+    it("returns a valid response", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       const request: Static<typeof AddUsersAsFriendsDto> = {
@@ -88,7 +86,7 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       }
     });
 
-    fit("creates valid User entities", async () => {
+    it("creates valid User entities", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       const request: Static<typeof AddUsersAsFriendsDto> = {
@@ -133,7 +131,7 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       }
     });
 
-    fit("creates valid UniqueProperty entities", async () => {
+    it("creates valid UniqueProperty entities", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       const request: Static<typeof AddUsersAsFriendsDto> = {
@@ -187,7 +185,7 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       }
     });
 
-    fit("creates a valid Conversation entities", async () => {
+    it("creates a valid Conversation entities", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       const request: Static<typeof AddUsersAsFriendsDto> = {
@@ -339,10 +337,10 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
         expect(conversationUserRelationshipC).toEqual({
           entityType: EntityType.ConversationUserRelationship,
           pk: userByEmailConversationId,
-          sk: otherUser.id,
-          gsi1pk: otherUser.id,
+          sk: userId,
+          gsi1pk: userId,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: otherUser.id,
+          gsi2pk: userId,
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
           role: Role.Admin,
           type: ConversationType.Friend,
@@ -355,10 +353,10 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
         expect(conversationUserRelationshipD).toEqual({
           entityType: EntityType.ConversationUserRelationship,
           pk: userByEmailConversationId,
-          sk: otherUser.id,
-          gsi1pk: otherUser.id,
+          sk: userByEmail.id,
+          gsi1pk: userByEmail.id,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: otherUser.id,
+          gsi2pk: userByEmail.id,
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
           role: Role.Admin,
           type: ConversationType.Friend,
@@ -371,10 +369,10 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
         expect(conversationUserRelationshipE).toEqual({
           entityType: EntityType.ConversationUserRelationship,
           pk: userByPhoneConversationId,
-          sk: otherUser.id,
-          gsi1pk: otherUser.id,
+          sk: userId,
+          gsi1pk: userId,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: otherUser.id,
+          gsi2pk: userId,
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
           role: Role.Admin,
           type: ConversationType.Friend,
@@ -387,10 +385,10 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
         expect(conversationUserRelationshipF).toEqual({
           entityType: EntityType.ConversationUserRelationship,
           pk: userByPhoneConversationId,
-          sk: otherUser.id,
-          gsi1pk: otherUser.id,
+          sk: userByPhone.id,
+          gsi1pk: userByPhone.id,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: otherUser.id,
+          gsi2pk: userByPhone.id,
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
           role: Role.Admin,
           type: ConversationType.Friend,
@@ -408,7 +406,7 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
   describe("under error conditions", () => {
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
-        const body = { friendId: mockUserId };
+        const body = {};
         const headers = {};
 
         try {
@@ -423,14 +421,21 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
     });
 
     describe("when an id of a user different than the one in the access token is passed in", () => {
-      const mockUserIdTwo = `${KeyPrefix.User}${generateRandomString(5)}`;
+      const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       it("throws a 403 error", async () => {
-        const body = { friendId: mockUserId };
         const headers = { Authorization: `Bearer ${accessToken}` };
+        const request: Static<typeof AddUsersAsFriendsDto> = {
+          pathParameters: { userId: mockUserIdTwo },
+          body: {
+            users: [
+              { username: generateRandomString(8) },
+            ],
+          },
+        };
 
         try {
-          await axios.post(`${baseUrl}/users/${mockUserIdTwo}/friends`, body, { headers });
+          await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -456,7 +461,7 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
             message: "Error validating request",
             validationErrors: {
               pathParameters: { userId: "Failed constraint check for string: Must be a user id" },
-              body: { users: "Expected string, but was missing" },
+              body: { users: "Expected ({ email: string; } | { phone: string; } | { username: string; })[], but was missing" },
             },
           });
         }

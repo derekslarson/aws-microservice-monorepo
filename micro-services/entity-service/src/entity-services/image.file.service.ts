@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/core";
+import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { ImageFileRepositoryInterface } from "../repositories/image.s3.repository";
@@ -17,6 +17,7 @@ export class ImageFileService implements ImageFileServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ImageFileRepositoryInterface) private imageFileRepository: ImageFileRepositoryInterface,
+    @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
     @inject(TYPES.IdenticonFactory) identiconFactory: IdenticonFactory,
   ) {
     this.identicon = identiconFactory();
@@ -39,7 +40,7 @@ export class ImageFileService implements ImageFileServiceInterface {
         backColor: "#fff",
       });
 
-      const image = this.identicon.toPng(Date.now(), 100);
+      const image = this.identicon.toPng(this.idService.generateId(), 100);
 
       return { image, mimeType: ImageMimeType.Png };
     } catch (error: unknown) {

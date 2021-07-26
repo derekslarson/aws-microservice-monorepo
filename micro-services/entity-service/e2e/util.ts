@@ -32,22 +32,28 @@ import { UniqueProperty } from "../src/enums/uniqueProperty.enum";
 import { RawUniqueProperty } from "../src/repositories/uniqueProperty.dynamo.repository";
 
 function createDefaultImage(): CreateDefaultImageOutput {
-  identicon.configure({
-    hues: [ 48 ],
-    lightness: {
-      color: [ 0.40, 0.69 ],
-      grayscale: [ 0.47, 0.90 ],
-    },
-    saturation: {
-      color: 1.00,
-      grayscale: 0.00,
-    },
-    backColor: "#fff",
-  });
+  try {
+    identicon.configure({
+      hues: [ 48 ],
+      lightness: {
+        color: [ 0.40, 0.69 ],
+        grayscale: [ 0.47, 0.90 ],
+      },
+      saturation: {
+        color: 1.00,
+        grayscale: 0.00,
+      },
+      backColor: "#fff",
+    });
 
-  const image = identicon.toPng("default-image", 100);
+    const image = identicon.toPng(ksuid.randomSync().toString(), 100);
 
-  return { image, mimeType: ImageMimeType.Png };
+    return { image, mimeType: ImageMimeType.Png };
+  } catch (error) {
+    console.log("Error in getTeam:\n", error);
+
+    throw error;
+  }
 }
 
 export function generateRandomEmail(): string {
