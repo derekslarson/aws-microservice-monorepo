@@ -5,18 +5,20 @@ import { TYPES } from "../inversion-of-control/types";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { CreateMeetingDto } from "../dtos/createMeeting.dto";
 import { GetMeetingDto } from "../dtos/getMeeting.dto";
-import { AddUserToMeetingDto } from "../dtos/addUserToMeeting.dto";
+import { AddUsersToMeetingDto } from "../dtos/addUserToMeeting.dto";
 import { RemoveUserFromMeetingDto } from "../dtos/removeUserFromMeeting.dto";
 import { GetMeetingsByUserIdDto } from "../dtos/getMeetingsByUserId.dto";
 import { GetMeetingsByTeamIdDto } from "../dtos/getMeetingsByTeamId.dto";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GetMeetingImageUploadUrlDto } from "../dtos/getMeetingImageUploadUrl.dto";
+import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 
 @injectable()
 export class MeetingController extends BaseController implements MeetingControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
   ) {
@@ -107,15 +109,15 @@ export class MeetingController extends BaseController implements MeetingControll
     }
   }
 
-  public async addUserToMeeting(request: Request): Promise<Response> {
+  public async addUsersToMeeting(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("addUserToMeeting called", { request }, this.constructor.name);
+      this.loggerService.trace("addUsersToMeeting called", { request }, this.constructor.name);
 
       const {
         jwtId,
         pathParameters: { meetingId },
-        body: { userId, role },
-      } = this.validationService.validate({ dto: AddUserToMeetingDto, request, getUserIdFromJwt: true });
+        body: { users },
+      } = this.validationService.validate({ dto: AddUsersToMeetingDto, request, getUserIdFromJwt: true });
 
       const { isMeetingAdmin } = await this.meetingMediatorService.isMeetingAdmin({ meetingId, userId: jwtId });
 
@@ -123,9 +125,14 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.meetingMediatorService.addUserToMeeting({ meetingId, userId, role });
+      const { failures } = await this.invitationOrchestratorService.addUsersToMeeting({ meetingId, users });
 
-      return this.generateSuccessResponse({ message: "User added to meeting." });
+      const response = {
+        message: `Users added to meeting${failures.length ? ", but with some failures." : "."}`,
+        ...(failures.length && { failures }),
+      };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToMeeting", { error, request }, this.constructor.name);
 
@@ -217,7 +224,7 @@ export class MeetingController extends BaseController implements MeetingControll
 export interface MeetingControllerInterface {
   createMeeting(request: Request): Promise<Response>;
   getMeeting(request: Request): Promise<Response>;
-  addUserToMeeting(request: Request): Promise<Response>;
+  addUsersToMeeting(request: Request): Promise<Response>;
   removeUserFromMeeting(request: Request): Promise<Response>;
   getMeetingImageUploadUrl(request: Request): Promise<Response>;
   getMeetingsByUserId(request: Request): Promise<Response>;

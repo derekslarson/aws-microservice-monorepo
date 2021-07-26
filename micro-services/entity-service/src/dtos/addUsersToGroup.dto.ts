@@ -1,8 +1,8 @@
 import { Record, Array } from "runtypes";
+import { GroupId } from "../runtypes/groupId.runtype";
 import { InvitationWithRole } from "../runtypes/invitation.runtype";
-import { MeetingId } from "../runtypes/meetingId.runtype";
 
-export const AddUsersToMeetingDto = Record({
-  pathParameters: Record({ meetingId: MeetingId }),
+export const AddUsersToGroupDto = Record({
+  pathParameters: Record({ groupId: GroupId }),
   body: Record({ users: Array(InvitationWithRole) }),
 });

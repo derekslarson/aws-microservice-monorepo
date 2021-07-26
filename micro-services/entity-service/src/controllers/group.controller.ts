@@ -5,18 +5,20 @@ import { TYPES } from "../inversion-of-control/types";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { CreateGroupDto } from "../dtos/createGroup.dto";
 import { GetGroupDto } from "../dtos/getGroup.dto";
-import { AddUserToGroupDto } from "../dtos/addUserToGroup.dto";
+import { AddUsersToGroupDto } from "../dtos/addUsersToGroup.dto";
 import { RemoveUserFromGroupDto } from "../dtos/removeUserFromGroup.dto";
 import { GetGroupsByUserIdDto } from "../dtos/getGroupsByUserId.dto";
 import { GetGroupsByTeamIdDto } from "../dtos/getGroupsByTeamId.dto";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GetGroupImageUploadUrlDto } from "../dtos/getGroupImageUploadUrl.dto";
+import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 
 @injectable()
 export class GroupController extends BaseController implements GroupControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
     @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
   ) {
@@ -107,15 +109,15 @@ export class GroupController extends BaseController implements GroupControllerIn
     }
   }
 
-  public async addUserToGroup(request: Request): Promise<Response> {
+  public async addUsersToGroup(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("addUserToGroup called", { request }, this.constructor.name);
+      this.loggerService.trace("addUsersToGroup called", { request }, this.constructor.name);
 
       const {
         jwtId,
         pathParameters: { groupId },
-        body: { userId, role },
-      } = this.validationService.validate({ dto: AddUserToGroupDto, request, getUserIdFromJwt: true });
+        body: { users },
+      } = this.validationService.validate({ dto: AddUsersToGroupDto, request, getUserIdFromJwt: true });
 
       const { isGroupAdmin } = await this.groupMediatorService.isGroupAdmin({ groupId, userId: jwtId });
 
@@ -123,11 +125,16 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.groupMediatorService.addUserToGroup({ groupId, userId, role });
+      const { failures } = await this.invitationOrchestratorService.addUsersToGroup({ groupId, users });
 
-      return this.generateSuccessResponse({ message: "User added to group." });
+      const response = {
+        message: `Users added to group${failures.length ? ", but with some failures." : "."}`,
+        ...(failures.length && { failures }),
+      };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
-      this.loggerService.error("Error in addUserToGroup", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in addUsersToGroup", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -212,7 +219,7 @@ export class GroupController extends BaseController implements GroupControllerIn
 export interface GroupControllerInterface {
   createGroup(request: Request): Promise<Response>;
   getGroup(request: Request): Promise<Response>;
-  addUserToGroup(request: Request): Promise<Response>;
+  addUsersToGroup(request: Request): Promise<Response>;
   removeUserFromGroup(request: Request): Promise<Response>;
   getGroupImageUploadUrl(request: Request): Promise<Response>;
   getGroupsByUserId(request: Request): Promise<Response>;

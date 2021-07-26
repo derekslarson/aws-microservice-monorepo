@@ -2,10 +2,11 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { AddUserAsFriendDto } from "../dtos/addUserAsFriend.dto";
+import { AddUsersAsFriendsDto } from "../dtos/addUsersAsFriends.dto";
 import { FriendshipMediatorService } from "../mediator-services/friendship.mediator.service";
 import { RemoveUserAsFriendDto } from "../dtos/removeUserAsFriend.dto";
 import { GetFriendsByuserIdDto } from "../dtos/getFriendsByUserId.dto";
+import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 
 @injectable()
 export class FriendController extends BaseController implements FriendControllerInterface {
@@ -13,27 +14,33 @@ export class FriendController extends BaseController implements FriendController
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.FriendshipMediatorServiceInterface) private friendshipMediatorService: FriendshipMediatorService,
+    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
   ) {
     super();
   }
 
-  public async addUserAsFriend(request: Request): Promise<Response> {
+  public async addUsersAsFriends(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("addUserAsFriend called", { request }, this.constructor.name);
 
       const {
         jwtId,
         pathParameters: { userId },
-        body: { friendId },
-      } = this.validationService.validate({ dto: AddUserAsFriendDto, request, getUserIdFromJwt: true });
+        body: { users },
+      } = this.validationService.validate({ dto: AddUsersAsFriendsDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.friendshipMediatorService.createFriendship({ userIds: [ userId, friendId ] });
+      const { failures } = await this.invitationOrchestratorService.addUsersAsFriends({ userId, users });
 
-      return this.generateSuccessResponse({ message: "User added as friend." });
+      const response = {
+        message: `Users added as friends${failures.length ? ", but with some failures." : "."}`,
+        ...(failures.length && { failures }),
+      };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserAsFriend", { error, request }, this.constructor.name);
 
@@ -90,7 +97,7 @@ export class FriendController extends BaseController implements FriendController
 }
 
 export interface FriendControllerInterface {
-  addUserAsFriend(request: Request): Promise<Response>;
+  addUsersAsFriends(request: Request): Promise<Response>;
   removeUserAsFriend(request: Request): Promise<Response>;
   getFriendsByUserId(request: Request): Promise<Response>;
 }

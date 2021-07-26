@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role } from "@yac/core";
+import { Static } from "runtypes";
 import { createRandomUser, getConversation, getConversationUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { generateRandomString, ISO_DATE_REGEX } from "../../../../e2e/util";
@@ -9,8 +10,9 @@ import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { ConversationId } from "../../src/types/conversationId.type";
 import { RawUser } from "../../src/repositories/user.dynamo.repository";
+import { AddUsersAsFriendsDto } from "../../src/dtos/addUsersAsFriends.dto";
 
-describe("POST /users/{userId}/friends (Add User as Friend)", () => {
+describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
@@ -27,7 +29,7 @@ describe("POST /users/{userId}/friends (Add User as Friend)", () => {
     });
 
     it("returns a valid response", async () => {
-      const body = { friendId: otherUser.id };
+      const body: Static<typeof AddUsersAsFriendsDto> = { friendId: otherUser.id };
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {

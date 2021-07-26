@@ -258,10 +258,10 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
     });
 
     // Friend Handlers
-    const addUserAsFriendHandler = new Lambda.Function(this, `AddUserAsFriend_${id}`, {
+    const addUsersAsFriendsHandler = new Lambda.Function(this, `AddUsersAsFriends_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/addUserAsFriend"),
-      handler: "addUserAsFriend.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/addUsersAsFriends"),
+      handler: "addUsersAsFriends.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
@@ -309,10 +309,10 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const addUserToGroupHandler = new Lambda.Function(this, `AddUserToGroup_${id}`, {
+    const addUsersToGroupHandler = new Lambda.Function(this, `AddUsersToGroup_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/addUserToGroup"),
-      handler: "addUserToGroup.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/addUsersToGroup"),
+      handler: "addUsersToGroup.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
@@ -380,10 +380,10 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const addUserToMeetingHandler = new Lambda.Function(this, `AddUserToMeeting_${id}`, {
+    const addUsersToMeetingHandler = new Lambda.Function(this, `AddUsersToMeeting_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/addUserToMeeting"),
-      handler: "addUserToMeeting.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/addUsersToMeeting"),
+      handler: "addUsersToMeeting.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
@@ -645,7 +645,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       {
         path: "/users/{userId}/friends",
         method: ApiGatewayV2.HttpMethod.POST,
-        handler: addUserAsFriendHandler,
+        handler: addUsersAsFriendsHandler,
         authorizationScopes: [ "yac/friend.write" ],
       },
       {
@@ -690,7 +690,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       {
         path: "/groups/{groupId}/users",
         method: ApiGatewayV2.HttpMethod.POST,
-        handler: addUserToGroupHandler,
+        handler: addUsersToGroupHandler,
         authorizationScopes: [ "yac/group.write" ],
       },
       {
@@ -723,7 +723,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       {
         path: "/meetings/{meetingId}/users",
         method: ApiGatewayV2.HttpMethod.POST,
-        handler: addUserToMeetingHandler,
+        handler: addUsersToMeetingHandler,
         authorizationScopes: [ "yac/meeting.write" ],
       },
       {

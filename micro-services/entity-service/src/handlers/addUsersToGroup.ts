@@ -10,14 +10,14 @@ const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceI
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
-    loggerService.trace("addUserToGroup called", { event }, "addUserToGroup handler");
+    loggerService.trace("addUsersToGroup called", { event }, "addUsersToGroup handler");
 
-    const response = await groupController.addUserToGroup(event);
+    const response = await groupController.addUsersToGroup(event);
 
     return response;
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
-    loggerService.error("Catastrophic error in addUserToGroup handler", { error, event }, "addUserToGroup handler");
+    loggerService.error("Catastrophic error in addUsersToGroup handler", { error, event }, "addUsersToGroup handler");
 
     return generateInternalServerErrorResponse(error);
   }

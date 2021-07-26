@@ -3,21 +3,21 @@ import { generateInternalServerErrorResponse, LoggerServiceInterface } from "@ya
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
-import { FriendControllerInterface } from "../controllers/friend.controller";
+import { MeetingControllerInterface } from "../controllers/meeting.controller";
 
-const friendController = container.get<FriendControllerInterface>(TYPES.FriendControllerInterface);
+const meetingController = container.get<MeetingControllerInterface>(TYPES.MeetingControllerInterface);
 const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
-    loggerService.trace("addUserAsFriend called", { event }, "addUserAsFriend handler");
+    loggerService.trace("addUsersToMeeting called", { event }, "addUsersToMeeting handler");
 
-    const response = await friendController.addUserAsFriend(event);
+    const response = await meetingController.addUsersToMeeting(event);
 
     return response;
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
-    loggerService.error("Catastrophic error in addUserAsFriend handler", { error, event }, "addUserAsFriend handler");
+    loggerService.error("Catastrophic error in addUsersToMeeting handler", { error, event }, "addUsersToMeeting handler");
 
     return generateInternalServerErrorResponse(error);
   }
