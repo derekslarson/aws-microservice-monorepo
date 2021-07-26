@@ -4,7 +4,6 @@ import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenErr
 import { TYPES } from "../inversion-of-control/types";
 import { GetConversationsByUserIdDto } from "../dtos/getConversationsByUserId.dto";
 import { ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
-import { ConversationType } from "../enums/conversationType.enum";
 
 @injectable()
 export class ConversationController extends BaseController implements ConversationControllerInterface {

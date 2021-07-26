@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamRepositoryInterface, Team as TeamEntity } from "../repositories/team.dynamo.repository";
+import { TeamRepositoryInterface, Team as TeamEntity, TeamUpdates } from "../repositories/team.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { TeamId } from "../types/teamId.type";
 import { UserId } from "../types/userId.type";
@@ -56,6 +56,22 @@ export class TeamService implements TeamServiceInterface {
     }
   }
 
+  public async updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput> {
+    try {
+      this.loggerService.trace("updateTeam called", { params }, this.constructor.name);
+
+      const { teamId, updates } = params;
+
+      const { team } = await this.teamRepository.updateTeam({ teamId, updates });
+
+      return { team };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateTeam", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getTeams(params: GetTeamsInput): Promise<GetTeamsOutput> {
     try {
       this.loggerService.trace("getTeam called", { params }, this.constructor.name);
@@ -86,6 +102,7 @@ export type Team = TeamEntity;
 export interface TeamServiceInterface {
   createTeam(params: CreateTeamInput): Promise<CreateTeamOutput>;
   getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
+  updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput>;
   getTeams(params: GetTeamsInput): Promise<GetTeamsOutput>;
 }
 
@@ -104,6 +121,15 @@ export interface GetTeamInput {
 }
 
 export interface GetTeamOutput {
+  team: Team;
+}
+
+export interface UpdateTeamInput {
+  teamId: TeamId;
+  updates: TeamUpdates;
+}
+
+export interface UpdateTeamOutput {
   team: Team;
 }
 

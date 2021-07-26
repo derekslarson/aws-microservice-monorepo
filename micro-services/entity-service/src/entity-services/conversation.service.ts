@@ -6,7 +6,8 @@ import {
   FriendConversation as FriendConversationEntity, 
   GroupConversation as GroupConversationEntity, 
   MeetingConversation as MeetingConversationEntity,
-  ConversationRepositoryInterface 
+  ConversationRepositoryInterface, 
+  ConversationUpdates
 } from "../repositories/conversation.dynamo.repository";
 import { ConversationType } from "../types/conversationType.type";
 import { ConversationType as ConversationTypeEnum } from "../enums/conversationType.enum";
@@ -143,6 +144,23 @@ export class ConversationService implements ConversationServiceInterface {
     }
   }
 
+  public async updateConversation<T extends ConversationId>(params: UpdateConversationInput<T>): Promise<UpdateConversationOutput<T>> {
+    try {
+      this.loggerService.trace("updateConversation called", { params }, this.constructor.name);
+
+      const { conversationId, updates } = params;
+
+      const { conversation } = await this.conversationRepository.updateConversation({ conversationId, updates });
+
+      return { conversation };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateConversation", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+
   public async deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput> {
     try {
       this.loggerService.trace("deleteConversation called", { params }, this.constructor.name);
@@ -204,6 +222,7 @@ export interface ConversationServiceInterface {
   createGroupConversation(params: CreateGroupConversationInput): Promise<CreateGroupConversationOutput>;
   createMeetingConversation(params: CreateMeetingConversationInput): Promise<CreateMeetingConversationOutput>;
   getConversation<T extends ConversationId>(params: GetConversationInput<T>): Promise<GetConversationOutput<T>>;
+  updateConversation<T extends ConversationId>(params: UpdateConversationInput<T>): Promise<UpdateConversationOutput<T>>;
   deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput>;
   getConversations<T extends ConversationId>(params: GetConversationsInput<T>): Promise<GetConversationsOutput<T>>;
   getConversationsByTeamId<T extends ConversationType>(params: GetConversationsByTeamIdInput<T>): Promise<GetConversationsByTeamIdOutput<T>>;
@@ -256,6 +275,16 @@ export interface GetConversationInput<T extends ConversationId> {
 export interface GetConversationOutput<T extends ConversationId> {
   conversation: Conversation<ConversationType<T>>
 }
+
+export interface UpdateConversationInput<T extends ConversationId> {
+  conversationId: T;
+  updates: ConversationUpdates<ConversationType<T>>;
+}
+
+export interface UpdateConversationOutput<T extends ConversationId> {
+  conversation: Conversation<ConversationType<T>>
+}
+
 export interface GetConversationsInput<T extends ConversationId> {
   conversationIds: T[];
 }

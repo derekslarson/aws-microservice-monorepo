@@ -10,6 +10,7 @@ import { RemoveUserFromMeetingDto } from "../dtos/removeUserFromMeeting.dto";
 import { GetMeetingsByUserIdDto } from "../dtos/getMeetingsByUserId.dto";
 import { GetMeetingsByTeamIdDto } from "../dtos/getMeetingsByTeamId.dto";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
+import { GetMeetingImageUploadUrlDto } from "../dtos/getMeetingImageUploadUrl.dto";
 
 @injectable()
 export class MeetingController extends BaseController implements MeetingControllerInterface {
@@ -74,6 +75,33 @@ export class MeetingController extends BaseController implements MeetingControll
       return this.generateSuccessResponse({ meeting });
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeeting", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async getMeetingImageUploadUrl(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getMeetingImageUploadUrl called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { meetingId },
+        queryStringParameters: { mime_type: mimeType },
+      } = this.validationService.validate({ dto: GetMeetingImageUploadUrlDto, request, getUserIdFromJwt: true });
+
+      const { isMeetingAdmin } = await this.meetingMediatorService.isMeetingAdmin({ meetingId, userId: jwtId });
+
+      if (!isMeetingAdmin) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { uploadUrl } = this.meetingMediatorService.getMeetingImageUploadUrl({ meetingId, mimeType });
+
+      // method needs to return promise
+      return Promise.resolve(this.generateSuccessResponse({ uploadUrl }));
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMeetingImageUploadUrl", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -191,6 +219,7 @@ export interface MeetingControllerInterface {
   getMeeting(request: Request): Promise<Response>;
   addUserToMeeting(request: Request): Promise<Response>;
   removeUserFromMeeting(request: Request): Promise<Response>;
+  getMeetingImageUploadUrl(request: Request): Promise<Response>;
   getMeetingsByUserId(request: Request): Promise<Response>;
   getMeetingsByTeamId(request: Request): Promise<Response>;
 }

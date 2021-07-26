@@ -12,6 +12,7 @@ import { IsPropertyUniqueOutput, UniquePropertyServiceInterface } from "../entit
 import { UniqueProperty } from "../enums/uniqueProperty.enum";
 import { ImageFileServiceInterface } from "../entity-services/image.file.service";
 import { EntityType } from "../enums/entityType.enum";
+import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
 export class UserMediatorService implements UserMediatorServiceInterface {
@@ -117,6 +118,27 @@ export class UserMediatorService implements UserMediatorServiceInterface {
       return { user };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUser", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public getUserImageUploadUrl(params: GetUserImageUploadUrlInput): GetUserImageUploadUrlOutput {
+    try {
+      this.loggerService.trace("getUserImageUploadUrl called", { params }, this.constructor.name);
+
+      const { userId, mimeType } = params;
+
+      const { signedUrl: uploadUrl } = this.imageFileService.getSignedUrl({
+        operation: "upload",
+        entityType: EntityType.User,
+        entityId: userId,
+        mimeType,
+      });
+
+      return { uploadUrl };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUserImageUploadUrl", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -361,6 +383,7 @@ export interface UserMediatorServiceInterface {
   getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput>;
   getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput>;
   getUserByUsername(params: GetUserByUsernameInput): Promise<GetUserByUsernameOutput>;
+  getUserImageUploadUrl(params: GetUserImageUploadUrlInput): GetUserImageUploadUrlOutput;
   getOrCreateUserByEmail(params: GetOrCreateUserByEmailInput): Promise<GetUserByEmailOutput>;
   getOrCreateUserByPhone(params: GetOrCreateUserByPhoneInput): Promise<GetUserByPhoneOutput>;
   getUsersByTeamId(params: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput>;
@@ -400,6 +423,15 @@ export interface GetUserInput {
 
 export interface GetUserOutput {
   user: User;
+}
+
+export interface GetUserImageUploadUrlInput {
+  userId: UserId;
+  mimeType: ImageMimeType;
+}
+
+export interface GetUserImageUploadUrlOutput {
+  uploadUrl: string;
 }
 
 export interface GetUserByEmailInput {

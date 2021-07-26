@@ -9,6 +9,8 @@ import { GroupId } from "../types/groupId.type";
 import { ConversationType } from "../enums/conversationType.enum";
 import { ImageFileServiceInterface } from "../entity-services/image.file.service";
 import { EntityType } from "../enums/entityType.enum";
+import { ImageMimeType } from "../enums/image.mimeType.enum";
+import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 
 @injectable()
 export class GroupMediatorService implements GroupMediatorServiceInterface {
@@ -91,6 +93,27 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
     }
   }
 
+  public getGroupImageUploadUrl(params: GetGroupImageUploadUrlInput): GetGroupImageUploadUrlOutput {
+    try {
+      this.loggerService.trace("getGroupImageUploadUrl called", { params }, this.constructor.name);
+
+      const { groupId, mimeType } = params;
+
+      const { signedUrl: uploadUrl } = this.imageFileService.getSignedUrl({
+        operation: "upload",
+        entityType: EntityType.GroupConversation,
+        entityId: groupId,
+        mimeType,
+      });
+
+      return { uploadUrl };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGroupImageUploadUrl", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async deleteGroup(params: DeleteGroupInput): Promise<DeleteGroupOutput> {
     try {
       this.loggerService.trace("deleteGroup called", { params }, this.constructor.name);
@@ -163,7 +186,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
         userId,
-        type: ConversationType.Group,
+        type: ConversationFetchType.Group,
         exclusiveStartKey,
         limit,
       });
@@ -281,10 +304,11 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
 export interface GroupMediatorServiceInterface {
   createGroup(params: CreateGroupInput): Promise<CreateGroupOutput>;
-  getGroup(params: GetGroupInput): Promise<GetGroupOutput>
+  getGroup(params: GetGroupInput): Promise<GetGroupOutput>;
   deleteGroup(params: DeleteGroupInput): Promise<DeleteGroupOutput>;
   addUserToGroup(params: AddUserToGroupInput): Promise<AddUserToGroupOutput>;
   removeUserFromGroup(params: RemoveUserFromGroupInput): Promise<RemoveUserFromGroupOutput>;
+  getGroupImageUploadUrl(params: GetGroupImageUploadUrlInput): GetGroupImageUploadUrlOutput;
   getGroupsByUserId(params: GetGroupsByUserIdInput): Promise<GetGroupsByUserIdOutput>;
   getGroupsByTeamId(params: GetGroupsByTeamIdInput): Promise<GetGroupsByTeamIdOutput>;
   isGroupMember(params: IsGroupMemberInput): Promise<IsGroupMemberOutput>;
@@ -313,6 +337,15 @@ export interface GetGroupInput {
 
 export interface GetGroupOutput {
   group: Group;
+}
+
+export interface GetGroupImageUploadUrlInput {
+  groupId: GroupId;
+  mimeType: ImageMimeType;
+}
+
+export interface GetGroupImageUploadUrlOutput {
+  uploadUrl: string;
 }
 
 export interface DeleteGroupInput {

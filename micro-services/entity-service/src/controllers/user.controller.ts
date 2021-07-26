@@ -11,6 +11,7 @@ import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.me
 import { GetUsersByGroupIdDto } from "../dtos/getUsersByGroupId.dto";
 import { GetUsersByMeetingIdDto } from "../dtos/getUsersByMeetingId.dto";
 import { CreateUserDto } from "../dtos/createUser.dto";
+import { GetUserImageUploadUrlDto } from "../dtos/getUserImageUploadUrl.dto";
 
 @injectable()
 export class UserController extends BaseController implements UserControllerInterface {
@@ -52,6 +53,31 @@ export class UserController extends BaseController implements UserControllerInte
       return this.generateSuccessResponse({ user });
     } catch (error: unknown) {
       this.loggerService.error("Error in getUser", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async getUserImageUploadUrl(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getUserImageUploadUrl called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { userId },
+        queryStringParameters: { mime_type: mimeType },
+      } = this.validationService.validate({ dto: GetUserImageUploadUrlDto, request, getUserIdFromJwt: true });
+
+      if (jwtId !== userId) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { uploadUrl } = this.userMediatorService.getUserImageUploadUrl({ userId, mimeType });
+
+      // method needs to return promise
+      return Promise.resolve(this.generateSuccessResponse({ uploadUrl }));
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUserImageUploadUrl", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -139,6 +165,7 @@ export class UserController extends BaseController implements UserControllerInte
 export interface UserControllerInterface {
   createUser(request: Request): Promise<Response>;
   getUser(request: Request): Promise<Response>;
+  getUserImageUploadUrl(request: Request): Promise<Response>;
   getUsersByTeamId(request: Request): Promise<Response>;
   getUsersByGroupId(request: Request): Promise<Response>;
   getUsersByMeetingId(request: Request): Promise<Response>;

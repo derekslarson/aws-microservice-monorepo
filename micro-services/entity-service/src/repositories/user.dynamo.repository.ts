@@ -61,6 +61,22 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
     }
   }
 
+  public async updateUser(params: UpdateUserInput): Promise<UpdateUserOutput> {
+    try {
+      this.loggerService.trace("updateUser called", { params }, this.constructor.name);
+
+      const { userId, updates } = params;
+
+      const user = await this.partialUpdate(userId, userId, updates);
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateUser", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getUsers(params: GetUsersInput): Promise<GetUsersOutput> {
     try {
       this.loggerService.trace("getUsers called", { params }, this.constructor.name);
@@ -81,6 +97,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
 export interface UserRepositoryInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
+  updateUser(params: UpdateUserInput): Promise<UpdateUserOutput>;
   getUsers(params: GetUsersInput): Promise<GetUsersOutput>;
 }
 
@@ -114,6 +131,17 @@ export interface GetUserInput {
 }
 
 export interface GetUserOutput {
+  user: User;
+}
+
+export type UserUpdates = Partial<Pick<User, "realName" | "imageMimeType">>;
+
+export interface UpdateUserInput {
+  userId: UserId;
+  updates: UserUpdates;
+}
+
+export interface UpdateUserOutput {
   user: User;
 }
 

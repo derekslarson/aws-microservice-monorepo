@@ -22,7 +22,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
     this.documentClient = documentClientFactory();
   }
 
-  protected async partialUpdate(pk: string, sk: string, update: RecursivePartial<CleansedEntity<T>>): Promise<CleansedEntity<T>> {
+  protected async partialUpdate<U extends T = T>(pk: string, sk: string, update: RecursivePartial<CleansedEntity<U>>): Promise<CleansedEntity<U>> {
     try {
       this.loggerService.trace("partialUpdate called", { update }, this.constructor.name);
 
@@ -34,7 +34,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
         throw new Error("documentClient.update response missing Attributes");
       }
 
-      return this.cleanse(Attributes as RawEntity<T>);
+      return this.cleanse(Attributes as RawEntity<U>);
     } catch (error: unknown) {
       this.loggerService.error("Error in partialUpdate", { error, update }, this.constructor.name);
 

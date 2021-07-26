@@ -9,6 +9,8 @@ import { MeetingId } from "../types/meetingId.type";
 import { ConversationType } from "../enums/conversationType.enum";
 import { ImageFileServiceInterface } from "../entity-services/image.file.service";
 import { EntityType } from "../enums/entityType.enum";
+import { ConversationFetchType } from "../enums/conversationFetchType.enum";
+import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
 export class MeetingMediatorService implements MeetingMediatorServiceInterface {
@@ -92,6 +94,27 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
     }
   }
 
+  public getMeetingImageUploadUrl(params: GetMeetingImageUploadUrlInput): GetMeetingImageUploadUrlOutput {
+    try {
+      this.loggerService.trace("getMeetingImageUploadUrl called", { params }, this.constructor.name);
+
+      const { meetingId, mimeType } = params;
+
+      const { signedUrl: uploadUrl } = this.imageFileService.getSignedUrl({
+        operation: "upload",
+        entityType: EntityType.MeetingConversation,
+        entityId: meetingId,
+        mimeType,
+      });
+
+      return { uploadUrl };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMeetingImageUploadUrl", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async deleteMeeting(params: DeleteMeetingInput): Promise<DeleteMeetingOutput> {
     try {
       this.loggerService.trace("deleteMeeting called", { params }, this.constructor.name);
@@ -165,9 +188,9 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { userId, exclusiveStartKey, limit, sortBy = "updatedAt" } = params;
 
-      const sortByToTypeMap: Record<"dueDate" | "updatedAt", "due_date" | ConversationType.Meeting> = {
-        dueDate: "due_date",
-        updatedAt: ConversationType.Meeting,
+      const sortByToTypeMap: Record<"dueDate" | "updatedAt", ConversationFetchType.MeetingDueDate | ConversationFetchType.Meeting> = {
+        dueDate: ConversationFetchType.MeetingDueDate,
+        updatedAt: ConversationFetchType.Meeting,
       };
 
       const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
@@ -219,7 +242,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
         limit,
       });
 
-      const meetings = meetingEntities.map((meetingEntity, i) => {
+      const meetings = meetingEntities.map((meetingEntity) => {
         const { signedUrl } = this.imageFileService.getSignedUrl({
           operation: "get",
           entityType: EntityType.MeetingConversation,
@@ -294,6 +317,7 @@ export interface MeetingMediatorServiceInterface {
   deleteMeeting(params: DeleteMeetingInput): Promise<DeleteMeetingOutput>;
   addUserToMeeting(params: AddUserToMeetingInput): Promise<AddUserToMeetingOutput>;
   removeUserFromMeeting(params: RemoveUserFromMeetingInput): Promise<RemoveUserFromMeetingOutput>;
+  getMeetingImageUploadUrl(params: GetMeetingImageUploadUrlInput): GetMeetingImageUploadUrlOutput;
   getMeetingsByUserId(params: GetMeetingsByUserIdInput): Promise<GetMeetingsByUserIdOutput>;
   getMeetingsByTeamId(params: GetMeetingsByTeamIdInput): Promise<GetMeetingsByTeamIdOutput>;
   isMeetingMember(params: IsMeetingMemberInput): Promise<IsMeetingMemberOutput>;
@@ -323,6 +347,15 @@ export interface GetMeetingInput {
 
 export interface GetMeetingOutput {
   meeting: Meeting;
+}
+
+export interface GetMeetingImageUploadUrlInput {
+  meetingId: MeetingId;
+  mimeType: ImageMimeType;
+}
+
+export interface GetMeetingImageUploadUrlOutput {
+  uploadUrl: string;
 }
 
 export interface DeleteMeetingInput {

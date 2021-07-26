@@ -132,8 +132,8 @@ export interface ImageFileServiceInterface {
   getSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput;
 }
 
-type FileDirectory = "users" | "teams" | "groups" | "meetings";
-type FileExtension = "jpeg" | "bmp" | "png";
+export type FileDirectory = "users" | "teams" | "groups" | "meetings";
+export type FileExtension = "jpeg" | "bmp" | "png";
 
 type ImageEntityId = UserId | TeamId | GroupId | MeetingId;
 type ImageEntityType = EntityType.User | EntityType.Team | EntityType.GroupConversation | EntityType.MeetingConversation;

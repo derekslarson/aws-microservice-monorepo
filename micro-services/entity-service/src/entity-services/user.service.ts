@@ -2,7 +2,7 @@ import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
 
 import { TYPES } from "../inversion-of-control/types";
-import { UserRepositoryInterface, User as UserEntity } from "../repositories/user.dynamo.repository";
+import { UserRepositoryInterface, User as UserEntity, UserUpdates } from "../repositories/user.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
@@ -58,6 +58,22 @@ export class UserService implements UserServiceInterface {
     }
   }
 
+  public async updateUser(params: UpdateUserInput): Promise<UpdateUserOutput> {
+    try {
+      this.loggerService.trace("updateUser called", { params }, this.constructor.name);
+
+      const { userId, updates } = params;
+
+      const { user } = await this.userRepository.updateUser({ userId, updates });
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateUser", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getUsers(params: GetUsersInput): Promise<GetUsersOutput> {
     try {
       this.loggerService.trace("getUsers called", { params }, this.constructor.name);
@@ -88,6 +104,7 @@ export type User = UserEntity;
 export interface UserServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
+  updateUser(params: UpdateUserInput): Promise<UpdateUserOutput>;
   getUsers(params: GetUsersInput): Promise<GetUsersOutput>;
 }
 
@@ -117,6 +134,15 @@ export interface GetUserInput {
 }
 
 export interface GetUserOutput {
+  user: User;
+}
+
+export interface UpdateUserInput {
+  userId: UserId;
+  updates: UserUpdates;
+}
+
+export interface UpdateUserOutput {
   user: User;
 }
 

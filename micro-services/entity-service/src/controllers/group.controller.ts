@@ -10,6 +10,8 @@ import { RemoveUserFromGroupDto } from "../dtos/removeUserFromGroup.dto";
 import { GetGroupsByUserIdDto } from "../dtos/getGroupsByUserId.dto";
 import { GetGroupsByTeamIdDto } from "../dtos/getGroupsByTeamId.dto";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
+import { GetGroupImageUploadUrlDto } from "../dtos/getGroupImageUploadUrl.dto";
+
 @injectable()
 export class GroupController extends BaseController implements GroupControllerInterface {
   constructor(
@@ -73,6 +75,33 @@ export class GroupController extends BaseController implements GroupControllerIn
       return this.generateSuccessResponse({ group });
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroup", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async getGroupImageUploadUrl(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getGroupImageUploadUrl called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { groupId },
+        queryStringParameters: { mime_type: mimeType },
+      } = this.validationService.validate({ dto: GetGroupImageUploadUrlDto, request, getUserIdFromJwt: true });
+
+      const { isGroupAdmin } = await this.groupMediatorService.isGroupAdmin({ groupId, userId: jwtId });
+
+      if (!isGroupAdmin) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { uploadUrl } = this.groupMediatorService.getGroupImageUploadUrl({ groupId, mimeType });
+
+      // method needs to return promise
+      return Promise.resolve(this.generateSuccessResponse({ uploadUrl }));
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGroupImageUploadUrl", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -185,6 +214,7 @@ export interface GroupControllerInterface {
   getGroup(request: Request): Promise<Response>;
   addUserToGroup(request: Request): Promise<Response>;
   removeUserFromGroup(request: Request): Promise<Response>;
+  getGroupImageUploadUrl(request: Request): Promise<Response>;
   getGroupsByUserId(request: Request): Promise<Response>;
   getGroupsByTeamId(request: Request): Promise<Response>;
 }

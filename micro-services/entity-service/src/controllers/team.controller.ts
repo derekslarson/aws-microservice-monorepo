@@ -10,6 +10,7 @@ import { AddUsersToTeamDto } from "../dtos/addUsersToTeam.dto";
 import { RemoveUserFromTeamDto } from "../dtos/removeUserFromTeam.dto";
 import { GetTeamsByUserIdDto } from "../dtos/getTeamsByUserId.dto";
 import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { GetTeamImageUploadUrlDto } from "../dtos/getTeamImageUploadUrl.dto";
 
 @injectable()
 export class TeamController extends BaseController implements TeamControllerInterface {
@@ -67,6 +68,33 @@ export class TeamController extends BaseController implements TeamControllerInte
       return this.generateSuccessResponse({ team });
     } catch (error: unknown) {
       this.loggerService.error("Error in getTeamsByUserId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async getTeamImageUploadUrl(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getTeamImageUploadUrl called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { teamId },
+        queryStringParameters: { mime_type: mimeType },
+      } = this.validationService.validate({ dto: GetTeamImageUploadUrlDto, request, getUserIdFromJwt: true });
+
+      const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
+
+      if (!isTeamAdmin) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { uploadUrl } = this.teamMediatorService.getTeamImageUploadUrl({ teamId, mimeType });
+
+      // method needs to return promise
+      return Promise.resolve(this.generateSuccessResponse({ uploadUrl }));
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getTeamImageUploadUrl", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -158,5 +186,6 @@ export interface TeamControllerInterface {
   getTeam(request: Request): Promise<Response>;
   addUsersToTeam(request: Request): Promise<Response>;
   removeUserFromTeam(request: Request): Promise<Response>;
+  getTeamImageUploadUrl(request: Request): Promise<Response>;
   getTeamsByUserId(request: Request): Promise<Response>;
 }

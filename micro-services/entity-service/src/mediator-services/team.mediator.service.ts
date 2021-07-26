@@ -7,6 +7,7 @@ import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { ImageFileServiceInterface } from "../entity-services/image.file.service";
 import { EntityType } from "../enums/entityType.enum";
+import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
 export class TeamMediatorService implements TeamMediatorServiceInterface {
@@ -115,6 +116,27 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
     }
   }
 
+  public getTeamImageUploadUrl(params: GetTeamImageUploadUrlInput): GetTeamImageUploadUrlOutput {
+    try {
+      this.loggerService.trace("getTeamImageUploadUrl called", { params }, this.constructor.name);
+
+      const { teamId, mimeType } = params;
+
+      const { signedUrl: uploadUrl } = this.imageFileService.getSignedUrl({
+        operation: "upload",
+        entityType: EntityType.Team,
+        entityId: teamId,
+        mimeType,
+      });
+
+      return { uploadUrl };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getTeamImageUploadUrl", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getTeamsByUserId(params: GetTeamsByUserIdInput): Promise<GetTeamsByUserIdOutput> {
     try {
       this.loggerService.trace("getTeamsByUserId called", { params }, this.constructor.name);
@@ -196,6 +218,7 @@ export interface TeamMediatorServiceInterface {
   getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
   addUserToTeam(params: AddUserToTeamInput): Promise<AddUserToTeamOutput>;
   removeUserFromTeam(params: RemoveUserFromTeamInput): Promise<RemoveUserFromTeamOutput>;
+  getTeamImageUploadUrl(params: GetTeamImageUploadUrlInput): GetTeamImageUploadUrlOutput;
   getTeamsByUserId(params: GetTeamsByUserIdInput): Promise<GetTeamsByUserIdOutput>;
   isTeamMember(params: IsTeamMemberInput): Promise<IsTeamMemberOutput>;
   isTeamAdmin(params: IsTeamAdminInput): Promise<IsTeamAdminOutput>;
@@ -267,4 +290,13 @@ export interface IsTeamAdminInput {
 
 export interface IsTeamAdminOutput {
   isTeamAdmin: boolean;
+}
+
+export interface GetTeamImageUploadUrlInput {
+  teamId: TeamId;
+  mimeType: ImageMimeType;
+}
+
+export interface GetTeamImageUploadUrlOutput {
+  uploadUrl: string;
 }

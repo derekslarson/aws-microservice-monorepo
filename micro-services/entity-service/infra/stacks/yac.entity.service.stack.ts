@@ -122,19 +122,19 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       ],
     });
 
-    // User Handlers
-    // new Lambda.Function(this, `UserSignedUp_${id}`, {
-    //   runtime: Lambda.Runtime.NODEJS_12_X,
-    //   code: Lambda.Code.fromAsset("dist/handlers/userSignedUp"),
-    //   handler: "userSignedUp.handler",
-    //   layers: [ dependencyLayer ],
-    //   environment: environmentVariables,
-    //   initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
-    //   timeout: CDK.Duration.seconds(15),
-    //   events: [
-    //     new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserSignedUpSnsTopic_${id}`, userSignedUpSnsTopicArn)),
-    //   ],
-    // });
+    // Dynamo Stream Handler
+    new Lambda.Function(this, `ImageFileCreated_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/imageFileCreated"),
+      handler: "imageFileCreated.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+      events: [
+        new LambdaEventSources.S3EventSource(imageS3Bucket, { events: [ S3.EventType.OBJECT_CREATED ] }),
+      ],
+    });
 
     const createUserHandler = new Lambda.Function(this, `CreateUser_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
@@ -180,6 +180,16 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getUsersByMeetingId"),
       handler: "getUsersByMeetingId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getUserImageUploadUrlHandler = new Lambda.Function(this, `GetUserImageUploadUrl_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getUserImageUploadUrl"),
+      handler: "getUserImageUploadUrl.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
@@ -237,6 +247,16 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const getTeamImageUploadUrlHandler = new Lambda.Function(this, `GetTeamImageUploadUrl_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getTeamImageUploadUrl"),
+      handler: "getTeamImageUploadUrl.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     // Friend Handlers
     const addUserAsFriendHandler = new Lambda.Function(this, `AddUserAsFriend_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
@@ -285,7 +305,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       handler: "getGroup.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -323,6 +343,16 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getGroupsByTeamId"),
       handler: "getGroupsByTeamId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getGroupImageUploadUrlHandler = new Lambda.Function(this, `GetGroupImageUploadUrl_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getGroupImageUploadUrl"),
+      handler: "getGroupImageUploadUrl.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
@@ -384,6 +414,16 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMeetingsByTeamId"),
       handler: "getMeetingsByTeamId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getMeetingImageUploadUrlHandler = new Lambda.Function(this, `GetMeetingImageUploadUrl_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getMeetingImageUploadUrl"),
+      handler: "getMeetingImageUploadUrl.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
@@ -554,6 +594,12 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         handler: getUsersByMeetingIdHandler,
         authorizationScopes: [ "yac/meeting.read", "yac/user.read" ],
       },
+      {
+        path: "/users/{userId}/image-upload-url",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getUserImageUploadUrlHandler,
+        authorizationScopes: [ "yac/user.read", "yac/user.write" ],
+      },
     ];
 
     const teamRoutes: RouteProps[] = [
@@ -586,6 +632,12 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         method: ApiGatewayV2.HttpMethod.DELETE,
         handler: removeUserFromTeamHandler,
         authorizationScopes: [ "yac/team.write" ],
+      },
+      {
+        path: "/teams/{teamId}/image-upload-url",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getTeamImageUploadUrlHandler,
+        authorizationScopes: [ "yac/team.read", "yac/team.write" ],
       },
     ];
 
@@ -647,6 +699,12 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         handler: removeUserFromGroupHandler,
         authorizationScopes: [ "yac/group.write" ],
       },
+      {
+        path: "/groups/{groupId}/image-upload-url",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getGroupImageUploadUrlHandler,
+        authorizationScopes: [ "yac/group.read", "yac/group.write" ],
+      },
     ];
 
     const meetingRoutes: RouteProps[] = [
@@ -687,22 +745,10 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         authorizationScopes: [ "yac/team.read", "yac/meeting.read" ],
       },
       {
-        path: "/users/{userId}/friends/{friendId}/messages",
-        method: ApiGatewayV2.HttpMethod.PATCH,
-        handler: updateFriendMessagesByUserIdHandler,
-        authorizationScopes: [ "yac/user.read", "yac/friend.read", "yac/message.write" ],
-      },
-      {
-        path: "/users/{userId}/groups/{groupId}/messages",
-        method: ApiGatewayV2.HttpMethod.PATCH,
-        handler: updateGroupMessagesByUserIdHandler,
-        authorizationScopes: [ "yac/user.read", "yac/group.read", "yac/message.write" ],
-      },
-      {
-        path: "/users/{userId}/meetings/{meetingId}/messages",
-        method: ApiGatewayV2.HttpMethod.PATCH,
-        handler: updateMeetingMessagesByUserIdHandler,
-        authorizationScopes: [ "yac/user.read", "yac/meeting.read", "yac/message.write" ],
+        path: "/meetings/{meetingId}/image-upload-url",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getMeetingImageUploadUrlHandler,
+        authorizationScopes: [ "yac/meeting.read", "yac/meeting.write" ],
       },
     ];
 
@@ -755,6 +801,24 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateMessageByUserIdHandler,
         authorizationScopes: [ "yac/message.write" ],
+      },
+      {
+        path: "/users/{userId}/friends/{friendId}/messages",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateFriendMessagesByUserIdHandler,
+        authorizationScopes: [ "yac/user.read", "yac/friend.read", "yac/message.write" ],
+      },
+      {
+        path: "/users/{userId}/groups/{groupId}/messages",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateGroupMessagesByUserIdHandler,
+        authorizationScopes: [ "yac/user.read", "yac/group.read", "yac/message.write" ],
+      },
+      {
+        path: "/users/{userId}/meetings/{meetingId}/messages",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateMeetingMessagesByUserIdHandler,
+        authorizationScopes: [ "yac/user.read", "yac/meeting.read", "yac/message.write" ],
       },
     ];
 

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/core";
+import { BaseDynamoRepositoryV2, CleansedEntity, DocumentClientFactory, LoggerServiceInterface, RecursivePartial } from "@yac/core";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
@@ -66,6 +66,26 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
       return { conversation };
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversation", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async updateConversation<T extends ConversationId>(params: UpdateConversationInput<T>): Promise<UpdateConversationOutput<T>> {
+    try {
+      this.loggerService.trace("updateConversation called", { params }, this.constructor.name);
+
+      const { conversationId, updates } = params;
+
+      const conversation = await this.partialUpdate<Conversation<ConversationType<T>>>(
+        conversationId,
+        conversationId,
+        updates as RecursivePartial<CleansedEntity<Conversation<ConversationType<T>>>>,
+      );
+
+      return { conversation };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateConversation", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -167,7 +187,8 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
 export interface ConversationRepositoryInterface {
   createConversation<T extends Conversation>(params: CreateConversationInput<T>): Promise<CreateConversationOutput<T>>;
-  getConversation<T extends ConversationId>(params: GetConversationInput<T>): Promise<GetConversationOutput<T>>
+  getConversation<T extends ConversationId>(params: GetConversationInput<T>): Promise<GetConversationOutput<T>>;
+  updateConversation<T extends ConversationId>(params: UpdateConversationInput<T>): Promise<UpdateConversationOutput<T>>;
   getConversations<T extends ConversationId>(params: GetConversationsInput<T>): Promise<GetConversationsOutput<T>>;
   deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput>;
   getConversationsByTeamId<T extends ConversationType>(params: GetConversationsByTeamIdInput<T>): Promise<GetConversationsByTeamIdOutput<T>>;
@@ -226,6 +247,18 @@ export interface GetConversationInput<T extends ConversationId> {
 }
 
 export interface GetConversationOutput<T extends ConversationId> {
+  conversation: Conversation<ConversationType<T>>;
+}
+
+export type ConversationUpdates<T extends ConversationType> =
+  Conversation<T> extends GroupConversation | MeetingConversation ? Partial<Pick<Conversation<T>, "imageMimeType">> : Record<string, unknown>;
+
+export interface UpdateConversationInput<T extends ConversationId> {
+  conversationId: T;
+  updates: ConversationUpdates<ConversationType<T>>;
+}
+
+export interface UpdateConversationOutput<T extends ConversationId> {
   conversation: Conversation<ConversationType<T>>;
 }
 
