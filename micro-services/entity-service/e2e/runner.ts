@@ -58,7 +58,7 @@ const necessaryParams = [
   });
 
   jasmineInstance.env.clearReporters();
-  jasmineInstance.env.addReporter(specReporter as unknown as any);
+  jasmineInstance.env.addReporter(specReporter as unknown as jasmine.CustomReporter);
   jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
   jasmineInstance.execute();
 })();

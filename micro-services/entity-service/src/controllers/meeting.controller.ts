@@ -5,7 +5,7 @@ import { TYPES } from "../inversion-of-control/types";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { CreateMeetingDto } from "../dtos/createMeeting.dto";
 import { GetMeetingDto } from "../dtos/getMeeting.dto";
-import { AddUsersToMeetingDto } from "../dtos/addUserToMeeting.dto";
+import { AddUsersToMeetingDto } from "../dtos/addUsersToMeeting.dto";
 import { RemoveUserFromMeetingDto } from "../dtos/removeUserFromMeeting.dto";
 import { GetMeetingsByUserIdDto } from "../dtos/getMeetingsByUserId.dto";
 import { GetMeetingsByTeamIdDto } from "../dtos/getMeetingsByTeamId.dto";
