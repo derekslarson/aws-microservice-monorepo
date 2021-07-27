@@ -80,6 +80,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: friendshipUserRelationship.updatedAt,
                 unreadMessages: 0,
                 role: friendshipUserRelationship.role,
+                image: jasmine.stringMatching(URL_REGEX),
               },
               {
                 createdAt: group.createdAt,
@@ -90,6 +91,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: groupUserRelationship.updatedAt,
                 role: groupUserRelationship.role,
                 unreadMessages: 1,
+                image: jasmine.stringMatching(URL_REGEX),
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
@@ -97,6 +99,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   seenAt: message.seenAt,
                   reactions: message.reactions,
                   from: message.from,
+                  fromImage: jasmine.stringMatching(URL_REGEX),
                   id: message.id,
                   mimeType: message.mimeType,
                   fetchUrl: jasmine.stringMatching(URL_REGEX),
@@ -112,6 +115,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: meetingUserRelationshipTwo.updatedAt,
                 unreadMessages: 0,
                 role: meetingUserRelationshipTwo.role,
+                image: jasmine.stringMatching(URL_REGEX),
               },
               {
                 dueDate: meeting.dueDate,
@@ -124,6 +128,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: meetingUserRelationship.updatedAt,
                 unreadMessages: 0,
                 role: meetingUserRelationship.role,
+                image: jasmine.stringMatching(URL_REGEX),
               },
             ],
           });

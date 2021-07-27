@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions */
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, WithRole } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
@@ -56,14 +57,23 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
         const { image } = await this.getConversationImage({ conversation: conversationEntity, requestingUserId: userId });
 
+        let conversationEntityWithoutImageMimeType: Omit<ConversationEntity, "imageMimeType">;
+
+        if (this.isFriendConversationEntity(conversationEntity)) {
+          conversationEntityWithoutImageMimeType = conversationEntity;
+        } else {
+          const { imageMimeType, ...restOfConvo } = conversationEntity;
+          conversationEntityWithoutImageMimeType = restOfConvo;
+        }
+
         return {
-          ...conversationEntity,
+          ...conversationEntityWithoutImageMimeType,
           image,
           updatedAt: conversationUserRelationship.updatedAt,
           recentMessage,
           unreadMessages: conversationUserRelationship.unreadMessages?.length || 0,
           role: conversationUserRelationship.role,
-        };
+        } as WithRole<Conversation<ConversationFetchTypeToConversationType<T>>>;
       }));
 
       return { conversations, lastEvaluatedKey };
@@ -103,7 +113,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
       const { conversation, requestingUserId } = params;
 
-      if (this.isFriendConvo(conversation)) {
+      if (this.isFriendConversationEntity(conversation)) {
         const userId = conversation.id.replace(KeyPrefix.FriendConversation, "").replace(requestingUserId, "").replace(/^-|-$/, "") as UserId;
 
         const { user } = await this.userService.getUser({ userId });
@@ -133,13 +143,13 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
     }
   }
 
-  private isFriendConvo(conversation: ConversationEntity): conversation is ConversationEntity<ConversationTypeEnum.Friend> {
+  private isFriendConversationEntity(conversationEntity: ConversationEntity): conversationEntity is ConversationEntity<ConversationTypeEnum.Friend> {
     try {
-      this.loggerService.trace("isFriendConvoId called", { conversation }, this.constructor.name);
+      this.loggerService.trace("isFriendConversationEntity called", { conversationEntity }, this.constructor.name);
 
-      return !("imageMimeType" in conversation);
+      return !("imageMimeType" in conversationEntity);
     } catch (error: unknown) {
-      this.loggerService.error("Error in isFriendConvoId", { error, conversation }, this.constructor.name);
+      this.loggerService.error("Error in isFriendConversationEntity", { error, conversationEntity }, this.constructor.name);
 
       throw error;
     }
@@ -206,8 +216,10 @@ export interface Message extends MessageEntity {
   fromImage: string;
 }
 
-export type Conversation<T extends ConversationType> = ConversationEntity<T> & {
+export type Conversation<T extends ConversationType> = Omit<ConversationEntity<T>, "imageMimeType"> & {
   unreadMessages: number;
+  image: string;
+  updatedAt: string;
   recentMessage?: Message;
 };
 
@@ -220,14 +232,7 @@ export interface GetConversationsByUserIdInput<T extends ConversationFetchType> 
 }
 
 export interface GetConversationsByUserIdOutput<T extends ConversationFetchType> {
-  // This is equivalent to Conversation<ConversationFetchTypeToConversationType<T>>
-  //
-  // Due to the flow of fetching the conversationUserRelationships by userId/type,
-  // then using their conversationIds to fetch the conversations, the generic flow is
-  // ConversationFetchType => ConversationType => ConversationId => ConversationType => Conversation.
-  // Typescript is unable to tell for some reason that this is equal to Conversation<ConversationFetchTypeToConversationType<T>>,
-  // so we have to use this redundancy
-  conversations: WithRole<Conversation<ConversationType<ConversationId<ConversationFetchTypeToConversationType<T>>>>>[];
+  conversations: WithRole<Conversation<ConversationFetchTypeToConversationType<T>>>[];
   lastEvaluatedKey?: string;
 }
 
