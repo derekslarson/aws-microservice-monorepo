@@ -37,7 +37,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
 
     const messageS3BucketArn = CDK.Fn.importValue(ExportNames.MessageS3BucketArn);
 
-    const messageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket-${id}`, messageS3BucketArn);
+    const messageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket_${id}`, messageS3BucketArn);
     const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket-${id}`, {});
 
     // Layers
@@ -47,7 +47,7 @@ export class YacEntityServiceStack extends YacHttpServiceStack {
     });
 
     // Databases
-    const coreTable = new DynamoDB.Table(this, `${id}-CoreTable`, {
+    const coreTable = new DynamoDB.Table(this, `CoreTable_${id}`, {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },

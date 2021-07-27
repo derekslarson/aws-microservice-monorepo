@@ -1,19 +1,15 @@
+/* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-new */
 
 import * as CDK from "@aws-cdk/core";
 import * as ACM from "@aws-cdk/aws-certificatemanager";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as Route53Targets from "@aws-cdk/aws-route53-targets";
 import * as SNS from "@aws-cdk/aws-sns";
-import * as Cognito from "@aws-cdk/aws-cognito";
-import * as Lambda from "@aws-cdk/aws-lambda";
 import * as S3 from "@aws-cdk/aws-s3";
-import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
-import * as IAM from "@aws-cdk/aws-iam";
 import { generateExportNames } from "../../src/enums/exportNames.enum";
 import { Environment } from "../../src/enums/environment.enum";
 
@@ -28,126 +24,58 @@ export class YacCoreServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-
     const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
     const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
     const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
-    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
-      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
-      code: Lambda.Code.fromAsset("dist/dependencies"),
-    });
+    const certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn);
 
-    const certificate = ACM.Certificate.fromCertificateArn(this, `${id}-cert`, certificateArn);
-
-    const hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `${id}-HostedZone`, {
+    const hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, {
       zoneName: hostedZoneName,
       hostedZoneId,
     });
 
-    const domainName = new ApiGatewayV2.DomainName(this, `${id}-DN`, { domainName: `${this.recordName}.${hostedZoneName}`, certificate });
+    const domainName = new ApiGatewayV2.DomainName(this, `DomainName_${id}`, { domainName: `${this.recordName}.${hostedZoneName}`, certificate });
 
-    new Route53.ARecord(this, "ApiRecord", {
+    new Route53.ARecord(this, `ARecord_${id}`, {
       zone: hostedZone,
       recordName: this.recordName,
       target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2DomainProperties(domainName.regionalDomainName, domainName.regionalHostedZoneId)),
     });
 
-    // User Pool and Yac Client
-    // MODIFYING THIS COULD POTENTIALLY LEAD TO THE LAMBDA TRIGGERS BEING REMOVED,
-    // REQUIRING A RE-DEPLOY OF AUTH_SERVICE
-    const userPool = new Cognito.UserPool(this, `${id}UserPool`, {
-      selfSignUpEnabled: true,
-      autoVerify: { email: true, phone: true },
-      signInAliases: { username: true, email: true, phone: true },
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
-      customAttributes: { authChallenge: new Cognito.StringAttribute({ mutable: true }) },
-    });
+    const messageS3Bucket = new S3.Bucket(this, `MessageS3Bucket_${id}`, {});
 
-    const adminPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "*" ],
-      resources: [ "*" ],
-    });
+    const clientsUpdatedSnsTopic = new SNS.Topic(this, `ClientsUpdatedSnsTopic_${id}`, { topicName: `ClientsUpdatedSnsTopic_${id}` });
+    const userCreatedSnsTopic = new SNS.Topic(this, `UserCreatedSnsTopic_${id}`, { topicName: `UserCreatedSnsTopic_${id}` });
 
-    const messageS3Bucket = new S3.Bucket(this, `MessageS3Bucket-${id}`, {});
-
-    const clientsUpdatedSnsTopic = new SNS.Topic(this, `${id}-ClientsUpdatedSnsTopic`, { topicName: `${id}-ClientsUpdatedSnsTopic` });
-    const userSignedUpSnsTopic = new SNS.Topic(this, `${id}-UserSignedUpSnsTopic`, { topicName: `${id}-UserSignedUpSnsTopic` });
-
-    const userCreatedSnsTopic = new SNS.Topic(this, `${id}-UserCreatedSnsTopic`, { topicName: `${id}-UserCreatedSnsTopic` });
-
-    new Lambda.Function(this, `${id}-SetAuthorizerAudiencesHandler`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/setAuthorizerAudiences"),
-      handler: "setAuthorizerAudiences.handler",
-      layers: [ dependencyLayer ],
-      environment: {
-        USER_POOL_ID: userPool.userPoolId,
-        STACK_PREFIX: stackPrefix,
-      },
-      timeout: CDK.Duration.seconds(15),
-      initialPolicy: [ adminPolicyStatement ],
-      events: [
-        new LambdaEventSources.SnsEventSource(clientsUpdatedSnsTopic),
-      ],
-    });
-
-    const coreTable = new DynamoDB.Table(this, `${id}-CoreTable`, {
-      billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
-      partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
-      sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
-    });
-
-    new SSM.StringParameter(this, `UserPoolIdSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/user-pool-id`,
-      stringValue: userPool.userPoolId,
-    });
-
-    new CDK.CfnOutput(this, `${id}-CustomDomainNameExport`, {
+    new CDK.CfnOutput(this, `CustomDomainNameExport_${id}`, {
       exportName: ExportNames.CustomDomainName,
       value: domainName.name,
     });
 
-    new CDK.CfnOutput(this, `${id}-RegionalDomainNameExport`, {
+    new CDK.CfnOutput(this, `RegionalDomainNameExport_${id}`, {
       exportName: ExportNames.RegionalDomainName,
       value: domainName.regionalDomainName,
     });
 
-    new CDK.CfnOutput(this, `${id}-RegionalHostedZoneIdExport`, {
+    new CDK.CfnOutput(this, `RegionalHostedZoneIdExport_${id}`, {
       exportName: ExportNames.RegionalHostedZoneId,
       value: domainName.regionalHostedZoneId,
     });
 
-    new CDK.CfnOutput(this, `${id}-UserPoolIdExport`, {
-      exportName: ExportNames.UserPoolId,
-      value: userPool.userPoolId,
-    });
-
-    new CDK.CfnOutput(this, `${id}-ClientsUpdatedSnsTopicExport`, {
+    new CDK.CfnOutput(this, `ClientsUpdatedSnsTopicExport_${id}`, {
       exportName: ExportNames.ClientsUpdatedSnsTopicArn,
       value: clientsUpdatedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `${id}-UserSignedUpSnsTopicExport`, {
-      exportName: ExportNames.UserSignedUpSnsTopicArn,
-      value: userSignedUpSnsTopic.topicArn,
-    });
-
-    new CDK.CfnOutput(this, `${id}-UserCreatedSnsTopicExport`, {
+    new CDK.CfnOutput(this, `UserCreatedSnsTopicExport_${id}`, {
       exportName: ExportNames.UserCreatedSnsTopicArn,
       value: userCreatedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `${id}-CoreTableNameExport`, {
-      exportName: ExportNames.CoreTableName,
-      value: coreTable.tableName,
-    });
-
-    new CDK.CfnOutput(this, `${id}-MessageS3BucketArnExport`, {
+    new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {
       exportName: ExportNames.MessageS3BucketArn,
       value: messageS3Bucket.bucketArn,
     });
