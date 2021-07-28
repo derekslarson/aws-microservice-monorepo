@@ -207,4 +207,57 @@ describe("TeamDynamoRepository", () => {
       });
     });
   });
+
+  describe("updateTeam", () => {
+    const mockUpdates = {};
+    const params = { teamId: mockTeamId, updates: mockUpdates };
+
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        spyOn(teamDynamoRepository, "partialUpdate").and.returnValue(Promise.resolve(mockTeam));
+      });
+
+      it("calls this.partialUpdate with the correct params", async () => {
+        await teamDynamoRepository.updateTeam(params);
+
+        expect(teamDynamoRepository.partialUpdate).toHaveBeenCalledTimes(1);
+        expect(teamDynamoRepository.partialUpdate).toHaveBeenCalledWith(mockTeamId, mockTeamId, mockUpdates);
+      });
+
+      it("returns the user fetched via update", async () => {
+        const response = await teamDynamoRepository.updateTeam(params);
+
+        expect(response).toEqual({ team: mockTeam });
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when this.update throws an error", () => {
+        beforeEach(() => {
+          spyOn(teamDynamoRepository, "partialUpdate").and.returnValue(Promise.reject(mockError));
+        });
+
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await teamDynamoRepository.updateTeam(params);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in updateTeam", { error: mockError, params }, teamDynamoRepository.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await teamDynamoRepository.updateTeam(params);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
 });

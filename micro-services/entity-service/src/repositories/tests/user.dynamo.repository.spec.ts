@@ -203,4 +203,57 @@ describe("UserDynamoRepository", () => {
       });
     });
   });
+
+  describe("updateUser", () => {
+    const mockUpdates = {};
+    const params = { userId: mockUserId, updates: mockUpdates };
+
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        spyOn(userDynamoRepository, "partialUpdate").and.returnValue(Promise.resolve(mockUser));
+      });
+
+      it("calls this.partialUpdate with the correct params", async () => {
+        await userDynamoRepository.updateUser(params);
+
+        expect(userDynamoRepository.partialUpdate).toHaveBeenCalledTimes(1);
+        expect(userDynamoRepository.partialUpdate).toHaveBeenCalledWith(mockUserId, mockUserId, mockUpdates);
+      });
+
+      it("returns the user fetched via update", async () => {
+        const response = await userDynamoRepository.updateUser(params);
+
+        expect(response).toEqual({ user: mockUser });
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when this.partialUpdate throws an error", () => {
+        beforeEach(() => {
+          spyOn(userDynamoRepository, "partialUpdate").and.returnValue(Promise.reject(mockError));
+        });
+
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await userDynamoRepository.updateUser(params);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in updateUser", { error: mockError, params }, userDynamoRepository.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await userDynamoRepository.updateUser(params);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
 });
