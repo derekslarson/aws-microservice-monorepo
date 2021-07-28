@@ -3,7 +3,6 @@
 import axios from "axios";
 import { Role } from "@yac/core";
 import { generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
-import { Meeting } from "../../src/mediator-services/meeting.mediator.service";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { UserId } from "../../src/types/userId.type";
 import { createRandomTeam, createTeamUserRelationship, getConversation, getConversationUserRelationship } from "../util";

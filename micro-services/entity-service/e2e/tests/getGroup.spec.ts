@@ -11,7 +11,7 @@ import { GroupId } from "../../src/types/groupId.type";
 import { TeamId } from "../../src/types/teamId.type";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 
-fdescribe("GET /groups/{groupId} (Get Group)", () => {
+describe("GET /groups/{groupId} (Get Group)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;

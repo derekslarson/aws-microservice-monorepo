@@ -1,119 +1,125 @@
-// /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-// /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-// import { Role } from "@yac/core";
-// import axios from "axios";
-// import { generateRandomString, URL_REGEX } from "../../../../e2e/util";
-// import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-// import { MessageMimeType } from "../../src/enums/mimeType.enum";
-// import { RawMessage } from "../../src/repositories/message.dynamo.repository";
-// import { GroupId } from "../../src/types/groupId.type";
-// import { UserId } from "../../src/types/userId.type";
-// import { createConversationUserRelationship, createMessage } from "../util";
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { Role } from "@yac/core";
+import axios from "axios";
+import { generateRandomString, URL_REGEX } from "../../../../e2e/util";
+import { ConversationType } from "../../src/enums/conversationType.enum";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
+import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
+import { RawMessage } from "../../src/repositories/message.dynamo.repository";
+import { GroupId } from "../../src/types/groupId.type";
+import { UserId } from "../../src/types/userId.type";
+import { createConversationUserRelationship, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
 
-// describe("GET /messages/{messageId} (Get Message)", () => {
-//   const baseUrl = process.env.baseUrl as string;
-//   const userId = process.env.userId as UserId;
-//   const accessToken = process.env.accessToken as string;
+describe("GET /messages/{messageId} (Get Message)", () => {
+  const baseUrl = process.env.baseUrl as string;
+  const userId = process.env.userId as UserId;
+  const accessToken = process.env.accessToken as string;
 
-//   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  let otherUser: CreateRandomUserOutput["user"];
 
-//   describe("under normal conditions", () => {
-//     const mockConversationId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+  beforeAll(async () => {
+    ({ user: otherUser } = await createRandomUser());
+  });
 
-//     let message: RawMessage;
+  describe("under normal conditions", () => {
+    const mockConversationId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
 
-//     beforeAll(async () => {
-//       ([ { message } ] = await Promise.all([
-//         createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-//         createConversationUserRelationship({ conversationId: mockConversationId, userId, role: Role.User }),
-//       ]));
-//     });
+    let message: RawMessage;
 
-//     it("returns a valid response", async () => {
-//       const headers = { Authorization: `Bearer ${accessToken}` };
+    beforeAll(async () => {
+      ([ { message } ] = await Promise.all([
+        createMessage({ from: otherUser.id, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+        createConversationUserRelationship({ type: ConversationType.Group, conversationId: mockConversationId, userId, role: Role.User }),
+      ]));
+    });
 
-//       try {
-//         const { status, data } = await axios.get(`${baseUrl}/messages/${message.id}`, { headers });
+    it("returns a valid response", async () => {
+      const headers = { Authorization: `Bearer ${accessToken}` };
 
-//         expect(status).toBe(200);
-//         expect(data).toEqual({
-//           message: {
-//             id: message.id,
-//             from: message.from,
-//             conversationId: message.conversationId,
-//             createdAt: message.createdAt,
-//             seenAt: message.seenAt,
-//             reactions: message.reactions,
-//             replyCount: message.replyCount,
-//             mimeType: message.mimeType,
-//             fetchUrl: jasmine.stringMatching(URL_REGEX),
-//           },
-//         });
-//       } catch (error) {
-//         fail(error);
-//       }
-//     });
-//   });
+      try {
+        const { status, data } = await axios.get(`${baseUrl}/messages/${message.id}`, { headers });
 
-//   describe("under error conditions", () => {
-//     const mockMessageId = `${KeyPrefix.Message}${generateRandomString(5)}`;
+        expect(status).toBe(200);
+        expect(data).toEqual({
+          message: {
+            id: message.id,
+            from: message.from,
+            conversationId: message.conversationId,
+            createdAt: message.createdAt,
+            seenAt: message.seenAt,
+            reactions: message.reactions,
+            replyCount: message.replyCount,
+            mimeType: message.mimeType,
+            fetchUrl: jasmine.stringMatching(URL_REGEX),
+            fromImage: jasmine.stringMatching(URL_REGEX),
+          },
+        });
+      } catch (error) {
+        fail(error);
+      }
+    });
+  });
 
-//     describe("when an access token is not passed in the headers", () => {
-//       it("throws a 401 error", async () => {
-//         const headers = {};
+  describe("under error conditions", () => {
+    const mockMessageId = `${KeyPrefix.Message}${generateRandomString(5)}`;
 
-//         try {
-//           await axios.get(`${baseUrl}/messages/${mockMessageId}`, { headers });
+    describe("when an access token is not passed in the headers", () => {
+      it("throws a 401 error", async () => {
+        const headers = {};
 
-//           fail("Expected an error");
-//         } catch (error) {
-//           expect(error.response?.status).toBe(401);
-//           expect(error.response?.statusText).toBe("Unauthorized");
-//         }
-//       });
-//     });
+        try {
+          await axios.get(`${baseUrl}/messages/${mockMessageId}`, { headers });
 
-//     describe("when an id of a message that the user is not a member of the conversation is passed in", () => {
-//       const mockConversationId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
-//       let message: RawMessage;
+          fail("Expected an error");
+        } catch (error) {
+          expect(error.response?.status).toBe(401);
+          expect(error.response?.statusText).toBe("Unauthorized");
+        }
+      });
+    });
 
-//       beforeAll(async () => {
-//         ([ { message } ] = await Promise.all([
-//           createMessage({ from: mockUserId, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-//         ]));
-//       });
+    describe("when an id of a message in a conversation that the user is not a member of is passed in", () => {
+      const mockConversationId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+      let message: RawMessage;
 
-//       it("throws a 403 error", async () => {
-//         const headers = { Authorization: `Bearer ${accessToken}` };
+      beforeAll(async () => {
+        ([ { message } ] = await Promise.all([
+          createMessage({ from: otherUser.id, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+        ]));
+      });
 
-//         try {
-//           await axios.get(`${baseUrl}/messages/${message.id}`, { headers });
+      it("throws a 403 error", async () => {
+        const headers = { Authorization: `Bearer ${accessToken}` };
 
-//           fail("Expected an error");
-//         } catch (error) {
-//           expect(error.response?.status).toBe(403);
-//           expect(error.response?.statusText).toBe("Forbidden");
-//         }
-//       });
-//     });
+        try {
+          await axios.get(`${baseUrl}/messages/${message.id}`, { headers });
 
-//     describe("when passed invalid parameters", () => {
-//       it("throws a 400 error with a valid structure", async () => {
-//         const headers = { Authorization: `Bearer ${accessToken}` };
+          fail("Expected an error");
+        } catch (error) {
+          expect(error.response?.status).toBe(403);
+          expect(error.response?.statusText).toBe("Forbidden");
+        }
+      });
+    });
 
-//         try {
-//           await axios.get(`${baseUrl}/messages/test`, { headers });
+    describe("when passed invalid parameters", () => {
+      it("throws a 400 error with a valid structure", async () => {
+        const headers = { Authorization: `Bearer ${accessToken}` };
 
-//           fail("Expected an error");
-//         } catch (error) {
-//           expect(error.response?.status).toBe(400);
-//           expect(error.response?.statusText).toBe("Bad Request");
-//           expect(error.response?.data).toEqual({
-//             message: "Error validating request",
-//             validationErrors: { pathParameters: { messageId: "Failed constraint check for string: Must be a message id" } },
-//           });
-//         }
-//       });
-//     });
-//   });
-// });
+        try {
+          await axios.get(`${baseUrl}/messages/test`, { headers });
+
+          fail("Expected an error");
+        } catch (error) {
+          expect(error.response?.status).toBe(400);
+          expect(error.response?.statusText).toBe("Bad Request");
+          expect(error.response?.data).toEqual({
+            message: "Error validating request",
+            validationErrors: { pathParameters: { messageId: "Failed constraint check for string: Must be a message id" } },
+          });
+        }
+      });
+    });
+  });
+});

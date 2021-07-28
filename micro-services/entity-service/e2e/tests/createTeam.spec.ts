@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role, WithRole } from "@yac/core";
+import { Role } from "@yac/core";
 import { generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { Team } from "../../src/mediator-services/team.mediator.service";
 import { EntityType } from "../../src/enums/entityType.enum";
@@ -31,7 +31,6 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
             name,
             createdBy: userId,
             role: Role.Admin,
-            imageMimeType: ImageMimeType.Png,
             image: jasmine.stringMatching(URL_REGEX),
           },
         });
