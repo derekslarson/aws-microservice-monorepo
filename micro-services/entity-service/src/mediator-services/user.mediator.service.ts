@@ -372,6 +372,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
         const user: WithRole<User> = {
           ...restOfUserEntity,
           image: signedUrl,
+          // TODO: does userService.getUsers return the users in the same order as the conversationUserRelationships array ??
           role: conversationUserRelationships[i].role,
         };
 
