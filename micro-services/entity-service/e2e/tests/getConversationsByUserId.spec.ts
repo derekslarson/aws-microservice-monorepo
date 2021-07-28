@@ -3,7 +3,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Role } from "@yac/core";
 import axios from "axios";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX, wait } from "../../../../e2e/util";
+import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
+import { ConversationFetchType } from "../../src/enums/conversationFetchType.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
@@ -42,9 +43,6 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
         createRandomUser(),
       ]));
 
-      // we have to wait for the user to exist in cognito. This could be replaced with exponential backoff when calling getAccesTokenByEmail
-      await wait(6000);
-
       ([ { accessToken }, { conversation: meeting }, { conversation: meetingTwo }, { conversation: group }, { conversation: friendship } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
         createMeetingConversation({ createdBy: user.id, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
@@ -63,13 +61,12 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
     });
 
     describe("when not passed any query params", () => {
-      fit("returns a valid response", async () => {
+      it("returns a valid response", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
           const { status, data } = await axios.get(`${baseUrl}/users/${user.id}/conversations`, { headers });
 
-          console.log(JSON.stringify(data, null, 2));
           expect(status).toBe(200);
           expect(data).toEqual({
             conversations: [
@@ -156,6 +153,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: friendshipUserRelationship.updatedAt,
                 unreadMessages: 0,
                 role: friendshipUserRelationship.role,
+                image: jasmine.stringMatching(URL_REGEX),
               },
               {
                 createdAt: group.createdAt,
@@ -166,6 +164,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: groupUserRelationship.updatedAt,
                 role: groupUserRelationship.role,
                 unreadMessages: 1,
+                image: jasmine.stringMatching(URL_REGEX),
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
@@ -176,6 +175,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   id: message.id,
                   mimeType: message.mimeType,
                   fetchUrl: jasmine.stringMatching(URL_REGEX),
+                  fromImage: jasmine.stringMatching(URL_REGEX),
                 },
               },
             ],
@@ -199,6 +199,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: meetingUserRelationshipTwo.updatedAt,
                 unreadMessages: 0,
                 role: meetingUserRelationshipTwo.role,
+                image: jasmine.stringMatching(URL_REGEX),
               },
               {
                 dueDate: meeting.dueDate,
@@ -211,6 +212,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: meetingUserRelationship.updatedAt,
                 unreadMessages: 0,
                 role: meetingUserRelationship.role,
+                image: jasmine.stringMatching(URL_REGEX),
               },
             ],
           });
@@ -238,6 +240,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: friendshipUserRelationship.updatedAt,
                 unreadMessages: 0,
                 role: friendshipUserRelationship.role,
+                image: jasmine.stringMatching(URL_REGEX),
               },
             ],
           });
@@ -249,7 +252,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
 
     describe("when passed a 'type=group' query param", () => {
       it("returns a valid response", async () => {
-        const params = { type: "group" };
+        const params = { type: ConversationFetchType.Group };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
@@ -267,6 +270,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: groupUserRelationship.updatedAt,
                 role: groupUserRelationship.role,
                 unreadMessages: 1,
+                image: jasmine.stringMatching(URL_REGEX),
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
@@ -277,6 +281,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   id: message.id,
                   mimeType: message.mimeType,
                   fetchUrl: jasmine.stringMatching(URL_REGEX),
+                  fromImage: jasmine.stringMatching(URL_REGEX),
                 },
               },
             ],
@@ -289,7 +294,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
 
     describe("when passed a 'type=meeting' query param", () => {
       it("returns a valid response", async () => {
-        const params = { type: "meeting" };
+        const params = { type: ConversationFetchType.Meeting };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
@@ -308,6 +313,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: meetingUserRelationshipTwo.updatedAt,
                 unreadMessages: 0,
                 role: meetingUserRelationshipTwo.role,
+                image: jasmine.stringMatching(URL_REGEX),
               },
               {
                 dueDate: meeting.dueDate,
@@ -320,6 +326,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: meetingUserRelationship.updatedAt,
                 unreadMessages: 0,
                 role: meetingUserRelationship.role,
+                image: jasmine.stringMatching(URL_REGEX),
               },
             ],
           });
@@ -331,7 +338,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
 
     describe("when passed a 'type=meeting_due_date' query param", () => {
       it("returns a valid response", async () => {
-        const params = { type: "meeting_due_date" };
+        const params = { type: ConversationFetchType.MeetingDueDate };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
@@ -351,6 +358,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: meetingUserRelationship.updatedAt,
                 unreadMessages: 0,
                 role: meetingUserRelationship.role,
+                image: jasmine.stringMatching(URL_REGEX),
               },
               {
                 dueDate: meetingTwo.dueDate,
@@ -362,6 +370,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: meetingUserRelationshipTwo.updatedAt,
                 unreadMessages: 0,
                 role: meetingUserRelationshipTwo.role,
+                image: jasmine.stringMatching(URL_REGEX),
               },
             ],
           });
@@ -391,6 +400,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 updatedAt: groupUserRelationship.updatedAt,
                 role: groupUserRelationship.role,
                 unreadMessages: 1,
+                image: jasmine.stringMatching(URL_REGEX),
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
@@ -401,6 +411,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   id: message.id,
                   mimeType: message.mimeType,
                   fetchUrl: jasmine.stringMatching(URL_REGEX),
+                  fromImage: jasmine.stringMatching(URL_REGEX),
                 },
               },
             ],

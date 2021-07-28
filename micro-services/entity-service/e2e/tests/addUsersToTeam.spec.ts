@@ -13,7 +13,7 @@ import { AddUsersToTeamDto } from "../../src/dtos/addUsersToTeam.dto";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 import { UniqueProperty } from "../../src/enums/uniqueProperty.enum";
 
-describe("POST /teams/{teamId}/users (Add User to Team)", () => {
+describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;

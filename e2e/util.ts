@@ -9,6 +9,30 @@ export const s3 = new S3({ region: "us-east-1" });
 export const cognito = new CognitoIdentityServiceProvider({ region: "us-east-1" });
 export const documentClient = new DynamoDB.DocumentClient({ region: "us-east-1" });
 
+export async function backoff<T>(func: (...args: unknown[]) => Promise<T>, successFunc: (res: T) => boolean, maxBackoff = 4000, currentBackoff = 500): Promise<T> {
+  try {
+    const response = await func();
+
+    if (successFunc(response)) {
+      return response;
+    }
+
+    throw new Error("Success func failed");
+  } catch (error) {
+    if (currentBackoff <= maxBackoff) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(backoff(func, successFunc, maxBackoff, currentBackoff * 2));
+        }, currentBackoff);
+      });
+    }
+
+    console.log(`${new Date().toISOString()} : Error in backoff. maxBackoff of ${maxBackoff}ms already reached.\n`, error);
+
+    throw error;
+  }
+}
+
 export async function getSsmParameters(environment: string, paramNames: string[]): Promise<Record<string, string>> {
   try {
     if (environment === "prod") {
@@ -97,7 +121,7 @@ async function getXsrfToken(): Promise<{ xsrfToken: string }> {
   }
 }
 
-async function getAuthorizationCode(email: string, xsrfToken: string): Promise<{ authorizationCode: string; }> {
+async function getAuthorizationCode(email: string, xsrfToken: string, logError?: boolean): Promise<{ authorizationCode: string; }> {
   try {
     const data = `_csrf=${xsrfToken}&username=${email}&password=YAC-${process.env.secret as string}`;
 
@@ -129,9 +153,14 @@ async function getAuthorizationCode(email: string, xsrfToken: string): Promise<{
 
     const [ , authorizationCode ] = redirectPath.split("=");
 
+    if (authorizationCode === "code&client_id") {
+      throw new Error("Error fetching authorization code");
+    }
     return { authorizationCode };
   } catch (error: unknown) {
-    console.log("Error in getAuthorizationCode:\n", error);
+    if (logError ?? true) {
+      console.log("Error in getAuthorizationCode:\n", error);
+    }
 
     throw error;
   }
@@ -160,7 +189,12 @@ export async function getAccessTokenByEmail(email: string): Promise<{ accessToke
   try {
     const { xsrfToken } = await getXsrfToken();
 
-    const { authorizationCode } = await getAuthorizationCode(email, xsrfToken);
+    const { authorizationCode } = await backoff(
+      () => getAuthorizationCode(email, xsrfToken, false),
+      (res) => !!res.authorizationCode,
+      8000,
+      1000,
+    );
 
     const { accessToken } = await getToken(authorizationCode);
 
@@ -174,30 +208,6 @@ export async function getAccessTokenByEmail(email: string): Promise<{ accessToke
 
 export async function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(() => resolve(), ms));
-}
-
-export async function backoff<T>(func: (...args: unknown[]) => Promise<T>, successFunc: (res: T) => boolean, maxBackoff = 4000, currentBackoff = 500): Promise<T> {
-  try {
-    const response = await func();
-
-    if (successFunc(response)) {
-      return response;
-    }
-
-    throw new Error("Success func failed");
-  } catch (error) {
-    if (currentBackoff <= maxBackoff) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve(backoff(func, successFunc, maxBackoff, currentBackoff * 2));
-        }, currentBackoff);
-      });
-    }
-
-    console.log(`${new Date().toISOString()} : Error in backoff. maxBackoff of ${maxBackoff}ms already reached.\n`, error);
-
-    throw error;
-  }
 }
 
 export const ISO_DATE_REGEX = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})[Z]/;
