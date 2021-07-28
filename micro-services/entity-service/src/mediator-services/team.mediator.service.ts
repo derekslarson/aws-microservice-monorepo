@@ -44,8 +44,10 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
         mimeType: teamEntity.imageMimeType,
       });
 
+      const { imageMimeType, ...restOfTeamEntity } = teamEntity;
+
       const team: WithRole<Team> = {
-        ...teamEntity,
+        ...restOfTeamEntity,
         image: signedUrl,
         role: teamUserRelationship.role,
       };
@@ -73,8 +75,10 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
         mimeType: teamEntity.imageMimeType,
       });
 
+      const { imageMimeType, ...restOfTeamEntity } = teamEntity;
+
       const team: Team = {
-        ...teamEntity,
+        ...restOfTeamEntity,
         image: signedUrl,
       };
 
@@ -157,8 +161,10 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
           mimeType: teamEntity.imageMimeType,
         });
 
+        const { imageMimeType, ...restOfTeamEntity } = teamEntity;
+
         return {
-          ...teamEntity,
+          ...restOfTeamEntity,
           image: signedUrl,
           role: teamUserRelationships[i].role,
         };

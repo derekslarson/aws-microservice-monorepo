@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role } from "@yac/core";
@@ -31,7 +32,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post<{ group: Group; }>(`${baseUrl}/users/${userId}/groups`, body, { headers });
+        const { status, data } = await axios.post(`${baseUrl}/users/${userId}/groups`, body, { headers });
 
         expect(status).toBe(201);
         expect(data).toEqual({
@@ -41,7 +42,6 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
             teamId: team.id,
             createdBy: userId,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
-            imageMimeType: ImageMimeType.Png,
             image: jasmine.stringMatching(URL_REGEX),
           },
         });

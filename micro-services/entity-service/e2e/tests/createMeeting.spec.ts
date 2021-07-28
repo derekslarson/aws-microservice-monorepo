@@ -34,7 +34,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post<{ meeting: Meeting; }>(`${baseUrl}/users/${userId}/meetings`, body, { headers });
+        const { status, data } = await axios.post(`${baseUrl}/users/${userId}/meetings`, body, { headers });
 
         expect(status).toBe(201);
         expect(data).toEqual({
@@ -45,7 +45,6 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
             teamId: team.id,
             createdBy: userId,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
-            imageMimeType: ImageMimeType.Png,
             image: jasmine.stringMatching(URL_REGEX),
           },
         });

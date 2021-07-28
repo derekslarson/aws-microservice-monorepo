@@ -49,7 +49,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
         mimeType: meetingEntity.imageMimeType,
       });
 
-      const { type, ...restOfMeetingEntity } = meetingEntity;
+      const { type, imageMimeType, ...restOfMeetingEntity } = meetingEntity;
 
       const meeting: Meeting = {
         ...restOfMeetingEntity,
@@ -79,7 +79,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
         mimeType: meetingEntity.imageMimeType,
       });
 
-      const { type, ...restOfMeetingEntity } = meetingEntity;
+      const { type, imageMimeType, ...restOfMeetingEntity } = meetingEntity;
 
       const meeting: Meeting = {
         ...restOfMeetingEntity,
@@ -212,7 +212,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
           mimeType: meetingEntity.imageMimeType,
         });
 
-        const { type, ...restOfMeetingEntity } = meetingEntity;
+        const { type, imageMimeType, ...restOfMeetingEntity } = meetingEntity;
 
         return {
           ...restOfMeetingEntity,
@@ -250,7 +250,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
           mimeType: meetingEntity.imageMimeType,
         });
 
-        const { type, ...restOfMeetingEntity } = meetingEntity;
+        const { type, imageMimeType, ...restOfMeetingEntity } = meetingEntity;
 
         return {
           ...restOfMeetingEntity,

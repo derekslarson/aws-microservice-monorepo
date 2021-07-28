@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role, WithRole } from "@yac/core";
@@ -21,7 +22,7 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post<{ team: WithRole<Team>; }>(`${baseUrl}/users/${userId}/teams`, body, { headers });
+        const { status, data } = await axios.post(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
         expect(status).toBe(201);
         expect(data).toEqual({
