@@ -59,6 +59,16 @@ export class AuthenticationController extends BaseController implements Authenti
         throw new BadRequestError("'email' or 'phone' are required");
       }
 
+      // fetch PKCE record
+      // pk           sk
+      // stage        clientId
+
+      // if exists, continue
+
+      // update PKCE record
+      // pk           sk
+      // stage        clientId  code_grant
+
       const confirmResponse = await this.authenticationService.confirm(confirmationRequestInput);
 
       return this.generateSuccessResponse(confirmResponse);
@@ -74,6 +84,11 @@ export class AuthenticationController extends BaseController implements Authenti
       this.loggerService.trace("oauth2Authorize called", { request }, this.constructor.name);
 
       const oauth2AuthorizeInput = await this.validationService.validate(Oauth2AuthorizeInputDto, RequestPortion.QueryParameters, request.queryStringParameters);
+
+      // create PKCE record
+      // pk           sk
+      // state        clientId   challege
+
       const { xsrfToken } = await this.authenticationService.getXsrfToken(oauth2AuthorizeInput.clientId, oauth2AuthorizeInput.redirectUri);
 
       if (oauth2AuthorizeInput.clientId === this.config.userPool.yacClientId) {
@@ -86,6 +101,26 @@ export class AuthenticationController extends BaseController implements Authenti
       return this.generateSeeOtherResponse(redirectLocation, {}, [ xsrfTokenCookie ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in oauth2Authorize", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async oauth2Token(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("oauth2Token called", { request }, this.constructor.name);
+      // params: clientId, verifier, code grant
+      // verifier => challenge (base64(verifier))
+
+      // fetch PKCE stuff
+      // pk           sk
+      // state        clientId
+
+      // if exists, and code_grant and challage match, continue
+
+      // delete PKCE records
+    } catch (error: unknown) {
+      this.loggerService.error("Error in oauth2Token", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }

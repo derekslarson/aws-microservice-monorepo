@@ -56,8 +56,8 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
       };
 
       await this.documentClient.put({
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
         TableName: this.tableName,
+        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
         Item: conversationUserRelationshipEntity,
       }).promise();
 
@@ -431,4 +431,4 @@ export type ConversationFetchTypeToConversationType<T extends ConversationFetchT
       T extends ConversationFetchType.Meeting ? ConversationTypeEnum.Meeting :
         T extends ConversationFetchType.MeetingDueDate ? ConversationTypeEnum.Meeting : ConversationType;
 
-type ConversationUserRelationshipWithSet<T extends ConversationType = ConversationType> = DynamoSetValues<ConversationUserRelationship<T>, "unreadMessages">;
+export type ConversationUserRelationshipWithSet<T extends ConversationType = ConversationType> = DynamoSetValues<ConversationUserRelationship<T>, "unreadMessages">;
