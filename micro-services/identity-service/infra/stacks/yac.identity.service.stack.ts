@@ -14,7 +14,7 @@ import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stack
 
 export class YacIdentityServiceStack extends YacHttpServiceStack {
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
-    super(scope, id, props);
+    super(scope, id, { ...props, addAuthorizer: false });
 
     const environment = this.node.tryGetContext("environment") as string;
     const developer = this.node.tryGetContext("developer") as string;

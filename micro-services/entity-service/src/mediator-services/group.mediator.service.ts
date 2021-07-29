@@ -48,7 +48,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
         mimeType: groupEntity.imageMimeType,
       });
 
-      const { type, ...restOfGroupEntity } = groupEntity;
+      const { type, imageMimeType, ...restOfGroupEntity } = groupEntity;
 
       const group: Group = {
         ...restOfGroupEntity,
@@ -78,7 +78,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
         mimeType: groupEntity.imageMimeType,
       });
 
-      const { type, ...restOfGroupEntity } = groupEntity;
+      const { type, imageMimeType, ...restOfGroupEntity } = groupEntity;
 
       const group: Group = {
         ...restOfGroupEntity,
@@ -203,7 +203,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
           mimeType: groupEntity.imageMimeType,
         });
 
-        const { type, ...restOfGroupEntity } = groupEntity;
+        const { type, imageMimeType, ...restOfGroupEntity } = groupEntity;
 
         return {
           ...restOfGroupEntity,
@@ -241,7 +241,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
           mimeType: groupEntity.imageMimeType,
         });
 
-        const { type, ...restOfGroupEntity } = groupEntity;
+        const { type, imageMimeType, ...restOfGroupEntity } = groupEntity;
 
         return {
           ...restOfGroupEntity,

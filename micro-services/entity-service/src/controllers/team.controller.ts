@@ -2,7 +2,6 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamServiceInterface } from "../entity-services/team.service";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { CreateTeamDto } from "../dtos/createTeam.dto";
 import { GetTeamDto } from "../dtos/getTeam.dto";
@@ -17,7 +16,6 @@ export class TeamController extends BaseController implements TeamControllerInte
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
     @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
   ) {
@@ -63,7 +61,7 @@ export class TeamController extends BaseController implements TeamControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { team } = await this.teamService.getTeam({ teamId });
+      const { team } = await this.teamMediatorService.getTeam({ teamId });
 
       return this.generateSuccessResponse({ team });
     } catch (error: unknown) {

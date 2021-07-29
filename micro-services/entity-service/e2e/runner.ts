@@ -5,7 +5,7 @@ import Jasmine from "jasmine";
 import { SpecReporter } from "jasmine-spec-reporter";
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
-import { getAccessTokenByEmail, getSsmParameters, setEnvVars, wait } from "../../../e2e/util";
+import { getAccessTokenByEmail, getSsmParameters, setEnvVars } from "../../../e2e/util";
 import { createRandomUser } from "./util";
 
 const { argv } = yargs(hideBin(process.argv));
@@ -34,8 +34,6 @@ const necessaryParams = [
 
   const { user } = await createRandomUser();
 
-  await wait(5000);
-
   const { accessToken } = await getAccessTokenByEmail(user.email);
 
   const userEnvVars = {
@@ -58,7 +56,7 @@ const necessaryParams = [
   });
 
   jasmineInstance.env.clearReporters();
-  jasmineInstance.env.addReporter(specReporter as unknown as any);
+  jasmineInstance.env.addReporter(specReporter as unknown as jasmine.CustomReporter);
   jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
   jasmineInstance.execute();
 })();

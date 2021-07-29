@@ -89,7 +89,7 @@ describe("ConversationDynamoRepository", () => {
       });
 
       it("returns a cleansed version of the created user", async () => {
-        const mockConversation = mockConversationFactory<ConversationType.Group>(ConversationType.Group);
+        const mockConversation = mockConversationFactory(ConversationType.Group);
         const params = { conversation: mockConversation };
 
         const response = await conversationDynamoRepository.createConversation(params);
@@ -180,7 +180,7 @@ describe("ConversationDynamoRepository", () => {
         });
 
         it("calls loggerService.error with the correct params", async () => {
-          const mockConversation = mockConversationFactory<ConversationType.Group>(ConversationType.Group);
+          const mockConversation = mockConversationFactory(ConversationType.Group);
           const params = { conversation: mockConversation };
 
           try {
@@ -194,7 +194,7 @@ describe("ConversationDynamoRepository", () => {
         });
 
         it("throws the caught error", async () => {
-          const mockConversation = mockConversationFactory<ConversationType.Group>(ConversationType.Group);
+          const mockConversation = mockConversationFactory(ConversationType.Group);
           const params = { conversation: mockConversation };
 
           try {
@@ -210,7 +210,7 @@ describe("ConversationDynamoRepository", () => {
   });
 
   describe("getConversation", () => {
-    const mockConversation = mockConversationFactory<ConversationType.Group>(ConversationType.Group);
+    const mockConversation = mockConversationFactory(ConversationType.Group);
     const mockConversationId = mockConversation.id;
     const params = { conversationId: mockConversationId };
 
@@ -263,8 +263,63 @@ describe("ConversationDynamoRepository", () => {
     });
   });
 
+  describe("updateConversation", () => {
+    const mockConversation = mockConversationFactory(ConversationType.Group);
+    const mockUpdates = {};
+    const mockConversationId = mockConversation.id;
+    const params = { conversationId: mockConversationId, updates: mockUpdates };
+
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        spyOn(conversationDynamoRepository, "partialUpdate").and.returnValue(Promise.resolve(mockConversation));
+      });
+
+      it("calls this.partialUpdate with the correct params", async () => {
+        await conversationDynamoRepository.updateConversation(params);
+
+        expect(conversationDynamoRepository.partialUpdate).toHaveBeenCalledTimes(1);
+        expect(conversationDynamoRepository.partialUpdate).toHaveBeenCalledWith(mockConversationId, mockConversationId, mockUpdates);
+      });
+
+      it("returns the user fetched via partialUpdate", async () => {
+        const response = await conversationDynamoRepository.updateConversation(params);
+
+        expect(response).toEqual({ conversation: mockConversation });
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when this.partialUpdate throws an error", () => {
+        beforeEach(() => {
+          spyOn(conversationDynamoRepository, "partialUpdate").and.returnValue(Promise.reject(mockError));
+        });
+
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await conversationDynamoRepository.updateConversation(params);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in updateConversation", { error: mockError, params }, conversationDynamoRepository.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await conversationDynamoRepository.updateConversation(params);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
+
   describe("deleteConversation", () => {
-    const mockConversation = mockConversationFactory<ConversationType.Group>(ConversationType.Group);
+    const mockConversation = mockConversationFactory(ConversationType.Group);
     const mockConversationId = mockConversation.id;
     const params = { conversationId: mockConversationId };
 
@@ -315,7 +370,7 @@ describe("ConversationDynamoRepository", () => {
   });
 
   describe("getConversations", () => {
-    const mockConversation = mockConversationFactory<ConversationType.Group>(ConversationType.Group);
+    const mockConversation = mockConversationFactory(ConversationType.Group);
     const mockConversationId = mockConversation.id;
     const params = { conversationIds: [ mockConversationId ] };
 
@@ -374,7 +429,7 @@ describe("ConversationDynamoRepository", () => {
     const mockLastEvaluatedKey = "mock-last-evaluated-key";
     const mockEncodedLastEvaluatedKey = "mock-encoded-last-evaluated-key";
     const mockLimit = 10;
-    const mockConversation = mockConversationFactory<ConversationType.Group>(ConversationType.Group);
+    const mockConversation = mockConversationFactory(ConversationType.Group);
 
     const params = { teamId: mockTeamId, limit: mockLimit, exclusiveStartKey: mockEncodedExclusiveStartKey };
 

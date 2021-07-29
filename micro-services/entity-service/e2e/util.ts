@@ -555,7 +555,7 @@ export async function createMeetingConversation(params: CreateMeetingConversatio
 
     const s3UploadInput: S3.Types.PutObjectRequest = {
       Bucket: process.env["image-s3-bucket-name"] as string,
-      Key: `groups/${conversationId}.png`,
+      Key: `meetings/${conversationId}.png`,
       Body: image,
       ContentType: mimeType,
     };

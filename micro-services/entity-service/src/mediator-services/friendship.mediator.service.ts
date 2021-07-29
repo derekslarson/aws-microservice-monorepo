@@ -89,16 +89,18 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
       const { users: userEntities } = await this.userService.getUsers({ userIds: friendIds });
       
       const friends = userEntities.map((userEntity) => {
+        
         const { signedUrl } = this.imageFileService.getSignedUrl({
           operation: "get",
           entityType: EntityType.User,
           entityId: userEntity.id,
           mimeType: userEntity.imageMimeType,
         });
-
+        
+        const { imageMimeType, ...restOfUserEntity } = userEntity
 
         return {
-          ...userEntity,
+          ...restOfUserEntity,
           image: signedUrl,
         };
       })

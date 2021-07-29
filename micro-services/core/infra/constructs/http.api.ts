@@ -10,7 +10,7 @@ interface HttpApiProps extends ApiGatewayV2.HttpApiProps {
   serviceName: string
   domainName: ApiGatewayV2.IDomainName,
   corsAllowedOrigins?: string[];
-  jwtAuthorizer: {
+  jwtAuthorizer?: {
     jwtAudience: string[];
     jwtIssuer: string;
   }
@@ -35,7 +35,7 @@ export interface ProxyRouteProps {
 export class HttpApi extends ApiGatewayV2.HttpApi {
   public readonly apiURL: string;
 
-  public authorizer: ApiGatewayV2.HttpAuthorizer;
+  public authorizer?: ApiGatewayV2.HttpAuthorizer;
 
   constructor(scope: CDK.Construct, id: string, props: HttpApiProps) {
     const environment = scope.node.tryGetContext("environment") as string;
@@ -62,13 +62,15 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
       },
     });
 
-    this.authorizer = new ApiGatewayV2.HttpAuthorizer(this, `${id}-JwtAuthorizer`, {
-      httpApi: this,
-      type: ApiGatewayV2.HttpAuthorizerType.JWT,
-      identitySource: [ "$request.header.Authorization" ],
-      jwtAudience: props.jwtAuthorizer.jwtAudience,
-      jwtIssuer: props.jwtAuthorizer.jwtIssuer,
-    });
+    if (props.jwtAuthorizer) {
+      this.authorizer = new ApiGatewayV2.HttpAuthorizer(this, `${id}-JwtAuthorizer`, {
+        httpApi: this,
+        type: ApiGatewayV2.HttpAuthorizerType.JWT,
+        identitySource: [ "$request.header.Authorization" ],
+        jwtAudience: props.jwtAuthorizer.jwtAudience,
+        jwtIssuer: props.jwtAuthorizer.jwtIssuer,
+      });
+    }
 
     this.apiURL = `https://${props.domainName.name}/${props.serviceName}`;
   }
@@ -88,9 +90,13 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
         integration,
       });
 
-      const routeCfn = route.node.defaultChild as ApiGatewayV2.CfnRoute;
-
       if (authorizationScopes) {
+        if (!this.authorizer) {
+          throw new Error("Can't add authorizationScopes to an HttpApi without an authorizer");
+        }
+
+        const routeCfn = route.node.defaultChild as ApiGatewayV2.CfnRoute;
+
         routeCfn.authorizationType = "JWT";
         routeCfn.authorizerId = this.authorizer?.authorizerId;
         routeCfn.authorizationScopes = authorizationScopes;
@@ -119,10 +125,16 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
       integration,
     });
 
-    const routeCfn = route.node.defaultChild as ApiGatewayV2.CfnRoute;
+    if (authorizationScopes) {
+      if (!this.authorizer) {
+        throw new Error("Can't add authorizationScopes to an HttpApi without an authorizer");
+      }
 
-    routeCfn.authorizationType = authorizerType;
-    routeCfn.authorizerId = authorizerId;
-    routeCfn.authorizationScopes = authorizationScopes;
+      const routeCfn = route.node.defaultChild as ApiGatewayV2.CfnRoute;
+
+      routeCfn.authorizationType = authorizerType;
+      routeCfn.authorizerId = authorizerId;
+      routeCfn.authorizationScopes = authorizationScopes;
+    }
   }
 }
