@@ -10,6 +10,7 @@ import { MessageId } from "../types/messageId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { UserId } from "../types/userId.type";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
+import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 
 @injectable()
 export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithReactionsSet> implements MessageRepositoryInterface {
@@ -56,8 +57,8 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
       };
 
       await this.documentClient.put({
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
         TableName: this.tableName,
+        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
         Item: messageEntity,
       }).promise();
 
@@ -75,7 +76,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
 
       const { messageId } = params;
 
-      const rawMessage = await this.get({ Key: { pk: messageId, sk: messageId } });
+      const rawMessage = await this.get({ Key: { pk: messageId, sk: messageId } }, "Message");
 
       const message = this.cleanseSet(rawMessage);
 
@@ -145,7 +146,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
           pk: messageId,
           sk: messageId,
         },
-        UpdateExpression: `${action === "add" ? "ADD" : "DELETE"} #reactions.#reaction :value`,
+        UpdateExpression: `${action === UpdateMessageReactionAction.Add ? "ADD" : "DELETE"} #reactions.#reaction :value`,
         ExpressionAttributeNames: {
           "#reactions": "reactions",
           "#reaction": reaction,
@@ -233,6 +234,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
       const { Items: rawReplies, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
+        ScanIndexForward: false,
         IndexName: this.gsiTwoIndexName,
         KeyConditionExpression: "#gsi2pk = :gsi2pk AND begins_with(#gsi2sk, :reply)",
         ExpressionAttributeNames: {
@@ -309,7 +311,7 @@ export interface Message {
   replyTo?: MessageId;
 }
 
-interface MessageWithReactionsSet extends Omit<Message, "reactions"> {
+export interface MessageWithReactionsSet extends Omit<Message, "reactions"> {
   reactions: Record<string, DynamoDB.DocumentClient.DynamoDbSet>;
 }
 
@@ -385,7 +387,7 @@ export interface UpdateMessageReactionInput {
   messageId: MessageId;
   userId: UserId;
   reaction: string;
-  action: "add" | "remove"
+  action: UpdateMessageReactionAction;
 }
 
 export interface UpdateMessageReactionOutput {
