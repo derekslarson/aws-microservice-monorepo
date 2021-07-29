@@ -1,10 +1,10 @@
 import { inject, injectable } from "inversify";
-import { CognitoIdentityServiceProvider } from "aws-sdk";
 import { ClientsUpdatedSnsServiceInterface, ForbiddenError, LoggerServiceInterface, NotFoundError } from "@yac/core";
+import CognitoIdentityServiceProvider from "aws-sdk/clients/cognitoidentityserviceprovider";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
-import { CreateClientInputDto } from "../models/client/client.creation.input.model";
 import { CognitoFactory } from "../factories/cognito.factory";
+import { ClientType } from "../enums/clientType.enum";
 
 @injectable()
 export class ClientService implements ClientServiceInterface {
@@ -19,19 +19,21 @@ export class ClientService implements ClientServiceInterface {
     this.cognito = cognitoFactory();
   }
 
-  public async createClient(createClientInput: CreateClientInputDto): Promise<{ clientId: string; clientSecret: string; }> {
+  public async createClient(params: CreateClientInput): Promise<CreateClientOutput> {
     try {
-      this.loggerService.trace("createClient called", { createClientInput }, this.constructor.name);
+      this.loggerService.trace("createClient called", { params }, this.constructor.name);
+
+      const { name, redirectUri, type, scopes } = params;
 
       const createClientParams: CognitoIdentityServiceProvider.Types.CreateUserPoolClientRequest = {
         UserPoolId: this.config.userPool.id,
-        ClientName: createClientInput.name,
-        GenerateSecret: true,
-        CallbackURLs: [ createClientInput.redirectUri ],
+        ClientName: name,
+        GenerateSecret: type === ClientType.Private,
+        CallbackURLs: [ redirectUri ],
         SupportedIdentityProviders: [ "COGNITO" ],
         ExplicitAuthFlows: [ "ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH" ],
         AllowedOAuthFlows: [ "code" ],
-        AllowedOAuthScopes: createClientInput.scopes,
+        AllowedOAuthScopes: scopes,
         AllowedOAuthFlowsUserPoolClient: true,
       };
 
@@ -39,7 +41,7 @@ export class ClientService implements ClientServiceInterface {
 
       await this.clientsUpdatedSnsService.sendMessage();
 
-      if (!UserPoolClient || !UserPoolClient.ClientId || !UserPoolClient.ClientSecret) {
+      if (!UserPoolClient || !UserPoolClient.ClientId) {
         throw new Error("Malformed response from createUserPoolClient");
       }
 
@@ -48,55 +50,59 @@ export class ClientService implements ClientServiceInterface {
         clientSecret: UserPoolClient.ClientSecret,
       };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createClient", { error, createClientInput }, this.constructor.name);
+      this.loggerService.error("Error in createClient", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async getClient(id: string): Promise<CognitoIdentityServiceProvider.UserPoolClientType> {
+  public async getClient(params: GetClientInput): Promise<GetClientOutput> {
     try {
-      this.loggerService.trace("getClient called", { id }, this.constructor.name);
+      this.loggerService.trace("getClient called", { params }, this.constructor.name);
+
+      const { clientId } = params;
 
       const describeUserPoolClientParams: CognitoIdentityServiceProvider.DescribeUserPoolClientRequest = {
         UserPoolId: this.config.userPool.id,
-        ClientId: id,
+        ClientId: clientId,
       };
 
       const { UserPoolClient } = await this.cognito.describeUserPoolClient(describeUserPoolClientParams).promise();
 
       if (!UserPoolClient) {
-        throw new NotFoundError("UserPoolClient not found.");
+        throw new NotFoundError("Client not found.");
       }
 
-      return UserPoolClient;
+      return { client: UserPoolClient };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getClient", { error, id }, this.constructor.name);
+      this.loggerService.error("Error in getClient", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async deleteClient(id: string, secret: string): Promise<void> {
+  public async deleteClient(params: DeleteClientInput): Promise<DeleteClientOutput> {
     try {
-      this.loggerService.trace("deleteClient called", { id }, this.constructor.name);
+      this.loggerService.trace("deleteClient called", { params }, this.constructor.name);
 
-      const client = await this.getClient(id);
+      const { clientId, clientSecret } = params;
 
-      if (client.ClientSecret !== secret) {
+      const { client } = await this.getClient({ clientId });
+
+      if (client.ClientSecret !== clientSecret) {
         throw new ForbiddenError("Forbidden");
       }
 
       const deleteUserPoolClientParams: CognitoIdentityServiceProvider.DeleteUserPoolClientRequest = {
         UserPoolId: this.config.userPool.id,
-        ClientId: id,
+        ClientId: clientSecret,
       };
 
       await this.cognito.deleteUserPoolClient(deleteUserPoolClientParams).promise();
 
       await this.clientsUpdatedSnsService.sendMessage();
     } catch (error: unknown) {
-      this.loggerService.error("Error in deleteClient", { error, id }, this.constructor.name);
+      this.loggerService.error("Error in deleteClient", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -106,7 +112,34 @@ export class ClientService implements ClientServiceInterface {
 export type ClientServiceConfigInterface = Pick<EnvConfigInterface, "userPool">;
 
 export interface ClientServiceInterface {
-  createClient(createClientInput: CreateClientInputDto): Promise<{ clientId: string; clientSecret: string; }>;
-  getClient(id: string): Promise<CognitoIdentityServiceProvider.UserPoolClientType>;
-  deleteClient(id: string, secret: string): Promise<void>;
+  createClient(params: CreateClientInput): Promise<CreateClientOutput>;
+  getClient(params: GetClientInput): Promise<GetClientOutput>;
+  deleteClient(params: DeleteClientInput): Promise<DeleteClientOutput>;
 }
+
+export interface CreateClientInput {
+  name: string;
+  redirectUri: string;
+  scopes: string[];
+  type: ClientType;
+}
+
+export interface CreateClientOutput {
+  clientId: string;
+  clientSecret?: string;
+}
+
+export interface GetClientInput {
+  clientId: string;
+}
+
+export interface GetClientOutput {
+  client: CognitoIdentityServiceProvider.UserPoolClientType;
+}
+
+export interface DeleteClientInput {
+  clientId: string;
+  clientSecret: string;
+}
+
+export type DeleteClientOutput = void;

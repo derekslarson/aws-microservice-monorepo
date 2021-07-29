@@ -5,9 +5,11 @@ const TYPES = {
   EnvConfigInterface: Symbol.for("EnvConfigInterface"),
 
   AuthenticationControllerInterface: Symbol.for("AuthenticationControllerInterface"),
+  AuthorizationControllerInterface: Symbol.for("AuthorizationControllerInterface"),
   ClientControllerInterface: Symbol.for("ClientControllerInterface"),
 
   AuthenticationServiceInterface: Symbol.for("AuthenticationServiceInterface"),
+  AuthorizationServiceInterface: Symbol.for("AuthorizationServiceInterface"),
   ClientServiceInterface: Symbol.for("ClientServiceInterface"),
   MailServiceInterface: Symbol.for("MailServiceInterface"),
 

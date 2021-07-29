@@ -7,8 +7,6 @@ import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
 import { MailServiceInterface } from "./mail.service";
 import { Crypto, CryptoFactory } from "../factories/crypto.factory";
-import { LoginInputDto } from "../models/login/login.input.model";
-import { ConfirmationInput } from "../models/confirmation/confirmation.input.model";
 
 @injectable()
 export class AuthenticationService implements AuthenticationServiceInterface {
@@ -71,17 +69,11 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  public async login(loginInput: LoginInputDto): Promise<{ session: string; }> {
+  public async login(params: LoginInput): Promise<LoginOutput> {
     try {
-      this.loggerService.trace("login called", { loginInput }, this.constructor.name);
+      this.loggerService.trace("login called", { params }, this.constructor.name);
 
-      const { email, phone } = loginInput;
-
-      if (!email && !phone) {
-        throw new BadRequestError("'email' or 'phone' are required");
-      }
-
-      const username = email || phone;
+      const username = this.isEmailLoginInput(params) ? params.email : params.phone;
 
       const authChallenge = this.crypto.randomDigits(6).join("");
 
@@ -116,48 +108,44 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         throw new Error("No session returned from initiateAuth.");
       }
 
-      if (email) {
-        await this.mailService.sendConfirmationCode(loginInput.email, authChallenge);
+      if (this.isEmailLoginInput(params)) {
+        await this.mailService.sendConfirmationCode(params.email, authChallenge);
       } else {
-        await this.smsService.publish({ phoneNumber: phone, message: `Your Yac login code is ${authChallenge}` });
+        await this.smsService.publish({ phoneNumber: params.phone, message: `Your Yac login code is ${authChallenge}` });
       }
 
       return { session: initiateAuthResponse.Session };
     } catch (error: unknown) {
-      this.loggerService.error("Error in login", { error, loginInput }, this.constructor.name);
+      this.loggerService.error("Error in login", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async confirm(confirmationInput: ConfirmationInput): Promise<{ confirmed: boolean; session?: string; authorizationCode?: string }> {
+  public async confirm(params: ConfirmInput): Promise<ConfirmOutput> {
     try {
-      this.loggerService.trace("confirm called", { confirmationInput }, this.constructor.name);
+      this.loggerService.trace("confirm called", { params }, this.constructor.name);
 
-      const { email, phone } = confirmationInput;
+      const { clientId, session, confirmationCode, redirectUri, xsrfToken } = params;
 
-      if (!email && !phone) {
-        throw new BadRequestError("'email' or 'phone' are required");
-      }
-
-      const username = email || phone;
+      const username = this.isEmailConfirmInput(params) ? params.email : params.phone;
 
       const secretHash = this.createUserPoolClientSecretHash(username);
 
       const respondToAuthChallengeParams: CognitoIdentityServiceProvider.Types.AdminRespondToAuthChallengeRequest = {
         UserPoolId: this.config.userPool.id,
         ClientId: this.config.userPool.yacClientId,
-        Session: confirmationInput.session,
+        Session: session,
         ChallengeName: "CUSTOM_CHALLENGE",
         ChallengeResponses: {
           USERNAME: username,
-          ANSWER: confirmationInput.confirmationCode,
+          ANSWER: confirmationCode,
           SECRET_HASH: secretHash,
         },
       };
 
       const [ authorizationCode, respondToAuthChallengeResponse ] = await Promise.all([
-        this.getAuthorizationCode(username, confirmationInput.clientId, confirmationInput.redirectUri, confirmationInput.xsrfToken),
+        this.getAuthorizationCode(username, clientId, redirectUri, xsrfToken),
         this.cognito.adminRespondToAuthChallenge(respondToAuthChallengeParams).promise(),
       ]);
 
@@ -167,37 +155,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       return { confirmed: true, authorizationCode };
     } catch (error: unknown) {
-      this.loggerService.error("Error in confirm", { error, confirmationInput }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getXsrfToken(clientId: string, redirectUri: string): Promise<{ xsrfToken: string }> {
-    try {
-      this.loggerService.trace("getXsrfToken called", { clientId, redirectUri }, this.constructor.name);
-
-      const queryParameters = {
-        response_type: "code",
-        client_id: clientId,
-        redirect_uri: redirectUri,
-      };
-
-      const authorizeResponse = await this.httpRequestService.get(`${this.config.userPool.domain}/oauth2/authorize`, queryParameters);
-
-      const setCookieHeader = authorizeResponse.headers["set-cookie"];
-
-      if (!Array.isArray(setCookieHeader)) {
-        throw new Error("Malformed 'set-cookie' header in response.");
-      }
-
-      const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
-
-      const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
-
-      return { xsrfToken };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getXsrfToken", { error, clientId, redirectUri }, this.constructor.name);
+      this.loggerService.error("Error in confirm", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -260,16 +218,80 @@ export class AuthenticationService implements AuthenticationServiceInterface {
   private isAwsError(error: unknown): error is AWSError {
     return (error as AWSError)?.code !== undefined;
   }
+
+  private isEmailLoginInput(input: LoginInput): input is EmailLoginInput {
+    try {
+      this.loggerService.trace("isEmailLoginInput called", { input }, this.constructor.name);
+
+      return "email" in input;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in isEmailLoginInput", { error, input }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private isEmailConfirmInput(input: ConfirmInput): input is EmailConfirmInput {
+    try {
+      this.loggerService.trace("isEmailConfirmInput called", { input }, this.constructor.name);
+
+      return "email" in input;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in isEmailConfirmInput", { error, input }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export type AuthenticationServiceConfigInterface = Pick<EnvConfigInterface, "userPool" | "apiDomain" | "secret">;
 
 export interface AuthenticationServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
-  login(loginInput: LoginInputDto): Promise<{ session: string; }>;
-  confirm(confirmationInput: ConfirmationInput): Promise<{ confirmed: boolean; session?: string; authorizationCode?: string }>;
-  getXsrfToken(clientId: string, redirectUri: string): Promise<{ xsrfToken: string }>;
+  login(params: LoginInput): Promise<LoginOutput>;
+  confirm(params: ConfirmInput): Promise<ConfirmOutput>;
 }
+
+interface EmailLoginInput {
+  email: string;
+}
+
+interface PhoneLoginInput {
+  phone: string;
+}
+
+export type LoginInput = EmailLoginInput | PhoneLoginInput;
+export interface LoginOutput {
+  session: string;
+}
+
+export interface BaseConfirmInput {
+  clientId: string;
+  session: string;
+  confirmationCode: string;
+  redirectUri: string;
+  xsrfToken: string;
+}
+interface EmailConfirmInput extends BaseConfirmInput {
+  email: string;
+}
+
+interface PhoneConfirmInput extends BaseConfirmInput {
+  phone: string;
+}
+
+export type ConfirmInput = EmailConfirmInput | PhoneConfirmInput;
+
+interface ConfirmFailureOutput {
+  confirmed: false;
+  session: string;
+}
+interface ConfirmSuccessOutput {
+  confirmed: true;
+  authorizationCode: string;
+}
+
+export type ConfirmOutput = ConfirmFailureOutput | ConfirmSuccessOutput;
 
 export interface CreateUserInput {
   id: string;

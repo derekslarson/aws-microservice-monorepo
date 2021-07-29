@@ -14,6 +14,8 @@ import { sesFactory, SesFactory } from "../factories/ses.factory";
 import { ClientService, ClientServiceInterface } from "../services/client.service";
 import { ClientController, ClientControllerInterface } from "../controllers/client.controller";
 import { UserCreatedProcessorService } from "../processor-services/userCreated.processor.service";
+import { AuthorizationService, AuthorizationServiceInterface } from "../services/authorization.service";
+import { AuthorizationController, AuthorizationControllerInterface } from "../controllers/authorization.controller";
 
 const container = new Container();
 
@@ -23,9 +25,11 @@ try {
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
 
   container.bind<AuthenticationControllerInterface>(TYPES.AuthenticationControllerInterface).to(AuthenticationController);
+  container.bind<AuthorizationControllerInterface>(TYPES.AuthorizationControllerInterface).to(AuthorizationController);
   container.bind<ClientControllerInterface>(TYPES.ClientControllerInterface).to(ClientController);
 
   container.bind<AuthenticationServiceInterface>(TYPES.AuthenticationServiceInterface).to(AuthenticationService);
+  container.bind<AuthorizationServiceInterface>(TYPES.AuthorizationServiceInterface).to(AuthorizationService);
   container.bind<ClientServiceInterface>(TYPES.ClientServiceInterface).to(ClientService);
   container.bind<MailServiceInterface>(TYPES.MailServiceInterface).to(MailService);
 

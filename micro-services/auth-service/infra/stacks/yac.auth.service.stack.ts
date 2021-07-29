@@ -59,6 +59,15 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       code: Lambda.Code.fromAsset("dist/dependencies"),
     });
 
+    // Tables
+    // const pkceTable = new DynamoDB.Table(this, `PkceTable_${id}`, {
+    //   billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
+    //   partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
+    //   sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
+    //   removalPolicy: CDK.RemovalPolicy.DESTROY,
+    //   stream: DynamoDB.StreamViewType.NEW_AND_OLD_IMAGES,
+    // });
+
     // id.yac.com Deployment Resources
     const websiteBucket = new S3.Bucket(this, `IdYacComS3Bucket_${id}`, {
       websiteIndexDocument: "index.html",
@@ -228,6 +237,12 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const yacUserPoolClientSecret = describeCognitoUserPoolClient.getResponseField("UserPoolClient.ClientSecret");
 
     // Policies
+
+    // const pkceTableFullAccessPolicyStatement = new IAM.PolicyStatement({
+    //   actions: [ "dynamodb:*" ],
+    //   resources: [ pkceTable.tableArn, `${pkceTable.tableArn}/*` ],
+    // });
+
     const userPoolPolicyStatement = new IAM.PolicyStatement({
       actions: [ "cognito-idp:*" ],
       resources: [ userPool.userPoolArn ],
@@ -272,6 +287,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       YAC_AUTH_UI: yacUserPoolClientRedirectUri,
       CLIENTS_UPDATED_SNS_TOPIC_ARN: this.clientsUpdatedSnsTopic.topicArn,
       USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
+      // PKCE_TABLE_NAME: pkceTable.tableName,
     };
 
     // Handlers
@@ -370,7 +386,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     };
 
     const deleteClientRoute: RouteProps<AuthServiceDeleteClientPath, AuthServiceDeleteClientMethod> = {
-      path: "/oauth2/clients/{id}",
+      path: "/oauth2/clients/{clientId}",
       method: ApiGatewayV2.HttpMethod.DELETE,
       handler: deleteClientHandler,
     };

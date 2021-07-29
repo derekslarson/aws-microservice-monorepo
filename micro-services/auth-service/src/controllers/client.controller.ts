@@ -1,16 +1,16 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, AuthServiceCreateClientResponseBody, AuthServiceDeleteClientResponseBody } from "@yac/core";
+import { BaseController, LoggerServiceInterface, Request, Response, AuthServiceDeleteClientResponseBody, ValidationServiceV2Interface } from "@yac/core";
 import { TYPES } from "../inversion-of-control/types";
-import { CreateClientInputDto } from "../models/client/client.creation.input.model";
 import { ClientServiceInterface } from "../services/client.service";
-import { DeleteClientInputDto } from "../models/client/client.deletion.input.model";
+import { DeleteClientDto } from "../dtos/deleteClient.dto";
+import { CreateClientDto } from "../dtos/createClient.dto";
 
 @injectable()
 export class ClientController extends BaseController implements ClientControllerInterface {
   constructor(
-    @inject(TYPES.ValidationServiceInterface) private validationService: ValidationServiceInterface,
+    @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ClientServiceInterface) private clientService: ClientServiceInterface,
   ) {
@@ -19,16 +19,19 @@ export class ClientController extends BaseController implements ClientController
 
   public async createClient(request: Request): Promise<Response> {
     try {
-      // token comment
       this.loggerService.trace("createClient called", { request }, this.constructor.name);
 
-      const createClientInput = await this.validationService.validate(CreateClientInputDto, RequestPortion.Body, request.body);
+      const { body: { name, redirectUri, type, scopes } } = this.validationService.validate({ dto: CreateClientDto, request });
 
-      const { clientId, clientSecret } = await this.clientService.createClient(createClientInput);
+      const { clientId, clientSecret } = await this.clientService.createClient({ name, redirectUri, type, scopes });
 
-      const response: AuthServiceCreateClientResponseBody = {
+      const response = {
         clientId,
         clientSecret,
+        name,
+        type,
+        redirectUri,
+        scopes,
       };
 
       return this.generateSuccessResponse(response);
@@ -43,13 +46,14 @@ export class ClientController extends BaseController implements ClientController
     try {
       this.loggerService.trace("deleteClient called", { request }, this.constructor.name);
 
-      const { id } = request.pathParameters as Record<string, string>;
+      const {
+        pathParameters: { clientId },
+        headers: { "client-secret": clientSecret },
+      } = this.validationService.validate({ dto: DeleteClientDto, request });
 
-      const { secret } = await this.validationService.validate(DeleteClientInputDto, RequestPortion.Headers, request.headers);
+      await this.clientService.deleteClient({ clientId, clientSecret });
 
-      await this.clientService.deleteClient(id, secret);
-
-      const response: AuthServiceDeleteClientResponseBody = { message: "Client deleted" };
+      const response: AuthServiceDeleteClientResponseBody = { message: "Client deleted." };
 
       return this.generateSuccessResponse(response);
     } catch (error: unknown) {

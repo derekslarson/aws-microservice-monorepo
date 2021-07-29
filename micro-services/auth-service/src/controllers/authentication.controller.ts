@@ -1,22 +1,20 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, AuthServiceLoginResponseBody, BadRequestError } from "@yac/core";
+import { BaseController, LoggerServiceInterface, Request, Response, AuthServiceLoginResponseBody, ValidationServiceV2Interface, ForbiddenError } from "@yac/core";
 
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
-import { LoginInputDto } from "../models/login/login.input.model";
-import { Oauth2AuthorizeInputDto } from "../models/oauth2-authorize/oauth2.authorize.input.model";
-import { ConfirmationInput, ConfirmationRequestBodyDto, ConfirmationRequestCookiesDto } from "../models/confirmation/confirmation.input.model";
 import { EnvConfigInterface } from "../config/env.config";
+import { LoginDto } from "../dtos/login.dto";
+import { ConfirmDto } from "../dtos/confirm.dto";
 
 @injectable()
 export class AuthenticationController extends BaseController implements AuthenticationControllerInterface {
   constructor(
-    @inject(TYPES.ValidationServiceInterface) private validationService: ValidationServiceInterface,
+    @inject(TYPES.ValidationServiceV2Interface) private validationServiceV2: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.AuthenticationServiceInterface) private authenticationService: AuthenticationServiceInterface,
-    @inject(TYPES.EnvConfigInterface) private config: AuthenticationControllerConfigInterface,
   ) {
     super();
   }
@@ -25,13 +23,9 @@ export class AuthenticationController extends BaseController implements Authenti
     try {
       this.loggerService.trace("login called", { request }, this.constructor.name);
 
-      const loginInput = await this.validationService.validate(LoginInputDto, RequestPortion.Body, request.body);
+      const { body } = this.validationServiceV2.validate({ dto: LoginDto, request });
 
-      if (!loginInput.email && !loginInput.phone) {
-        throw new BadRequestError("'email' or 'phone' are required");
-      }
-
-      const { session } = await this.authenticationService.login(loginInput);
+      const { session } = await this.authenticationService.login(body);
 
       const responseBody: AuthServiceLoginResponseBody = { session };
 
@@ -47,80 +41,25 @@ export class AuthenticationController extends BaseController implements Authenti
     try {
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
 
-      const confirmationRequestCookies = await this.validationService.validate(ConfirmationRequestCookiesDto, RequestPortion.Cookies, this.parseCookies(request.cookies));
-      const confirmationRequestBody = await this.validationService.validate(ConfirmationRequestBodyDto, RequestPortion.Body, request.body);
+      const {
+        cookies,
+        body,
+      } = this.validationServiceV2.validate({ dto: ConfirmDto, request });
+      const parsedCookies = this.parseCookies(cookies);
+      const xsrfToken = parsedCookies["XSRF-TOKEN"];
 
-      const confirmationRequestInput: ConfirmationInput = {
-        ...confirmationRequestBody,
-        xsrfToken: confirmationRequestCookies["XSRF-TOKEN"],
-      };
-
-      if (!confirmationRequestBody.email && !confirmationRequestBody.phone) {
-        throw new BadRequestError("'email' or 'phone' are required");
+      if (!xsrfToken) {
+        throw new ForbiddenError("Forbidden");
       }
 
-      // fetch PKCE record
-      // pk           sk
-      // stage        clientId
-
-      // if exists, continue
-
-      // update PKCE record
-      // pk           sk
-      // stage        clientId  code_grant
-
-      const confirmResponse = await this.authenticationService.confirm(confirmationRequestInput);
+      const confirmResponse = await this.authenticationService.confirm({
+        ...body,
+        xsrfToken,
+      });
 
       return this.generateSuccessResponse(confirmResponse);
     } catch (error: unknown) {
       this.loggerService.error("Error in confirm", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
-  }
-
-  public async oauth2Authorize(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("oauth2Authorize called", { request }, this.constructor.name);
-
-      const oauth2AuthorizeInput = await this.validationService.validate(Oauth2AuthorizeInputDto, RequestPortion.QueryParameters, request.queryStringParameters);
-
-      // create PKCE record
-      // pk           sk
-      // state        clientId   challege
-
-      const { xsrfToken } = await this.authenticationService.getXsrfToken(oauth2AuthorizeInput.clientId, oauth2AuthorizeInput.redirectUri);
-
-      if (oauth2AuthorizeInput.clientId === this.config.userPool.yacClientId) {
-        return this.generateSuccessResponse({ xsrfToken });
-      }
-
-      const redirectLocation = `${this.config.authUI}?client_id=${oauth2AuthorizeInput.clientId}&redirect_uri=${oauth2AuthorizeInput.redirectUri}`;
-      const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Domain=${request.headers.host as string}; Secure; HttpOnly; SameSite=Lax`;
-
-      return this.generateSeeOtherResponse(redirectLocation, {}, [ xsrfTokenCookie ]);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in oauth2Authorize", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
-  }
-
-  public async oauth2Token(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("oauth2Token called", { request }, this.constructor.name);
-      // params: clientId, verifier, code grant
-      // verifier => challenge (base64(verifier))
-
-      // fetch PKCE stuff
-      // pk           sk
-      // state        clientId
-
-      // if exists, and code_grant and challage match, continue
-
-      // delete PKCE records
-    } catch (error: unknown) {
-      this.loggerService.error("Error in oauth2Token", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -150,5 +89,4 @@ export type AuthenticationControllerConfigInterface = Pick<EnvConfigInterface, "
 export interface AuthenticationControllerInterface {
   login(request: Request): Promise<Response>;
   confirm(request: Request): Promise<Response>;
-  oauth2Authorize(request: Request): Promise<Response>;
 }
