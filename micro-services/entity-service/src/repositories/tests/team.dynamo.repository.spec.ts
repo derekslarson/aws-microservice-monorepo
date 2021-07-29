@@ -67,7 +67,7 @@ describe("TeamDynamoRepository", () => {
         expect(documentClient.put).toHaveBeenCalledWith(expectedDynamoInput);
       });
 
-      it("returns a cleansed version of the created user", async () => {
+      it("returns a cleansed version of the created team", async () => {
         const response = await teamDynamoRepository.createTeam(params);
 
         expect(response).toEqual({ team: mockTeam });
