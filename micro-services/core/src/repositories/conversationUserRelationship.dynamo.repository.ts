@@ -89,7 +89,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
   public async addMessageToConversationUserRelationship<T extends ConversationId>(params: AddMessageToConversationUserRelationshipInput<T>): Promise<AddMessageToConversationUserRelationshipOutput<T>> {
     try {
-      this.loggerService.trace("addUnreadMessageToConversationUserRelationship called", { params }, this.constructor.name);
+      this.loggerService.trace("addMessageToConversationUserRelationship called", { params }, this.constructor.name);
 
       const { conversationId, userId, messageId, sender, updateUpdatedAt } = params;
 
@@ -130,7 +130,7 @@ export class ConversationUserRelationshipDynamoRepository extends BaseDynamoRepo
 
       return { conversationUserRelationship: conversationUserRelationshipUpdated };
     } catch (error: unknown) {
-      this.loggerService.error("Error in addUnreadMessageToConversationUserRelationship", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in addMessageToConversationUserRelationship", { error, params }, this.constructor.name);
 
       throw error;
     }

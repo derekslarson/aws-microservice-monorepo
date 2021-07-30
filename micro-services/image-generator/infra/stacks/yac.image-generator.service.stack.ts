@@ -58,6 +58,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       handler: "mediaRetrieve.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -68,6 +69,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       handler: "mediaPush.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -78,6 +80,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       handler: "callback.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy ],
       timeout: CDK.Duration.seconds(15),
     });

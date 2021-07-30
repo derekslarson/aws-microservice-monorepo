@@ -32,9 +32,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     const ExportNames = generateExportNames(stackPrefix);
 
-    // const userSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.UserSignedUpSnsTopicArn);
     const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
-
     const messageS3BucketArn = CDK.Fn.importValue(ExportNames.MessageS3BucketArn);
 
     const messageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket_${id}`, messageS3BucketArn);
@@ -115,6 +113,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "coreTableChanged.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, userCreatedSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
@@ -129,6 +128,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "imageFileCreated.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
@@ -142,6 +142,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "createUser.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -152,6 +153,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getUser.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -162,6 +164,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getUsersByTeamId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -172,6 +175,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getUsersByGroupId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -182,6 +186,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getUsersByMeetingId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -192,6 +197,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getUserImageUploadUrl.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -203,6 +209,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "createTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -213,6 +220,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -223,6 +231,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "addUsersToTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -233,6 +242,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "removeUserFromTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -243,6 +253,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getTeamsByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -253,6 +264,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getTeamImageUploadUrl.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -264,6 +276,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "addUsersAsFriends.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -274,6 +287,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "removeUserAsFriend.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -284,6 +298,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getFriendsByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -295,6 +310,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "createGroup.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -305,6 +321,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getGroup.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -315,6 +332,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "addUsersToGroup.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -325,6 +343,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "removeUserFromGroup.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -335,6 +354,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getGroupsByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -345,6 +365,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getGroupsByTeamId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -355,6 +376,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getGroupImageUploadUrl.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -366,6 +388,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "createMeeting.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -376,6 +399,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getMeeting.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -386,6 +410,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "addUsersToMeeting.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -396,6 +421,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "removeUserFromMeeting.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -406,6 +432,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getMeetingsByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -416,6 +443,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getMeetingsByTeamId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -426,6 +454,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getMeetingImageUploadUrl.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -437,6 +466,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "messageFileCreated.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -449,6 +479,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "createFriendMessage.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -459,6 +490,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "createGroupMessage.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -469,6 +501,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "createMeetingMessage.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -479,6 +512,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getMessage.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -489,6 +523,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "updateMessageByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -499,6 +534,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getMessagesByUserAndFriendIds.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -509,6 +545,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getMessagesByGroupId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -519,6 +556,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getMessagesByMeetingId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -529,6 +567,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "updateFriendMessagesByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -539,6 +578,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "updateGroupMessagesByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -549,6 +589,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "updateMeetingMessagesByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -560,6 +601,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "getConversationsByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, messageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -580,25 +622,25 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/teams/{teamId}/users",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUsersByTeamIdHandler,
-        authorizationScopes: [ "yac/team.read", "yac/user.read" ],
+        authorizationScopes: [ "yac/team_member.read" ],
       },
       {
         path: "/groups/{groupId}/users",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUsersByGroupIdHandler,
-        authorizationScopes: [ "yac/group.read", "yac/user.read" ],
+        authorizationScopes: [ "yac/group_member.read" ],
       },
       {
         path: "/meetings/{meetingId}/users",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUsersByMeetingIdHandler,
-        authorizationScopes: [ "yac/meeting.read", "yac/user.read" ],
+        authorizationScopes: [ "yac/meeting_member.read" ],
       },
       {
         path: "/users/{userId}/image-upload-url",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUserImageUploadUrlHandler,
-        authorizationScopes: [ "yac/user.read", "yac/user.write" ],
+        authorizationScopes: [ "yac/user.write" ],
       },
     ];
 
@@ -625,19 +667,19 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/teams/{teamId}/users",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: addUsersToTeamHandler,
-        authorizationScopes: [ "yac/team.write" ],
+        authorizationScopes: [ "yac/team_member.write" ],
       },
       {
         path: "/teams/{teamId}/users/{userId}",
         method: ApiGatewayV2.HttpMethod.DELETE,
         handler: removeUserFromTeamHandler,
-        authorizationScopes: [ "yac/team.write" ],
+        authorizationScopes: [ "yac/team_member.delete" ],
       },
       {
         path: "/teams/{teamId}/image-upload-url",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getTeamImageUploadUrlHandler,
-        authorizationScopes: [ "yac/team.read", "yac/team.write" ],
+        authorizationScopes: [ "yac/team.write" ],
       },
     ];
 
@@ -652,7 +694,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/friends",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getFriendsByUserIdHandler,
-        authorizationScopes: [ "yac/user.read", "yac/friend.read" ],
+        authorizationScopes: [ "yac/friend.read" ],
       },
       {
         path: "/users/{userId}/friends/{friendId}",
@@ -679,31 +721,31 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/groups",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getGroupsByUserIdHandler,
-        authorizationScopes: [ "yac/user.read", "yac/group.read" ],
+        authorizationScopes: [ "yac/group.read" ],
       },
       {
         path: "/teams/{teamId}/groups",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getGroupsByTeamIdHandler,
-        authorizationScopes: [ "yac/team.read", "yac/group.read" ],
+        authorizationScopes: [ "yac/group.read" ],
       },
       {
         path: "/groups/{groupId}/users",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: addUsersToGroupHandler,
-        authorizationScopes: [ "yac/group.write" ],
+        authorizationScopes: [ "yac/group_member.write" ],
       },
       {
         path: "/groups/{groupId}/users/{userId}",
         method: ApiGatewayV2.HttpMethod.DELETE,
         handler: removeUserFromGroupHandler,
-        authorizationScopes: [ "yac/group.write" ],
+        authorizationScopes: [ "yac/group_member.delete" ],
       },
       {
         path: "/groups/{groupId}/image-upload-url",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getGroupImageUploadUrlHandler,
-        authorizationScopes: [ "yac/group.read", "yac/group.write" ],
+        authorizationScopes: [ "yac/group.write" ],
       },
     ];
 
@@ -724,31 +766,31 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/meetings/{meetingId}/users",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: addUsersToMeetingHandler,
-        authorizationScopes: [ "yac/meeting.write" ],
+        authorizationScopes: [ "yac/meeting_member.write" ],
       },
       {
         path: "/meetings/{meetingId}/users/{userId}",
         method: ApiGatewayV2.HttpMethod.DELETE,
         handler: removeUserFromMeetingHandler,
-        authorizationScopes: [ "yac/meeting.write" ],
+        authorizationScopes: [ "yac/meeting_member.delete" ],
       },
       {
         path: "/users/{userId}/meetings",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingsByUserIdHandler,
-        authorizationScopes: [ "yac/user.read", "yac/meeting.read" ],
+        authorizationScopes: [ "yac/meeting.read" ],
       },
       {
         path: "/teams/{teamId}/meetings",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingsByTeamIdHandler,
-        authorizationScopes: [ "yac/team.read", "yac/meeting.read" ],
+        authorizationScopes: [ "yac/meeting.read" ],
       },
       {
         path: "/meetings/{meetingId}/image-upload-url",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingImageUploadUrlHandler,
-        authorizationScopes: [ "yac/meeting.read", "yac/meeting.write" ],
+        authorizationScopes: [ "yac/meeting.write" ],
       },
     ];
 
@@ -763,7 +805,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/friends/{friendId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessagesByUserAndFriendIdsHandler,
-        authorizationScopes: [ "yac/friend.read", "yac/message.read" ],
+        authorizationScopes: [ "yac/message.read" ],
       },
       {
         path: "/groups/{groupId}/messages",
@@ -775,7 +817,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/groups/{groupId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessagesByGroupIdHandler,
-        authorizationScopes: [ "yac/group.read", "yac/message.read" ],
+        authorizationScopes: [ "yac/message.read" ],
       },
       {
         path: "/meetings/{meetingId}/messages",
@@ -787,7 +829,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/meetings/{meetingId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessagesByMeetingIdHandler,
-        authorizationScopes: [ "yac/meeting.read", "yac/message.read" ],
+        authorizationScopes: [ "yac/message.read" ],
       },
 
       {
@@ -806,19 +848,19 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/friends/{friendId}/messages",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateFriendMessagesByUserIdHandler,
-        authorizationScopes: [ "yac/user.read", "yac/friend.read", "yac/message.write" ],
+        authorizationScopes: [ "yac/message.write" ],
       },
       {
         path: "/users/{userId}/groups/{groupId}/messages",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateGroupMessagesByUserIdHandler,
-        authorizationScopes: [ "yac/user.read", "yac/group.read", "yac/message.write" ],
+        authorizationScopes: [ "yac/message.write" ],
       },
       {
         path: "/users/{userId}/meetings/{meetingId}/messages",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateMeetingMessagesByUserIdHandler,
-        authorizationScopes: [ "yac/user.read", "yac/meeting.read", "yac/message.write" ],
+        authorizationScopes: [ "yac/message.write" ],
       },
     ];
 
@@ -827,7 +869,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/conversations",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getConversationsByUserIdHandler,
-        authorizationScopes: [ "yac/user.read", "yac/conversation.read" ],
+        authorizationScopes: [ "yac/conversation.read" ],
       },
     ];
 

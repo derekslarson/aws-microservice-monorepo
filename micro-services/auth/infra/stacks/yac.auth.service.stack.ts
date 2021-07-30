@@ -118,6 +118,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "preSignUp.handler",
       layers: [ dependencyLayer ],
       environment: userPoolLambaEnvVars,
+      memorySize: 512,
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -127,6 +128,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "defineAuthChallenge.handler",
       layers: [ dependencyLayer ],
       environment: userPoolLambaEnvVars,
+      memorySize: 512,
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -136,6 +138,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "createAuthChallenge.handler",
       layers: [ dependencyLayer ],
       environment: userPoolLambaEnvVars,
+      memorySize: 512,
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -145,6 +148,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "verifyAuthChallengeResponse.handler",
       layers: [ dependencyLayer ],
       environment: userPoolLambaEnvVars,
+      memorySize: 512,
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -182,15 +186,24 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       { scopeName: "team.read", scopeDescription: "Read teams" },
       { scopeName: "team.write", scopeDescription: "Write teams" },
       { scopeName: "team.delete", scopeDescription: "Delete teams" },
+      { scopeName: "team_member.read", scopeDescription: "Read team members" },
+      { scopeName: "team_member.write", scopeDescription: "Write team members" },
+      { scopeName: "team_member.delete", scopeDescription: "Delete team members" },
       { scopeName: "friend.read", scopeDescription: "Read friends" },
       { scopeName: "friend.write", scopeDescription: "Write friends" },
       { scopeName: "friend.delete", scopeDescription: "Delete friends" },
       { scopeName: "group.read", scopeDescription: "Read groups" },
       { scopeName: "group.write", scopeDescription: "Write groups" },
       { scopeName: "group.delete", scopeDescription: "Delete groups" },
+      { scopeName: "group_member.read", scopeDescription: "Read group members" },
+      { scopeName: "group_member.write", scopeDescription: "Write group members" },
+      { scopeName: "group_member.delete", scopeDescription: "Delete group members" },
       { scopeName: "meeting.read", scopeDescription: "Read meetings" },
       { scopeName: "meeting.write", scopeDescription: "Write meetings" },
       { scopeName: "meeting.delete", scopeDescription: "Delete meetings" },
+      { scopeName: "meeting_member.read", scopeDescription: "Read meeting members" },
+      { scopeName: "meeting_member.write", scopeDescription: "Write meeting members" },
+      { scopeName: "meeting_member.delete", scopeDescription: "Delete meeting members" },
       { scopeName: "conversation.read", scopeDescription: "Read conversations" },
       { scopeName: "conversation.write", scopeDescription: "Write conversations" },
       { scopeName: "conversation.delete", scopeDescription: "Delete conversations" },
@@ -237,12 +250,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const yacUserPoolClientSecret = describeCognitoUserPoolClient.getResponseField("UserPoolClient.ClientSecret");
 
     // Policies
-
-    // const pkceTableFullAccessPolicyStatement = new IAM.PolicyStatement({
-    //   actions: [ "dynamodb:*" ],
-    //   resources: [ pkceTable.tableArn, `${pkceTable.tableArn}/*` ],
-    // });
-
     const userPoolPolicyStatement = new IAM.PolicyStatement({
       actions: [ "cognito-idp:*" ],
       resources: [ userPool.userPoolArn ],
@@ -287,7 +294,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       YAC_AUTH_UI: yacUserPoolClientRedirectUri,
       CLIENTS_UPDATED_SNS_TOPIC_ARN: this.clientsUpdatedSnsTopic.topicArn,
       USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
-      // PKCE_TABLE_NAME: pkceTable.tableName,
     };
 
     // Handlers
@@ -297,6 +303,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "setAuthorizerAudiences.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       timeout: CDK.Duration.seconds(15),
       initialPolicy: [ ...basePolicy, adminPolicyStatement ],
       events: [
@@ -310,6 +317,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "userCreated.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
@@ -323,6 +331,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "login.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement, sendTextPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -333,6 +342,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "confirm.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -343,6 +353,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "createClient.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsUpdatedSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -353,6 +364,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "deleteClient.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsUpdatedSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -363,6 +375,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "oauth2Authorize.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      memorySize: 512,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
