@@ -1,5 +1,5 @@
 // /* eslint-disable @typescript-eslint/unbound-method */
-// import { LoggerService, Role, Spied, TestSupport } from "@yac/core";
+// import { LoggerService, Role, Spied, TestSupport } from "@yac/util";
 // import { UserCreationInput } from "../../models/user/user.creation.input.model";
 // import { User } from "../../models/user.model";
 // import { UserDynamoRepository } from "../../repositories/user.dynamo.repository";

@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { LoggerServiceInterface, SnsEventControllerInterface } from "@yac/core";
+import { LoggerServiceInterface, SnsEventControllerInterface } from "@yac/util";
 import { SNSEvent } from "aws-lambda";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";

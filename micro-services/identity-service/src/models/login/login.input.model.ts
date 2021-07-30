@@ -1,4 +1,4 @@
-import { Expose } from "@yac/core";
+import { Expose } from "@yac/util";
 import { IsEmail, IsOptional, IsPhoneNumber } from "class-validator";
 
 export class LoginInputDto {

@@ -16,10 +16,10 @@
     "synth:dev": "cdk synth --context environment=dev",
     "synth:stage": "cdk synth --context environment=stage",
     "synth:prod": "cdk synth --context environment=prod",
-    "deploy:local": "yarn workspace @yac/core build:library && yarn build:local && cdk deploy --context environment=local --context developer=$(whoami)",
-    "deploy:dev": "yarn workspace @yac/core build:library && yarn build:dev && cdk deploy --context environment=dev",
-    "deploy:stage": "yarn workspace @yac/core build:library && yarn build:stage && cdk deploy --context environment=stage",
-    "deploy:prod": "yarn workspace @yac/core build:library && yarn build:prod && cdk deploy --context environment=prod",
+    "deploy:local": "yarn workspace @yac/util build:library && yarn build:local && cdk deploy --context environment=local --context developer=$(whoami)",
+    "deploy:dev": "yarn workspace @yac/util build:library && yarn build:dev && cdk deploy --context environment=dev",
+    "deploy:stage": "yarn workspace @yac/util build:library && yarn build:stage && cdk deploy --context environment=stage",
+    "deploy:prod": "yarn workspace @yac/util build:library && yarn build:prod && cdk deploy --context environment=prod",
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
     "nyc": "nyc node ../../config/jasmine/jasmine.runner.js",
     "nyc:coverage-report": "nyc node ../../config/jasmine/jasmine.runner.js --reporter html --reporter text -t coverage --report-dir coverage/summary",
@@ -68,7 +68,7 @@
     "yargs": "^17.0.1"
   },
   "dependencies": {
-    "@yac/core": "0.1.0",
+    "@yac/util": "0.1.0",
     "aws-sdk": "^2.783.0",
     "axios": "^0.21.1",
     "crypto-secure-random-digit": "^1.0.9",

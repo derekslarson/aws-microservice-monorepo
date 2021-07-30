@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface } from "@yac/core";
+import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { PendingMessageRepositoryInterface, PendingMessage as PendingMessageEntity } from "../repositories/pendingMessage.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";

@@ -1,4 +1,4 @@
-import { Expose, AuthServiceOauth2AuthorizeRequestQueryParameters } from "@yac/core";
+import { Expose, AuthServiceOauth2AuthorizeRequestQueryParameters } from "@yac/util";
 import { IsArray, IsOptional, IsString, IsUrl } from "class-validator";
 
 export class Oauth2AuthorizeInputDto implements AuthServiceOauth2AuthorizeRequestQueryParameters {

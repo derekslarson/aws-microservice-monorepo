@@ -1,4 +1,4 @@
 import { Literal, Union } from "runtypes";
-import { Role as RoleEnum } from "@yac/core";
+import { Role as RoleEnum } from "@yac/util";
 
 export const Role = Union(Literal(RoleEnum.SuperAdmin), Literal(RoleEnum.Admin), Literal(RoleEnum.User));

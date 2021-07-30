@@ -37,7 +37,7 @@ function fetchDependencies(): SortedDependencies {
       withoutYac: { ...packageJson.dependencies },
     };
 
-    delete sortedDependencies.withoutYac["@yac/core"];
+    delete sortedDependencies.withoutYac["@yac/util"];
 
     console.log(`${greenCheck} Dependencies fetched and parsed from package.json\n`);
 
@@ -85,21 +85,21 @@ async function installExternalDependencies(dependencies: Record<string, string>)
   }
 }
 
-async function installYacCore(dependencies: Record<string, string>): Promise<void> {
+async function installYacUtil(dependencies: Record<string, string>): Promise<void> {
   try {
     createLayerPackageJson(dependencies, true);
 
     mkdirSync("./dist/dependencies/nodejs/node_modules/@yac", { recursive: true });
 
-    await exec("cp -r ../core/lib ./dist/dependencies/nodejs/node_modules/@yac/core");
+    await exec("cp -r ../util/lib ./dist/dependencies/nodejs/node_modules/@yac/util");
 
-    console.log(`${greenCheck} @yac/core installed\n`);
+    console.log(`${greenCheck} @yac/util installed\n`);
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
 
-    console.log(`${redX} @yac/core installed\n`);
+    console.log(`${redX} @yac/util installed\n`);
 
-    throw new Error(`Error installing @yac/core: ${errorMessage}`);
+    throw new Error(`Error installing @yac/util: ${errorMessage}`);
   }
 }
 
@@ -111,8 +111,8 @@ async function installYacCore(dependencies: Record<string, string>): Promise<voi
 
     await installExternalDependencies(dependencies.withoutYac);
 
-    if ("@yac/core" in dependencies.withYac) {
-      await installYacCore(dependencies.withYac);
+    if ("@yac/util" in dependencies.withYac) {
+      await installYacUtil(dependencies.withYac);
     }
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);

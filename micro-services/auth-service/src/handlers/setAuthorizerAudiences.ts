@@ -1,6 +1,6 @@
 import { SNSEvent } from "aws-lambda";
 import { ApiGatewayV2, CognitoIdentityServiceProvider } from "aws-sdk";
-import { ClientsUpdatedSnsMessage } from "@yac/core";
+import { ClientsUpdatedSnsMessage } from "@yac/util";
 
 export const handler = async (event: SNSEvent): Promise<void> => {
   try {

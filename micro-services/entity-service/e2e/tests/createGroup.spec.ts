@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/core";
+import { Role } from "@yac/util";
 import { generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { Group } from "../../src/mediator-services/group.mediator.service";
 import { EntityType } from "../../src/enums/entityType.enum";

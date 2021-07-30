@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, WithRole } from "@yac/core";
+import { LoggerServiceInterface, NotFoundError, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationServiceInterface, Conversation as ConversationEntity } from "../entity-services/conversation.service";
 import { ConversationUserRelationshipServiceInterface, ConversationFetchTypeToConversationType } from "../entity-services/conversationUserRelationship.service";

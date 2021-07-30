@@ -1,0 +1,17 @@
+{
+  "include": [
+    "index.ts"
+  ],
+  "exclude": [
+    "dist",
+    "lib"
+  ],
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "skipLibCheck": true,
+    "declaration": true,
+    "outDir": "./lib",
+    "declarationDir": "./lib"
+  }
+}

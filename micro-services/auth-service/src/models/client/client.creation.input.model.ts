@@ -1,4 +1,4 @@
-import { AuthServiceCreateClientRequestBody, Expose } from "@yac/core";
+import { AuthServiceCreateClientRequestBody, Expose } from "@yac/util";
 import { IsUrl, IsString, IsArray } from "class-validator";
 
 export class CreateClientInputDto implements AuthServiceCreateClientRequestBody {

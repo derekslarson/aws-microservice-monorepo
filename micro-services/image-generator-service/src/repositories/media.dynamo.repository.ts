@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepository, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, NotFoundError } from "@yac/core";
+import { BaseDynamoRepository, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, NotFoundError } from "@yac/util";
 
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";

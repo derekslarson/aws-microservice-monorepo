@@ -1,6 +1,6 @@
 // /* eslint-disable @typescript-eslint/unbound-method */
 
-// import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService } from "@yac/core";
+// import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService } from "@yac/util";
 
 // import { CreateClientInputDto } from "../../models/client/client.creation.input.model";
 // import { DeleteClientInputDto } from "../../models/client/client.deletion.input.model";

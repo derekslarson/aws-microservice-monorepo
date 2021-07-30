@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/core";
+import { HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 

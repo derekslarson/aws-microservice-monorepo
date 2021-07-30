@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { BadRequestError, LoggerServiceInterface } from "@yac/core";
+import { BadRequestError, LoggerServiceInterface } from "@yac/util";
 import { injectable, inject } from "inversify";
 import * as crypto from "crypto";
 

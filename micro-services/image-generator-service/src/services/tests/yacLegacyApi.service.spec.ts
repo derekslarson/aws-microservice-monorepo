@@ -1,5 +1,5 @@
 import { fail } from "assert";
-import { Spied, TestSupport, LoggerService, HttpRequestService } from "@yac/core";
+import { Spied, TestSupport, LoggerService, HttpRequestService } from "@yac/util";
 
 import { EnvConfigInterface } from "../../config/env.config";
 import { YacLegacyApiService, YacMessage, YacUserMetadata } from "../yacLegacyApi.service";

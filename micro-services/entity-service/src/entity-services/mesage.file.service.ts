@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/core";
+import { LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationId } from "../types/conversationId.type";
 import { MessageId } from "../types/messageId.type";

@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, DynamoSetValues, Role } from "@yac/core";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, DynamoSetValues, Role } from "@yac/util";
 import DynamoDB from "aws-sdk/clients/dynamodb";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";

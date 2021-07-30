@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-console */
-import { MakeRequired, Role } from "@yac/core";
+import { MakeRequired, Role } from "@yac/util";
 import { randomDigits } from "crypto-secure-random-digit";
 import ksuid from "ksuid";
 import { DynamoDB, S3 } from "aws-sdk";

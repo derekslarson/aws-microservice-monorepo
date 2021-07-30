@@ -1,4 +1,4 @@
-import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/core";
+import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util";
 
 export const envConfig: EnvConfigInterface = {
   secret: process.env.SECRET || "",

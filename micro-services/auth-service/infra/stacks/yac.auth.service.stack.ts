@@ -30,8 +30,8 @@ import {
   AuthServiceDeleteClientMethod,
   AuthServiceOauth2AuthorizePath,
   AuthServiceOauth2AuthorizeMethod,
-} from "@yac/core";
-import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stacks/yac.http.service.stack";
+} from "@yac/util";
+import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
 
 export type IYacAuthServiceStackProps = IYacHttpServiceProps;
 

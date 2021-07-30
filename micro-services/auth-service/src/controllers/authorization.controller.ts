@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BadRequestError, BaseController, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/core";
+import { BadRequestError, BaseController, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
 
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";

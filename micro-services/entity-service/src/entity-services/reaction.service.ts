@@ -1,7 +1,7 @@
 // This may not be needed
 
 // import { inject, injectable } from "inversify";
-// import { LoggerServiceInterface } from "@yac/core";
+// import { LoggerServiceInterface } from "@yac/util";
 // import { TYPES } from "../inversion-of-control/types";
 // import { ReactionRepositoryInterface, Reaction as ReactionEntity } from "../repositories/reaction.dynamo.repository";
 // import { UserId } from "../types/userId.type";

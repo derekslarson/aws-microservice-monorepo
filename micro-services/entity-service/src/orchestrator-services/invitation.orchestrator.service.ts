@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Role } from "@yac/core";
+import { LoggerServiceInterface, Role } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamId } from "../types/teamId.type";
 import { GetOrCreateUserByEmailInput, GetOrCreateUserByPhoneInput, GetUserByUsernameInput, User, UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";

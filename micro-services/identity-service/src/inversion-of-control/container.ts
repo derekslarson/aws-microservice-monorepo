@@ -1,5 +1,5 @@
 import { Container } from "inversify";
-import { coreContainerModule } from "@yac/core";
+import { coreContainerModule } from "@yac/util";
 import { TYPES } from "./types";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { AuthenticationService, AuthenticationServiceInterface } from "../services/authentication.service";

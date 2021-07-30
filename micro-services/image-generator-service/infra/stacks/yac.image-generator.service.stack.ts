@@ -8,8 +8,8 @@ import {
   Environment,
   LogLevel,
   RouteProps,
-} from "@yac/core";
-import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/core/infra/stacks/yac.http.service.stack";
+} from "@yac/util";
+import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 
 export class YacImageGeneratorStack extends YacHttpServiceStack {
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {

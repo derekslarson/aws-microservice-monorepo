@@ -1,4 +1,4 @@
-import { Spied, TestSupport, LoggerService, ValidationService, Request, BadRequestError, RequestPortion } from "@yac/core";
+import { Spied, TestSupport, LoggerService, ValidationService, Request, BadRequestError, RequestPortion } from "@yac/util";
 
 import { MediaController, MediaControllerInterface } from "../media.controller";
 import { MediaService } from "../../services/media.service";

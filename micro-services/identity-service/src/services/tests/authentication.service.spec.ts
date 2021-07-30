@@ -1,4 +1,4 @@
-// import { Spied, TestSupport, LoggerService, HttpRequestService, AuthServiceOauth2AuthorizeRequestQueryParameters, AuthServiceConfirmationRequestBody } from "@yac/core";
+// import { Spied, TestSupport, LoggerService, HttpRequestService, AuthServiceOauth2AuthorizeRequestQueryParameters, AuthServiceConfirmationRequestBody } from "@yac/util";
 
 // import { EnvConfigInterface } from "../../config/env.config";
 // import { ConfirmationInputDto } from "../../models/confirmation/confirmation.input.model";

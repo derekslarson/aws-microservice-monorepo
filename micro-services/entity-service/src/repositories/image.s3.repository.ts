@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { BaseS3Repository, GetSignedUrlInput, GetSignedUrlOutput, LoggerServiceInterface, S3Factory, UploadFileInput, UploadFileOutput } from "@yac/core";
+import { BaseS3Repository, GetSignedUrlInput, GetSignedUrlOutput, LoggerServiceInterface, S3Factory, UploadFileInput, UploadFileOutput } from "@yac/util";
 import { injectable, inject } from "inversify";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";

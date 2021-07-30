@@ -1,5 +1,5 @@
 // /* eslint-disable @typescript-eslint/unbound-method */
-// import { LoggerService, NotFoundError, Role, Spied, TestSupport } from "@yac/core";
+// import { LoggerService, NotFoundError, Role, Spied, TestSupport } from "@yac/util";
 // import { TeamCreationBodyDto } from "../../models/team/team.creation.input.model";
 // import { Team } from "../../models/team/team.model";
 // import { TeamDynamoRepository } from "../../repositories/team.dynamo.repository";

@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { LoggerServiceInterface, S3EventControllerInterface } from "@yac/core";
+import { LoggerServiceInterface, S3EventControllerInterface } from "@yac/util";
 import { S3Event } from "aws-lambda";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";

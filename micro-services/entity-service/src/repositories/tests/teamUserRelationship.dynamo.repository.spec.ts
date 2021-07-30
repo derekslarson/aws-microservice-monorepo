@@ -1,5 +1,5 @@
 // /* eslint-disable @typescript-eslint/unbound-method */
-import { DocumentClientFactory, generateAwsResponse, LoggerService, Role, Spied, TestSupport } from "@yac/core";
+import { DocumentClientFactory, generateAwsResponse, LoggerService, Role, Spied, TestSupport } from "@yac/util";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
 import { EntityType } from "../../enums/entityType.enum";
 import { KeyPrefix } from "../../enums/keyPrefix.enum";

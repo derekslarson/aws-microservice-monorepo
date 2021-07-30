@@ -1,4 +1,4 @@
-import { Expose, AuthServiceLoginRequestBody } from "@yac/core";
+import { Expose, AuthServiceLoginRequestBody } from "@yac/util";
 import { IsEmail, IsPhoneNumber, IsOptional } from "class-validator";
 
 export class LoginInputDto implements AuthServiceLoginRequestBody {

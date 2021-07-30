@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Role } from "@yac/core";
+import { LoggerServiceInterface, Role } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationServiceInterface } from "../entity-services/conversation.service";
 import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";

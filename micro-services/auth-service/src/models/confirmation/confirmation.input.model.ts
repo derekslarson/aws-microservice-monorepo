@@ -1,5 +1,5 @@
 // eslint-disable-next-line max-classes-per-file
-import { Expose, AuthServiceConfirmationRequestBody, AuthServiceConfirmationRequestCookies } from "@yac/core";
+import { Expose, AuthServiceConfirmationRequestBody, AuthServiceConfirmationRequestCookies } from "@yac/util";
 import { IsEmail, IsOptional, IsPhoneNumber, IsString, IsUrl, Length } from "class-validator";
 
 export class ConfirmationRequestBodyDto implements AuthServiceConfirmationRequestBody {

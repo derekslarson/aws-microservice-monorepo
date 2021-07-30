@@ -1,4 +1,4 @@
-import { Spied, TestSupport, LoggerService, HttpRequestService } from "@yac/core";
+import { Spied, TestSupport, LoggerService, HttpRequestService } from "@yac/util";
 
 import { AuthorizationService } from "../authorization.service";
 import { EnvConfigInterface } from "../../config/env.config";

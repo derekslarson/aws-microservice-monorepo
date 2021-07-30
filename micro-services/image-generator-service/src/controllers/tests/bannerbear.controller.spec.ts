@@ -1,4 +1,4 @@
-import { Spied, TestSupport, LoggerService, ValidationService, Request, BadRequestError, RequestPortion, UnauthorizedError } from "@yac/core";
+import { Spied, TestSupport, LoggerService, ValidationService, Request, BadRequestError, RequestPortion, UnauthorizedError } from "@yac/util";
 
 import { BannerbearController, BannerbearControllerInterface } from "../bannerbear.controller";
 import { BannerbearCallbackHeadersDto } from "../../models/bannerbear.callback.input.model";

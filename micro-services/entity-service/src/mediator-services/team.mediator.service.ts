@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/core";
+import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamServiceInterface, Team as TeamEntity } from "../entity-services/team.service";
 import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";

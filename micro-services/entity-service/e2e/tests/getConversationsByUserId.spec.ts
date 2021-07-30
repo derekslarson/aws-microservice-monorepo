@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/core";
+import { Role } from "@yac/util";
 import axios from "axios";
 import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { ConversationFetchType } from "../../src/enums/conversationFetchType.enum";

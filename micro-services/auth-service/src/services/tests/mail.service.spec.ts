@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Spied, TestSupport, generateAwsResponse } from "@yac/core";
+import { LoggerService, Spied, TestSupport, generateAwsResponse } from "@yac/util";
 import { SES } from "aws-sdk";
 import { SesFactory } from "../../factories/ses.factory";
 import { MailService, MailServiceInterface, MailServiceConfigInterface } from "../mail.service";

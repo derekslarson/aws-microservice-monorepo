@@ -1,4 +1,4 @@
-import { Spied, TestSupport, LoggerService, ValidationService, RequestPortion, Request, generateMockRequest } from "@yac/core";
+import { Spied, TestSupport, LoggerService, ValidationService, RequestPortion, Request, generateMockRequest } from "@yac/util";
 
 import { AuthorizationService } from "../../services/authorization.service";
 import { AuthenticationService } from "../../services/authentication.service";

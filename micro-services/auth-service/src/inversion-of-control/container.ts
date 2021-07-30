@@ -1,5 +1,5 @@
 import { Container } from "inversify";
-import { coreContainerModule, SnsProcessorServiceInterface } from "@yac/core";
+import { coreContainerModule, SnsProcessorServiceInterface } from "@yac/util";
 import { TYPES } from "./types";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 

@@ -1,4 +1,4 @@
-import { coreContainerModule, DynamoProcessorServiceInterface, S3ProcessorServiceInterface, SnsProcessorServiceInterface } from "@yac/core";
+import { coreContainerModule, DynamoProcessorServiceInterface, S3ProcessorServiceInterface, SnsProcessorServiceInterface } from "@yac/util";
 import { Container } from "inversify";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { ConversationController, ConversationControllerInterface } from "../controllers/conversation.controller";

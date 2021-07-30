@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { Role } from "@yac/core";
+import { Role } from "@yac/util";
 import { createRandomUser, createConversationUserRelationship, createMeetingConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";

@@ -13,8 +13,8 @@ import {
   generateExportNames,
   LogLevel,
   RouteProps,
-} from "@yac/core";
-import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/core/infra/stacks/yac.http.service.stack";
+} from "@yac/util";
+import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacEntityServiceStack extends YacHttpServiceStack {

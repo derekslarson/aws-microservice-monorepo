@@ -1,6 +1,6 @@
 // /* eslint-disable @typescript-eslint/unbound-method */
 
-// import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService, ForbiddenError, Role } from "@yac/core";
+// import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService, ForbiddenError, Role } from "@yac/util";
 // import { TeamAddMemberBodyDto, TeamAddMemberPathParametersDto } from "../../models/team/team.addMember.input.model";
 // import { TeamCreationBodyDto } from "../../models/team/team.creation.input.model";
 // import { TeamRemoveMemberPathParametersDto } from "../../models/team/team.removeMember.input.model";

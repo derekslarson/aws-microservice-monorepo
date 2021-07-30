@@ -20,7 +20,7 @@ jobs:
       - name: Bootstrap
         run: npx lerna bootstrap
       - name: Build Core
-        run: yarn workspace @yac/core build:library
+        run: yarn workspace @yac/util build:library
       - name: Build Other Services
         run: npx lerna run build:dev
       - name: Test

@@ -1,5 +1,5 @@
 import { fail } from "assert";
-import { Spied, TestSupport, LoggerService, HttpRequestService } from "@yac/core";
+import { Spied, TestSupport, LoggerService, HttpRequestService } from "@yac/util";
 import { Task, BannerbearService, BannerbearServiceInterface } from "../bannerbear.service";
 import { EnvConfigInterface } from "../../config/env.config";
 

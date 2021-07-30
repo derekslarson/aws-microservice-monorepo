@@ -1,5 +1,5 @@
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
-import { Spied, TestSupport, IdService, LoggerService, NotFoundError } from "@yac/core";
+import { Spied, TestSupport, IdService, LoggerService, NotFoundError } from "@yac/util";
 
 import { MediaDynamoRepositoryInterface, MediaDynamoRepository } from "../media.dynamo.repository";
 import { EnvConfigInterface } from "../../config/env.config";

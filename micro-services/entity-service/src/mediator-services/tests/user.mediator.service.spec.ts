@@ -1,4 +1,4 @@
-import { BadRequestError, LoggerService, LoggerServiceInterface, Spied, TestSupport } from "@yac/core";
+import { BadRequestError, LoggerService, LoggerServiceInterface, Spied, TestSupport } from "@yac/util";
 import { ConversationUserRelationshipService, ConversationUserRelationshipServiceInterface } from "../../entity-services/conversationUserRelationship.service";
 import { ImageFileService, ImageFileServiceInterface } from "../../entity-services/image.file.service";
 import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } from "../../entity-services/teamUserRelationship.service";

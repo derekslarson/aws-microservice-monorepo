@@ -1,5 +1,5 @@
 // eslint-disable-next-line max-classes-per-file
-import { Expose } from "@yac/core";
+import { Expose } from "@yac/util";
 import { IsEmail, IsOptional, IsPhoneNumber, IsString, Length } from "class-validator";
 
 export class ConfirmationInputDto {

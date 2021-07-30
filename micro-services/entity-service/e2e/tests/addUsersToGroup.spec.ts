@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Role } from "@yac/core";
+import { Role } from "@yac/util";
 import axios from "axios";
 import { Static } from "runtypes";
 import { generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";

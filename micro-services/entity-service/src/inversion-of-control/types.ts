@@ -1,4 +1,4 @@
-import { TYPES as CORE_TYPES } from "@yac/core";
+import { TYPES as CORE_TYPES } from "@yac/util";
 
 const TYPES = {
   ...CORE_TYPES,

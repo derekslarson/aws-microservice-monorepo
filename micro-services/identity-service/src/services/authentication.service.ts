@@ -7,7 +7,7 @@ import {
   AuthServiceLoginResponseBody,
   AuthServiceConfirmationResponseBody,
   AuthServiceOauth2AuthorizeRequestQueryParameters,
-} from "@yac/core";
+} from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { LoginInputDto } from "../models/login/login.input.model";

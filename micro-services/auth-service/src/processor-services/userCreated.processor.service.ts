@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, UserCreatedSnsMessage } from "@yac/core";
+import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, UserCreatedSnsMessage } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { AuthenticationServiceInterface } from "../services/authentication.service";

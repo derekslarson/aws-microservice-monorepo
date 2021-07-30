@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError } from "@yac/core";
+import { LoggerServiceInterface, NotFoundError } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { UniquePropertyRepositoryInterface, UniqueProperty as UniquePropertyEntity } from "../repositories/uniqueProperty.dynamo.repository";
 import { UniqueProperty as UniquePropertyEnum } from "../enums/uniqueProperty.enum";

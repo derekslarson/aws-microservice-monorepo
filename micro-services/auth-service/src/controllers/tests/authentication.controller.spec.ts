@@ -1,6 +1,6 @@
 // /* eslint-disable @typescript-eslint/unbound-method */
 
-// import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService } from "@yac/core";
+// import { Response, generateMockRequest, LoggerService, RequestPortion, Spied, TestSupport, ValidationService } from "@yac/util";
 // import { ConfirmationRequestBodyDto, ConfirmationRequestCookiesDto } from "../../models/confirmation/confirmation.input.model";
 // import { LoginInputDto } from "../../models/login/login.input.model";
 // import { Oauth2AuthorizeInputDto } from "../../models/oauth2-authorize/oauth2.authorize.input.model";

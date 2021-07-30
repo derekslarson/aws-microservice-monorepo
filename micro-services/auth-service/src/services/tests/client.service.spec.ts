@@ -1,5 +1,5 @@
 // /* eslint-disable @typescript-eslint/unbound-method */
-// import { LoggerService, Spied, TestSupport, generateAwsResponse, NotFoundError, ForbiddenError, ClientsUpdatedSnsService } from "@yac/core";
+// import { LoggerService, Spied, TestSupport, generateAwsResponse, NotFoundError, ForbiddenError, ClientsUpdatedSnsService } from "@yac/util";
 // import { CognitoIdentityServiceProvider } from "aws-sdk";
 // import { CognitoFactory } from "../../factories/cognito.factory";
 // import { ClientService, ClientServiceInterface, ClientServiceConfigInterface } from "../client.service";

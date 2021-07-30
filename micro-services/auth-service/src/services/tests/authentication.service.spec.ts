@@ -1,6 +1,6 @@
 // /* eslint-disable @typescript-eslint/unbound-method */
 
-// import { LoggerService, Spied, TestSupport, generateAwsResponse, HttpRequestService } from "@yac/core";
+// import { LoggerService, Spied, TestSupport, generateAwsResponse, HttpRequestService } from "@yac/util";
 // import { CognitoIdentityServiceProvider } from "aws-sdk";
 // import { Hmac } from "crypto";
 // import { CognitoFactory } from "../../factories/cognito.factory";

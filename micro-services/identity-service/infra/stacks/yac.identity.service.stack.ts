@@ -9,8 +9,8 @@ import {
   generateExportNames,
   LogLevel,
   RouteProps,
-} from "@yac/core";
-import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/core/infra/stacks/yac.http.service.stack";
+} from "@yac/util";
+import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
 
 export class YacIdentityServiceStack extends YacHttpServiceStack {
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {

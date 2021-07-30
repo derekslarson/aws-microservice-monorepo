@@ -1,6 +1,6 @@
 import "source-map-support/register";
 import * as CDK from "@aws-cdk/core";
-import { Environment } from "@yac/core";
+import { Environment } from "@yac/util";
 import { YacEntityServiceStack } from "./stacks/yac.entity.service.stack";
 
 const app = new CDK.App();

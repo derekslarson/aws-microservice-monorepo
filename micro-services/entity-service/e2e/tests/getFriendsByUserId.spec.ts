@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/core";
+import { Role } from "@yac/util";
 import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { User } from "../../src/mediator-services/user.mediator.service";
 import { createConversationUserRelationship, createFriendConversation, createRandomUser, CreateRandomUserOutput } from "../util";

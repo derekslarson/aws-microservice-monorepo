@@ -1,6 +1,6 @@
 import { fail } from "assert";
 import * as crypto from "crypto";
-import { TestSupport, Spied, LoggerService } from "@yac/core";
+import { TestSupport, Spied, LoggerService } from "@yac/util";
 
 import { MediaDynamoRepository } from "../../repositories/media.dynamo.repository";
 import { BannerbearService } from "../bannerbear.service";
