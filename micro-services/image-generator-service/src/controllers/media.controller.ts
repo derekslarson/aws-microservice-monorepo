@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Request, Response, ValidationServiceInterface, RequestPortion, BaseController } from "@yac/core";
+import { LoggerServiceInterface, Request, Response, ValidationServiceInterface, RequestPortion, BaseController } from "@yac/util";
 
 import { TYPES } from "../inversion-of-control/types";
 import { MediaServiceInterface } from "../services/media.service";

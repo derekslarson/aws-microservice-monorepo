@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { inject, injectable } from "inversify";
 import { isString, matches } from "class-validator";
-import { LoggerServiceInterface, Request, Response, ValidationServiceInterface, RequestPortion, BaseController, BadRequestError, UnauthorizedError } from "@yac/core";
+import { LoggerServiceInterface, Request, Response, ValidationServiceInterface, RequestPortion, BaseController, BadRequestError, UnauthorizedError } from "@yac/util";
 
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";

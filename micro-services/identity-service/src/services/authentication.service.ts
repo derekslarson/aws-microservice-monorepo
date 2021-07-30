@@ -4,17 +4,12 @@ import { injectable, inject } from "inversify";
 import {
   LoggerServiceInterface,
   HttpRequestServiceInterface,
-  AuthServiceSignUpResponseBody,
-  AuthServiceSignUpRequestBody,
   AuthServiceLoginResponseBody,
-  AuthServiceLoginRequestBody,
   AuthServiceConfirmationResponseBody,
-  AuthServiceConfirmationRequestBody,
   AuthServiceOauth2AuthorizeRequestQueryParameters,
-} from "@yac/core";
+} from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
-import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
 import { LoginInputDto } from "../models/login/login.input.model";
 import { ConfirmationInputDto } from "../models/confirmation/confirmation.input.model";
 
@@ -26,27 +21,16 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     @inject(TYPES.EnvConfigInterface) private config: AuthenticationServiceEnvConfigType,
   ) {}
 
-  public async signUp(signUpInput: SignUpInputDto): Promise<AuthServiceSignUpResponseBody> {
-    try {
-      this.loggerService.trace("signUp called", { signUpInput }, this.constructor.name);
-
-      const body: AuthServiceSignUpRequestBody = { email: signUpInput.email };
-
-      const response = await this.httpRequestService.post<AuthServiceSignUpResponseBody>(`${this.config.authServiceDomain}/sign-up`, body);
-
-      return response.body;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in signUp", { error, signUpInput }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
   public async login(loginInput: LoginInputDto): Promise<AuthServiceLoginResponseBody> {
     try {
       this.loggerService.trace("login called", { loginInput }, this.constructor.name);
 
-      const body: AuthServiceLoginRequestBody = { email: loginInput.email };
+      const { email, phone } = loginInput;
+
+      const body = {
+        ...(email && { email }),
+        ...(phone && { phone }),
+      };
 
       const response = await this.httpRequestService.post<AuthServiceLoginResponseBody>(`${this.config.authServiceDomain}/login`, body);
 
@@ -62,6 +46,8 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("confirm called", { confirmInput }, this.constructor.name);
 
+      const { email, phone } = confirmInput;
+
       const authorizeQueryParams: AuthServiceOauth2AuthorizeRequestQueryParameters = {
         responseType: "code",
         clientId: this.config.userPoolClientId,
@@ -72,8 +58,9 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       const confirmHeaders = { Cookie: `XSRF-TOKEN=${authorizeResponse.body.xsrfToken}` };
 
-      const confirmBody: AuthServiceConfirmationRequestBody = {
-        email: confirmInput.email,
+      const confirmBody = {
+        ...(email && { email }),
+        ...(phone && { phone }),
         confirmationCode: confirmInput.confirmationCode,
         session: confirmInput.session,
         clientId: this.config.userPoolClientId,
@@ -81,8 +68,6 @@ export class AuthenticationService implements AuthenticationServiceInterface {
       };
 
       const confirmResponse = await this.httpRequestService.post<AuthServiceConfirmationResponseBody>(`${this.config.authServiceDomain}/confirm`, confirmBody, {}, confirmHeaders);
-
-      this.loggerService.info("confirmResponse", { confirmResponse }, this.constructor.name);
 
       return confirmResponse.body;
     } catch (error: unknown) {
@@ -96,7 +81,6 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 type AuthenticationServiceEnvConfigType = Pick<EnvConfigInterface, "authServiceDomain" | "userPoolClientId" | "userPoolClientRedirectUri" | "userPoolClientSecret" >;
 
 export interface AuthenticationServiceInterface {
-  signUp(signUpInput: SignUpInputDto): Promise<AuthServiceSignUpResponseBody>
   login(loginInput: LoginInputDto): Promise<AuthServiceLoginResponseBody>;
   confirm(confirmInput: ConfirmationInputDto): Promise<AuthServiceConfirmationResponseBody>;
 }

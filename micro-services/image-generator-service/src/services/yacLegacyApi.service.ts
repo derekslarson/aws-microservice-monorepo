@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { LoggerServiceInterface, HttpRequestServiceInterface } from "@yac/core";
+import { LoggerServiceInterface, HttpRequestServiceInterface } from "@yac/util";
 import { injectable, inject } from "inversify";
 
 import { TYPES } from "../inversion-of-control/types";

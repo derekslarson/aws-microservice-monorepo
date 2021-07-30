@@ -1,5 +1,5 @@
 // eslint-disable-next-line max-classes-per-file
-import { Expose } from "@yac/core";
+import { Expose } from "@yac/util";
 import { IsIn, IsString } from "class-validator";
 
 import { MediaRetrievePathParameters, MediaRetrieveQueryParameters } from "../api-contracts/mediaRetrieve.get";

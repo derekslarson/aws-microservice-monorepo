@@ -1,10 +1,9 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion } from "@yac/core";
+import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, BadRequestError } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
-import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
 import { LoginInputDto } from "../models/login/login.input.model";
 import { ConfirmationInputDto } from "../models/confirmation/confirmation.input.model";
 import { AuthorizationServiceInterface } from "../services/authorization.service";
@@ -20,27 +19,15 @@ export class AuthController extends BaseController implements AuthControllerInte
     super();
   }
 
-  public async signUp(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("signUp called", { request }, this.constructor.name);
-
-      const signUpInput = await this.validationService.validate(SignUpInputDto, RequestPortion.Body, request.body);
-
-      const responseBody = await this.authenticationService.signUp(signUpInput);
-
-      return this.generateCreatedResponse(responseBody);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in signUp", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
-  }
-
   public async login(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("login called", { request }, this.constructor.name);
 
       const loginInput = await this.validationService.validate(LoginInputDto, RequestPortion.Body, request.body);
+
+      if (!loginInput.email && !loginInput.phone) {
+        throw new BadRequestError("'email' or 'phone' are required");
+      }
 
       const responseBody = await this.authenticationService.login(loginInput);
 
@@ -57,6 +44,10 @@ export class AuthController extends BaseController implements AuthControllerInte
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
 
       const confirmInput = await this.validationService.validate(ConfirmationInputDto, RequestPortion.Body, request.body);
+
+      if (!confirmInput.email && !confirmInput.phone) {
+        throw new BadRequestError("'email' or 'phone' are required");
+      }
 
       const { confirmed, session, authorizationCode } = await this.authenticationService.confirm(confirmInput);
 
@@ -76,7 +67,6 @@ export class AuthController extends BaseController implements AuthControllerInte
 }
 
 export interface AuthControllerInterface {
-  signUp(request: Request): Promise<Response>;
   login(request: Request): Promise<Response>;
   confirm(request: Request): Promise<Response>;
 }

@@ -1,54 +1,31 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ValidationServiceInterface, LoggerServiceInterface, Request, Response, RequestPortion, AuthServiceSignUpResponseBody, AuthServiceLoginResponseBody } from "@yac/core";
+import { BaseController, LoggerServiceInterface, Request, Response, AuthServiceLoginResponseBody, ValidationServiceV2Interface, ForbiddenError } from "@yac/util";
 
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationServiceInterface } from "../services/authentication.service";
-import { SignUpInputDto } from "../models/sign-up/signUp.input.model";
-import { LoginInputDto } from "../models/login/login.input.model";
-import { Oauth2AuthorizeInputDto } from "../models/oauth2-authorize/oauth2.authorize.input.model";
-import { ConfirmationInput, ConfirmationRequestBodyDto, ConfirmationRequestCookiesDto } from "../models/confirmation/confirmation.input.model";
 import { EnvConfigInterface } from "../config/env.config";
+import { LoginDto } from "../dtos/login.dto";
+import { ConfirmDto } from "../dtos/confirm.dto";
 
 @injectable()
 export class AuthenticationController extends BaseController implements AuthenticationControllerInterface {
   constructor(
-    @inject(TYPES.ValidationServiceInterface) private validationService: ValidationServiceInterface,
+    @inject(TYPES.ValidationServiceV2Interface) private validationServiceV2: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.AuthenticationServiceInterface) private authenticationService: AuthenticationServiceInterface,
-    @inject(TYPES.EnvConfigInterface) private config: AuthenticationControllerConfigInterface,
   ) {
     super();
-  }
-
-  public async signUp(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("signUp called", { request }, this.constructor.name);
-
-      const signUpInput = await this.validationService.validate(SignUpInputDto, RequestPortion.Body, request.body);
-
-      await this.authenticationService.signUp(signUpInput);
-
-      const { session } = await this.authenticationService.login(signUpInput);
-
-      const responseBody: AuthServiceSignUpResponseBody = { session };
-
-      return this.generateCreatedResponse(responseBody);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in signUp", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
   }
 
   public async login(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("login called", { request }, this.constructor.name);
 
-      const loginInput = await this.validationService.validate(LoginInputDto, RequestPortion.Body, request.body);
+      const { body } = this.validationServiceV2.validate({ dto: LoginDto, request });
 
-      const { session } = await this.authenticationService.login(loginInput);
+      const { session } = await this.authenticationService.login(body);
 
       const responseBody: AuthServiceLoginResponseBody = { session };
 
@@ -64,41 +41,25 @@ export class AuthenticationController extends BaseController implements Authenti
     try {
       this.loggerService.trace("confirm called", { request }, this.constructor.name);
 
-      const confirmationRequestCookies = await this.validationService.validate(ConfirmationRequestCookiesDto, RequestPortion.Cookies, this.parseCookies(request.cookies));
-      const confirmationRequestBody = await this.validationService.validate(ConfirmationRequestBodyDto, RequestPortion.Body, request.body);
+      const {
+        cookies,
+        body,
+      } = this.validationServiceV2.validate({ dto: ConfirmDto, request });
+      const parsedCookies = this.parseCookies(cookies);
+      const xsrfToken = parsedCookies["XSRF-TOKEN"];
 
-      const confirmationRequestInput: ConfirmationInput = {
-        ...confirmationRequestBody,
-        xsrfToken: confirmationRequestCookies["XSRF-TOKEN"],
-      };
+      if (!xsrfToken) {
+        throw new ForbiddenError("Forbidden");
+      }
 
-      const confirmResponse = await this.authenticationService.confirm(confirmationRequestInput);
+      const confirmResponse = await this.authenticationService.confirm({
+        ...body,
+        xsrfToken,
+      });
 
       return this.generateSuccessResponse(confirmResponse);
     } catch (error: unknown) {
       this.loggerService.error("Error in confirm", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
-  }
-
-  public async oauth2Authorize(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("oauth2Authorize called", { request }, this.constructor.name);
-
-      const oauth2AuthorizeInput = await this.validationService.validate(Oauth2AuthorizeInputDto, RequestPortion.QueryParameters, request.queryStringParameters);
-      const { xsrfToken } = await this.authenticationService.getXsrfToken(oauth2AuthorizeInput.clientId, oauth2AuthorizeInput.redirectUri);
-
-      if (oauth2AuthorizeInput.clientId === this.config.userPool.yacClientId) {
-        return this.generateSuccessResponse({ xsrfToken });
-      }
-
-      const redirectLocation = `${this.config.authUI}?client_id=${oauth2AuthorizeInput.clientId}&redirect_uri=${oauth2AuthorizeInput.redirectUri}`;
-      const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Domain=${request.headers.host as string}; Secure; HttpOnly; SameSite=Lax`;
-
-      return this.generateSeeOtherResponse(redirectLocation, {}, [ xsrfTokenCookie ]);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in oauth2Authorize", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -126,8 +87,6 @@ export class AuthenticationController extends BaseController implements Authenti
 export type AuthenticationControllerConfigInterface = Pick<EnvConfigInterface, "userPool" | "authUI">;
 
 export interface AuthenticationControllerInterface {
-  signUp(request: Request): Promise<Response>;
   login(request: Request): Promise<Response>;
   confirm(request: Request): Promise<Response>;
-  oauth2Authorize(request: Request): Promise<Response>;
 }

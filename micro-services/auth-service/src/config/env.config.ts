@@ -1,11 +1,15 @@
-import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/core";
+import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util";
 
 export const envConfig: EnvConfigInterface = {
   secret: process.env.SECRET || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   apiDomain: process.env.API_DOMAIN || "",
-  tableNames: { clientsTableName: process.env.CLIENTS_TABLE_NAME || "" },
-  snsTopicArns: { clientsUpdated: process.env.CLIENTS_UPDATED_SNS_TOPIC_ARN || "" },
+  bucketNames: {},
+  tableNames: { pkce: process.env.PKCE_TABLE_NAME || "" },
+  snsTopicArns: {
+    clientsUpdated: process.env.CLIENTS_UPDATED_SNS_TOPIC_ARN || "",
+    userCreated: process.env.USER_CREATED_SNS_TOPIC_ARN || "",
+  },
   mailSender: process.env.MAIL_SENDER || "",
   authUI: process.env.YAC_AUTH_UI || "",
   userPool: {
@@ -20,7 +24,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   apiDomain: string;
   mailSender: string;
   tableNames: {
-    clientsTableName: string;
+    pkce: string;
   };
   authUI: string;
   userPool: {

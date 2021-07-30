@@ -1,5 +1,5 @@
 // eslint-disable-next-line max-classes-per-file
-import { Expose } from "@yac/core";
+import { Expose } from "@yac/util";
 import { Contains, IsJSON, IsString, IsUrl } from "class-validator";
 
 import { BannerbearCallbackHeaders, BannerbearCallbackBody } from "../api-contracts/bannerbearCallback.post";

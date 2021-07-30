@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { generateInternalServerErrorResponse, LoggerServiceInterface } from "@yac/core";
+import { generateInternalServerErrorResponse, LoggerServiceInterface } from "@yac/util";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 import { AuthenticationControllerInterface } from "../controllers/authentication.controller";

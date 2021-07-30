@@ -43,7 +43,7 @@
     "array-callback-return": ["error", { "allowImplicit": true }],
     "array-bracket-spacing": ["error", "always"],
     "import/no-unresolved": "off",
-    "import/no-extraneous-dependencies": ["error", {"devDependencies": ["**/infra/**", "**/*.spec.*", "**/test-support/**", "**/api-contracts/**"]}],
+    "import/no-extraneous-dependencies": ["error", {"devDependencies": ["**/infra/**", "**/e2e/**", "**/*.spec.*", "**/test-support/**", "**/api-contracts/**"]}],
     "no-param-reassign": "warn",
     "no-restricted-syntax": [
       "error",

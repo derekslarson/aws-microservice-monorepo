@@ -1,18 +1,18 @@
 import "reflect-metadata";
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { generateInternalServerErrorResponse, LoggerServiceInterface } from "@yac/core";
+import { generateInternalServerErrorResponse, LoggerServiceInterface } from "@yac/util";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
-import { AuthenticationControllerInterface } from "../controllers/authentication.controller";
+import { AuthorizationControllerInterface } from "../controllers/authorization.controller";
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-  const authenticationController = container.get<AuthenticationControllerInterface>(TYPES.AuthenticationControllerInterface);
+  const authorizationController = container.get<AuthorizationControllerInterface>(TYPES.AuthorizationControllerInterface);
   const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
   try {
     loggerService.trace("oauth2Authorize called", { event }, "oauth2Authorize handler");
 
-    const response = await authenticationController.oauth2Authorize(event);
+    const response = await authorizationController.authorize(event);
 
     return response;
   } catch (error: unknown) {

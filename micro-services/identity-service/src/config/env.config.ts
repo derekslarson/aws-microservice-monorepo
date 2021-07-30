@@ -1,9 +1,10 @@
-import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/core";
+import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util";
 
 export const envConfig: EnvConfigInterface = {
   secret: process.env.SECRET || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   tableNames: {},
+  bucketNames: {},
   snsTopicArns: {},
   userPoolClientId: process.env.USER_POOL_CLIENT_ID || "",
   userPoolClientSecret: process.env.USER_POOL_CLIENT_SECRET || "",

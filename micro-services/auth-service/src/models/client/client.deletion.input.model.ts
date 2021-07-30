@@ -1,4 +1,4 @@
-import { AuthServiceDeleteClientRequestHeaders, Expose } from "@yac/core";
+import { AuthServiceDeleteClientRequestHeaders, Expose } from "@yac/util";
 import { IsString } from "class-validator";
 
 export class DeleteClientInputDto implements AuthServiceDeleteClientRequestHeaders {

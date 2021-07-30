@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, HttpRequestServiceInterface } from "@yac/core";
+import { LoggerServiceInterface, HttpRequestServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 
@@ -25,6 +25,8 @@ export class AuthorizationService implements AuthorizationServiceInterface {
       };
 
       const tokenResponse = await this.httpRequestService.post<{ accessToken: string; refreshToken: string; }>(`${this.config.authServiceDomain}/oauth2/token`, oauth2AuthorizeBody, {}, oauth2AuthorizeHeaders);
+
+      this.loggerService.trace("tokenResponse", { tokenResponse }, this.constructor.name);
 
       return tokenResponse.body;
     } catch (error: unknown) {
