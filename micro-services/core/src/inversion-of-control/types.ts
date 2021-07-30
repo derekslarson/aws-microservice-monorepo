@@ -1,36 +1,63 @@
+import { TYPES as CORE_TYPES } from "@yac/util";
+
 const TYPES = {
-  EnvConfigInterface: Symbol.for("EnvConfigInterface"),
+  ...CORE_TYPES,
 
-  DynamoStreamControllerInterface: Symbol.for("DynamoStreamControllerInterface"),
-  S3EventControllerInterface: Symbol.for("S3EventControllerInterface"),
-  SnsEventControllerInterface: Symbol.for("SnsEventControllerInterface"),
+  // Controllers
+  ConversationControllerInterface: Symbol.for("ConversationControllerInterface"),
+  FriendControllerInterface: Symbol.for("FriendControllerInterface"),
+  GroupControllerInterface: Symbol.for("GroupControllerInterface"),
+  MeetingControllerInterface: Symbol.for("MeetingControllerInterface"),
+  MessageControllerInterface: Symbol.for("MessageControllerInterface"),
+  TeamControllerInterface: Symbol.for("TeamControllerInterface"),
+  UserControllerInterface: Symbol.for("UserControllerInterface"),
 
-  ClientsUpdatedSnsServiceInterface: Symbol.for("ClientsUpdatedSnsServiceInterface"),
-  HttpRequestServiceInterface: Symbol.for("HttpRequestServiceInterface"),
-  IdServiceInterface: Symbol.for("IdServiceInterface"),
-  LoggerServiceInterface: Symbol.for("LoggerServiceInterface"),
-  SmsServiceInterface: Symbol.for("SmsServiceInterface"),
-  UserSignedUpSnsServiceInterface: Symbol.for("UserSignedUpSnsServiceInterface"),
-  ValidationServiceInterface: Symbol.for("ValidationServiceInterface"),
-  ValidationServiceV2Interface: Symbol.for("ValidationServiceV2Interface"),
+  // Orchestrator Services
+  InvitationOrchestratorServiceInterface: Symbol.for("InvitationOrchestratorServiceInterface"),
 
-  DynamoProcessorServicesInterface: Symbol.for("DynamoProcessorServicesInterface"),
-  S3ProcessorServicesInterface: Symbol.for("S3ProcessorServicesInterface"),
-  SnsProcessorServicesInterface: Symbol.for("SnsProcessorServicesInterface"),
+  // Mediator Services
+  ConversationMediatorServiceInterface: Symbol.for("ConversationMediatorServiceInterface"),
+  FriendshipMediatorServiceInterface: Symbol.for("FriendshipMediatorServiceInterface"),
+  GroupMediatorServiceInterface: Symbol.for("GroupMediatorServiceInterface"),
+  MeetingMediatorServiceInterface: Symbol.for("MeetingMediatorServiceInterface"),
+  MessageMediatorServiceInterface: Symbol.for("MessageMediatorServiceInterface"),
+  TeamMediatorServiceInterface: Symbol.for("TeamMediatorServiceInterface"),
+  UserMediatorServiceInterface: Symbol.for("UserMediatorServiceInterface"),
 
-  MessageFileRepositoryInterface: Symbol.for("MessageFileRepositoryInterface"),
+  // Processor Services
+  ImageFileCreatedProcessorServiceInterface: Symbol.for("ImageFileCreatedProcessorServiceInterface"),
+  MessageFileCreatedProcessorServiceInterface: Symbol.for("MessageFileCreatedProcessorServiceInterface"),
+  UserSignedUpProcessorServiceInterface: Symbol.for("UserSignedUpProcessorServiceInterface"),
+  UserCreatedProcessorServiceInterface: Symbol.for("UserCreatedProcessorServiceInterface"),
 
-  AxiosFactory: Symbol.for("AxiosFactory"),
-  ClassTransformerFactory: Symbol.for("ClassTransformerFactory"),
-  ClassValidatorFactory: Symbol.for("ClassValidatorFactory"),
-  DocumentClientFactory: Symbol.for("DocumentClientFactory"),
-  ErrorSerializerFactory: Symbol.for("ErrorSerializerFactory"),
-  KsuidFactory: Symbol.for("KsuidFactory"),
-  LogWriterFactory: Symbol.for("LogWriterFactory"),
-  S3Factory: Symbol.for("S3Factory"),
-  SnsFactory: Symbol.for("SnsFactory"),
-  UnmarshallFactory: Symbol.for("UnmarshallFactory"),
-  UuidV4Factory: Symbol.for("UuidV4Factory"),
+  // SNS Services
+  UserCreatedSnsServiceInterface: Symbol.for("UserCreatedSnsServiceInterface"),
+
+  // Entity Services
+  ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
+  ConversationUserRelationshipServiceInterface: Symbol.for("ConversationUserRelationshipServiceInterface"),
+  ImageFileServiceInterface: Symbol.for("ImageFileServiceInterface"),
+  MessageServiceInterface: Symbol.for("MessageServiceInterface"),
+  MessageFileServiceInterface: Symbol.for("MessageFileServiceInterface"),
+  PendingMessageServiceInterface: Symbol.for("PendingMessageServiceInterface"),
+  TeamServiceInterface: Symbol.for("TeamServiceInterface"),
+  TeamUserRelationshipServiceInterface: Symbol.for("TeamUserRelationshipServiceInterface"),
+  UniquePropertyServiceInterface: Symbol.for("UniquePropertyServiceInterface"),
+  UserServiceInterface: Symbol.for("UserServiceInterface"),
+
+  // Repositories
+  ConversationRepositoryInterface: Symbol.for("ConversationRepositoryInterface"),
+  ConversationUserRelationshipRepositoryInterface: Symbol.for("ConversationUserRelationshipRepositoryInterface"),
+  ImageFileRepositoryInterface: Symbol.for("ImageFileRepositoryInterface"),
+  MessageRepositoryInterface: Symbol.for("MessageRepositoryInterface"),
+  PendingMessageRepositoryInterface: Symbol.for("PendingMessageRepositoryInterface"),
+  TeamRepositoryInterface: Symbol.for("TeamRepositoryInterface"),
+  TeamUserRelationshipRepositoryInterface: Symbol.for("TeamUserRelationshipRepositoryInterface"),
+  UniquePropertyRepositoryInterface: Symbol.for("UniquePropertyRepositoryInterface"),
+  UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
+
+  // Factories
+  IdenticonFactory: Symbol.for("IdenticonFactory"),
 };
 
 export { TYPES };

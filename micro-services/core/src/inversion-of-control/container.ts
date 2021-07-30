@@ -1,69 +1,126 @@
-import { Container, ContainerModule } from "inversify";
+import { coreContainerModule, DynamoProcessorServiceInterface, S3ProcessorServiceInterface, SnsProcessorServiceInterface } from "@yac/util";
+import { Container } from "inversify";
+import { envConfig, EnvConfigInterface } from "../config/env.config";
+import { ConversationController, ConversationControllerInterface } from "../controllers/conversation.controller";
+import { FriendController, FriendControllerInterface } from "../controllers/friend.controller";
+import { GroupController, GroupControllerInterface } from "../controllers/group.controller";
+import { MeetingController, MeetingControllerInterface } from "../controllers/meeting.controller";
+import { MessageController, MessageControllerInterface } from "../controllers/message.controller";
+import { TeamController, TeamControllerInterface } from "../controllers/team.controller";
+import { UserController, UserControllerInterface } from "../controllers/user.controller";
+import { ConversationService, ConversationServiceInterface } from "../entity-services/conversation.service";
+import { ConversationUserRelationshipService, ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
+import { ImageFileService, ImageFileServiceInterface } from "../entity-services/image.file.service";
+import { MessageFileService, MessageFileServiceInterface } from "../entity-services/mesage.file.service";
+import { MessageService, MessageServiceInterface } from "../entity-services/message.service";
+import { PendingMessageService, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
+import { TeamService, TeamServiceInterface } from "../entity-services/team.service";
+import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } from "../entity-services/teamUserRelationship.service";
+import { UniquePropertyService, UniquePropertyServiceInterface } from "../entity-services/uniqueProperty.service";
+import { UserService, UserServiceInterface } from "../entity-services/user.service";
+import { identiconFactory, IdenticonFactory } from "../factories/identicon.factory";
+import { ConversationMediatorService, ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
+import { FriendshipMediatorService, FriendshipMediatorServiceInterface } from "../mediator-services/friendship.mediator.service";
+import { GroupMediatorService, GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
+import { MeetingMediatorService, MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
+import { MessageMediatorService, MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
+import { TeamMediatorService, TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
+import { UserMediatorService, UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
+import { InvitationOrchestratorService, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { ImageFileCreatedProcessorService } from "../processor-services/imageFileCreated.processor.service";
+import { MessageFileCreatedProcessorService } from "../processor-services/messageFileCreated.processor.service";
+import { UserCreatedProcessorService } from "../processor-services/userCreated.processor.service";
+import { ConversationDynamoRepository, ConversationRepositoryInterface } from "../repositories/conversation.dynamo.repository";
+import { ConversationUserRelationshipDynamoRepository, ConversationUserRelationshipRepositoryInterface } from "../repositories/conversationUserRelationship.dynamo.repository";
+import { ImageFileRepositoryInterface, ImageS3Repository } from "../repositories/image.s3.repository";
+import { MessageDynamoRepository, MessageRepositoryInterface } from "../repositories/message.dynamo.repository";
+import { PendingMessageDynamoRepository, PendingMessageRepositoryInterface } from "../repositories/pendingMessage.dynamo.repository";
+import { TeamDynamoRepository, TeamRepositoryInterface } from "../repositories/team.dynamo.repository";
+import { TeamUserRelationshipDynamoRepository, TeamUserRelationshipRepositoryInterface } from "../repositories/teamUserRelationship.dynamo.repository";
+import { UniquePropertyDynamoRepository, UniquePropertyRepositoryInterface } from "../repositories/uniqueProperty.dynamo.repository";
+import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
+import { UserCreatedSnsService, UserCreatedSnsServiceInterface } from "../sns-services/userCreated.sns.service";
 import { TYPES } from "./types";
 
-import { SnsEventController, SnsEventControllerInterface } from "../controllers/snsEvent.controller";
-
-import { ClientsUpdatedSnsService, ClientsUpdatedSnsServiceInterface } from "../services/clientsUpdated.sns.service";
-import { IdService, IdServiceInterface } from "../services/id.service";
-import { HttpRequestService, HttpRequestServiceInterface } from "../services/http.request.service";
-import { LoggerService, LoggerServiceInterface } from "../services/logger.service";
-// import { UserSignedUpSnsService, UserSignedUpSnsServiceInterface } from "../services/userSignedUp.sns.service";
-import { ValidationService, ValidationServiceInterface } from "../services/validation.service";
-import { ValidationServiceV2, ValidationServiceV2Interface } from "../services/validation.service.v2";
-import { MessageS3Repository, MessageFileRepositoryInterface } from "../repositories/message.s3.repository";
-
-import { axiosFactory, AxiosFactory } from "../factories/axios.factory";
-import { classTransformerFactory, ClassTransformerFactory } from "../factories/classTransformer.factory";
-import { classValidatorFactory, ClassValidatorFactory } from "../factories/classValidator.factory";
-import { documentClientFactory, DocumentClientFactory } from "../factories/documentClient.factory";
-import { errorSerializerFactory, ErrorSerializerFactory } from "../factories/errorSerializer.factory";
-import { logWriterFactory, LogWriterFactory } from "../factories/logWriter.factory";
-import { ksuidFactory, KsuidFactory } from "../factories/ksuid.factory";
-import { s3Factory, S3Factory } from "../factories/s3.factory";
-import { snsFactory, SnsFactory } from "../factories/sns.factory";
-import { unmarshallFactory, UnmarshallFactory } from "../factories/unmarshall.factory";
-import { uuidV4Factory, UuidV4Factory } from "../factories/uuidV4.factory";
-import { S3EventController, S3EventControllerInterface } from "../controllers/s3Event.controller";
-import { DynamoStreamController, DynamoStreamControllerInterface } from "../controllers/dynamoStream.controller";
-import { SmsService, SmsServiceInterface } from "../services/sms.service";
-
-const coreContainerModule = new ContainerModule((bind) => {
-  try {
-    bind<DynamoStreamControllerInterface>(TYPES.DynamoStreamControllerInterface).to(DynamoStreamController);
-    bind<S3EventControllerInterface>(TYPES.S3EventControllerInterface).to(S3EventController);
-    bind<SnsEventControllerInterface>(TYPES.SnsEventControllerInterface).to(SnsEventController);
-
-    bind<ClientsUpdatedSnsServiceInterface>(TYPES.ClientsUpdatedSnsServiceInterface).to(ClientsUpdatedSnsService);
-    bind<HttpRequestServiceInterface>(TYPES.HttpRequestServiceInterface).to(HttpRequestService);
-    bind<IdServiceInterface>(TYPES.IdServiceInterface).to(IdService);
-    bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);
-    bind<SmsServiceInterface>(TYPES.SmsServiceInterface).to(SmsService);
-    // bind<UserSignedUpSnsServiceInterface>(TYPES.UserSignedUpSnsServiceInterface).to(UserSignedUpSnsService);
-    bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
-    bind<ValidationServiceV2Interface>(TYPES.ValidationServiceV2Interface).to(ValidationServiceV2);
-
-    bind<MessageFileRepositoryInterface>(TYPES.MessageFileRepositoryInterface).to(MessageS3Repository);
-
-    bind<AxiosFactory>(TYPES.AxiosFactory).toFactory(() => axiosFactory);
-    bind<ClassTransformerFactory>(TYPES.ClassTransformerFactory).toFactory(() => classTransformerFactory);
-    bind<ClassValidatorFactory>(TYPES.ClassValidatorFactory).toFactory(() => classValidatorFactory);
-    bind<DocumentClientFactory>(TYPES.DocumentClientFactory).toFactory(() => documentClientFactory);
-    bind<ErrorSerializerFactory>(TYPES.ErrorSerializerFactory).toFactory(() => errorSerializerFactory);
-    bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
-    bind<KsuidFactory>(TYPES.KsuidFactory).toFactory(() => ksuidFactory);
-    bind<S3Factory>(TYPES.S3Factory).toFactory(() => s3Factory);
-    bind<SnsFactory>(TYPES.SnsFactory).toFactory(() => snsFactory);
-    bind<UnmarshallFactory>(TYPES.UnmarshallFactory).toFactory(() => unmarshallFactory);
-    bind<UuidV4Factory>(TYPES.UuidV4Factory).toFactory(() => uuidV4Factory);
-  } catch (error: unknown) {
-    // eslint-disable-next-line no-console
-    console.log("Error initializing container. Error:\n", error);
-
-    throw error;
-  }
-});
-
 const container = new Container();
-container.load(coreContainerModule);
 
-export { coreContainerModule, container };
+try {
+  container.load(coreContainerModule);
+
+  // Config
+  container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
+
+  // Controllers
+  container.bind<ConversationControllerInterface>(TYPES.ConversationControllerInterface).to(ConversationController);
+  container.bind<FriendControllerInterface>(TYPES.FriendControllerInterface).to(FriendController);
+  container.bind<GroupControllerInterface>(TYPES.GroupControllerInterface).to(GroupController);
+  container.bind<MeetingControllerInterface>(TYPES.MeetingControllerInterface).to(MeetingController);
+  container.bind<MessageControllerInterface>(TYPES.MessageControllerInterface).to(MessageController);
+  container.bind<TeamControllerInterface>(TYPES.TeamControllerInterface).to(TeamController);
+  container.bind<UserControllerInterface>(TYPES.UserControllerInterface).to(UserController);
+
+  // Orchestrator Services
+  container.bind<InvitationOrchestratorServiceInterface>(TYPES.InvitationOrchestratorServiceInterface).to(InvitationOrchestratorService);
+
+  // Mediator Services
+  container.bind<ConversationMediatorServiceInterface>(TYPES.ConversationMediatorServiceInterface).to(ConversationMediatorService);
+  container.bind<FriendshipMediatorServiceInterface>(TYPES.FriendshipMediatorServiceInterface).to(FriendshipMediatorService);
+  container.bind<GroupMediatorServiceInterface>(TYPES.GroupMediatorServiceInterface).to(GroupMediatorService);
+  container.bind<MeetingMediatorServiceInterface>(TYPES.MeetingMediatorServiceInterface).to(MeetingMediatorService);
+  container.bind<MessageMediatorServiceInterface>(TYPES.MessageMediatorServiceInterface).to(MessageMediatorService);
+  container.bind<TeamMediatorServiceInterface>(TYPES.TeamMediatorServiceInterface).to(TeamMediatorService);
+  container.bind<UserMediatorServiceInterface>(TYPES.UserMediatorServiceInterface).to(UserMediatorService);
+
+  // Processor Services
+  container.bind<S3ProcessorServiceInterface>(TYPES.ImageFileCreatedProcessorServiceInterface).to(ImageFileCreatedProcessorService);
+  container.bind<S3ProcessorServiceInterface>(TYPES.MessageFileCreatedProcessorServiceInterface).to(MessageFileCreatedProcessorService);
+  container.bind<DynamoProcessorServiceInterface>(TYPES.UserCreatedProcessorServiceInterface).to(UserCreatedProcessorService);
+
+  // SNS Services
+  container.bind<UserCreatedSnsServiceInterface>(TYPES.UserCreatedSnsServiceInterface).to(UserCreatedSnsService);
+
+  // Entity Services
+  container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
+  container.bind<ConversationUserRelationshipServiceInterface>(TYPES.ConversationUserRelationshipServiceInterface).to(ConversationUserRelationshipService);
+  container.bind<ImageFileServiceInterface>(TYPES.ImageFileServiceInterface).to(ImageFileService);
+  container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);
+  container.bind<MessageFileServiceInterface>(TYPES.MessageFileServiceInterface).to(MessageFileService);
+  container.bind<PendingMessageServiceInterface>(TYPES.PendingMessageServiceInterface).to(PendingMessageService);
+  container.bind<TeamServiceInterface>(TYPES.TeamServiceInterface).to(TeamService);
+  container.bind<TeamUserRelationshipServiceInterface>(TYPES.TeamUserRelationshipServiceInterface).to(TeamUserRelationshipService);
+  container.bind<UniquePropertyServiceInterface>(TYPES.UniquePropertyServiceInterface).to(UniquePropertyService);
+  container.bind<UserServiceInterface>(TYPES.UserServiceInterface).to(UserService);
+
+  // Repositories
+  container.bind<ConversationRepositoryInterface>(TYPES.ConversationRepositoryInterface).to(ConversationDynamoRepository);
+  container.bind<ConversationUserRelationshipRepositoryInterface>(TYPES.ConversationUserRelationshipRepositoryInterface).to(ConversationUserRelationshipDynamoRepository);
+  container.bind<ImageFileRepositoryInterface>(TYPES.ImageFileRepositoryInterface).to(ImageS3Repository);
+  container.bind<MessageRepositoryInterface>(TYPES.MessageRepositoryInterface).to(MessageDynamoRepository);
+  container.bind<PendingMessageRepositoryInterface>(TYPES.PendingMessageRepositoryInterface).to(PendingMessageDynamoRepository);
+  container.bind<TeamRepositoryInterface>(TYPES.TeamRepositoryInterface).to(TeamDynamoRepository);
+  container.bind<TeamUserRelationshipRepositoryInterface>(TYPES.TeamUserRelationshipRepositoryInterface).to(TeamUserRelationshipDynamoRepository);
+  container.bind<UniquePropertyRepositoryInterface>(TYPES.UniquePropertyRepositoryInterface).to(UniquePropertyDynamoRepository);
+  container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);
+
+  // Factories
+  container.bind<IdenticonFactory>(TYPES.IdenticonFactory).toFactory(() => identiconFactory);
+
+  // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)
+  container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([]);
+
+  container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([
+    container.get(TYPES.ImageFileCreatedProcessorServiceInterface),
+    container.get(TYPES.MessageFileCreatedProcessorServiceInterface),
+  ]);
+
+  container.bind<DynamoProcessorServiceInterface[]>(TYPES.DynamoProcessorServicesInterface).toConstantValue([
+    container.get(TYPES.UserCreatedProcessorServiceInterface),
+  ]);
+} catch (error: unknown) {
+  // eslint-disable-next-line no-console
+  console.log("Error initializing container. Error:\n", error);
+
+  throw error;
+}
+
+export { container };
