@@ -6,6 +6,7 @@ import { UserId } from "../types/userId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { MessageId } from "../types/messageId.type";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
+import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
@@ -202,7 +203,7 @@ export interface UpdateMessageReactionInput {
   messageId: MessageId;
   userId: UserId;
   reaction: string;
-  action: "add" | "remove"
+  action: UpdateMessageReactionAction;
 }
 
 export interface UpdateMessageReactionOutput {

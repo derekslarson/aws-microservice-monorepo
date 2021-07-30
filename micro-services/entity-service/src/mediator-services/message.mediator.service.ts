@@ -17,6 +17,7 @@ import { MessageFileServiceInterface } from "../entity-services/mesage.file.serv
 import { ImageFileServiceInterface } from "../entity-services/image.file.service";
 import { UserServiceInterface } from "../entity-services/user.service";
 import { EntityType } from "../enums/entityType.enum";
+import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 
 @injectable()
 export class MessageMediatorService implements MessageMediatorServiceInterface {
@@ -559,7 +560,7 @@ export interface GetMessagesByMeetingIdOutput {
 
 interface ReactionChange {
   reaction: string;
-  action: "add" | "remove"
+  action: UpdateMessageReactionAction;
 }
 export interface UpdateMessageByUserIdInput {
   userId: UserId;
