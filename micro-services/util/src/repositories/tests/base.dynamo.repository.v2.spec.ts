@@ -24,31 +24,31 @@ class TestDynamoRepository extends BaseDynamoRepositoryV2<Test> {
     super(documentClientFactory, tableName, loggerService);
   }
 
-  public partialUpdate(pk: string, sk: string, update: RecursivePartial<Test>) {
-    return super.partialUpdate(pk, sk, update);
+  public partialUpdate<U extends Test = Test>(pk: string, sk: string, update: RecursivePartial<CleansedEntity<U>>) {
+    return super.partialUpdate<U>(pk, sk, update);
   }
 
-  public get(params: Omit<DynamoDB.DocumentClient.GetItemInput, "TableName">, entityType = "Entity"): Promise<CleansedEntity<Test>> {
+  public get<U extends Test = Test>(params: Omit<DynamoDB.DocumentClient.GetItemInput, "TableName">, entityType = "Entity"): Promise<CleansedEntity<U>> {
     return super.get(params, entityType);
   }
 
-  public update(params: Omit<DynamoDB.DocumentClient.UpdateItemInput, "TableName" | "ReturnValues">) {
+  public update<U extends Test = Test>(params: Omit<DynamoDB.DocumentClient.UpdateItemInput, "TableName" | "ReturnValues">): Promise<CleansedEntity<U>> {
     return super.update(params);
   }
 
-  public query(params: Omit<DynamoDB.DocumentClient.QueryInput, "TableName">): Promise<{ Items: CleansedEntity<Test>[]; LastEvaluatedKey?: DynamoDB.DocumentClient.Key; }> {
+  public query<U extends Test = Test>(params: Omit<DynamoDB.DocumentClient.QueryInput, "TableName">): Promise<{ Items: CleansedEntity<U>[]; LastEvaluatedKey?: DynamoDB.DocumentClient.Key; }> {
     return super.query(params);
   }
 
-  public batchGet(keysAndAttributes: DynamoDB.DocumentClient.KeysAndAttributes, prevFetchedItems: RawEntity<Test>[] = [], backoff = 200, maxBackoff = 800) {
-    return super.batchGet(keysAndAttributes, prevFetchedItems, backoff, maxBackoff);
+  public batchGet<U extends Test = Test>(keysAndAttributes: DynamoDB.DocumentClient.KeysAndAttributes, prevFetchedItems: RawEntity<U>[] = [], backoff = 200, maxBackoff = 800): Promise<CleansedEntity<U>[]> {
+    return super.batchGet<U>(keysAndAttributes, prevFetchedItems, backoff, maxBackoff);
   }
 
   public batchWrite(writeRequests: DynamoDB.DocumentClient.WriteRequests, backoff = 200, maxBackoff = 800) {
     return super.batchWrite(writeRequests, backoff, maxBackoff);
   }
 
-  public cleanse(item: RawEntity<Test>) {
+  public cleanse<U extends Test = Test>(item: RawEntity<U>) {
     return super.cleanse(item);
   }
 

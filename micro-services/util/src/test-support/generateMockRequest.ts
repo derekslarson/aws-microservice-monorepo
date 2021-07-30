@@ -17,7 +17,7 @@ export function generateMockRequest(overrideParams: Partial<Request> = {}, jwtUs
         jwt: {
           claims: {
             mockClaim: "mock-claim",
-            ...(jwtUserId && { userId: jwtUserId }),
+            ...(jwtUserId && { username: jwtUserId }),
           },
           scopes: [ "mock-scope" ],
         },
