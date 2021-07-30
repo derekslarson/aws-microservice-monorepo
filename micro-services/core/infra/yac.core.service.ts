@@ -17,4 +17,4 @@ if (!environment) {
 const stackPrefix = environment === Environment.Local ? developer : environment;
 
 // eslint-disable-next-line no-new
-new YacCoreServiceStack(app, `${stackPrefix}-YacEntityService`, { serviceName: "core" });
+new YacCoreServiceStack(app, `${stackPrefix}-YacCoreService`, { serviceName: "core" });
