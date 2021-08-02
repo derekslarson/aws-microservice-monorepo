@@ -17,7 +17,7 @@ interface ConversationUserRelationshipDynamoRepositoryWithAnyMethod extends Conv
   [key: string]: any;
 }
 
-fdescribe("ConversationUserRelationshipDynamoRepository", () => {
+describe("ConversationUserRelationshipDynamoRepository", () => {
   let documentClient: Spied<DocumentClient>;
   let loggerService: Spied<LoggerService>;
   let conversationUserRelationshipDynamoRepository: ConversationUserRelationshipDynamoRepositoryWithAnyMethod;
