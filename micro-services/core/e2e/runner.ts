@@ -28,7 +28,7 @@ const necessaryParams = [
 
 (async () => {
   const initialEnvVals = await getSsmParameters(environment, necessaryParams);
-  initialEnvVals.baseUrl = `https://${environment}.yacchat.com/core`;
+  initialEnvVals.baseUrl = `https://${environment === "dev" ? "develop" : environment}.yacchat.com/core`;
 
   setEnvVars(initialEnvVals);
 
