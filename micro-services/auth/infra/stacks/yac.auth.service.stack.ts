@@ -118,7 +118,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "preSignUp.handler",
       layers: [ dependencyLayer ],
       environment: userPoolLambaEnvVars,
-      memorySize: 512,
+      memorySize: 2048,
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -128,7 +128,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "defineAuthChallenge.handler",
       layers: [ dependencyLayer ],
       environment: userPoolLambaEnvVars,
-      memorySize: 512,
+      memorySize: 2048,
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -138,7 +138,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "createAuthChallenge.handler",
       layers: [ dependencyLayer ],
       environment: userPoolLambaEnvVars,
-      memorySize: 512,
+      memorySize: 2048,
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -148,7 +148,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "verifyAuthChallengeResponse.handler",
       layers: [ dependencyLayer ],
       environment: userPoolLambaEnvVars,
-      memorySize: 512,
+      memorySize: 2048,
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -303,7 +303,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "setAuthorizerAudiences.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      memorySize: 512,
+      memorySize: 2048,
       timeout: CDK.Duration.seconds(15),
       initialPolicy: [ ...basePolicy, adminPolicyStatement ],
       events: [
@@ -317,7 +317,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "userCreated.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      memorySize: 512,
+      memorySize: 2048,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
@@ -331,7 +331,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "login.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      memorySize: 512,
+      memorySize: 2048,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement, sendTextPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -342,7 +342,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "confirm.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      memorySize: 512,
+      memorySize: 2048,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -353,7 +353,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "createClient.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      memorySize: 512,
+      memorySize: 2048,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsUpdatedSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -364,7 +364,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "deleteClient.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      memorySize: 512,
+      memorySize: 2048,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsUpdatedSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
@@ -375,7 +375,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "oauth2Authorize.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
-      memorySize: 512,
+      memorySize: 2048,
       initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
