@@ -7,17 +7,23 @@ import * as IAM from "@aws-cdk/aws-iam";
 import { WebSocketIntegration } from "./webSocketIntegration.construct";
 import { WebSocketRouteIntegrationConfig } from "../aws-apigatewayv2-integrations/lambdaWebSocketIntegration.construct";
 
+interface DomainMappingOptions extends ApiGatewayV2.DomainMappingOptions {
+  mappingKey: string;
+}
+
 export interface WebSocketApiProps extends ApiGatewayV2.WebSocketApiProps {
-  defaultDomainMapping?: ApiGatewayV2.DomainMappingOptions;
+  defaultDomainMapping?: DomainMappingOptions;
 }
 
 export class WebSocketApi extends ApiGatewayV2.WebSocketApi {
   public apiArn: string;
 
+  public endpoint: string;
+
   constructor(scope: CDK.Construct, id: string, props: WebSocketApiProps) {
     super(scope, id, props);
 
-    new ApiGatewayV2.WebSocketStage(this, `WebSocketApiStage_${id}`, {
+    const stage = new ApiGatewayV2.WebSocketStage(this, `WebSocketApiStage_${id}`, {
       webSocketApi: this,
       stageName: "$default",
       autoDeploy: true,
@@ -25,6 +31,8 @@ export class WebSocketApi extends ApiGatewayV2.WebSocketApi {
     });
 
     this.apiArn = CDK.Fn.getAtt(this.apiId, "Arn").toString();
+
+    this.endpoint = props.defaultDomainMapping ? `${props.defaultDomainMapping.domainName.name}/${props.defaultDomainMapping.mappingKey}` : stage.url;
   }
 
   public _addIntegration(scope: CDK.Construct, config: WebSocketRouteIntegrationConfig): ApiGatewayV2.WebSocketIntegration {

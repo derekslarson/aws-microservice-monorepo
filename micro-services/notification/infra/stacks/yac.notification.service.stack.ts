@@ -106,7 +106,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    new WebSocketApi(this, `WebSocketApi_${id}`, {
+    const webSocketApi = new WebSocketApi(this, `WebSocketApi_${id}`, {
       connectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: connectHandler }) },
       disconnectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: disconnectHandler }) },
       defaultDomainMapping: {
@@ -114,6 +114,8 @@ export class YacNotificationServiceStack extends CDK.Stack {
         mappingKey: "notification",
       },
     });
+
+    environmentVariables.WEBSOCKET_API_ENDPOINT = webSocketApi.endpoint;
   }
 
   public get recordName(): string {

@@ -50,6 +50,7 @@ const TYPES = {
 
   // General Services
   TokenVerificationServiceInterface: Symbol.for("TokenVerificationServiceInterface"),
+  WebSocketServiceInterface: Symbol.for("WebSocketServiceInterface"),
 
   // Repositories
   ConversationRepositoryInterface: Symbol.for("ConversationRepositoryInterface"),
@@ -64,6 +65,7 @@ const TYPES = {
   NotificationMappingRepositoryInterface: Symbol.for("NotificationMappingRepositoryInterface"),
 
   // Factories
+  ApiGatewayManagementFactory: Symbol.for("ApiGatewayManagementFactory"),
   IdenticonFactory: Symbol.for("IdenticonFactory"),
   JwtFactory: Symbol.for("JwtFactory"),
   JwkToPemFactory: Symbol.for("JwkToPemFactory"),

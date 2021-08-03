@@ -20,6 +20,7 @@ import { TeamService, TeamServiceInterface } from "../entity-services/team.servi
 import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } from "../entity-services/teamUserRelationship.service";
 import { UniquePropertyService, UniquePropertyServiceInterface } from "../entity-services/uniqueProperty.service";
 import { UserService, UserServiceInterface } from "../entity-services/user.service";
+import { apiGatewayManagementFactory, ApiGatewayManagementFactory } from "../factories/apiGatewayManagement.factory";
 import { identiconFactory, IdenticonFactory } from "../factories/identicon.factory";
 import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory";
 import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
@@ -46,6 +47,7 @@ import { TeamUserRelationshipDynamoRepository, TeamUserRelationshipRepositoryInt
 import { UniquePropertyDynamoRepository, UniquePropertyRepositoryInterface } from "../repositories/uniqueProperty.dynamo.repository";
 import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
 import { TokenVerificationService, TokenVerificationServiceInterface } from "../services/tokenVerification.service";
+import { WebSocketService, WebSocketServiceInterface } from "../services/webSocket.service";
 import { UserCreatedSnsService, UserCreatedSnsServiceInterface } from "../sns-services/userCreated.sns.service";
 import { TYPES } from "./types";
 
@@ -103,6 +105,7 @@ try {
 
   // General Services
   container.bind<TokenVerificationServiceInterface>(TYPES.TokenVerificationServiceInterface).to(TokenVerificationService);
+  container.bind<WebSocketServiceInterface>(TYPES.WebSocketServiceInterface).to(WebSocketService);
 
   // Repositories
   container.bind<ConversationRepositoryInterface>(TYPES.ConversationRepositoryInterface).to(ConversationDynamoRepository);
@@ -117,6 +120,7 @@ try {
   container.bind<NotificationMappingRepositoryInterface>(TYPES.NotificationMappingRepositoryInterface).to(NotificationMappingDynamoRepository);
 
   // Factories
+  container.bind<ApiGatewayManagementFactory>(TYPES.ApiGatewayManagementFactory).toFactory(() => apiGatewayManagementFactory);
   container.bind<IdenticonFactory>(TYPES.IdenticonFactory).toFactory(() => identiconFactory);
   container.bind<JwtFactory>(TYPES.JwtFactory).toFactory(() => jwtFactory);
   container.bind<JwkToPemFactory>(TYPES.JwkToPemFactory).toFactory(() => jwkToPemFactory);
