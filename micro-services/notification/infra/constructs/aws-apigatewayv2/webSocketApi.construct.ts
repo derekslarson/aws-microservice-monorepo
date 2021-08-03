@@ -2,8 +2,8 @@
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as CDK from "@aws-cdk/core";
 import * as IAM from "@aws-cdk/aws-iam";
-import { WebSocketIntegration } from "./websocketApi.integration.construct";
-import { WebSocketRouteIntegrationConfig } from "./lambdaWebSocketIntegration.construct";
+import { WebSocketIntegration } from "./webSocketIntegration.construct";
+import { WebSocketRouteIntegrationConfig } from "../aws-apigatewayv2-integrations/lambdaWebSocketIntegration.construct";
 
 export class WebSocketApi extends ApiGatewayV2.WebSocketApi {
   constructor(scope: CDK.Construct, id: string, props: ApiGatewayV2.WebSocketApiProps) {

@@ -1,48 +1,30 @@
-import "reflect-metadata";
-import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/util";
-import { EnvConfigInterface } from "../config/env.config";
+import { inject, injectable } from "inversify";
+import { LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { EntityType } from "../enums/entityType.enum";
+import { NotificationMappingRepositoryInterface, NotificationMapping as NotificationMappingEntity } from "../repositories/notificationMapping.dynamo.repository";
 import { UserId } from "../types/userId.type";
 import { NotificationMappingType } from "../enums/notificationMapping.Type.enum";
 
 @injectable()
-export class NotificationMappingDynamoRepository extends BaseDynamoRepositoryV2<NotificationMapping> implements NotificationMappingRepositoryInterface {
-  private gsiOneIndexName: string;
-
+export class NotificationMappingService implements NotificationMappingServiceInterface {
   constructor(
-  @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
-    @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: NotificationMappingRepositoryConfig,
-  ) {
-    super(documentClientFactory, envConfig.tableNames.notificationMapping as string, loggerService);
-
-    this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
-  }
+    @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.NotificationMappingRepositoryInterface) private notificationMappingRepository: NotificationMappingRepositoryInterface,
+  ) {}
 
   public async createNotificationMapping(params: CreateNotificationMappingInput): Promise<CreateNotificationMappingOutput> {
     try {
       this.loggerService.trace("createNotificationMapping called", { params }, this.constructor.name);
 
-      const { notificationMapping } = params;
+      const { userId, type, value } = params;
 
-      const sk = `${notificationMapping.type}-${notificationMapping.value}`;
-
-      const notificationMappingEntity: RawNotificationMapping = {
-        entityType: EntityType.NotificationMapping,
-        pk: notificationMapping.userId,
-        sk,
-        gsi1pk: notificationMapping.type,
-        gsi1sk: notificationMapping.value,
-        ...notificationMapping,
+      const notificationMapping: NotificationMappingEntity = {
+        userId,
+        type,
+        value,
       };
 
-      await this.documentClient.put({
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
-        TableName: this.tableName,
-        Item: notificationMappingEntity,
-      }).promise();
+      await this.notificationMappingRepository.createNotificationMapping({ notificationMapping });
 
       return { notificationMapping };
     } catch (error: unknown) {
@@ -58,17 +40,7 @@ export class NotificationMappingDynamoRepository extends BaseDynamoRepositoryV2<
 
       const { userId, type } = params;
 
-      const { Items: notificationMappings } = await this.query<NotificationMapping>({
-        KeyConditionExpression: "#pk = :userId AND begins_with(#sk, :type)",
-        ExpressionAttributeNames: {
-          "#pk": "pk",
-          "#sk": "sk",
-        },
-        ExpressionAttributeValues: {
-          ":userId": userId,
-          ":type": `${type}-`,
-        },
-      });
+      const { notificationMappings } = await this.notificationMappingRepository.getNotificationMappingsByUserIdAndType({ userId, type });
 
       return { notificationMappings };
     } catch (error: unknown) {
@@ -84,18 +56,7 @@ export class NotificationMappingDynamoRepository extends BaseDynamoRepositoryV2<
 
       const { type, value } = params;
 
-      const { Items: notificationMappings } = await this.query<NotificationMapping>({
-        KeyConditionExpression: "#gsi1pk = :type AND #gsi1sk = :gsi1sk",
-        IndexName: this.gsiOneIndexName,
-        ExpressionAttributeNames: {
-          "#gsi1pk": "gsi1pk",
-          "#gsi1sk": "gsi1sk",
-        },
-        ExpressionAttributeValues: {
-          ":gsi1pk": type,
-          ":gsi1sk": value,
-        },
-      });
+      const { notificationMappings } = await this.notificationMappingRepository.getNotificationMappingsByTypeAndValue({ type, value });
 
       return { notificationMappings };
     } catch (error: unknown) {
@@ -109,14 +70,15 @@ export class NotificationMappingDynamoRepository extends BaseDynamoRepositoryV2<
     try {
       this.loggerService.trace("deleteNotificationMapping called", { params }, this.constructor.name);
 
-      const { notificationMapping } = params;
+      const { userId, type, value } = params;
 
-      const sk = `${notificationMapping.type}-${notificationMapping.value}`;
+      const notificationMapping: NotificationMappingEntity = {
+        userId,
+        type,
+        value,
+      };
 
-      await this.documentClient.delete({
-        TableName: this.tableName,
-        Key: { pk: notificationMapping.userId, sk },
-      }).promise();
+      await this.notificationMappingRepository.deleteNotificationMapping({ notificationMapping });
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteNotificationMapping", { error, params }, this.constructor.name);
 
@@ -125,34 +87,19 @@ export class NotificationMappingDynamoRepository extends BaseDynamoRepositoryV2<
   }
 }
 
-export interface NotificationMappingRepositoryInterface {
+export interface NotificationMappingServiceInterface {
   createNotificationMapping(params: CreateNotificationMappingInput): Promise<CreateNotificationMappingOutput>;
   getNotificationMappingsByUserIdAndType(params: GetNotificationMappingsByUserIdAndTypeInput): Promise<GetNotificationMappingsByUserIdAndTypeOutput>;
   getNotificationMappingsByTypeAndValue(params: GetNotificationMappingsByTypeAndValueInput): Promise<GetNotificationMappingsByTypeAndValueOutput>
   deleteNotificationMapping(params: DeleteNotificationMappingInput): Promise<DeleteNotificationMappingOutput>;
 }
 
-type NotificationMappingRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
-
-export interface NotificationMapping {
-  type: NotificationMappingType;
-  value: string;
-  userId: UserId;
-}
-
-export interface RawNotificationMapping extends NotificationMapping {
-  entityType: EntityType.NotificationMapping;
-  pk: UserId;
-  // `${type}-${value}`
-  sk: string;
-  // type
-  gsi1pk: string;
-  // value
-  gsi1sk: string;
-}
+export type NotificationMapping = NotificationMappingEntity;
 
 export interface CreateNotificationMappingInput {
-  notificationMapping: NotificationMapping;
+  userId: UserId;
+  type: NotificationMappingType;
+  value: string;
 }
 
 export interface CreateNotificationMappingOutput {
@@ -178,7 +125,9 @@ export interface GetNotificationMappingsByTypeAndValueOutput {
 }
 
 export interface DeleteNotificationMappingInput {
-  notificationMapping: NotificationMapping;
+  userId: UserId;
+  type: NotificationMappingType;
+  value: string;
 }
 
 export type DeleteNotificationMappingOutput = void;

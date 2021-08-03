@@ -23,6 +23,7 @@ const TYPES = {
   MessageMediatorServiceInterface: Symbol.for("MessageMediatorServiceInterface"),
   TeamMediatorServiceInterface: Symbol.for("TeamMediatorServiceInterface"),
   UserMediatorServiceInterface: Symbol.for("UserMediatorServiceInterface"),
+  WebSocketMediatorServiceInterface: Symbol.for("WebSocketMediatorServiceInterface"),
 
   // Processor Services
   ImageFileCreatedProcessorServiceInterface: Symbol.for("ImageFileCreatedProcessorServiceInterface"),
@@ -44,6 +45,7 @@ const TYPES = {
   TeamUserRelationshipServiceInterface: Symbol.for("TeamUserRelationshipServiceInterface"),
   UniquePropertyServiceInterface: Symbol.for("UniquePropertyServiceInterface"),
   UserServiceInterface: Symbol.for("UserServiceInterface"),
+  NotificationMappingServiceInterface: Symbol.for("NotificationMappingServiceInterface"),
 
   // Repositories
   ConversationRepositoryInterface: Symbol.for("ConversationRepositoryInterface"),
@@ -55,6 +57,7 @@ const TYPES = {
   TeamUserRelationshipRepositoryInterface: Symbol.for("TeamUserRelationshipRepositoryInterface"),
   UniquePropertyRepositoryInterface: Symbol.for("UniquePropertyRepositoryInterface"),
   UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
+  NotificationMappingRepositoryInterface: Symbol.for("NotificationMappingRepositoryInterface"),
 
   // Factories
   IdenticonFactory: Symbol.for("IdenticonFactory"),

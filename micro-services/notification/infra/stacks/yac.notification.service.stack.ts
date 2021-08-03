@@ -5,8 +5,9 @@ import * as IAM from "@aws-cdk/aws-iam";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import { Environment, generateExportNames, LogLevel } from "@yac/util";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import { WebSocketApi } from "../constructs/webSocketApi.construct";
-import { LambdaWebSocketIntegration } from "../constructs/lambdaWebSocketIntegration.construct";
+import { WebSocketApi } from "../constructs/aws-apigatewayv2/webSocketApi.construct";
+import { LambdaWebSocketIntegration } from "../constructs/aws-apigatewayv2-integrations/lambdaWebSocketIntegration.construct";
+import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacNotificationServiceStack extends CDK.Stack {
   constructor(scope: CDK.Construct, id: string, props: CDK.StackProps) {
@@ -46,6 +47,12 @@ export class YacNotificationServiceStack extends CDK.Stack {
       removalPolicy: CDK.RemovalPolicy.DESTROY,
     });
 
+    notificationMappingTable.addGlobalSecondaryIndex({
+      indexName: GlobalSecondaryIndex.One,
+      partitionKey: { name: "gsi1pk", type: DynamoDB.AttributeType.STRING },
+      sortKey: { name: "gsi1sk", type: DynamoDB.AttributeType.STRING },
+    });
+
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
 
@@ -58,6 +65,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       NOTIFICATION_MAPPING_TABLE_NAME: notificationMappingTable.tableName,
+      GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
     };
 
     const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
@@ -89,7 +97,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
 
     new ApiGatewayV2.WebSocketStage(this, `WebSocketApiStage_${id}`, {
       webSocketApi,
-      stageName: "websocket",
+      stageName: "$default",
       autoDeploy: true,
       domainMapping: {
         domainName,

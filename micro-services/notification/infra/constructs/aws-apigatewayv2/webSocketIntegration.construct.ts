@@ -18,6 +18,7 @@ export class WebSocketIntegration extends CDK.Resource implements ApiGatewayV2.I
       integrationUri: props.integrationUri,
       credentialsArn: props.credentialsArn,
     });
+
     this.integrationId = integ.ref;
     this.webSocketApi = props.webSocketApi;
   }
