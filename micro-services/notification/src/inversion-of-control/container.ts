@@ -21,6 +21,8 @@ import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } fro
 import { UniquePropertyService, UniquePropertyServiceInterface } from "../entity-services/uniqueProperty.service";
 import { UserService, UserServiceInterface } from "../entity-services/user.service";
 import { identiconFactory, IdenticonFactory } from "../factories/identicon.factory";
+import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory";
+import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { ConversationMediatorService, ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
 import { FriendshipMediatorService, FriendshipMediatorServiceInterface } from "../mediator-services/friendship.mediator.service";
 import { GroupMediatorService, GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
@@ -116,6 +118,8 @@ try {
 
   // Factories
   container.bind<IdenticonFactory>(TYPES.IdenticonFactory).toFactory(() => identiconFactory);
+  container.bind<JwtFactory>(TYPES.JwtFactory).toFactory(() => jwtFactory);
+  container.bind<JwkToPemFactory>(TYPES.JwkToPemFactory).toFactory(() => jwkToPemFactory);
 
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([]);

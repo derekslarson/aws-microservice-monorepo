@@ -65,6 +65,8 @@ const TYPES = {
 
   // Factories
   IdenticonFactory: Symbol.for("IdenticonFactory"),
+  JwtFactory: Symbol.for("JwtFactory"),
+  JwkToPemFactory: Symbol.for("JwkToPemFactory"),
 };
 
 export { TYPES };
