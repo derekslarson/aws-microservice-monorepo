@@ -35,6 +35,7 @@ import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../
 import { InvitationOrchestratorService, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { ImageFileCreatedProcessorService } from "../processor-services/imageFileCreated.processor.service";
 import { MessageFileCreatedProcessorService } from "../processor-services/messageFileCreated.processor.service";
+import { UserAddedToTeamProcessorService } from "../processor-services/userAddedToTeam.processor.service";
 import { UserCreatedProcessorService } from "../processor-services/userCreated.processor.service";
 import { ConversationDynamoRepository, ConversationRepositoryInterface } from "../repositories/conversation.dynamo.repository";
 import { ConversationUserRelationshipDynamoRepository, ConversationUserRelationshipRepositoryInterface } from "../repositories/conversationUserRelationship.dynamo.repository";
@@ -86,6 +87,7 @@ try {
   container.bind<S3ProcessorServiceInterface>(TYPES.ImageFileCreatedProcessorServiceInterface).to(ImageFileCreatedProcessorService);
   container.bind<S3ProcessorServiceInterface>(TYPES.MessageFileCreatedProcessorServiceInterface).to(MessageFileCreatedProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserCreatedProcessorServiceInterface).to(UserCreatedProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToTeamProcessorServiceInterface).to(UserAddedToTeamProcessorService);
 
   // SNS Services
   container.bind<UserCreatedSnsServiceInterface>(TYPES.UserCreatedSnsServiceInterface).to(UserCreatedSnsService);
@@ -126,7 +128,9 @@ try {
   container.bind<JwkToPemFactory>(TYPES.JwkToPemFactory).toFactory(() => jwkToPemFactory);
 
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)
-  container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([]);
+  container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
+    container.get(TYPES.UserAddedToTeamProcessorServiceInterface),
+  ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([
     container.get(TYPES.ImageFileCreatedProcessorServiceInterface),

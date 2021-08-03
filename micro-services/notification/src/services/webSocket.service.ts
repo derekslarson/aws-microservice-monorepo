@@ -1,9 +1,8 @@
 /* eslint-disable max-len */
 import { inject, injectable } from "inversify";
-import { ForbiddenError, HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util";
 import { ApiGatewayManagementApi } from "aws-sdk";
 import { TYPES } from "../inversion-of-control/types";
-import { UserId } from "../types/userId.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { ApiGatewayManagementFactory } from "../factories/apiGatewayManagement.factory";
 
@@ -23,9 +22,9 @@ export class WebSocketService implements WebSocketServiceInterface {
     try {
       this.loggerService.trace("sendMessage called", { params }, this.constructor.name);
 
-      const { connectionId, message } = params;
+      const { connectionId, action, data } = params;
 
-      const stringifiedMessage = JSON.stringify(message);
+      const stringifiedMessage = JSON.stringify({ action, data });
 
       await this.apiGatewayManagementApi.postToConnection({ ConnectionId: connectionId, Data: stringifiedMessage }).promise();
     } catch (error: unknown) {
@@ -44,7 +43,8 @@ export interface WebSocketServiceInterface {
 
 export interface SendMessageInput {
   connectionId: string;
-  message: Record<string, unknown>;
+  action: string;
+  data: Record<string, unknown>;
 }
 
 export type SendMessageOutput = void;

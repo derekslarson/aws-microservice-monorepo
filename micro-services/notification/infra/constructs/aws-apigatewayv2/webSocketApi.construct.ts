@@ -16,21 +16,28 @@ export interface WebSocketApiProps extends ApiGatewayV2.WebSocketApiProps {
 }
 
 export class WebSocketApi extends ApiGatewayV2.WebSocketApi {
-  public apiArn: string;
-
   public endpoint: string;
+
+  public apiArn: string;
 
   constructor(scope: CDK.Construct, id: string, props: WebSocketApiProps) {
     super(scope, id, props);
 
+    const stageName = "$default";
+
     const stage = new ApiGatewayV2.WebSocketStage(this, `WebSocketApiStage_${id}`, {
       webSocketApi: this,
-      stageName: "$default",
+      stageName,
       autoDeploy: true,
       domainMapping: props.defaultDomainMapping,
     });
 
-    this.apiArn = CDK.Fn.getAtt(this.apiId, "Arn").toString();
+    this.apiArn = this.stack.formatArn({
+      service: "execute-api",
+      resource: this.apiId,
+      sep: "/",
+      resourceName: `${stageName}/POST/*`,
+    });
 
     this.endpoint = props.defaultDomainMapping ? `${props.defaultDomainMapping.domainName.name}/${props.defaultDomainMapping.mappingKey}` : stage.url;
   }

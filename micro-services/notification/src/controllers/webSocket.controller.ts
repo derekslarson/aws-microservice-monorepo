@@ -23,7 +23,7 @@ export class WebSocketController extends BaseController implements WebSocketCont
       this.loggerService.trace("connect called", { request }, this.constructor.name);
 
       const {
-        queryStringParameters: { token },
+        headers: { token },
         requestContext: { connectionId },
       } = this.validationService.validate({ dto: ConnectDto, request });
 

@@ -8,7 +8,10 @@ export const envConfig: EnvConfigInterface = {
     message: process.env.MESSAGE_S3_BUCKET_NAME || "",
     image: process.env.IMAGE_S3_BUCKET_NAME || "",
   },
-  snsTopicArns: { userCreated: process.env.USER_CREATED_SNS_TOPIC_ARN || "" },
+  snsTopicArns: {
+    userCreated: process.env.USER_CREATED_SNS_TOPIC_ARN || "",
+    userAddedToTeam: process.env.USER_CREATED_SNS_TOPIC_ARN || "",
+  },
   globalSecondaryIndexNames: {
     one: process.env.GSI_ONE_INDEX_NAME || "",
     two: process.env.GSI_TWO_INDEX_NAME || "",
@@ -19,6 +22,10 @@ export const envConfig: EnvConfigInterface = {
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
   tableNames: {
     core: string;
+  };
+  snsTopicArns: {
+    userCreated: string;
+    userAddedToTeam: string;
   };
   bucketNames: {
     message: string;

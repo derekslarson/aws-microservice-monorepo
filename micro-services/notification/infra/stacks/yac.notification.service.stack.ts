@@ -2,8 +2,10 @@
 import * as CDK from "@aws-cdk/core";
 import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import * as SSM from "@aws-cdk/aws-ssm";
+import * as SNS from "@aws-cdk/aws-sns";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Lambda from "@aws-cdk/aws-lambda";
+import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as ACM from "@aws-cdk/aws-certificatemanager";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as Route53Targets from "@aws-cdk/aws-route53-targets";
@@ -28,7 +30,9 @@ export class YacNotificationServiceStack extends CDK.Stack {
 
     const ExportNames = generateExportNames(stackPrefix);
 
+    const userAddedToTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
     const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
+
     const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
     const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
     const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
@@ -82,6 +86,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       NOTIFICATION_MAPPING_TABLE_NAME: notificationMappingTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
       JWKS_URL: `https://cognito-idp.${this.region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`,
+      USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: userAddedToTeamSnsTopicArn,
     };
 
     const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
@@ -115,7 +120,26 @@ export class YacNotificationServiceStack extends CDK.Stack {
       },
     });
 
+    const executeWebSocketApiPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "execute-api:ManageConnections" ],
+      resources: [ webSocketApi.apiArn ],
+    });
+
     environmentVariables.WEBSOCKET_API_ENDPOINT = webSocketApi.endpoint;
+
+    new Lambda.Function(this, `UserAddedToTeamHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/userAddedToTeam"),
+      handler: "userAddedToTeam.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, notificationMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+      events: [
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn)),
+      ],
+    });
   }
 
   public get recordName(): string {

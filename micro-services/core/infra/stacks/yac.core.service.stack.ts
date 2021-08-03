@@ -33,6 +33,8 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const ExportNames = generateExportNames(stackPrefix);
 
     const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
+    const userAddedToTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
+
     const messageS3BucketArn = CDK.Fn.importValue(ExportNames.MessageS3BucketArn);
 
     const messageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket_${id}`, messageS3BucketArn);
@@ -94,6 +96,11 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       resources: [ userCreatedSnsTopicArn ],
     });
 
+    const userAddedToTeamSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ userAddedToTeamSnsTopicArn ],
+    });
+
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
@@ -102,6 +109,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       GSI_TWO_INDEX_NAME: GlobalSecondaryIndex.Two,
       GSI_THREE_INDEX_NAME: GlobalSecondaryIndex.Three,
       USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
+      USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: userAddedToTeamSnsTopicArn,
       MESSAGE_S3_BUCKET_NAME: messageS3Bucket.bucketName,
       IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
     };
@@ -114,7 +122,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, userCreatedSnsPublishPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, userCreatedSnsPublishPolicyStatement, userAddedToTeamSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.DynamoEventSource(coreTable, { startingPosition: Lambda.StartingPosition.LATEST }),

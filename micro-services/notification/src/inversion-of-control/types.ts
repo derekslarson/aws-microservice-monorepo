@@ -31,6 +31,7 @@ const TYPES = {
   MessageFileCreatedProcessorServiceInterface: Symbol.for("MessageFileCreatedProcessorServiceInterface"),
   UserSignedUpProcessorServiceInterface: Symbol.for("UserSignedUpProcessorServiceInterface"),
   UserCreatedProcessorServiceInterface: Symbol.for("UserCreatedProcessorServiceInterface"),
+  UserAddedToTeamProcessorServiceInterface: Symbol.for("UserAddedToTeamProcessorServiceInterface"),
 
   // SNS Services
   UserCreatedSnsServiceInterface: Symbol.for("UserCreatedSnsServiceInterface"),

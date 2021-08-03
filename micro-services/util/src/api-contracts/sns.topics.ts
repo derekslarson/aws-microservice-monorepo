@@ -12,3 +12,9 @@ export type UserCreatedSnsMessage = {
   email?: string;
   phone?: string;
 };
+
+export type UserAddedToTeamSnsMessage = {
+  teamId: string;
+  userId: string;
+  teamMemberIds: string[];
+};
