@@ -12,15 +12,15 @@ export class WebSocketMediatorService implements WebSocketMediatorServiceInterfa
     @inject(TYPES.NotificationMappingServiceInterface) private notificationMappingService: NotificationMappingServiceInterface,
   ) {}
 
-  public async connect(params: ConnectInput): Promise<ConnectOutput> {
+  public async persistConnectionId(params: PersistConnectionId): Promise<PersistConnectionIdOutput> {
     try {
-      this.loggerService.trace("connect called", { params }, this.constructor.name);
+      this.loggerService.trace("persistConnectionId called", { params }, this.constructor.name);
 
       const { userId, connectionId } = params;
 
       await this.notificationMappingService.createNotificationMapping({ userId, type: NotificationMappingType.Websocket, value: connectionId });
     } catch (error: unknown) {
-      this.loggerService.error("Error in connect", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in persistConnectionId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -44,7 +44,7 @@ export class WebSocketMediatorService implements WebSocketMediatorServiceInterfa
     }
   }
 
-  public async disconnect(params: DisconnectInput): Promise<DisconnectOutput> {
+  public async deleteConnectionId(params: DeleteCOnnectionIdInput): Promise<DeleteCOnnectionIdOutput> {
     try {
       this.loggerService.trace("addUserToWebsocket called", { params }, this.constructor.name);
 
@@ -62,17 +62,17 @@ export class WebSocketMediatorService implements WebSocketMediatorServiceInterfa
 }
 
 export interface WebSocketMediatorServiceInterface {
-  connect(params: ConnectInput): Promise<ConnectOutput>;
+  persistConnectionId(params: PersistConnectionId): Promise<PersistConnectionIdOutput>;
   getConnectionIdsByUserId(params: GetConnectionIdsByUserIdInput): Promise<GetConnectionIdsByUserIdOutput>;
-  disconnect(params: DisconnectInput): Promise<DisconnectOutput>;
+  deleteConnectionId(params: DeleteCOnnectionIdInput): Promise<DeleteCOnnectionIdOutput>;
 }
 
-export interface ConnectInput {
+export interface PersistConnectionId {
   userId: UserId;
   connectionId: string;
 }
 
-export type ConnectOutput = void;
+export type PersistConnectionIdOutput = void;
 
 export interface GetConnectionIdsByUserIdInput {
   userId: UserId;
@@ -82,8 +82,8 @@ export interface GetConnectionIdsByUserIdOutput {
   connectionIds: string[];
 }
 
-export interface DisconnectInput {
+export interface DeleteCOnnectionIdInput {
   connectionId: string;
 }
 
-export type DisconnectOutput = void;
+export type DeleteCOnnectionIdOutput = void;

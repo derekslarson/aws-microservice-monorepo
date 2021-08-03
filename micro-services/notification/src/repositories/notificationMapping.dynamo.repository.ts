@@ -33,8 +33,8 @@ export class NotificationMappingDynamoRepository extends BaseDynamoRepositoryV2<
         entityType: EntityType.NotificationMapping,
         pk: notificationMapping.userId,
         sk,
-        gsi1pk: notificationMapping.type,
-        gsi1sk: notificationMapping.value,
+        gsi1pk: sk,
+        gsi1sk: notificationMapping.userId,
         ...notificationMapping,
       };
 
@@ -84,17 +84,13 @@ export class NotificationMappingDynamoRepository extends BaseDynamoRepositoryV2<
 
       const { type, value } = params;
 
+      const gsi1pk = `${type}-${value}`;
+
       const { Items: notificationMappings } = await this.query<NotificationMapping>({
-        KeyConditionExpression: "#gsi1pk = :type AND #gsi1sk = :gsi1sk",
+        KeyConditionExpression: "#gsi1pk = :gsi1pk",
         IndexName: this.gsiOneIndexName,
-        ExpressionAttributeNames: {
-          "#gsi1pk": "gsi1pk",
-          "#gsi1sk": "gsi1sk",
-        },
-        ExpressionAttributeValues: {
-          ":gsi1pk": type,
-          ":gsi1sk": value,
-        },
+        ExpressionAttributeNames: { "#gsi1pk": "gsi1pk" },
+        ExpressionAttributeValues: { ":gsi1pk": gsi1pk },
       });
 
       return { notificationMappings };
@@ -142,12 +138,13 @@ export interface NotificationMapping {
 
 export interface RawNotificationMapping extends NotificationMapping {
   entityType: EntityType.NotificationMapping;
+  // userId
   pk: UserId;
   // `${type}-${value}`
   sk: string;
-  // type
+  // `${type}-${value}`
   gsi1pk: string;
-  // value
+  // userId
   gsi1sk: string;
 }
 

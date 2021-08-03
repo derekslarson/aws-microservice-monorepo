@@ -8,11 +8,13 @@ import { MeetingController, MeetingControllerInterface } from "../controllers/me
 import { MessageController, MessageControllerInterface } from "../controllers/message.controller";
 import { TeamController, TeamControllerInterface } from "../controllers/team.controller";
 import { UserController, UserControllerInterface } from "../controllers/user.controller";
+import { WebSocketController, WebSocketControllerInterface } from "../controllers/webSocket.controller";
 import { ConversationService, ConversationServiceInterface } from "../entity-services/conversation.service";
 import { ConversationUserRelationshipService, ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
 import { ImageFileService, ImageFileServiceInterface } from "../entity-services/image.file.service";
 import { MessageFileService, MessageFileServiceInterface } from "../entity-services/mesage.file.service";
 import { MessageService, MessageServiceInterface } from "../entity-services/message.service";
+import { NotificationMappingService, NotificationMappingServiceInterface } from "../entity-services/notificationMapping.service";
 import { PendingMessageService, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
 import { TeamService, TeamServiceInterface } from "../entity-services/team.service";
 import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } from "../entity-services/teamUserRelationship.service";
@@ -26,6 +28,7 @@ import { MeetingMediatorService, MeetingMediatorServiceInterface } from "../medi
 import { MessageMediatorService, MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
 import { TeamMediatorService, TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { UserMediatorService, UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
+import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { InvitationOrchestratorService, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { ImageFileCreatedProcessorService } from "../processor-services/imageFileCreated.processor.service";
 import { MessageFileCreatedProcessorService } from "../processor-services/messageFileCreated.processor.service";
@@ -34,11 +37,13 @@ import { ConversationDynamoRepository, ConversationRepositoryInterface } from ".
 import { ConversationUserRelationshipDynamoRepository, ConversationUserRelationshipRepositoryInterface } from "../repositories/conversationUserRelationship.dynamo.repository";
 import { ImageFileRepositoryInterface, ImageS3Repository } from "../repositories/image.s3.repository";
 import { MessageDynamoRepository, MessageRepositoryInterface } from "../repositories/message.dynamo.repository";
+import { NotificationMappingDynamoRepository, NotificationMappingRepositoryInterface } from "../repositories/notificationMapping.dynamo.repository";
 import { PendingMessageDynamoRepository, PendingMessageRepositoryInterface } from "../repositories/pendingMessage.dynamo.repository";
 import { TeamDynamoRepository, TeamRepositoryInterface } from "../repositories/team.dynamo.repository";
 import { TeamUserRelationshipDynamoRepository, TeamUserRelationshipRepositoryInterface } from "../repositories/teamUserRelationship.dynamo.repository";
 import { UniquePropertyDynamoRepository, UniquePropertyRepositoryInterface } from "../repositories/uniqueProperty.dynamo.repository";
 import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
+import { TokenVerificationService, TokenVerificationServiceInterface } from "../services/tokenVerification.service";
 import { UserCreatedSnsService, UserCreatedSnsServiceInterface } from "../sns-services/userCreated.sns.service";
 import { TYPES } from "./types";
 
@@ -58,6 +63,7 @@ try {
   container.bind<MessageControllerInterface>(TYPES.MessageControllerInterface).to(MessageController);
   container.bind<TeamControllerInterface>(TYPES.TeamControllerInterface).to(TeamController);
   container.bind<UserControllerInterface>(TYPES.UserControllerInterface).to(UserController);
+  container.bind<WebSocketControllerInterface>(TYPES.WebSocketControllerInterface).to(WebSocketController);
 
   // Orchestrator Services
   container.bind<InvitationOrchestratorServiceInterface>(TYPES.InvitationOrchestratorServiceInterface).to(InvitationOrchestratorService);
@@ -70,6 +76,7 @@ try {
   container.bind<MessageMediatorServiceInterface>(TYPES.MessageMediatorServiceInterface).to(MessageMediatorService);
   container.bind<TeamMediatorServiceInterface>(TYPES.TeamMediatorServiceInterface).to(TeamMediatorService);
   container.bind<UserMediatorServiceInterface>(TYPES.UserMediatorServiceInterface).to(UserMediatorService);
+  container.bind<WebSocketMediatorServiceInterface>(TYPES.WebSocketMediatorServiceInterface).to(WebSocketMediatorService);
 
   // Processor Services
   container.bind<S3ProcessorServiceInterface>(TYPES.ImageFileCreatedProcessorServiceInterface).to(ImageFileCreatedProcessorService);
@@ -90,6 +97,10 @@ try {
   container.bind<TeamUserRelationshipServiceInterface>(TYPES.TeamUserRelationshipServiceInterface).to(TeamUserRelationshipService);
   container.bind<UniquePropertyServiceInterface>(TYPES.UniquePropertyServiceInterface).to(UniquePropertyService);
   container.bind<UserServiceInterface>(TYPES.UserServiceInterface).to(UserService);
+  container.bind<NotificationMappingServiceInterface>(TYPES.NotificationMappingServiceInterface).to(NotificationMappingService);
+
+  // General Services
+  container.bind<TokenVerificationServiceInterface>(TYPES.TokenVerificationServiceInterface).to(TokenVerificationService);
 
   // Repositories
   container.bind<ConversationRepositoryInterface>(TYPES.ConversationRepositoryInterface).to(ConversationDynamoRepository);
@@ -101,6 +112,7 @@ try {
   container.bind<TeamUserRelationshipRepositoryInterface>(TYPES.TeamUserRelationshipRepositoryInterface).to(TeamUserRelationshipDynamoRepository);
   container.bind<UniquePropertyRepositoryInterface>(TYPES.UniquePropertyRepositoryInterface).to(UniquePropertyDynamoRepository);
   container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);
+  container.bind<NotificationMappingRepositoryInterface>(TYPES.NotificationMappingRepositoryInterface).to(NotificationMappingDynamoRepository);
 
   // Factories
   container.bind<IdenticonFactory>(TYPES.IdenticonFactory).toFactory(() => identiconFactory);

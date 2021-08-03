@@ -1,7 +1,6 @@
 import { Record, String } from "runtypes";
-import { UserId } from "../runtypes/userId.runtype";
 
 export const ConnectDto = Record({
-  queryStringParameters: Record({ userId: UserId }),
+  queryStringParameters: Record({ token: String }),
   requestContext: Record({ connectionId: String }),
 });

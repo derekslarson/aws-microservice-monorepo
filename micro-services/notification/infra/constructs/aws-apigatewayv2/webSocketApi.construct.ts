@@ -1,3 +1,5 @@
+/* eslint-disable no-new */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-underscore-dangle */
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as CDK from "@aws-cdk/core";
@@ -5,9 +7,24 @@ import * as IAM from "@aws-cdk/aws-iam";
 import { WebSocketIntegration } from "./webSocketIntegration.construct";
 import { WebSocketRouteIntegrationConfig } from "../aws-apigatewayv2-integrations/lambdaWebSocketIntegration.construct";
 
+export interface WebSocketApiProps extends ApiGatewayV2.WebSocketApiProps {
+  defaultDomainMapping?: ApiGatewayV2.DomainMappingOptions;
+}
+
 export class WebSocketApi extends ApiGatewayV2.WebSocketApi {
-  constructor(scope: CDK.Construct, id: string, props: ApiGatewayV2.WebSocketApiProps) {
+  public apiArn: string;
+
+  constructor(scope: CDK.Construct, id: string, props: WebSocketApiProps) {
     super(scope, id, props);
+
+    new ApiGatewayV2.WebSocketStage(this, `WebSocketApiStage_${id}`, {
+      webSocketApi: this,
+      stageName: "$default",
+      autoDeploy: true,
+      domainMapping: props.defaultDomainMapping,
+    });
+
+    this.apiArn = CDK.Fn.getAtt(this.apiId, "Arn").toString();
   }
 
   public _addIntegration(scope: CDK.Construct, config: WebSocketRouteIntegrationConfig): ApiGatewayV2.WebSocketIntegration {

@@ -11,6 +11,7 @@ const TYPES = {
   MessageControllerInterface: Symbol.for("MessageControllerInterface"),
   TeamControllerInterface: Symbol.for("TeamControllerInterface"),
   UserControllerInterface: Symbol.for("UserControllerInterface"),
+  WebSocketControllerInterface: Symbol.for("WebSocketControllerInterface"),
 
   // Orchestrator Services
   InvitationOrchestratorServiceInterface: Symbol.for("InvitationOrchestratorServiceInterface"),
@@ -46,6 +47,9 @@ const TYPES = {
   UniquePropertyServiceInterface: Symbol.for("UniquePropertyServiceInterface"),
   UserServiceInterface: Symbol.for("UserServiceInterface"),
   NotificationMappingServiceInterface: Symbol.for("NotificationMappingServiceInterface"),
+
+  // General Services
+  TokenVerificationServiceInterface: Symbol.for("TokenVerificationServiceInterface"),
 
   // Repositories
   ConversationRepositoryInterface: Symbol.for("ConversationRepositoryInterface"),

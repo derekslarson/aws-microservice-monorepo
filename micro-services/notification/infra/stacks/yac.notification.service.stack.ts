@@ -1,8 +1,12 @@
 /* eslint-disable no-new */
 import * as CDK from "@aws-cdk/core";
 import * as DynamoDB from "@aws-cdk/aws-dynamodb";
+import * as SSM from "@aws-cdk/aws-ssm";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Lambda from "@aws-cdk/aws-lambda";
+import * as ACM from "@aws-cdk/aws-certificatemanager";
+import * as Route53 from "@aws-cdk/aws-route53";
+import * as Route53Targets from "@aws-cdk/aws-route53-targets";
 import { Environment, generateExportNames, LogLevel } from "@yac/util";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import { WebSocketApi } from "../constructs/aws-apigatewayv2/webSocketApi.construct";
@@ -23,14 +27,25 @@ export class YacNotificationServiceStack extends CDK.Stack {
     const stackPrefix = environment === Environment.Local ? developer : environment;
 
     const ExportNames = generateExportNames(stackPrefix);
-    const customDomainName = CDK.Fn.importValue(ExportNames.CustomDomainName);
-    const regionalDomainName = CDK.Fn.importValue(ExportNames.RegionalDomainName);
-    const regionalHostedZoneId = CDK.Fn.importValue(ExportNames.RegionalHostedZoneId);
 
-    const domainName = ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, {
-      name: customDomainName,
-      regionalDomainName,
-      regionalHostedZoneId,
+    const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
+    const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
+    const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
+    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
+
+    const certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn);
+
+    const hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, {
+      zoneName: hostedZoneName,
+      hostedZoneId,
+    });
+
+    const domainName = new ApiGatewayV2.DomainName(this, `DomainName_${id}`, { domainName: `${this.recordName}.${hostedZoneName}`, certificate });
+
+    new Route53.ARecord(this, `ARecord_${id}`, {
+      zone: hostedZone,
+      recordName: this.recordName,
+      target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2DomainProperties(domainName.regionalDomainName, domainName.regionalHostedZoneId)),
     });
 
     // Layers
@@ -66,6 +81,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       NOTIFICATION_MAPPING_TABLE_NAME: notificationMappingTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
+      JWKS_URL: `https://cognito-idp.${this.region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`,
     };
 
     const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
@@ -90,19 +106,38 @@ export class YacNotificationServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const webSocketApi = new WebSocketApi(this, `WebSocketApi_${id}`, {
+    new WebSocketApi(this, `WebSocketApi_${id}`, {
       connectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: connectHandler }) },
       disconnectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: disconnectHandler }) },
-    });
-
-    new ApiGatewayV2.WebSocketStage(this, `WebSocketApiStage_${id}`, {
-      webSocketApi,
-      stageName: "$default",
-      autoDeploy: true,
-      domainMapping: {
+      defaultDomainMapping: {
         domainName,
         mappingKey: "notification",
       },
     });
+  }
+
+  public get recordName(): string {
+    try {
+      const environment = this.node.tryGetContext("environment") as string;
+      const developer = this.node.tryGetContext("developer") as string;
+
+      if (environment === Environment.Prod) {
+        return "api-v4-ws";
+      }
+
+      if (environment === Environment.Dev) {
+        return "develop-ws";
+      }
+
+      if (environment === Environment.Local) {
+        return `${developer}-ws`;
+      }
+
+      return environment;
+    } catch (error) {
+      console.log(`${new Date().toISOString()} : Error in YacNotificationService recordName getter:\n`, error);
+
+      throw error;
+    }
   }
 }

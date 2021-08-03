@@ -2,14 +2,16 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { WebSocketMediatorServiceInterface } from "../mediator-services/websocket.mediator.service";
+import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { ConnectDto } from "../dtos/connect.dto";
 import { DisconnectDto } from "../dtos/disconnect.dto";
+import { TokenVerificationServiceInterface } from "../services/tokenVerification.service";
 
 @injectable()
-export class WebSocketController extends BaseController implements WebsocketControllerInterface {
+export class WebSocketController extends BaseController implements WebSocketControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
+    @inject(TYPES.TokenVerificationServiceInterface) private tokenVerificationService: TokenVerificationServiceInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.WebSocketMediatorServiceInterface) private webSocketMediatorService: WebSocketMediatorServiceInterface,
   ) {
@@ -21,12 +23,15 @@ export class WebSocketController extends BaseController implements WebsocketCont
       this.loggerService.trace("connect called", { request }, this.constructor.name);
 
       const {
-        queryStringParameters: { userId },
+        queryStringParameters: { token },
         requestContext: { connectionId },
       } = this.validationService.validate({ dto: ConnectDto, request });
 
-      await this.webSocketMediatorService.connect({ userId, connectionId });
-      return this.generateSuccessResponse({ message: "Connected" });
+      const { decodedToken: { username: userId } } = await this.tokenVerificationService.verifyToken({ token });
+
+      await this.webSocketMediatorService.persistConnectionId({ userId, connectionId });
+
+      return { statusCode: 200 };
     } catch (error: unknown) {
       this.loggerService.error("Error in connectClient", { error, request }, this.constructor.name);
 
@@ -40,9 +45,9 @@ export class WebSocketController extends BaseController implements WebsocketCont
 
       const { requestContext: { connectionId } } = this.validationService.validate({ dto: DisconnectDto, request });
 
-      await this.webSocketMediatorService.disconnect({ connectionId });
+      await this.webSocketMediatorService.deleteConnectionId({ connectionId });
 
-      return this.generateSuccessResponse({ message: "Disconnected" });
+      return { statusCode: 200 };
     } catch (error: unknown) {
       this.loggerService.error("Error in connectClient", { error, request }, this.constructor.name);
 
@@ -51,6 +56,7 @@ export class WebSocketController extends BaseController implements WebsocketCont
   }
 }
 
-export interface WebsocketControllerInterface {
+export interface WebSocketControllerInterface {
   connect(event: Request): Promise<Response>;
+  disconnect(event: Request): Promise<Response>;
 }
