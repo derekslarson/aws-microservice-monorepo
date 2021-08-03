@@ -1,4 +1,4 @@
-import { Record, Optional, Array, String, Literal, Union } from "runtypes";
+import { Record, Optional, String, Literal, Union } from "runtypes";
 import { RedirectUri } from "../runtypes/redirectUri.runtype";
 
 export const AuthorizeDto = Record({
@@ -9,6 +9,6 @@ export const AuthorizeDto = Record({
     state: Optional(String),
     code_challenge_method: Optional(Literal("S256")),
     code_challenge: Optional(String),
-    scope: Optional(Array(String)),
+    scope: Optional(String),
   }),
 });

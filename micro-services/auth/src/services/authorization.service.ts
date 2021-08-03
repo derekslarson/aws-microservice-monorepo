@@ -27,7 +27,7 @@ export class AuthorizationService implements AuthorizationServiceInterface {
         ...(state && { state }),
         ...(codeChallenge && { code_challenge: codeChallenge }),
         ...(codeChallengeMethod && { code_challenge_method: codeChallengeMethod }),
-        ...(scope && { scope: scope.join("+") }),
+        ...(scope && { scope }),
       });
 
       const setCookieHeader = authorizeResponse.headers["set-cookie"];
@@ -62,7 +62,7 @@ export interface AuthorizeInput {
   state?: string;
   codeChallenge?: string;
   codeChallengeMethod?: string;
-  scope?: string[];
+  scope?: string;
 }
 
 export interface AuthorizeOutput {
