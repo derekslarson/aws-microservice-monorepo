@@ -4,7 +4,7 @@ import { TYPES } from "../inversion-of-control/types";
 import { NotificationMappingServiceInterface } from "../entity-services/notificationMapping.service";
 import { NotificationMappingType } from "../enums/notificationMapping.Type.enum";
 import { WebSocketServiceInterface } from "../services/webSocket.service";
-import { WebsocketAction } from "../enums/webSocket.action.enum";
+import { WebsocketEvent } from "../enums/webSocket.event.enum";
 
 @injectable()
 export class WebSocketMediatorService implements WebSocketMediatorServiceInterface {
@@ -70,7 +70,7 @@ export class WebSocketMediatorService implements WebSocketMediatorServiceInterfa
 
       await this.webSocketService.sendMessage({
         connectionId,
-        action: WebsocketAction.UserAddedToTeam,
+        event: WebsocketEvent.UserAddedToTeam,
         data: { teamId, userId },
       });
     } catch (error: unknown) {

@@ -5,6 +5,7 @@ import { ApiGatewayManagementApi } from "aws-sdk";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { ApiGatewayManagementFactory } from "../factories/apiGatewayManagement.factory";
+import { WebsocketEvent } from "../enums/webSocket.event.enum";
 
 @injectable()
 export class WebSocketService implements WebSocketServiceInterface {
@@ -22,9 +23,9 @@ export class WebSocketService implements WebSocketServiceInterface {
     try {
       this.loggerService.trace("sendMessage called", { params }, this.constructor.name);
 
-      const { connectionId, action, data } = params;
+      const { connectionId, event, data } = params;
 
-      const stringifiedMessage = JSON.stringify({ action, data });
+      const stringifiedMessage = JSON.stringify({ event, data });
 
       await this.apiGatewayManagementApi.postToConnection({ ConnectionId: connectionId, Data: stringifiedMessage }).promise();
     } catch (error: unknown) {
@@ -43,7 +44,7 @@ export interface WebSocketServiceInterface {
 
 export interface SendMessageInput {
   connectionId: string;
-  action: string;
+  event: WebsocketEvent;
   data: Record<string, unknown>;
 }
 

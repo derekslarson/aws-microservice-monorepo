@@ -9,7 +9,7 @@ interface NotificationMappingDynamoRepositoryWithAnyMethod extends NotificationM
   [key: string]: any;
 }
 
-fdescribe("NotificationMappingDynamoRepository", () => {
+describe("NotificationMappingDynamoRepository", () => {
   let documentClient: Spied<DocumentClient>;
   let loggerService: Spied<LoggerService>;
   let notificationMappingDynamoRepository: NotificationMappingDynamoRepositoryWithAnyMethod;
