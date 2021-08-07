@@ -14,7 +14,7 @@ export class MessageS3Repository extends BaseS3Repository implements MessageFile
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: MessageS3RepositoryConfig,
   ) {
-    super(envConfig.bucketNames.message as string, s3Factory, loggerService);
+    super(envConfig.bucketNames.message, s3Factory, loggerService);
   }
 }
 
@@ -22,4 +22,8 @@ export interface MessageFileRepositoryInterface {
   getSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput;
 }
 
-type MessageS3RepositoryConfig = Pick<EnvConfigInterface, "bucketNames">;
+interface MessageS3RepositoryConfig extends EnvConfigInterface {
+  bucketNames: {
+    message: string;
+  }
+}

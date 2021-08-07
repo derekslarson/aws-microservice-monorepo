@@ -15,11 +15,6 @@ export interface EnvConfigInterface {
   secret: string;
   logLevel: LogLevel;
   tableNames: Record<string, string>;
-  bucketNames: {
-    message?: string;
-  };
-  snsTopicArns: {
-    clientsUpdated?: string;
-    userCreated?: string;
-  };
+  bucketNames: Record<string, string>;
+  snsTopicArns: Record<string, string>;
 }

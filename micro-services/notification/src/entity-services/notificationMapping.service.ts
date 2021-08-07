@@ -2,7 +2,6 @@ import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { NotificationMappingRepositoryInterface, NotificationMapping as NotificationMappingEntity } from "../repositories/notificationMapping.dynamo.repository";
-import { UserId } from "../types/userId.type";
 import { NotificationMappingType } from "../enums/notificationMapping.Type.enum";
 
 @injectable()
@@ -97,7 +96,7 @@ export interface NotificationMappingServiceInterface {
 export type NotificationMapping = NotificationMappingEntity;
 
 export interface CreateNotificationMappingInput {
-  userId: UserId;
+  userId: string;
   type: NotificationMappingType;
   value: string;
 }
@@ -107,7 +106,7 @@ export interface CreateNotificationMappingOutput {
 }
 
 export interface GetNotificationMappingsByUserIdAndTypeInput {
-  userId: UserId;
+  userId: string;
   type: NotificationMappingType;
 }
 
@@ -125,7 +124,7 @@ export interface GetNotificationMappingsByTypeAndValueOutput {
 }
 
 export interface DeleteNotificationMappingInput {
-  userId: UserId;
+  userId: string;
   type: NotificationMappingType;
   value: string;
 }

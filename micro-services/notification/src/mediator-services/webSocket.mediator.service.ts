@@ -1,7 +1,6 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { UserId } from "../types/userId.type";
 import { NotificationMappingServiceInterface } from "../entity-services/notificationMapping.service";
 import { NotificationMappingType } from "../enums/notificationMapping.Type.enum";
 import { WebSocketServiceInterface } from "../services/webSocket.service";
@@ -90,14 +89,14 @@ export interface WebSocketMediatorServiceInterface {
 }
 
 export interface PersistConnectionId {
-  userId: UserId;
+  userId: string;
   connectionId: string;
 }
 
 export type PersistConnectionIdOutput = void;
 
 export interface GetConnectionIdsByUserIdInput {
-  userId: UserId;
+  userId: string;
 }
 
 export interface GetConnectionIdsByUserIdOutput {

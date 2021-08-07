@@ -2,7 +2,6 @@
 import { inject, injectable } from "inversify";
 import { ForbiddenError, HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { UserId } from "../types/userId.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { Jwt, JwtFactory } from "../factories/jwt.factory";
 import { Jwk, JwkToPem, JwkToPemFactory } from "../factories/jwkToPem.factory";
@@ -67,7 +66,8 @@ export interface VerifyTokenInput {
 }
 
 export interface DecodedToken {
-  username: UserId;
+  // userId
+  username: string;
 }
 
 export interface VerifyTokenOutput {

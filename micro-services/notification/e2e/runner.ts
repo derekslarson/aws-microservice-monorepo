@@ -6,7 +6,6 @@ import { SpecReporter } from "jasmine-spec-reporter";
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import { getAccessTokenByEmail, getSsmParameters, setEnvVars } from "../../../e2e/util";
-import { createRandomUser } from "./util";
 
 const { argv } = yargs(hideBin(process.argv));
 const { environment } = argv as { environment?: string; };
@@ -22,27 +21,27 @@ const necessaryParams = [
   "yac-client-id",
   "yac-client-secret",
   "yac-client-redirect-uri",
-  "core-table-name",
-  "image-s3-bucket-name",
+  "notification-table-name",
 ];
 
 (async () => {
   const initialEnvVals = await getSsmParameters(environment, necessaryParams);
-  initialEnvVals.baseUrl = `https://${environment === "dev" ? "develop" : environment}.yacchat.com/core`;
+  initialEnvVals.baseUrl = `https://${environment === "dev" ? "develop" : environment}.yacchat.com/notification`;
+  initialEnvVals.websocketUrl = `wss://${environment === "dev" ? "develop" : environment}-ws.yacchat.com/notification`;
 
   setEnvVars(initialEnvVals);
 
-  const { user } = await createRandomUser();
+  // const { user } = await createRandomUser();
 
-  const { accessToken } = await getAccessTokenByEmail(user.email);
+  // const { accessToken } = await getAccessTokenByEmail(user.email);
 
-  const userEnvVars = {
-    userId: user.id,
-    userEmail: user.email,
-    accessToken,
-  };
+  // const userEnvVars = {
+  //   userId: user.id,
+  //   userEmail: user.email,
+  //   accessToken,
+  // };
 
-  setEnvVars(userEnvVars);
+  // setEnvVars(userEnvVars);
 
   const jasmineInstance = new Jasmine({});
   const specReporter = new SpecReporter({ spec: { displayPending: true } });

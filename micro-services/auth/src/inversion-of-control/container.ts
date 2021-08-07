@@ -16,6 +16,7 @@ import { ClientController, ClientControllerInterface } from "../controllers/clie
 import { UserCreatedProcessorService } from "../processor-services/userCreated.processor.service";
 import { AuthorizationService, AuthorizationServiceInterface } from "../services/authorization.service";
 import { AuthorizationController, AuthorizationControllerInterface } from "../controllers/authorization.controller";
+import { ClientsUpdatedSnsService, ClientsUpdatedSnsServiceInterface } from "../sns-services/clientsUpdated.sns.service";
 
 const container = new Container();
 
@@ -32,6 +33,8 @@ try {
   container.bind<AuthorizationServiceInterface>(TYPES.AuthorizationServiceInterface).to(AuthorizationService);
   container.bind<ClientServiceInterface>(TYPES.ClientServiceInterface).to(ClientService);
   container.bind<MailServiceInterface>(TYPES.MailServiceInterface).to(MailService);
+
+  container.bind<ClientsUpdatedSnsServiceInterface>(TYPES.ClientsUpdatedSnsServiceInterface).to(ClientsUpdatedSnsService);
 
   container.bind<SnsProcessorServiceInterface>(TYPES.UserCreatedProcessorServiceInterface).to(UserCreatedProcessorService);
 

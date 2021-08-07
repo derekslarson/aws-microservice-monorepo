@@ -140,6 +140,11 @@ export class YacNotificationServiceStack extends CDK.Stack {
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn)),
       ],
     });
+
+    new SSM.StringParameter(this, `NotificationMappingTableNameSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/notification-mapping-table-name`,
+      stringValue: notificationMappingTable.tableName,
+    });
   }
 
   public get recordName(): string {

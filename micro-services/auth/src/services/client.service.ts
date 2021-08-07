@@ -1,10 +1,11 @@
 import { inject, injectable } from "inversify";
-import { ClientsUpdatedSnsServiceInterface, ForbiddenError, LoggerServiceInterface, NotFoundError } from "@yac/util";
+import { ForbiddenError, LoggerServiceInterface, NotFoundError } from "@yac/util";
 import CognitoIdentityServiceProvider from "aws-sdk/clients/cognitoidentityserviceprovider";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
 import { ClientType } from "../enums/clientType.enum";
+import { ClientsUpdatedSnsServiceInterface } from "../sns-services/clientsUpdated.sns.service";
 
 @injectable()
 export class ClientService implements ClientServiceInterface {

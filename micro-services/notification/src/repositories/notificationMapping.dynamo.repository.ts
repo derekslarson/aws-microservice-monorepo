@@ -4,7 +4,6 @@ import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface }
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
-import { UserId } from "../types/userId.type";
 import { NotificationMappingType } from "../enums/notificationMapping.Type.enum";
 
 @injectable()
@@ -39,8 +38,8 @@ export class NotificationMappingDynamoRepository extends BaseDynamoRepositoryV2<
       };
 
       await this.documentClient.put({
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
         TableName: this.tableName,
+        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
         Item: notificationMappingEntity,
       }).promise();
 
@@ -133,13 +132,13 @@ type NotificationMappingRepositoryConfig = Pick<EnvConfigInterface, "tableNames"
 export interface NotificationMapping {
   type: NotificationMappingType;
   value: string;
-  userId: UserId;
+  userId: string;
 }
 
 export interface RawNotificationMapping extends NotificationMapping {
   entityType: EntityType.NotificationMapping;
   // userId
-  pk: UserId;
+  pk: string;
   // `${type}-${value}`
   sk: string;
   // `${type}-${value}`
@@ -157,7 +156,7 @@ export interface CreateNotificationMappingOutput {
 }
 
 export interface GetNotificationMappingsByUserIdAndTypeInput {
-  userId: UserId;
+  userId: string;
   type: NotificationMappingType;
 }
 

@@ -4,7 +4,6 @@ import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServi
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
-import { UserId } from "../types/userId.type";
 
 @injectable()
 export class UserAddedToTeamProcessorService implements SnsProcessorServiceInterface {
@@ -37,7 +36,7 @@ export class UserAddedToTeamProcessorService implements SnsProcessorServiceInter
       const { message: { teamId, userId, teamMemberIds } } = record;
 
       const nestedConnectionIdArrays = await Promise.all(teamMemberIds.map(async (teamMemberId) => {
-        const { connectionIds } = await this.webSocketMediatorService.getConnectionIdsByUserId({ userId: teamMemberId as UserId });
+        const { connectionIds } = await this.webSocketMediatorService.getConnectionIdsByUserId({ userId: teamMemberId });
 
         return connectionIds;
       }));

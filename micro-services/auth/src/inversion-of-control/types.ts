@@ -15,6 +15,8 @@ const TYPES = {
 
   UserCreatedProcessorServiceInterface: Symbol.for("UserCreatedProcessorServiceInterface"),
 
+  ClientsUpdatedSnsServiceInterface: Symbol.for("ClientsUpdatedSnsServiceInterface"),
+
   CognitoFactory: Symbol.for("CognitoFactory"),
   CryptoFactory: Symbol.for("CryptoFactory"),
   SesFactory: Symbol.for("SesFactory"),
