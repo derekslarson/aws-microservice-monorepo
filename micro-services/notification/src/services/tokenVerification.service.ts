@@ -32,11 +32,15 @@ export class TokenVerificationService implements TokenVerificationServiceInterfa
 
       const { token } = params;
 
-      const { body: { keys: jwks } } = await this.httpRequestService.get<{ keys: Jwk[] }>(this.jwksUrl);
+      const { body: { keys: jwks } } = await this.httpRequestService.get<{ keys: Jwk[]; }>(this.jwksUrl);
 
-      const { header: { kid } } = this.jwt.decode(token, { complete: true }) || { header: {} };
+      const completeDecodedToken = this.jwt.decode(token, { complete: true });
 
-      const tokenJwk = jwks.find((jwk) => jwk.kid === kid);
+      if (!completeDecodedToken) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const tokenJwk = jwks.find((jwk) => jwk.kid === completeDecodedToken.header.kid);
 
       if (!tokenJwk) {
         throw new ForbiddenError("Forbidden");

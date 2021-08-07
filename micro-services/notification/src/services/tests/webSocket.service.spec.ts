@@ -5,7 +5,7 @@ import { WebsocketEvent } from "../../enums/webSocket.event.enum";
 import { ApiGatewayManagementFactory } from "../../factories/apiGatewayManagement.factory";
 import { WebSocketService, WebSocketServiceInterface } from "../webSocket.service";
 
-fdescribe("WebSocketService", () => {
+describe("WebSocketService", () => {
   let apiGatewayManagement: Spied<ApiGatewayManagementApi>;
   const apiGatewayManagementFactory: ApiGatewayManagementFactory = () => apiGatewayManagement as unknown as ApiGatewayManagementApi;
 
@@ -46,7 +46,7 @@ fdescribe("WebSocketService", () => {
     });
 
     describe("under error conditions", () => {
-      describe("when ses.sendEmail throws an error", () => {
+      describe("when apiGatewayManagement.postToConnection throws an error", () => {
         beforeEach(() => {
           apiGatewayManagement.postToConnection.and.throwError(mockError);
         });
