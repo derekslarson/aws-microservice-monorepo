@@ -6,13 +6,13 @@ import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 
 @injectable()
-export class UserAddedToTeamProcessorService implements SnsProcessorServiceInterface {
+export class UserAddedToTeamSnsProcessorService implements SnsProcessorServiceInterface {
   private userAddedToTeamSnsTopicArn: string;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.WebSocketMediatorServiceInterface) private webSocketMediatorService: WebSocketMediatorServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: UserAddedToTeamProcessorServiceConfigInterface,
+    @inject(TYPES.EnvConfigInterface) envConfig: UserAddedToTeamSnsProcessorServiceConfigInterface,
   ) {
     this.userAddedToTeamSnsTopicArn = envConfig.snsTopicArns.userAddedToTeam;
   }
@@ -33,21 +33,11 @@ export class UserAddedToTeamProcessorService implements SnsProcessorServiceInter
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { message: { teamId, userId, teamMemberIds } } = record;
+      const { message: { team, user, teamMemberIds } } = record;
 
-      const nestedConnectionIdArrays = await Promise.all(teamMemberIds.map(async (teamMemberId) => {
-        const { connectionIds } = await this.webSocketMediatorService.getConnectionIdsByUserId({ userId: teamMemberId });
+      const { connectionIds } = await this.webSocketMediatorService.getConnectionIdsByUserIds({ userIds: teamMemberIds });
 
-        return connectionIds;
-      }));
-
-      const connectionIds = nestedConnectionIdArrays.reduce((acc, connectionIdArray) => {
-        acc.push(...connectionIdArray);
-
-        return acc;
-      }, []);
-
-      await Promise.all(connectionIds.map((connectionId) => this.webSocketMediatorService.sendUserAddedToTeamMessage({ connectionId, teamId, userId })));
+      await Promise.all(connectionIds.map((connectionId) => this.webSocketMediatorService.sendUserAddedToTeamMessage({ connectionId, team, user })));
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 
@@ -56,4 +46,4 @@ export class UserAddedToTeamProcessorService implements SnsProcessorServiceInter
   }
 }
 
-export type UserAddedToTeamProcessorServiceConfigInterface = Pick<EnvConfigInterface, "snsTopicArns">;
+export type UserAddedToTeamSnsProcessorServiceConfigInterface = Pick<EnvConfigInterface, "snsTopicArns">;

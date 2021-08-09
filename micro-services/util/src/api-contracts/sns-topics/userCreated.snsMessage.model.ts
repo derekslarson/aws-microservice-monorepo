@@ -1,5 +1,5 @@
-export interface UserCreatedSnsMessage {
+export type UserCreatedSnsMessage = {
   id: string;
   email?: string;
   phone?: string;
-}
+};

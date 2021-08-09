@@ -1,3 +1,3 @@
-export interface ClientsUpdatedSnsMessage {
+export type ClientsUpdatedSnsMessage = {
   apiId?: string;
-}
+};

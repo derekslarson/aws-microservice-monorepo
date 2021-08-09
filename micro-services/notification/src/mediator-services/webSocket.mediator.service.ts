@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/util";
+import { LoggerServiceInterface, Team, User } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { NotificationMappingServiceInterface } from "../entity-services/notificationMapping.service";
 import { NotificationMappingType } from "../enums/notificationMapping.Type.enum";
@@ -46,6 +46,32 @@ export class WebSocketMediatorService implements WebSocketMediatorServiceInterfa
     }
   }
 
+  public async getConnectionIdsByUserIds(params: GetConnectionIdsByUserIdsInput): Promise<GetConnectionIdsByUserIdsOutput> {
+    try {
+      this.loggerService.trace("getConnectionIdsByUserIds called", { params }, this.constructor.name);
+
+      const { userIds } = params;
+
+      const arraysOfConnectionIdsByUserId = await Promise.all(userIds.map(async (userId) => {
+        const { connectionIds } = await this.getConnectionIdsByUserId({ userId });
+
+        return connectionIds;
+      }));
+
+      const connectionIds = arraysOfConnectionIdsByUserId.reduce((acc, arrayOfConnectionIdsByUserId) => {
+        acc.push(...arrayOfConnectionIdsByUserId);
+
+        return acc;
+      }, []);
+
+      return { connectionIds };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getConnectionIdsByUserIds", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async deleteConnectionId(params: DeleteConnectionIdInput): Promise<DeleteConnectionIdOutput> {
     try {
       this.loggerService.trace("deleteConnectionId called", { params }, this.constructor.name);
@@ -66,12 +92,12 @@ export class WebSocketMediatorService implements WebSocketMediatorServiceInterfa
     try {
       this.loggerService.trace("sendUserAddedToTeamMessage called", { params }, this.constructor.name);
 
-      const { connectionId, teamId, userId } = params;
+      const { connectionId, team, user } = params;
 
       await this.webSocketService.sendMessage({
         connectionId,
         event: WebsocketEvent.UserAddedToTeam,
-        data: { teamId, userId },
+        data: { team, user },
       });
     } catch (error: unknown) {
       this.loggerService.error("Error in sendUserAddedToTeamMessage", { error, params }, this.constructor.name);
@@ -84,6 +110,7 @@ export class WebSocketMediatorService implements WebSocketMediatorServiceInterfa
 export interface WebSocketMediatorServiceInterface {
   persistConnectionId(params: PersistConnectionId): Promise<PersistConnectionIdOutput>;
   getConnectionIdsByUserId(params: GetConnectionIdsByUserIdInput): Promise<GetConnectionIdsByUserIdOutput>;
+  getConnectionIdsByUserIds(params: GetConnectionIdsByUserIdsInput): Promise<GetConnectionIdsByUserIdsOutput>;
   deleteConnectionId(params: DeleteConnectionIdInput): Promise<DeleteConnectionIdOutput>;
   sendUserAddedToTeamMessage(params: SendUserAddedToTeamMessageInput): Promise<SendUserAddedToTeamMessageOutput>;
 }
@@ -103,6 +130,14 @@ export interface GetConnectionIdsByUserIdOutput {
   connectionIds: string[];
 }
 
+export interface GetConnectionIdsByUserIdsInput {
+  userIds: string[];
+}
+
+export interface GetConnectionIdsByUserIdsOutput {
+  connectionIds: string[];
+}
+
 export interface DeleteConnectionIdInput {
   connectionId: string;
 }
@@ -111,8 +146,8 @@ export type DeleteConnectionIdOutput = void;
 
 export interface SendUserAddedToTeamMessageInput {
   connectionId: string;
-  teamId: string;
-  userId: string;
+  team: Team;
+  user: User;
 }
 
 export type SendUserAddedToTeamMessageOutput = void;

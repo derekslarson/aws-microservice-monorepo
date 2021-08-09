@@ -7,7 +7,7 @@ import { apiGatewayManagementFactory, ApiGatewayManagementFactory } from "../fac
 import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory";
 import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
-import { UserAddedToTeamProcessorService } from "../processor-services/userAddedToTeam.processor.service";
+import { UserAddedToTeamSnsProcessorService } from "../processor-services/userAddedToTeam.sns.processor.service";
 import { NotificationMappingDynamoRepository, NotificationMappingRepositoryInterface } from "../repositories/notificationMapping.dynamo.repository";
 import { TokenVerificationService, TokenVerificationServiceInterface } from "../services/tokenVerification.service";
 import { WebSocketService, WebSocketServiceInterface } from "../services/webSocket.service";
@@ -28,7 +28,7 @@ try {
   container.bind<WebSocketMediatorServiceInterface>(TYPES.WebSocketMediatorServiceInterface).to(WebSocketMediatorService);
 
   // Processor Services
-  container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToTeamProcessorServiceInterface).to(UserAddedToTeamProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToTeamSnsProcessorServiceInterface).to(UserAddedToTeamSnsProcessorService);
 
   // Entity Services
   container.bind<NotificationMappingServiceInterface>(TYPES.NotificationMappingServiceInterface).to(NotificationMappingService);

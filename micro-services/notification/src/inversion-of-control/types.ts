@@ -10,7 +10,7 @@ const TYPES = {
   WebSocketMediatorServiceInterface: Symbol.for("WebSocketMediatorServiceInterface"),
 
   // Processor Services
-  UserAddedToTeamProcessorServiceInterface: Symbol.for("UserAddedToTeamProcessorServiceInterface"),
+  UserAddedToTeamSnsProcessorServiceInterface: Symbol.for("UserAddedToTeamSnsProcessorServiceInterface"),
 
   // Entity Services
   NotificationMappingServiceInterface: Symbol.for("NotificationMappingServiceInterface"),
