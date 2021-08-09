@@ -20,7 +20,7 @@ export class WebSocketMediatorService implements WebSocketMediatorServiceInterfa
 
       const { userId, connectionId } = params;
 
-      await this.notificationMappingService.createNotificationMapping({ userId, type: NotificationMappingType.Websocket, value: connectionId });
+      await this.notificationMappingService.createNotificationMapping({ userId, type: NotificationMappingType.WebSocket, value: connectionId });
     } catch (error: unknown) {
       this.loggerService.error("Error in persistConnectionId", { error, params }, this.constructor.name);
 
@@ -34,7 +34,7 @@ export class WebSocketMediatorService implements WebSocketMediatorServiceInterfa
 
       const { userId } = params;
 
-      const { notificationMappings } = await this.notificationMappingService.getNotificationMappingsByUserIdAndType({ userId, type: NotificationMappingType.Websocket });
+      const { notificationMappings } = await this.notificationMappingService.getNotificationMappingsByUserIdAndType({ userId, type: NotificationMappingType.WebSocket });
 
       const connectionIds = notificationMappings.map((notificationMapping) => notificationMapping.value);
 
@@ -78,9 +78,9 @@ export class WebSocketMediatorService implements WebSocketMediatorServiceInterfa
 
       const { connectionId } = params;
 
-      const { notificationMappings } = await this.notificationMappingService.getNotificationMappingsByTypeAndValue({ type: NotificationMappingType.Websocket, value: connectionId });
+      const { notificationMappings } = await this.notificationMappingService.getNotificationMappingsByTypeAndValue({ type: NotificationMappingType.WebSocket, value: connectionId });
 
-      await Promise.all(notificationMappings.map((notificationMapping) => this.notificationMappingService.deleteNotificationMapping({ userId: notificationMapping.userId, type: NotificationMappingType.Websocket, value: connectionId })));
+      await Promise.all(notificationMappings.map((notificationMapping) => this.notificationMappingService.deleteNotificationMapping({ userId: notificationMapping.userId, type: NotificationMappingType.WebSocket, value: connectionId })));
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteConnectionId", { error, params }, this.constructor.name);
 

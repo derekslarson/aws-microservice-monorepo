@@ -23,7 +23,7 @@ describe("NotificationMappingDynamoRepository", () => {
     globalSecondaryIndexNames: { one: mockGsiOneIndexName },
   };
 
-  const mockType = NotificationMappingType.Websocket;
+  const mockType = NotificationMappingType.WebSocket;
   const mockValue = "mock-value";
   const mockUserId = "mock-user-id";
 

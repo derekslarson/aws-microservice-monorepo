@@ -53,7 +53,7 @@ describe("WebSocketMediatorService", () => {
         expect(notificationMappingService.createNotificationMapping).toHaveBeenCalledTimes(1);
         expect(notificationMappingService.createNotificationMapping).toHaveBeenCalledWith({
           userId: mockUserIdOne,
-          type: NotificationMappingType.Websocket,
+          type: NotificationMappingType.WebSocket,
           value: mockConnectionIdOne,
         });
       });
@@ -103,7 +103,7 @@ describe("WebSocketMediatorService", () => {
         expect(notificationMappingService.getNotificationMappingsByUserIdAndType).toHaveBeenCalledTimes(1);
         expect(notificationMappingService.getNotificationMappingsByUserIdAndType).toHaveBeenCalledWith({
           userId: mockUserIdOne,
-          type: NotificationMappingType.Websocket,
+          type: NotificationMappingType.WebSocket,
         });
       });
 
@@ -161,12 +161,12 @@ describe("WebSocketMediatorService", () => {
         expect(notificationMappingService.getNotificationMappingsByUserIdAndType).toHaveBeenCalledTimes(2);
         expect(notificationMappingService.getNotificationMappingsByUserIdAndType).toHaveBeenCalledWith({
           userId: mockUserIdOne,
-          type: NotificationMappingType.Websocket,
+          type: NotificationMappingType.WebSocket,
         });
 
         expect(notificationMappingService.getNotificationMappingsByUserIdAndType).toHaveBeenCalledWith({
           userId: mockUserIdTwo,
-          type: NotificationMappingType.Websocket,
+          type: NotificationMappingType.WebSocket,
         });
       });
 
@@ -221,7 +221,7 @@ describe("WebSocketMediatorService", () => {
 
         expect(notificationMappingService.getNotificationMappingsByTypeAndValue).toHaveBeenCalledTimes(1);
         expect(notificationMappingService.getNotificationMappingsByTypeAndValue).toHaveBeenCalledWith({
-          type: NotificationMappingType.Websocket,
+          type: NotificationMappingType.WebSocket,
           value: mockConnectionIdOne,
         });
       });
@@ -232,7 +232,7 @@ describe("WebSocketMediatorService", () => {
         expect(notificationMappingService.deleteNotificationMapping).toHaveBeenCalledTimes(1);
         expect(notificationMappingService.deleteNotificationMapping).toHaveBeenCalledWith({
           userId: mockUserIdOne,
-          type: NotificationMappingType.Websocket,
+          type: NotificationMappingType.WebSocket,
           value: mockConnectionIdOne,
         });
       });
