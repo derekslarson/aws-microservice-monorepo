@@ -16,6 +16,7 @@ describe("WebSocketMediatorService", () => {
   let webSocketMediatorService: WebSocketMediatorServiceWithAnyMethod;
 
   const mockUserId = "user-mock-id";
+  const mockEvent = WebSocketEvent.UserAddedToTeam as const;
   const mockConnectionIdOne = "mock-connection-id-one";
   const mockConnectionIdTwo = "mock-connection-id-two";
 
@@ -42,9 +43,9 @@ describe("WebSocketMediatorService", () => {
   });
 
   describe("sendMessage", () => {
-    const baseParams = {
+    const params = {
       userId: mockUserId,
-      event: WebSocketEvent.UserAddedToTeam as const,
+      event: mockEvent,
       data: { team: mockTeam, user: mockUser },
     };
 
@@ -55,30 +56,26 @@ describe("WebSocketMediatorService", () => {
       });
 
       it("calls this.getListenersByUserId with the correct params", async () => {
-        await webSocketMediatorService.sendMessage(baseParams);
+        await webSocketMediatorService.sendMessage(params);
 
         expect(webSocketMediatorService.getListenersByUserId).toHaveBeenCalledTimes(1);
         expect(webSocketMediatorService.getListenersByUserId).toHaveBeenCalledWith({ userId: mockUserId });
       });
 
-      describe("when passed 'event: WebSocketEvent.UserAddedToTeam'", () => {
-        const params = { ...baseParams };
+      it("calls webSocketService.sendMessage with the correct params", async () => {
+        await webSocketMediatorService.sendMessage(params);
 
-        it("calls webSocketService.sendMessage with the correct params", async () => {
-          await webSocketMediatorService.sendMessage(params);
+        expect(webSocketService.sendMessage).toHaveBeenCalledTimes(2);
+        expect(webSocketService.sendMessage).toHaveBeenCalledWith({
+          connectionId: mockConnectionIdOne,
+          event: WebSocketEvent.UserAddedToTeam,
+          data: { team: mockTeam, user: mockUser },
+        });
 
-          expect(webSocketService.sendMessage).toHaveBeenCalledTimes(2);
-          expect(webSocketService.sendMessage).toHaveBeenCalledWith({
-            connectionId: mockConnectionIdOne,
-            event: WebSocketEvent.UserAddedToTeam,
-            data: { team: mockTeam, user: mockUser },
-          });
-
-          expect(webSocketService.sendMessage).toHaveBeenCalledWith({
-            connectionId: mockConnectionIdTwo,
-            event: WebSocketEvent.UserAddedToTeam,
-            data: { team: mockTeam, user: mockUser },
-          });
+        expect(webSocketService.sendMessage).toHaveBeenCalledWith({
+          connectionId: mockConnectionIdTwo,
+          event: WebSocketEvent.UserAddedToTeam,
+          data: { team: mockTeam, user: mockUser },
         });
       });
     });
@@ -92,18 +89,18 @@ describe("WebSocketMediatorService", () => {
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await webSocketMediatorService.sendMessage(baseParams);
+            await webSocketMediatorService.sendMessage(params);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in sendMessage", { error: mockError, params: baseParams }, webSocketMediatorService.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in sendMessage", { error: mockError, params }, webSocketMediatorService.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await webSocketMediatorService.sendMessage(baseParams);
+            await webSocketMediatorService.sendMessage(params);
 
             fail("Should have thrown");
           } catch (error) {
