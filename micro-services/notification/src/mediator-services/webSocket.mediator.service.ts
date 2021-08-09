@@ -1,8 +1,8 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, Team, User } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { NotificationMappingServiceInterface } from "../entity-services/notificationMapping.service";
-import { NotificationType } from "../enums/notificationType.enum";
+import { ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
+import { ListenerType } from "../enums/listenerType.enum";
 import { WebSocketServiceInterface } from "../services/webSocket.service";
 import { WebSocketEvent } from "../enums/webSocket.event.enum";
 import { BaseIntegrationMediatorService, BaseIntegrationMediatorServiceInterface } from "./base.integration.mediator.service";
@@ -12,9 +12,9 @@ export class WebSocketMediatorService extends BaseIntegrationMediatorService imp
   constructor(
     @inject(TYPES.WebSocketServiceInterface) private webSocketService: WebSocketServiceInterface,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
-    @inject(TYPES.NotificationMappingServiceInterface) notificationMappingService: NotificationMappingServiceInterface,
+    @inject(TYPES.ListenerMappingServiceInterface) listenerMappingService: ListenerMappingServiceInterface,
   ) {
-    super(NotificationType.WebSocket, loggerService, notificationMappingService);
+    super(ListenerType.WebSocket, loggerService, listenerMappingService);
   }
 
   public async sendMessage(params: SendMessageInput): Promise<SendMessageOutput> {

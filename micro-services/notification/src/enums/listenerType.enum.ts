@@ -1,4 +1,4 @@
-export enum NotificationType {
+export enum ListenerType {
   WebSocket = "web_socket",
   Email = "email",
   Phone = "phone",

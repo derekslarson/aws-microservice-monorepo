@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, User, Team } from "@yac/util";
-import { NotificationMappingService, NotificationMappingServiceInterface } from "../../entity-services/notificationMapping.service";
+import { ListenerMappingService, ListenerMappingServiceInterface } from "../../entity-services/listenerMapping.service";
 import { WebSocketEvent } from "../../enums/webSocket.event.enum";
 import { WebSocketService, WebSocketServiceInterface } from "../../services/webSocket.service";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../webSocket.mediator.service";
@@ -11,7 +11,7 @@ interface WebSocketMediatorServiceWithAnyMethod extends WebSocketMediatorService
 
 describe("WebSocketMediatorService", () => {
   let loggerService: Spied<LoggerService>;
-  let notificationMappingService: Spied<NotificationMappingServiceInterface>;
+  let listenerMappingService: Spied<ListenerMappingServiceInterface>;
   let webSocketService: Spied<WebSocketServiceInterface>;
   let webSocketMediatorService: WebSocketMediatorServiceWithAnyMethod;
 
@@ -36,10 +36,10 @@ describe("WebSocketMediatorService", () => {
 
   beforeEach(() => {
     loggerService = TestSupport.spyOnClass(LoggerService);
-    notificationMappingService = TestSupport.spyOnClass(NotificationMappingService);
+    listenerMappingService = TestSupport.spyOnClass(ListenerMappingService);
     webSocketService = TestSupport.spyOnClass(WebSocketService);
 
-    webSocketMediatorService = new WebSocketMediatorService(webSocketService, loggerService, notificationMappingService);
+    webSocketMediatorService = new WebSocketMediatorService(webSocketService, loggerService, listenerMappingService);
   });
 
   describe("sendMessage", () => {

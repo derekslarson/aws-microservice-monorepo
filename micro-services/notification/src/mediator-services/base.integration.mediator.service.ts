@@ -1,14 +1,14 @@
 import { injectable, unmanaged } from "inversify";
 import { LoggerServiceInterface } from "@yac/util";
-import { NotificationMappingServiceInterface } from "../entity-services/notificationMapping.service";
-import { NotificationType } from "../enums/notificationType.enum";
+import { ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
+import { ListenerType } from "../enums/listenerType.enum";
 
 @injectable()
 export abstract class BaseIntegrationMediatorService implements BaseIntegrationMediatorServiceInterface {
   constructor(
-    @unmanaged() private type: NotificationType,
+    @unmanaged() private type: ListenerType,
     @unmanaged() protected loggerService: LoggerServiceInterface,
-    @unmanaged() private notificationMappingService: NotificationMappingServiceInterface,
+    @unmanaged() private listenerMappingService: ListenerMappingServiceInterface,
   ) {}
 
   public async persistListener(params: PersistListenerInput): Promise<PersistListenerOutput> {
@@ -17,7 +17,7 @@ export abstract class BaseIntegrationMediatorService implements BaseIntegrationM
 
       const { userId, listener } = params;
 
-      await this.notificationMappingService.createNotificationMapping({ userId, type: this.type, value: listener });
+      await this.listenerMappingService.createListenerMapping({ userId, type: this.type, value: listener });
     } catch (error: unknown) {
       this.loggerService.error("Error in persistListener", { error, params }, this.constructor.name);
 
@@ -31,9 +31,9 @@ export abstract class BaseIntegrationMediatorService implements BaseIntegrationM
 
       const { listener } = params;
 
-      const { notificationMappings } = await this.notificationMappingService.getNotificationMappingsByTypeAndValue({ type: this.type, value: listener });
+      const { listenerMappings } = await this.listenerMappingService.getListenerMappingsByTypeAndValue({ type: this.type, value: listener });
 
-      await Promise.all(notificationMappings.map((notificationMapping) => this.notificationMappingService.deleteNotificationMapping({ userId: notificationMapping.userId, type: this.type, value: listener })));
+      await Promise.all(listenerMappings.map((listenerMapping) => this.listenerMappingService.deleteListenerMapping({ userId: listenerMapping.userId, type: this.type, value: listener })));
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteListener", { error, params }, this.constructor.name);
 
@@ -47,9 +47,9 @@ export abstract class BaseIntegrationMediatorService implements BaseIntegrationM
 
       const { userId } = params;
 
-      const { notificationMappings } = await this.notificationMappingService.getNotificationMappingsByUserIdAndType({ userId, type: this.type });
+      const { listenerMappings } = await this.listenerMappingService.getListenerMappingsByUserIdAndType({ userId, type: this.type });
 
-      const listeners = notificationMappings.map((notificationMapping) => notificationMapping.value);
+      const listeners = listenerMappings.map((listenerMapping) => listenerMapping.value);
 
       return { listeners };
     } catch (error: unknown) {

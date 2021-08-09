@@ -2,13 +2,13 @@ import { coreContainerModule, DynamoProcessorServiceInterface, S3ProcessorServic
 import { Container } from "inversify";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { WebSocketController, WebSocketControllerInterface } from "../controllers/webSocket.controller";
-import { NotificationMappingService, NotificationMappingServiceInterface } from "../entity-services/notificationMapping.service";
+import { ListenerMappingService, ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
 import { apiGatewayManagementFactory, ApiGatewayManagementFactory } from "../factories/apiGatewayManagement.factory";
 import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory";
 import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { UserAddedToTeamSnsProcessorService } from "../processor-services/userAddedToTeam.sns.processor.service";
-import { NotificationMappingDynamoRepository, NotificationMappingRepositoryInterface } from "../repositories/notificationMapping.dynamo.repository";
+import { ListenerMappingDynamoRepository, ListenerMappingRepositoryInterface } from "../repositories/listenerMapping.dynamo.repository";
 import { TokenVerificationService, TokenVerificationServiceInterface } from "../services/tokenVerification.service";
 import { WebSocketService, WebSocketServiceInterface } from "../services/webSocket.service";
 import { TYPES } from "./types";
@@ -31,7 +31,7 @@ try {
   container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToTeamSnsProcessorServiceInterface).to(UserAddedToTeamSnsProcessorService);
 
   // Entity Services
-  container.bind<NotificationMappingServiceInterface>(TYPES.NotificationMappingServiceInterface).to(NotificationMappingService);
+  container.bind<ListenerMappingServiceInterface>(TYPES.ListenerMappingServiceInterface).to(ListenerMappingService);
 
   // General Services
   container.bind<TokenVerificationServiceInterface>(TYPES.TokenVerificationServiceInterface).to(TokenVerificationService);
@@ -39,7 +39,7 @@ try {
 
   // Repositories
 
-  container.bind<NotificationMappingRepositoryInterface>(TYPES.NotificationMappingRepositoryInterface).to(NotificationMappingDynamoRepository);
+  container.bind<ListenerMappingRepositoryInterface>(TYPES.ListenerMappingRepositoryInterface).to(ListenerMappingDynamoRepository);
 
   // Factories
   container.bind<ApiGatewayManagementFactory>(TYPES.ApiGatewayManagementFactory).toFactory(() => apiGatewayManagementFactory);

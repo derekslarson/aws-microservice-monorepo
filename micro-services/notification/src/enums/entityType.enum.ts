@@ -1,3 +1,3 @@
 export enum EntityType {
-  NotificationMapping = "NOTIFICATION_MAPPING",
+  ListenerMapping = "NOTIFICATION_MAPPING",
 }

@@ -13,14 +13,14 @@ const TYPES = {
   UserAddedToTeamSnsProcessorServiceInterface: Symbol.for("UserAddedToTeamSnsProcessorServiceInterface"),
 
   // Entity Services
-  NotificationMappingServiceInterface: Symbol.for("NotificationMappingServiceInterface"),
+  ListenerMappingServiceInterface: Symbol.for("ListenerMappingServiceInterface"),
 
   // General Services
   TokenVerificationServiceInterface: Symbol.for("TokenVerificationServiceInterface"),
   WebSocketServiceInterface: Symbol.for("WebSocketServiceInterface"),
 
   // Repositories
-  NotificationMappingRepositoryInterface: Symbol.for("NotificationMappingRepositoryInterface"),
+  ListenerMappingRepositoryInterface: Symbol.for("ListenerMappingRepositoryInterface"),
 
   // Factories
   ApiGatewayManagementFactory: Symbol.for("ApiGatewayManagementFactory"),

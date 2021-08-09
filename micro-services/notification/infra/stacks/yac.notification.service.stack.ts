@@ -59,14 +59,14 @@ export class YacNotificationServiceStack extends CDK.Stack {
     });
 
     // Databases
-    const notificationMappingTable = new DynamoDB.Table(this, `NotificationMappingTable_${id}`, {
+    const listenerMappingTable = new DynamoDB.Table(this, `ListenerMappingTable_${id}`, {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
       removalPolicy: CDK.RemovalPolicy.DESTROY,
     });
 
-    notificationMappingTable.addGlobalSecondaryIndex({
+    listenerMappingTable.addGlobalSecondaryIndex({
       indexName: GlobalSecondaryIndex.One,
       partitionKey: { name: "gsi1pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "gsi1sk", type: DynamoDB.AttributeType.STRING },
@@ -75,15 +75,15 @@ export class YacNotificationServiceStack extends CDK.Stack {
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
 
-    const notificationMappingTableFullAccessPolicyStatement = new IAM.PolicyStatement({
+    const listenerMappingTableFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "dynamodb:*" ],
-      resources: [ notificationMappingTable.tableArn, `${notificationMappingTable.tableArn}/*` ],
+      resources: [ listenerMappingTable.tableArn, `${listenerMappingTable.tableArn}/*` ],
     });
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
-      NOTIFICATION_MAPPING_TABLE_NAME: notificationMappingTable.tableName,
+      NOTIFICATION_MAPPING_TABLE_NAME: listenerMappingTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
       JWKS_URL: `https://cognito-idp.${this.region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`,
       USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: userAddedToTeamSnsTopicArn,
@@ -96,7 +96,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, notificationMappingTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -107,7 +107,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, notificationMappingTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -134,16 +134,16 @@ export class YacNotificationServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, notificationMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement ],
+      initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn)),
       ],
     });
 
-    new SSM.StringParameter(this, `NotificationMappingTableNameSsmParameter-${id}`, {
+    new SSM.StringParameter(this, `ListenerMappingTableNameSsmParameter-${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/notification-mapping-table-name`,
-      stringValue: notificationMappingTable.tableName,
+      stringValue: listenerMappingTable.tableName,
     });
   }
 
