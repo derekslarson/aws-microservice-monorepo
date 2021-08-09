@@ -31,4 +31,6 @@ export interface UserAddedToTeamSnsServiceInterface {
   sendMessage(message: UserAddedToTeamSnsMessage): Promise<void>;
 }
 
-export type UserAddedToTeamSnsServiceConfigInterface = Pick<EnvConfigInterface, "snsTopicArns">;
+export interface UserAddedToTeamSnsServiceConfigInterface {
+  snsTopicArns: Pick<EnvConfigInterface["snsTopicArns"], "userAddedToTeam">
+}
