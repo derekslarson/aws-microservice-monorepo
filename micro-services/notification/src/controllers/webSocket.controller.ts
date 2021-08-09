@@ -33,7 +33,7 @@ export class WebSocketController extends BaseController implements WebSocketCont
 
       return { statusCode: 200 };
     } catch (error: unknown) {
-      this.loggerService.error("Error in connectClient", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in connect", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -49,7 +49,7 @@ export class WebSocketController extends BaseController implements WebSocketCont
 
       return { statusCode: 200 };
     } catch (error: unknown) {
-      this.loggerService.error("Error in connectClient", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in disconnect", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
