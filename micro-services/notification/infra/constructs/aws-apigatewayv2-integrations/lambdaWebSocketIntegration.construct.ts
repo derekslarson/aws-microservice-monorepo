@@ -30,7 +30,7 @@ export class LambdaWebSocketIntegration implements ApiGatewayV2.IWebSocketRouteI
     });
 
     return {
-      type: ApiGatewayV2.WebSocketIntegrationType.AWS_PROXY,
+      type: ApiGatewayV2.WebSocketNotificationType.AWS_PROXY,
       uri: integrationUri,
       handlerArn: this.props.handler.functionArn,
     };

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, generateAwsResponse } from "@yac/util";
 import { ApiGatewayManagementApi } from "aws-sdk";
-import { WebsocketEvent } from "../../enums/webSocket.event.enum";
+import { WebSocketEvent } from "../../enums/webSocket.event.enum";
 import { ApiGatewayManagementFactory } from "../../factories/apiGatewayManagement.factory";
 import { WebSocketService, WebSocketServiceInterface } from "../webSocket.service";
 
@@ -14,7 +14,7 @@ describe("WebSocketService", () => {
 
   const mockWebSocketApiEndpoint = "mock-websocket-api-endpoint";
   const mockConfig = { webSocketApiEndpoint: mockWebSocketApiEndpoint };
-  const mockEvent = WebsocketEvent.UserAddedToTeam;
+  const mockEvent = WebSocketEvent.UserAddedToTeam;
   const mockConnectionId = "mock-connection-id";
   const mockData = {};
   const mockError = new Error("test");

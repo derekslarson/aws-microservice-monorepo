@@ -4,6 +4,7 @@ import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServi
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
+import { WebSocketEvent } from "../enums/webSocket.event.enum";
 
 @injectable()
 export class UserAddedToTeamSnsProcessorService implements SnsProcessorServiceInterface {
@@ -35,9 +36,14 @@ export class UserAddedToTeamSnsProcessorService implements SnsProcessorServiceIn
 
       const { message: { team, user, teamMemberIds } } = record;
 
-      const { connectionIds } = await this.webSocketMediatorService.getConnectionIdsByUserIds({ userIds: teamMemberIds });
+      await Promise.all(teamMemberIds.map((teamMemberId) => this.webSocketMediatorService.sendMessage({
+        userId: teamMemberId,
+        event: WebSocketEvent.UserAddedToTeam,
+        data: { team, user },
+      })));
 
-      await Promise.all(connectionIds.map((connectionId) => this.webSocketMediatorService.sendUserAddedToTeamMessage({ connectionId, team, user })));
+      // add support for push notifications
+      // add support for http integrations
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

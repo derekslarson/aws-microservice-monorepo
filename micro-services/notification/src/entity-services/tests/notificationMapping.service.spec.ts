@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport } from "@yac/util";
-import { NotificationMappingType } from "../../enums/notificationMapping.Type.enum";
+import { NotificationType } from "../../enums/notificationType.enum";
 import { NotificationMappingDynamoRepository } from "../../repositories/notificationMapping.dynamo.repository";
 import { NotificationMappingService, NotificationMappingServiceInterface } from "../notificationMapping.service";
 
@@ -10,7 +10,7 @@ describe("NotificationMappingService", () => {
   let notificationMappingService: NotificationMappingServiceInterface;
 
   const mockUserId = "mock-user-id";
-  const mockType = NotificationMappingType.WebSocket;
+  const mockType = NotificationType.WebSocket;
   const mockValue = "mock-value";
   const mockNotificationMapping = { userId: mockUserId, type: mockType, value: mockValue };
   const mockError = new Error("mock-error");

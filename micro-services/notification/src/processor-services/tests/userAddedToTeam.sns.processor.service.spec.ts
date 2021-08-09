@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User, Team } from "@yac/util";
+import { WebSocketEvent } from "../../enums/webSocket.event.enum";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../../mediator-services/webSocket.mediator.service";
 import { UserAddedToTeamSnsProcessorService } from "../userAddedToTeam.sns.processor.service";
 
@@ -12,10 +13,8 @@ describe("UserAddedToTeamSnsProcessorService", () => {
   const mockConfig = { snsTopicArns: { userAddedToTeam: mockUserAddedToTeamSnsTopicArn } };
   const mockUserIdOne = "user-mock-id-one";
   const mockUserIdTwo = "user-mock-id-two";
-  const mockConnectionIdOne = "mock-connection-id-one";
-  const mockConnectionIdTwo = "mock-connection-id-two";
   const mockTeamMemberIds = [ mockUserIdOne, mockUserIdTwo ];
-  const mockConnectionIds = [ mockConnectionIdOne, mockConnectionIdTwo ];
+
   const mockUser: User = {
     id: mockUserIdOne,
     image: "mock-image",
@@ -73,30 +72,22 @@ describe("UserAddedToTeamSnsProcessorService", () => {
   describe("processRecord", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        webSocketMediatorService.getConnectionIdsByUserIds.and.returnValue(Promise.resolve({ connectionIds: mockConnectionIds }));
-        webSocketMediatorService.sendUserAddedToTeamMessage.and.returnValue(Promise.resolve());
+        webSocketMediatorService.sendMessage.and.returnValue(Promise.resolve());
       });
 
-      it("calls webSocketMediatorService.getConnectionIdsByUserIds with the correct parameters", async () => {
+      it("calls webSocketMediatorService.sendMessage with the correct parameters", async () => {
         await userAddedToTeamSnsProcessorService.processRecord(mockRecord);
 
-        expect(webSocketMediatorService.getConnectionIdsByUserIds).toHaveBeenCalledTimes(1);
-        expect(webSocketMediatorService.getConnectionIdsByUserIds).toHaveBeenCalledWith({ userIds: mockTeamMemberIds });
-      });
-
-      it("calls webSocketMediatorService.sendUserAddedToTeamMessage with the correct parameters", async () => {
-        await userAddedToTeamSnsProcessorService.processRecord(mockRecord);
-
-        expect(webSocketMediatorService.sendUserAddedToTeamMessage).toHaveBeenCalledTimes(2);
-        expect(webSocketMediatorService.sendUserAddedToTeamMessage).toHaveBeenCalledWith({ connectionId: mockConnectionIdOne, team: mockTeam, user: mockUser });
-        expect(webSocketMediatorService.sendUserAddedToTeamMessage).toHaveBeenCalledWith({ connectionId: mockConnectionIdTwo, team: mockTeam, user: mockUser });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.UserAddedToTeam, data: { team: mockTeam, user: mockUser } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdTwo, event: WebSocketEvent.UserAddedToTeam, data: { team: mockTeam, user: mockUser } });
       });
     });
 
     describe("under error conditions", () => {
-      describe("when webSocketMediatorService.getConnectionIdsByUserIds throws an error", () => {
+      describe("when webSocketMediatorService.sendMessage throws an error", () => {
         beforeEach(() => {
-          webSocketMediatorService.getConnectionIdsByUserIds.and.throwError(mockError);
+          webSocketMediatorService.sendMessage.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {

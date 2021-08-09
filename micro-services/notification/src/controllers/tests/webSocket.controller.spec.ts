@@ -41,7 +41,7 @@ describe("WebSocketController", () => {
       beforeEach(() => {
         validationService.validate.and.returnValue(mockValidatedRequest);
         tokenVerificationService.verifyToken.and.returnValue(Promise.resolve({ decodedToken: { username: mockUserId } }));
-        webSocketMediatorService.persistConnectionId.and.returnValue(Promise.resolve());
+        webSocketMediatorService.persistListener.and.returnValue(Promise.resolve());
       });
 
       it("calls validationService.validate with the correct params", async () => {
@@ -58,11 +58,11 @@ describe("WebSocketController", () => {
         expect(tokenVerificationService.verifyToken).toHaveBeenCalledWith({ token: mockToken });
       });
 
-      it("calls webSocketMediatorService.persistConnectionId with the correct params", async () => {
+      it("calls webSocketMediatorService.persistListener with the correct params", async () => {
         await webSocketController.connect(mockRequest);
 
-        expect(webSocketMediatorService.persistConnectionId).toHaveBeenCalledTimes(1);
-        expect(webSocketMediatorService.persistConnectionId).toHaveBeenCalledWith({ userId: mockUserId, connectionId: mockConnectionId });
+        expect(webSocketMediatorService.persistListener).toHaveBeenCalledTimes(1);
+        expect(webSocketMediatorService.persistListener).toHaveBeenCalledWith({ userId: mockUserId, listener: mockConnectionId });
       });
 
       it("returns a valid response", async () => {
@@ -110,7 +110,7 @@ describe("WebSocketController", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         validationService.validate.and.returnValue(mockValidatedRequest);
-        webSocketMediatorService.deleteConnectionId.and.returnValue(Promise.resolve());
+        webSocketMediatorService.deleteListener.and.returnValue(Promise.resolve());
       });
 
       it("calls validationService.validate with the correct params", async () => {
@@ -120,11 +120,11 @@ describe("WebSocketController", () => {
         expect(validationService.validate).toHaveBeenCalledWith({ dto: DisconnectDto, request: mockRequest });
       });
 
-      it("calls webSocketMediatorService.deleteConnectionId with the correct params", async () => {
+      it("calls webSocketMediatorService.deleteListener with the correct params", async () => {
         await webSocketController.disconnect(mockRequest);
 
-        expect(webSocketMediatorService.deleteConnectionId).toHaveBeenCalledTimes(1);
-        expect(webSocketMediatorService.deleteConnectionId).toHaveBeenCalledWith({ connectionId: mockConnectionId });
+        expect(webSocketMediatorService.deleteListener).toHaveBeenCalledTimes(1);
+        expect(webSocketMediatorService.deleteListener).toHaveBeenCalledWith({ listener: mockConnectionId });
       });
 
       it("returns a valid response", async () => {

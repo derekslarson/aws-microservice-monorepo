@@ -2,7 +2,7 @@
 import { DocumentClientFactory, generateAwsResponse, LoggerService, Spied, TestSupport } from "@yac/util";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
 import { EntityType } from "../../enums/entityType.enum";
-import { NotificationMappingType } from "../../enums/notificationMapping.Type.enum";
+import { NotificationType } from "../../enums/notificationType.enum";
 import { NotificationMapping, NotificationMappingDynamoRepository, NotificationMappingRepositoryInterface } from "../notificationMapping.dynamo.repository";
 
 interface NotificationMappingDynamoRepositoryWithAnyMethod extends NotificationMappingRepositoryInterface {
@@ -23,7 +23,7 @@ describe("NotificationMappingDynamoRepository", () => {
     globalSecondaryIndexNames: { one: mockGsiOneIndexName },
   };
 
-  const mockType = NotificationMappingType.WebSocket;
+  const mockType = NotificationType.WebSocket;
   const mockValue = "mock-value";
   const mockUserId = "mock-user-id";
 

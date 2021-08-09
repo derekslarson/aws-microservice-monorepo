@@ -5,7 +5,7 @@ import { ApiGatewayManagementApi } from "aws-sdk";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { ApiGatewayManagementFactory } from "../factories/apiGatewayManagement.factory";
-import { WebsocketEvent } from "../enums/webSocket.event.enum";
+import { WebSocketEvent } from "../enums/webSocket.event.enum";
 
 @injectable()
 export class WebSocketService implements WebSocketServiceInterface {
@@ -44,7 +44,7 @@ export interface WebSocketServiceInterface {
 
 export interface SendMessageInput {
   connectionId: string;
-  event: WebsocketEvent;
+  event: WebSocketEvent;
   data: Record<string, unknown>;
 }
 

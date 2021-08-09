@@ -1,4 +1,4 @@
-export enum NotificationMappingType {
+export enum NotificationType {
   WebSocket = "web_socket",
   Email = "email",
   Phone = "phone",

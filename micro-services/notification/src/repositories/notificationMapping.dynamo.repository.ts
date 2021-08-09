@@ -4,7 +4,7 @@ import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface }
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
-import { NotificationMappingType } from "../enums/notificationMapping.Type.enum";
+import { NotificationType } from "../enums/notificationType.enum";
 
 @injectable()
 export class NotificationMappingDynamoRepository extends BaseDynamoRepositoryV2<NotificationMapping> implements NotificationMappingRepositoryInterface {
@@ -130,7 +130,7 @@ export interface NotificationMappingRepositoryInterface {
 type NotificationMappingRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
 export interface NotificationMapping {
-  type: NotificationMappingType;
+  type: NotificationType;
   value: string;
   userId: string;
 }
@@ -157,7 +157,7 @@ export interface CreateNotificationMappingOutput {
 
 export interface GetNotificationMappingsByUserIdAndTypeInput {
   userId: string;
-  type: NotificationMappingType;
+  type: NotificationType;
 }
 
 export interface GetNotificationMappingsByUserIdAndTypeOutput {
@@ -165,7 +165,7 @@ export interface GetNotificationMappingsByUserIdAndTypeOutput {
 }
 
 export interface GetNotificationMappingsByTypeAndValueInput {
-  type: NotificationMappingType;
+  type: NotificationType;
   value: string;
 }
 

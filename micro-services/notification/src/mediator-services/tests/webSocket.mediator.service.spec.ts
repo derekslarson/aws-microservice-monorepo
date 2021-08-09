@@ -1,24 +1,26 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, User, Team } from "@yac/util";
 import { NotificationMappingService, NotificationMappingServiceInterface } from "../../entity-services/notificationMapping.service";
-import { NotificationMappingType } from "../../enums/notificationMapping.Type.enum";
-import { WebsocketEvent } from "../../enums/webSocket.event.enum";
+import { WebSocketEvent } from "../../enums/webSocket.event.enum";
 import { WebSocketService, WebSocketServiceInterface } from "../../services/webSocket.service";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../webSocket.mediator.service";
+
+interface WebSocketMediatorServiceWithAnyMethod extends WebSocketMediatorServiceInterface {
+  [key: string]: any;
+}
 
 describe("WebSocketMediatorService", () => {
   let loggerService: Spied<LoggerService>;
   let notificationMappingService: Spied<NotificationMappingServiceInterface>;
   let webSocketService: Spied<WebSocketServiceInterface>;
-  let webSocketMediatorService: WebSocketMediatorServiceInterface;
+  let webSocketMediatorService: WebSocketMediatorServiceWithAnyMethod;
 
-  const mockUserIdOne = "user-mock-id-one";
-  const mockUserIdTwo = "user-mock-id-two";
+  const mockUserId = "user-mock-id";
   const mockConnectionIdOne = "mock-connection-id-one";
   const mockConnectionIdTwo = "mock-connection-id-two";
 
   const mockUser: User = {
-    id: mockUserIdOne,
+    id: mockUserId,
     image: "mock-image",
   };
 
@@ -36,254 +38,47 @@ describe("WebSocketMediatorService", () => {
     notificationMappingService = TestSupport.spyOnClass(NotificationMappingService);
     webSocketService = TestSupport.spyOnClass(WebSocketService);
 
-    webSocketMediatorService = new WebSocketMediatorService(loggerService, notificationMappingService, webSocketService);
+    webSocketMediatorService = new WebSocketMediatorService(webSocketService, loggerService, notificationMappingService);
   });
 
-  describe("persistConnectionId", () => {
-    const params = { userId: mockUserIdOne, connectionId: mockConnectionIdOne };
+  describe("sendMessage", () => {
+    const baseParams = {
+      userId: mockUserId,
+      event: WebSocketEvent.UserAddedToTeam as const,
+      data: { team: mockTeam, user: mockUser },
+    };
 
     describe("under normal conditions", () => {
       beforeEach(() => {
-        notificationMappingService.createNotificationMapping.and.returnValue(Promise.resolve());
-      });
-
-      it("calls notificationMappingService.createNotificationMapping with the correct params", async () => {
-        await webSocketMediatorService.persistConnectionId(params);
-
-        expect(notificationMappingService.createNotificationMapping).toHaveBeenCalledTimes(1);
-        expect(notificationMappingService.createNotificationMapping).toHaveBeenCalledWith({
-          userId: mockUserIdOne,
-          type: NotificationMappingType.WebSocket,
-          value: mockConnectionIdOne,
-        });
-      });
-    });
-
-    describe("under error conditions", () => {
-      describe("when notificationMappingService.createNotificationMapping throws an error", () => {
-        beforeEach(() => {
-          notificationMappingService.createNotificationMapping.and.throwError(mockError);
-        });
-
-        it("calls loggerService.error with the correct params", async () => {
-          try {
-            await webSocketMediatorService.persistConnectionId(params);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in persistConnectionId", { error: mockError, params }, webSocketMediatorService.constructor.name);
-          }
-        });
-
-        it("throws the caught error", async () => {
-          try {
-            await webSocketMediatorService.persistConnectionId(params);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(error).toBe(mockError);
-          }
-        });
-      });
-    });
-  });
-
-  describe("getConnectionIdsByUserId", () => {
-    const params = { userId: mockUserIdOne };
-
-    describe("under normal conditions", () => {
-      beforeEach(() => {
-        notificationMappingService.getNotificationMappingsByUserIdAndType.and.returnValue(Promise.resolve({ notificationMappings: [ { value: mockConnectionIdOne } ] }));
-      });
-
-      it("calls notificationMappingService.getNotificationMappingsByUserIdAndType with the correct params", async () => {
-        await webSocketMediatorService.getConnectionIdsByUserId(params);
-
-        expect(notificationMappingService.getNotificationMappingsByUserIdAndType).toHaveBeenCalledTimes(1);
-        expect(notificationMappingService.getNotificationMappingsByUserIdAndType).toHaveBeenCalledWith({
-          userId: mockUserIdOne,
-          type: NotificationMappingType.WebSocket,
-        });
-      });
-
-      it("returns the connectionIds returned by notificationMappingService", async () => {
-        const result = await webSocketMediatorService.getConnectionIdsByUserId(params);
-
-        expect(result).toEqual({ connectionIds: [ mockConnectionIdOne ] });
-      });
-    });
-
-    describe("under error conditions", () => {
-      describe("when notificationMappingService.getNotificationMappingsByUserIdAndType throws an error", () => {
-        beforeEach(() => {
-          notificationMappingService.getNotificationMappingsByUserIdAndType.and.throwError(mockError);
-        });
-
-        it("calls loggerService.error with the correct params", async () => {
-          try {
-            await webSocketMediatorService.getConnectionIdsByUserId(params);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in getConnectionIdsByUserId", { error: mockError, params }, webSocketMediatorService.constructor.name);
-          }
-        });
-
-        it("throws the caught error", async () => {
-          try {
-            await webSocketMediatorService.getConnectionIdsByUserId(params);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(error).toBe(mockError);
-          }
-        });
-      });
-    });
-  });
-
-  describe("getConnectionIdsByUserIds", () => {
-    const params = { userIds: [ mockUserIdOne, mockUserIdTwo ] };
-
-    describe("under normal conditions", () => {
-      beforeEach(() => {
-        notificationMappingService.getNotificationMappingsByUserIdAndType.and.returnValues(
-          Promise.resolve({ notificationMappings: [ { value: mockConnectionIdOne } ] }),
-          Promise.resolve({ notificationMappings: [ { value: mockConnectionIdTwo } ] }),
-        );
-      });
-
-      it("calls notificationMappingService.getNotificationMappingsByUserIdAndType with the correct params", async () => {
-        await webSocketMediatorService.getConnectionIdsByUserIds(params);
-
-        expect(notificationMappingService.getNotificationMappingsByUserIdAndType).toHaveBeenCalledTimes(2);
-        expect(notificationMappingService.getNotificationMappingsByUserIdAndType).toHaveBeenCalledWith({
-          userId: mockUserIdOne,
-          type: NotificationMappingType.WebSocket,
-        });
-
-        expect(notificationMappingService.getNotificationMappingsByUserIdAndType).toHaveBeenCalledWith({
-          userId: mockUserIdTwo,
-          type: NotificationMappingType.WebSocket,
-        });
-      });
-
-      it("returns a flattened array of the response of each call to notificationMappingService", async () => {
-        const result = await webSocketMediatorService.getConnectionIdsByUserIds(params);
-
-        expect(result).toEqual({ connectionIds: [ mockConnectionIdOne, mockConnectionIdTwo ] });
-      });
-    });
-
-    describe("under error conditions", () => {
-      describe("when this.getConnectionIdsByUserId throws an error", () => {
-        beforeEach(() => {
-          spyOn(webSocketMediatorService, "getConnectionIdsByUserId").and.throwError(mockError);
-        });
-
-        it("calls loggerService.error with the correct params", async () => {
-          try {
-            await webSocketMediatorService.getConnectionIdsByUserIds(params);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in getConnectionIdsByUserIds", { error: mockError, params }, webSocketMediatorService.constructor.name);
-          }
-        });
-
-        it("throws the caught error", async () => {
-          try {
-            await webSocketMediatorService.getConnectionIdsByUserIds(params);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(error).toBe(mockError);
-          }
-        });
-      });
-    });
-  });
-
-  describe("deleteConnectionId", () => {
-    const params = { connectionId: mockConnectionIdOne };
-
-    describe("under normal conditions", () => {
-      beforeEach(() => {
-        notificationMappingService.getNotificationMappingsByTypeAndValue.and.returnValue(Promise.resolve({ notificationMappings: [ { userId: mockUserIdOne } ] }));
-        notificationMappingService.deleteNotificationMapping.and.returnValue(Promise.resolve());
-      });
-
-      it("calls notificationMappingService.getNotificationMappingsByTypeAndValue with the correct params", async () => {
-        await webSocketMediatorService.deleteConnectionId(params);
-
-        expect(notificationMappingService.getNotificationMappingsByTypeAndValue).toHaveBeenCalledTimes(1);
-        expect(notificationMappingService.getNotificationMappingsByTypeAndValue).toHaveBeenCalledWith({
-          type: NotificationMappingType.WebSocket,
-          value: mockConnectionIdOne,
-        });
-      });
-
-      it("calls notificationMappingService.deleteNotificationMapping with the correct params", async () => {
-        await webSocketMediatorService.deleteConnectionId(params);
-
-        expect(notificationMappingService.deleteNotificationMapping).toHaveBeenCalledTimes(1);
-        expect(notificationMappingService.deleteNotificationMapping).toHaveBeenCalledWith({
-          userId: mockUserIdOne,
-          type: NotificationMappingType.WebSocket,
-          value: mockConnectionIdOne,
-        });
-      });
-    });
-
-    describe("under error conditions", () => {
-      describe("when notificationMappingService.getNotificationMappingsByTypeAndValue throws an error", () => {
-        beforeEach(() => {
-          notificationMappingService.getNotificationMappingsByTypeAndValue.and.throwError(mockError);
-        });
-
-        it("calls loggerService.error with the correct params", async () => {
-          try {
-            await webSocketMediatorService.deleteConnectionId(params);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in deleteConnectionId", { error: mockError, params }, webSocketMediatorService.constructor.name);
-          }
-        });
-
-        it("throws the caught error", async () => {
-          try {
-            await webSocketMediatorService.deleteConnectionId(params);
-
-            fail("Should have thrown");
-          } catch (error) {
-            expect(error).toBe(mockError);
-          }
-        });
-      });
-    });
-  });
-
-  describe("sendUserAddedToTeamMessage", () => {
-    const params = { connectionId: mockConnectionIdOne, team: mockTeam, user: mockUser };
-
-    describe("under normal conditions", () => {
-      beforeEach(() => {
+        spyOn(webSocketMediatorService, "getListenersByUserId").and.returnValue({ listeners: [ mockConnectionIdOne, mockConnectionIdTwo ] });
         webSocketService.sendMessage.and.returnValue(Promise.resolve());
       });
 
-      it("calls notificationMappingService.createNotificationMapping with the correct params", async () => {
-        await webSocketMediatorService.sendUserAddedToTeamMessage(params);
+      it("calls this.getListenersByUserId with the correct params", async () => {
+        await webSocketMediatorService.sendMessage(baseParams);
 
-        expect(webSocketService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(webSocketService.sendMessage).toHaveBeenCalledWith({
-          connectionId: mockConnectionIdOne,
-          event: WebsocketEvent.UserAddedToTeam,
-          data: { team: mockTeam, user: mockUser },
+        expect(webSocketMediatorService.getListenersByUserId).toHaveBeenCalledTimes(1);
+        expect(webSocketMediatorService.getListenersByUserId).toHaveBeenCalledWith({ userId: mockUserId });
+      });
+
+      describe("when passed 'event: WebSocketEvent.UserAddedToTeam'", () => {
+        const params = { ...baseParams };
+
+        it("calls webSocketService.sendMessage with the correct params", async () => {
+          await webSocketMediatorService.sendMessage(params);
+
+          expect(webSocketService.sendMessage).toHaveBeenCalledTimes(2);
+          expect(webSocketService.sendMessage).toHaveBeenCalledWith({
+            connectionId: mockConnectionIdOne,
+            event: WebSocketEvent.UserAddedToTeam,
+            data: { team: mockTeam, user: mockUser },
+          });
+
+          expect(webSocketService.sendMessage).toHaveBeenCalledWith({
+            connectionId: mockConnectionIdTwo,
+            event: WebSocketEvent.UserAddedToTeam,
+            data: { team: mockTeam, user: mockUser },
+          });
         });
       });
     });
@@ -291,23 +86,24 @@ describe("WebSocketMediatorService", () => {
     describe("under error conditions", () => {
       describe("when webSocketService.sendMessage throws an error", () => {
         beforeEach(() => {
+          spyOn(webSocketMediatorService, "getListenersByUserId").and.returnValue({ listeners: [ mockConnectionIdOne, mockConnectionIdTwo ] });
           webSocketService.sendMessage.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await webSocketMediatorService.sendUserAddedToTeamMessage(params);
+            await webSocketMediatorService.sendMessage(baseParams);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in sendUserAddedToTeamMessage", { error: mockError, params }, webSocketMediatorService.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in sendMessage", { error: mockError, params: baseParams }, webSocketMediatorService.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await webSocketMediatorService.sendUserAddedToTeamMessage(params);
+            await webSocketMediatorService.sendMessage(baseParams);
 
             fail("Should have thrown");
           } catch (error) {
