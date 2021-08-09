@@ -27,10 +27,10 @@ import { MessageMediatorService, MessageMediatorServiceInterface } from "../medi
 import { TeamMediatorService, TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { UserMediatorService, UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 import { InvitationOrchestratorService, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
-import { ImageFileCreatedProcessorService } from "../processor-services/imageFileCreated.processor.service";
-import { MessageFileCreatedProcessorService } from "../processor-services/messageFileCreated.processor.service";
-import { UserAddedToTeamProcessorService } from "../processor-services/userAddedToTeam.processor.service";
-import { UserCreatedProcessorService } from "../processor-services/userCreated.processor.service";
+import { ImageFileCreatedS3ProcessorService } from "../processor-services/imageFileCreated.s3.processor.service";
+import { MessageFileCreatedS3ProcessorService } from "../processor-services/messageFileCreated.s3.processor.service";
+import { UserAddedToTeamDynamoProcessorService } from "../processor-services/userAddedToTeam.dynamo.processor.service";
+import { UserCreatedDynamoProcessorService } from "../processor-services/userCreated.dynamo.processor.service";
 import { ConversationDynamoRepository, ConversationRepositoryInterface } from "../repositories/conversation.dynamo.repository";
 import { ConversationUserRelationshipDynamoRepository, ConversationUserRelationshipRepositoryInterface } from "../repositories/conversationUserRelationship.dynamo.repository";
 import { ImageFileRepositoryInterface, ImageS3Repository } from "../repositories/image.s3.repository";
@@ -74,10 +74,10 @@ try {
   container.bind<UserMediatorServiceInterface>(TYPES.UserMediatorServiceInterface).to(UserMediatorService);
 
   // Processor Services
-  container.bind<S3ProcessorServiceInterface>(TYPES.ImageFileCreatedProcessorServiceInterface).to(ImageFileCreatedProcessorService);
-  container.bind<S3ProcessorServiceInterface>(TYPES.MessageFileCreatedProcessorServiceInterface).to(MessageFileCreatedProcessorService);
-  container.bind<DynamoProcessorServiceInterface>(TYPES.UserCreatedProcessorServiceInterface).to(UserCreatedProcessorService);
-  container.bind<DynamoProcessorServiceInterface>(TYPES.UserAddedToTeamProcessorServiceInterface).to(UserAddedToTeamProcessorService);
+  container.bind<S3ProcessorServiceInterface>(TYPES.ImageFileCreatedS3ProcessorServiceInterface).to(ImageFileCreatedS3ProcessorService);
+  container.bind<S3ProcessorServiceInterface>(TYPES.MessageFileCreatedS3ProcessorServiceInterface).to(MessageFileCreatedS3ProcessorService);
+  container.bind<DynamoProcessorServiceInterface>(TYPES.UserCreatedDynamoProcessorServiceInterface).to(UserCreatedDynamoProcessorService);
+  container.bind<DynamoProcessorServiceInterface>(TYPES.UserAddedToTeamDynamoProcessorServiceInterface).to(UserAddedToTeamDynamoProcessorService);
 
   // SNS Services
   container.bind<UserCreatedSnsServiceInterface>(TYPES.UserCreatedSnsServiceInterface).to(UserCreatedSnsService);
@@ -113,13 +113,13 @@ try {
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([
-    container.get(TYPES.ImageFileCreatedProcessorServiceInterface),
-    container.get(TYPES.MessageFileCreatedProcessorServiceInterface),
+    container.get(TYPES.ImageFileCreatedS3ProcessorServiceInterface),
+    container.get(TYPES.MessageFileCreatedS3ProcessorServiceInterface),
   ]);
 
   container.bind<DynamoProcessorServiceInterface[]>(TYPES.DynamoProcessorServicesInterface).toConstantValue([
-    container.get(TYPES.UserCreatedProcessorServiceInterface),
-    container.get(TYPES.UserAddedToTeamProcessorServiceInterface),
+    container.get(TYPES.UserCreatedDynamoProcessorServiceInterface),
+    container.get(TYPES.UserAddedToTeamDynamoProcessorServiceInterface),
   ]);
 } catch (error: unknown) {
   // eslint-disable-next-line no-console

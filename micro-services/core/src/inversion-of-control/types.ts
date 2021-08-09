@@ -25,10 +25,10 @@ const TYPES = {
   UserMediatorServiceInterface: Symbol.for("UserMediatorServiceInterface"),
 
   // Processor Services
-  ImageFileCreatedProcessorServiceInterface: Symbol.for("ImageFileCreatedProcessorServiceInterface"),
-  MessageFileCreatedProcessorServiceInterface: Symbol.for("MessageFileCreatedProcessorServiceInterface"),
-  UserCreatedProcessorServiceInterface: Symbol.for("UserCreatedProcessorServiceInterface"),
-  UserAddedToTeamProcessorServiceInterface: Symbol.for("UserAddedToTeamProcessorServiceInterface"),
+  ImageFileCreatedS3ProcessorServiceInterface: Symbol.for("ImageFileCreatedS3ProcessorServiceInterface"),
+  MessageFileCreatedS3ProcessorServiceInterface: Symbol.for("MessageFileCreatedS3ProcessorServiceInterface"),
+  UserCreatedDynamoProcessorServiceInterface: Symbol.for("UserCreatedDynamoProcessorServiceInterface"),
+  UserAddedToTeamDynamoProcessorServiceInterface: Symbol.for("UserAddedToTeamDynamoProcessorServiceInterface"),
 
   // SNS Services
   UserCreatedSnsServiceInterface: Symbol.for("UserCreatedSnsServiceInterface"),

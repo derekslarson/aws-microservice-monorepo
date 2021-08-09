@@ -13,7 +13,7 @@ import { TeamId } from "../types/teamId.type";
 import { ConversationId } from "../types/conversationId.type";
 
 @injectable()
-export class ImageFileCreatedProcessorService implements S3ProcessorServiceInterface {
+export class ImageFileCreatedS3ProcessorService implements S3ProcessorServiceInterface {
   private imageS3BucketName: string;
 
   constructor(
@@ -21,7 +21,7 @@ export class ImageFileCreatedProcessorService implements S3ProcessorServiceInter
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
-    @inject(TYPES.EnvConfigInterface) config: ImageFileCreatedProcessorServiceConfig,
+    @inject(TYPES.EnvConfigInterface) config: ImageFileCreatedS3ProcessorServiceConfig,
   ) {
     this.imageS3BucketName = config.bucketNames.image;
   }
@@ -70,4 +70,4 @@ export class ImageFileCreatedProcessorService implements S3ProcessorServiceInter
   }
 }
 
-export type ImageFileCreatedProcessorServiceConfig = Pick<EnvConfigInterface, "bucketNames">;
+export type ImageFileCreatedS3ProcessorServiceConfig = Pick<EnvConfigInterface, "bucketNames">;

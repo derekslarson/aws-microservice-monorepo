@@ -6,17 +6,19 @@ import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { UserAddedToTeamSnsServiceInterface } from "../sns-services/userAddedToTeam.sns.service";
 import { RawTeamUserRelationship } from "../repositories/teamUserRelationship.dynamo.repository";
-import { TeamUserRelationshipServiceInterface } from "../entity-services/teamUserRelationship.service";
+import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
+import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 
 @injectable()
-export class UserAddedToTeamProcessorService implements DynamoProcessorServiceInterface {
+export class UserAddedToTeamDynamoProcessorService implements DynamoProcessorServiceInterface {
   private coreTableName: string;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserAddedToTeamSnsServiceInterface) private userAddedToTeamSnsService: UserAddedToTeamSnsServiceInterface,
-    @inject(TYPES.TeamUserRelationshipServiceInterface) private teamUserRelationshipService: TeamUserRelationshipServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: UserAddedToTeamProcessorServiceConfigInterface,
+    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
+    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
+    @inject(TYPES.EnvConfigInterface) envConfig: UserAddedToTeamDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
   }
@@ -43,13 +45,17 @@ export class UserAddedToTeamProcessorService implements DynamoProcessorServiceIn
 
       const { newImage: { teamId, userId } } = record;
 
-      const { teamUserRelationships } = await this.teamUserRelationshipService.getTeamUserRelationshipsByTeamId({ teamId });
+      const [ { users: teamMembers }, { user }, { team } ] = await Promise.all([
+        this.userMediatorService.getUsersByTeamId({ teamId }),
+        this.userMediatorService.getUser({ userId }),
+        this.teamMediatorService.getTeam({ teamId }),
+      ]);
 
-      const teamMemberIds = teamUserRelationships.map((relationship) => relationship.userId);
+      const teamMemberIds = teamMembers.map((teamMember) => teamMember.id);
 
       await this.userAddedToTeamSnsService.sendMessage({
-        teamId,
-        userId,
+        team,
+        user,
         teamMemberIds,
       });
     } catch (error: unknown) {
@@ -60,4 +66,4 @@ export class UserAddedToTeamProcessorService implements DynamoProcessorServiceIn
   }
 }
 
-export type UserAddedToTeamProcessorServiceConfigInterface = Pick<EnvConfigInterface, "tableNames">;
+export type UserAddedToTeamDynamoProcessorServiceConfigInterface = Pick<EnvConfigInterface, "tableNames">;

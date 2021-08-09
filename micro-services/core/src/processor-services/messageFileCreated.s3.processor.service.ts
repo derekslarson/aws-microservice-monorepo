@@ -8,13 +8,13 @@ import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { PendingMessageId } from "../types/pendingMessageId.type";
 
 @injectable()
-export class MessageFileCreatedProcessorService implements S3ProcessorServiceInterface {
+export class MessageFileCreatedS3ProcessorService implements S3ProcessorServiceInterface {
   private messageS3BucketName: string;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
-    @inject(TYPES.EnvConfigInterface) config: MessageFileCreatedProcessorServiceConfig,
+    @inject(TYPES.EnvConfigInterface) config: MessageFileCreatedS3ProcessorServiceConfig,
   ) {
     this.messageS3BucketName = config.bucketNames.message;
   }
@@ -50,4 +50,4 @@ export class MessageFileCreatedProcessorService implements S3ProcessorServiceInt
   }
 }
 
-export type MessageFileCreatedProcessorServiceConfig = Pick<EnvConfigInterface, "bucketNames">;
+export type MessageFileCreatedS3ProcessorServiceConfig = Pick<EnvConfigInterface, "bucketNames">;
