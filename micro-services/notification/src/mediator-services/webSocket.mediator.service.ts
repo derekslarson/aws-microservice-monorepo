@@ -94,11 +94,7 @@ export class WebSocketMediatorService implements WebSocketMediatorServiceInterfa
 
       const { connectionId, team, user } = params;
 
-      await this.webSocketService.sendMessage({
-        connectionId,
-        event: WebsocketEvent.UserAddedToTeam,
-        data: { team, user },
-      });
+      await this.webSocketService.sendMessage({ connectionId, event: WebsocketEvent.UserAddedToTeam, data: { team, user } });
     } catch (error: unknown) {
       this.loggerService.error("Error in sendUserAddedToTeamMessage", { error, params }, this.constructor.name);
 
