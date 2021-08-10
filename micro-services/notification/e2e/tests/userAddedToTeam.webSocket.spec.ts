@@ -110,19 +110,31 @@ describe("User Added To Team (WebSocket Event)", () => {
 
       // Assert that they have the right structure
       expect(connections.userOneA.messages.length).toBe(1);
-      expect(connections.userOneA.messages[0].event).toBe(WebSocketEvent.UserAddedToTeam);
-      expect(connections.userOneA.messages[0].data.team).toEqual(message.team);
-      expect(connections.userOneA.messages[0].data.user).toEqual(message.user);
+      expect(connections.userOneA.messages[0]).toEqual({
+        event: WebSocketEvent.UserAddedToTeam,
+        data: {
+          team: message.team,
+          user: message.user,
+        },
+      });
 
       expect(connections.userOneB.messages.length).toBe(1);
-      expect(connections.userOneB.messages[0].event).toBe(WebSocketEvent.UserAddedToTeam);
-      expect(connections.userOneB.messages[0].data.team).toEqual(message.team);
-      expect(connections.userOneB.messages[0].data.user).toEqual(message.user);
+      expect(connections.userOneB.messages[0]).toEqual({
+        event: WebSocketEvent.UserAddedToTeam,
+        data: {
+          team: message.team,
+          user: message.user,
+        },
+      });
 
       expect(connections.userTwo.messages.length).toBe(1);
-      expect(connections.userTwo.messages[0].event).toBe(WebSocketEvent.UserAddedToTeam);
-      expect(connections.userTwo.messages[0].data.team).toEqual(message.team);
-      expect(connections.userTwo.messages[0].data.user).toEqual(message.user);
+      expect(connections.userTwo.messages[0]).toEqual({
+        event: WebSocketEvent.UserAddedToTeam,
+        data: {
+          team: message.team,
+          user: message.user,
+        },
+      });
 
       expect(connections.userThree.messages.length).toBe(0);
     });
