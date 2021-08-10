@@ -8,7 +8,7 @@ import { getListenerMappingsByUserIdAndType } from "../util";
 import { ListenerType } from "../../src/enums/listenerType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
 
-fdescribe("Websocket connect", () => {
+describe("WebSocket connect", () => {
   const webSocketUrl = process.env.webSocketUrl as string;
   let userId: string;
   let accessToken: string;
@@ -67,7 +67,7 @@ fdescribe("Websocket connect", () => {
     });
 
     describe("when an invalid token is passed", () => {
-      fit("doesn't connect", async () => {
+      it("doesn't connect", async () => {
         const connection = new WebSocket(`${webSocketUrl}?token=test-token`);
 
         try {
