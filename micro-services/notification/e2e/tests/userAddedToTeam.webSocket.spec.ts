@@ -127,8 +127,4 @@ describe("User Added To Team (WebSocket Event)", () => {
       expect(connections.userThree.messages.length).toBe(0);
     });
   });
-
-  describe("under error conditions", () => {
-
-  });
 });
