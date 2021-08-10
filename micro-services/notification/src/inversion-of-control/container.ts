@@ -48,7 +48,7 @@ try {
 
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
-    container.get(TYPES.UserAddedToTeamProcessorServiceInterface),
+    container.get(TYPES.UserAddedToTeamSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([]);

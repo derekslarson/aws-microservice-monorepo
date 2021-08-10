@@ -44,7 +44,7 @@ export interface BaseMessageInput {
   data: Record<string, unknown>;
 }
 
-interface SendUserAddedToTeamMessageInput extends BaseMessageInput {
+export interface SendUserAddedToTeamMessageInput extends BaseMessageInput {
   event: WebSocketEvent.UserAddedToTeam;
   data: {
     team: Team;

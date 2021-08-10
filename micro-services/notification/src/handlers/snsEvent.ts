@@ -9,11 +9,11 @@ export const handler = async (event: SNSEvent): Promise<void> => {
   const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
   try {
-    loggerService.trace("userAddedToTeam called", { event }, "userAddedToTeam handler");
+    loggerService.trace("snsEvent called", { event }, "snsEvent handler");
 
     await snsEventController.handleSnsEvent(event);
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
-    loggerService.error("Catastrophic error in userAddedToTeam handler", { error, event }, "userAddedToTeam handler");
+    loggerService.error("Catastrophic error in snsEvent handler", { error, event }, "snsEvent handler");
   }
 };

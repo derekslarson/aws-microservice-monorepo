@@ -127,10 +127,10 @@ export class YacNotificationServiceStack extends CDK.Stack {
 
     environmentVariables.WEBSOCKET_API_ENDPOINT = webSocketApi.endpoint;
 
-    new Lambda.Function(this, `UserAddedToTeamHandler_${id}`, {
+    new Lambda.Function(this, `SnsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/userAddedToTeam"),
-      handler: "userAddedToTeam.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
+      handler: "snsEvent.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -142,7 +142,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
     });
 
     new SSM.StringParameter(this, `ListenerMappingTableNameSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/notification-mapping-table-name`,
+      parameterName: `/yac-api-v4/${stackPrefix}/listener-mapping-table-name`,
       stringValue: listenerMappingTable.tableName,
     });
   }

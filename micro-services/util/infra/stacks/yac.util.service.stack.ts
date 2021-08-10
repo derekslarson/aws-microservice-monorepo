@@ -24,6 +24,8 @@ export class YacUtilServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
+    const stackPrefix = environment === Environment.Local ? developer : environment;
+
     const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
     const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
     const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
@@ -83,6 +85,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {
       exportName: ExportNames.MessageS3BucketArn,
       value: messageS3Bucket.bucketArn,
+    });
+
+    new SSM.StringParameter(this, `YacClientRedirectUriSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/user-added-to-team-sns-topic-arn`,
+      stringValue: userAddedToTeamSnsTopic.topicArn,
     });
   }
 
