@@ -24,6 +24,7 @@ const necessaryParams = [
   "listener-mapping-table-name",
   "user-added-to-team-sns-topic-arn",
   "user-removed-from-team-sns-topic-arn",
+  "user-added-to-group-sns-topic-arn",
 ];
 
 (async () => {

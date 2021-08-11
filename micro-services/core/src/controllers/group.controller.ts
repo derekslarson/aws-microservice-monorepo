@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, User, Group, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { CreateGroupDto } from "../dtos/createGroup.dto";
@@ -11,7 +11,7 @@ import { GetGroupsByUserIdDto } from "../dtos/getGroupsByUserId.dto";
 import { GetGroupsByTeamIdDto } from "../dtos/getGroupsByTeamId.dto";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GetGroupImageUploadUrlDto } from "../dtos/getGroupImageUploadUrl.dto";
-import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { AddUsersToGroupInput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 
 @injectable()
 export class GroupController extends BaseController implements GroupControllerInterface {
@@ -49,7 +49,9 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       const { group } = await this.groupMediatorService.createGroup({ name, createdBy: userId, teamId });
 
-      return this.generateCreatedResponse({ group });
+      const response: CreateGroupResponse = { group };
+
+      return this.generateCreatedResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in createGroup", { error, request }, this.constructor.name);
 
@@ -74,7 +76,9 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       const { group } = await this.groupMediatorService.getGroup({ groupId });
 
-      return this.generateSuccessResponse({ group });
+      const response: GetGroupResponse = { group };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroup", { error, request }, this.constructor.name);
 
@@ -100,8 +104,9 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       const { uploadUrl } = this.groupMediatorService.getGroupImageUploadUrl({ groupId, mimeType });
 
-      // method needs to return promise
-      return Promise.resolve(this.generateSuccessResponse({ uploadUrl }));
+      const response: GetGroupImageUploadUrlResponse = { uploadUrl };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroupImageUploadUrl", { error, request }, this.constructor.name);
 
@@ -127,7 +132,7 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       const { successes, failures } = await this.invitationOrchestratorService.addUsersToGroup({ groupId, users });
 
-      const response = {
+      const response: AddUsersToGroupResponse = {
         message: `Users added to group${failures.length ? ", but with some failures." : "."}`,
         successes,
         ...(failures.length && { failures }),
@@ -158,7 +163,9 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       await this.groupMediatorService.removeUserFromGroup({ groupId, userId });
 
-      return this.generateSuccessResponse({ message: "User removed from group." });
+      const response: RemoveUserFromGroupResponse = { message: "User removed from group." };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromGroup", { error, request }, this.constructor.name);
 
@@ -182,7 +189,9 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
-      return this.generateSuccessResponse({ groups, lastEvaluatedKey });
+      const response: GetGroupsByUserIdResponse = { groups, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroupsByUserId", { error, request }, this.constructor.name);
 
@@ -208,7 +217,9 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
-      return this.generateSuccessResponse({ groups, lastEvaluatedKey });
+      const response: GetGroupsByTeamIdResponse = { groups, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroupsByTeamId", { error, request }, this.constructor.name);
 
@@ -225,4 +236,36 @@ export interface GroupControllerInterface {
   getGroupImageUploadUrl(request: Request): Promise<Response>;
   getGroupsByUserId(request: Request): Promise<Response>;
   getGroupsByTeamId(request: Request): Promise<Response>;
+}
+
+interface CreateGroupResponse {
+  group: Group;
+}
+
+interface GetGroupResponse {
+  group: Group;
+}
+
+interface GetGroupImageUploadUrlResponse {
+  uploadUrl: string;
+}
+
+interface AddUsersToGroupResponse {
+  message: string;
+  successes?: User[];
+  failures?: AddUsersToGroupInput["users"];
+}
+
+interface RemoveUserFromGroupResponse {
+  message: string;
+}
+
+interface GetGroupsByUserIdResponse {
+  groups: WithRole<Group>[];
+  lastEvaluatedKey?: string;
+}
+
+interface GetGroupsByTeamIdResponse {
+  groups: Group[];
+  lastEvaluatedKey?: string;
 }
