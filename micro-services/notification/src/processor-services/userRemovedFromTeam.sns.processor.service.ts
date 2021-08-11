@@ -1,28 +1,28 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, UserAddedToTeamSnsMessage } from "@yac/util";
+import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, UserRemovedFromTeamSnsMessage } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { WebSocketEvent } from "../enums/webSocket.event.enum";
 
 @injectable()
-export class UserAddedToTeamSnsProcessorService implements SnsProcessorServiceInterface {
-  private userAddedToTeamSnsTopicArn: string;
+export class UserRemovedFromTeamSnsProcessorService implements SnsProcessorServiceInterface {
+  private userRemovedFromTeamSnsTopicArn: string;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.WebSocketMediatorServiceInterface) private webSocketMediatorService: WebSocketMediatorServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: UserAddedToTeamSnsProcessorServiceConfigInterface,
+    @inject(TYPES.EnvConfigInterface) envConfig: UserRemovedFromTeamSnsProcessorServiceConfigInterface,
   ) {
-    this.userAddedToTeamSnsTopicArn = envConfig.snsTopicArns.userAddedToTeam;
+    this.userRemovedFromTeamSnsTopicArn = envConfig.snsTopicArns.userRemovedFromTeam;
   }
 
   public determineRecordSupport(record: SnsProcessorServiceRecord): boolean {
     try {
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
-      return record.topicArn === this.userAddedToTeamSnsTopicArn;
+      return record.topicArn === this.userRemovedFromTeamSnsTopicArn;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 
@@ -30,7 +30,7 @@ export class UserAddedToTeamSnsProcessorService implements SnsProcessorServiceIn
     }
   }
 
-  public async processRecord(record: SnsProcessorServiceRecord<UserAddedToTeamSnsMessage>): Promise<void> {
+  public async processRecord(record: SnsProcessorServiceRecord<UserRemovedFromTeamSnsMessage>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
@@ -38,7 +38,7 @@ export class UserAddedToTeamSnsProcessorService implements SnsProcessorServiceIn
 
       await Promise.all(teamMemberIds.map((teamMemberId) => this.webSocketMediatorService.sendMessage({
         userId: teamMemberId,
-        event: WebSocketEvent.UserAddedToTeam,
+        event: WebSocketEvent.UserRemovedFromTeam,
         data: { team, user },
       })));
 
@@ -52,6 +52,6 @@ export class UserAddedToTeamSnsProcessorService implements SnsProcessorServiceIn
   }
 }
 
-export interface UserAddedToTeamSnsProcessorServiceConfigInterface {
-  snsTopicArns: Pick<EnvConfigInterface["snsTopicArns"], "userAddedToTeam">;
+export interface UserRemovedFromTeamSnsProcessorServiceConfigInterface {
+  snsTopicArns: Pick<EnvConfigInterface["snsTopicArns"], "userRemovedFromTeam">;
 }

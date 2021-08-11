@@ -3,15 +3,15 @@ import { LoggerService, Spied, TestSupport, DynamoProcessorServiceInterface, Use
 import { EntityType } from "../../enums/entityType.enum";
 import { TeamMediatorService, TeamMediatorServiceInterface } from "../../mediator-services/team.mediator.service";
 import { UserMediatorService, UserMediatorServiceInterface } from "../../mediator-services/user.mediator.service";
-import { UserAddedToTeamSnsService, UserAddedToTeamSnsServiceInterface } from "../../sns-services/userAddedToTeam.sns.service";
-import { UserAddedToTeamDynamoProcessorService } from "../userAddedToTeam.dynamo.processor.service";
+import { UserRemovedFromTeamSnsService, UserRemovedFromTeamSnsServiceInterface } from "../../sns-services/userRemovedFromTeam.sns.service";
+import { UserRemovedFromTeamDynamoProcessorService } from "../userRemovedFromTeam.dynamo.processor.service";
 
-describe("UserAddedToTeamDynamoProcessorService", () => {
+describe("UserRemovedFromTeamDynamoProcessorService", () => {
   let loggerService: Spied<LoggerService>;
-  let userAddedToTeamSnsService: Spied<UserAddedToTeamSnsServiceInterface>;
+  let userRemovedFromTeamSnsService: Spied<UserRemovedFromTeamSnsServiceInterface>;
   let teamMediatorService: Spied<TeamMediatorServiceInterface>;
   let userMediatorService: Spied<UserMediatorServiceInterface>;
-  let userAddedToTeamDynamoProcessorService: DynamoProcessorServiceInterface;
+  let userRemovedFromTeamDynamoProcessorService: DynamoProcessorServiceInterface;
 
   const mockCoreTableName = "mock-core-table-name";
   const mockConfig = { tableNames: { core: mockCoreTableName } };
@@ -37,7 +37,7 @@ describe("UserAddedToTeamDynamoProcessorService", () => {
   };
 
   const mockRecord: DynamoProcessorServiceRecord = {
-    eventName: "INSERT",
+    eventName: "REMOVE",
     tableName: mockCoreTableName,
     oldImage: {},
     newImage: {
@@ -51,18 +51,18 @@ describe("UserAddedToTeamDynamoProcessorService", () => {
 
   beforeEach(() => {
     loggerService = TestSupport.spyOnClass(LoggerService);
-    userAddedToTeamSnsService = TestSupport.spyOnClass(UserAddedToTeamSnsService);
+    userRemovedFromTeamSnsService = TestSupport.spyOnClass(UserRemovedFromTeamSnsService);
     teamMediatorService = TestSupport.spyOnClass(TeamMediatorService);
     userMediatorService = TestSupport.spyOnClass(UserMediatorService);
 
-    userAddedToTeamDynamoProcessorService = new UserAddedToTeamDynamoProcessorService(loggerService, userAddedToTeamSnsService, teamMediatorService, userMediatorService, mockConfig);
+    userRemovedFromTeamDynamoProcessorService = new UserRemovedFromTeamDynamoProcessorService(loggerService, userRemovedFromTeamSnsService, teamMediatorService, userMediatorService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
     describe("under normal conditions", () => {
       describe("when passed a record that fits all necessary conditions", () => {
         it("returns true", () => {
-          const result = userAddedToTeamDynamoProcessorService.determineRecordSupport(mockRecord);
+          const result = userRemovedFromTeamDynamoProcessorService.determineRecordSupport(mockRecord);
 
           expect(result).toBe(true);
         });
@@ -75,7 +75,7 @@ describe("UserAddedToTeamDynamoProcessorService", () => {
         };
 
         it("returns false", () => {
-          const result = userAddedToTeamDynamoProcessorService.determineRecordSupport(record);
+          const result = userRemovedFromTeamDynamoProcessorService.determineRecordSupport(record);
 
           expect(result).toBe(false);
         });
@@ -91,20 +91,20 @@ describe("UserAddedToTeamDynamoProcessorService", () => {
         };
 
         it("returns false", () => {
-          const result = userAddedToTeamDynamoProcessorService.determineRecordSupport(record);
+          const result = userRemovedFromTeamDynamoProcessorService.determineRecordSupport(record);
 
           expect(result).toBe(false);
         });
       });
 
-      describe("when passed a record that isn't an insert", () => {
+      describe("when passed a record that isn't a removal", () => {
         const record = {
           ...mockRecord,
           eventName: "MODIFY" as const,
         };
 
         it("returns false", () => {
-          const result = userAddedToTeamDynamoProcessorService.determineRecordSupport(record);
+          const result = userRemovedFromTeamDynamoProcessorService.determineRecordSupport(record);
 
           expect(result).toBe(false);
         });
@@ -118,35 +118,42 @@ describe("UserAddedToTeamDynamoProcessorService", () => {
         userMediatorService.getUsersByTeamId.and.returnValue(Promise.resolve({ users: [ mockUserOne, mockUserTwo ] }));
         userMediatorService.getUser.and.returnValue(Promise.resolve({ user: mockUserOne }));
         teamMediatorService.getTeam.and.returnValue(Promise.resolve({ team: mockTeam }));
-        userAddedToTeamSnsService.sendMessage.and.returnValue(Promise.resolve());
+        userRemovedFromTeamSnsService.sendMessage.and.returnValue(Promise.resolve());
       });
 
       it("calls userMediatorService.getUsersByTeamId with the correct parameters", async () => {
-        await userAddedToTeamDynamoProcessorService.processRecord(mockRecord);
+        await userRemovedFromTeamDynamoProcessorService.processRecord(mockRecord);
 
         expect(userMediatorService.getUsersByTeamId).toHaveBeenCalledTimes(1);
         expect(userMediatorService.getUsersByTeamId).toHaveBeenCalledWith({ teamId: mockTeamId });
       });
 
       it("calls userMediatorService.getUser with the correct parameters", async () => {
-        await userAddedToTeamDynamoProcessorService.processRecord(mockRecord);
+        await userRemovedFromTeamDynamoProcessorService.processRecord(mockRecord);
 
         expect(userMediatorService.getUser).toHaveBeenCalledTimes(1);
         expect(userMediatorService.getUser).toHaveBeenCalledWith({ userId: mockUserIdOne });
       });
 
       it("calls teamMediatorService.getTeam with the correct parameters", async () => {
-        await userAddedToTeamDynamoProcessorService.processRecord(mockRecord);
+        await userRemovedFromTeamDynamoProcessorService.processRecord(mockRecord);
 
         expect(teamMediatorService.getTeam).toHaveBeenCalledTimes(1);
         expect(teamMediatorService.getTeam).toHaveBeenCalledWith({ teamId: mockTeamId });
       });
 
-      it("calls userAddedToTeamSnsService.sendMessage with the correct parameters", async () => {
-        await userAddedToTeamDynamoProcessorService.processRecord(mockRecord);
+      it("calls teamMediatorService.getTeam with the correct parameters", async () => {
+        await userRemovedFromTeamDynamoProcessorService.processRecord(mockRecord);
 
-        expect(userAddedToTeamSnsService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(userAddedToTeamSnsService.sendMessage).toHaveBeenCalledWith({ team: mockTeam, user: mockUserOne, teamMemberIds: [ mockUserIdOne, mockUserIdTwo ] });
+        expect(teamMediatorService.getTeam).toHaveBeenCalledTimes(1);
+        expect(teamMediatorService.getTeam).toHaveBeenCalledWith({ teamId: mockTeamId });
+      });
+
+      it("calls userRemovedFromTeamSnsService.sendMessage with the correct parameters", async () => {
+        await userRemovedFromTeamDynamoProcessorService.processRecord(mockRecord);
+
+        expect(userRemovedFromTeamSnsService.sendMessage).toHaveBeenCalledTimes(1);
+        expect(userRemovedFromTeamSnsService.sendMessage).toHaveBeenCalledWith({ team: mockTeam, user: mockUserOne, teamMemberIds: [ mockUserIdOne, mockUserIdTwo ] });
       });
     });
 
@@ -158,18 +165,18 @@ describe("UserAddedToTeamDynamoProcessorService", () => {
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await userAddedToTeamDynamoProcessorService.processRecord(mockRecord);
+            await userRemovedFromTeamDynamoProcessorService.processRecord(mockRecord);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in processRecord", { error: mockError, record: mockRecord }, userAddedToTeamDynamoProcessorService.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in processRecord", { error: mockError, record: mockRecord }, userRemovedFromTeamDynamoProcessorService.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await userAddedToTeamDynamoProcessorService.processRecord(mockRecord);
+            await userRemovedFromTeamDynamoProcessorService.processRecord(mockRecord);
 
             fail("Should have thrown");
           } catch (error) {

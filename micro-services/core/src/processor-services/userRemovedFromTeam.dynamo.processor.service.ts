@@ -4,21 +4,21 @@ import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerSe
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
-import { UserAddedToTeamSnsServiceInterface } from "../sns-services/userAddedToTeam.sns.service";
+import { UserRemovedFromTeamSnsServiceInterface } from "../sns-services/userRemovedFromTeam.sns.service";
 import { RawTeamUserRelationship } from "../repositories/teamUserRelationship.dynamo.repository";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 
 @injectable()
-export class UserAddedToTeamDynamoProcessorService implements DynamoProcessorServiceInterface {
+export class UserRemovedFromTeamDynamoProcessorService implements DynamoProcessorServiceInterface {
   private coreTableName: string;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.UserAddedToTeamSnsServiceInterface) private userAddedToTeamSnsService: UserAddedToTeamSnsServiceInterface,
+    @inject(TYPES.UserRemovedFromTeamSnsServiceInterface) private userRemovedFromTeamSnsService: UserRemovedFromTeamSnsServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
     @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: UserAddedToTeamDynamoProcessorServiceConfigInterface,
+    @inject(TYPES.EnvConfigInterface) envConfig: UserRemovedFromTeamDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
   }
@@ -29,9 +29,9 @@ export class UserAddedToTeamDynamoProcessorService implements DynamoProcessorSer
 
       const isCoreTable = record.tableName === this.coreTableName;
       const isTeamUserRelationship = record.newImage.entityType === EntityType.TeamUserRelationship;
-      const isCreation = record.eventName === "INSERT";
+      const isRemoval = record.eventName === "REMOVE";
 
-      return isCoreTable && isTeamUserRelationship && isCreation;
+      return isCoreTable && isTeamUserRelationship && isRemoval;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 
@@ -53,11 +53,7 @@ export class UserAddedToTeamDynamoProcessorService implements DynamoProcessorSer
 
       const teamMemberIds = teamMembers.map((teamMember) => teamMember.id);
 
-      await this.userAddedToTeamSnsService.sendMessage({
-        team,
-        user,
-        teamMemberIds,
-      });
+      await this.userRemovedFromTeamSnsService.sendMessage({ team, user, teamMemberIds });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 
@@ -66,6 +62,6 @@ export class UserAddedToTeamDynamoProcessorService implements DynamoProcessorSer
   }
 }
 
-export interface UserAddedToTeamDynamoProcessorServiceConfigInterface {
+export interface UserRemovedFromTeamDynamoProcessorServiceConfigInterface {
   tableNames: Pick<EnvConfigInterface["tableNames"], "core">;
 }

@@ -7,7 +7,10 @@ export const envConfig: EnvConfigInterface = {
   webSocketApiEndpoint: process.env.WEBSOCKET_API_ENDPOINT || "",
   tableNames: { listenerMapping: process.env.NOTIFICATION_MAPPING_TABLE_NAME || "" },
   bucketNames: {},
-  snsTopicArns: { userAddedToTeam: process.env.USER_ADDED_TO_TEAM_SNS_TOPIC_ARN || "" },
+  snsTopicArns: {
+    userAddedToTeam: process.env.USER_ADDED_TO_TEAM_SNS_TOPIC_ARN || "",
+    userRemovedFromTeam: process.env.USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN || "",
+  },
   globalSecondaryIndexNames: { one: process.env.GSI_ONE_INDEX_NAME || "" },
 };
 
@@ -19,6 +22,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   };
   snsTopicArns: {
     userAddedToTeam: string;
+    userRemovedFromTeam: string
   }
   bucketNames: Record<string, string>;
   globalSecondaryIndexNames: {

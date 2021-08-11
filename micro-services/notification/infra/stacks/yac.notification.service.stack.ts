@@ -31,6 +31,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
     const ExportNames = generateExportNames(stackPrefix);
 
     const userAddedToTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
+    const userRemovedFromTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromTeamSnsTopicArn);
     const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
 
     const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
@@ -87,6 +88,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
       JWKS_URL: `https://cognito-idp.${this.region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`,
       USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: userAddedToTeamSnsTopicArn,
+      USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: userRemovedFromTeamSnsTopicArn,
     };
 
     const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
@@ -138,6 +140,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromTeamSnsTopic_${id}`, userRemovedFromTeamSnsTopicArn)),
       ],
     });
 

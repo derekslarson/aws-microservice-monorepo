@@ -8,6 +8,7 @@ import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory"
 import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { UserAddedToTeamSnsProcessorService } from "../processor-services/userAddedToTeam.sns.processor.service";
+import { UserRemovedFromTeamSnsProcessorService } from "../processor-services/userRemovedFromTeam.sns.processor.service";
 import { ListenerMappingDynamoRepository, ListenerMappingRepositoryInterface } from "../repositories/listenerMapping.dynamo.repository";
 import { TokenVerificationService, TokenVerificationServiceInterface } from "../services/tokenVerification.service";
 import { WebSocketService, WebSocketServiceInterface } from "../services/webSocket.service";
@@ -29,6 +30,7 @@ try {
 
   // Processor Services
   container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToTeamSnsProcessorServiceInterface).to(UserAddedToTeamSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.UserRemovedFromTeamSnsProcessorServiceInterface).to(UserRemovedFromTeamSnsProcessorService);
 
   // Entity Services
   container.bind<ListenerMappingServiceInterface>(TYPES.ListenerMappingServiceInterface).to(ListenerMappingService);
@@ -49,6 +51,7 @@ try {
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
     container.get(TYPES.UserAddedToTeamSnsProcessorServiceInterface),
+    container.get(TYPES.UserRemovedFromTeamSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([]);

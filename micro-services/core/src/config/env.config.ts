@@ -11,6 +11,7 @@ export const envConfig: EnvConfigInterface = {
   snsTopicArns: {
     userCreated: process.env.USER_CREATED_SNS_TOPIC_ARN || "",
     userAddedToTeam: process.env.USER_ADDED_TO_TEAM_SNS_TOPIC_ARN || "",
+    userRemovedFromTeam: process.env.USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN || "",
   },
   globalSecondaryIndexNames: {
     one: process.env.GSI_ONE_INDEX_NAME || "",
@@ -26,6 +27,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   snsTopicArns: {
     userCreated: string;
     userAddedToTeam: string;
+    userRemovedFromTeam: string;
   };
   bucketNames: {
     message: string;
