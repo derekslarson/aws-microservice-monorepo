@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Team, WithRole, User } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { CreateTeamDto } from "../dtos/createTeam.dto";
@@ -8,7 +8,7 @@ import { GetTeamDto } from "../dtos/getTeam.dto";
 import { AddUsersToTeamDto } from "../dtos/addUsersToTeam.dto";
 import { RemoveUserFromTeamDto } from "../dtos/removeUserFromTeam.dto";
 import { GetTeamsByUserIdDto } from "../dtos/getTeamsByUserId.dto";
-import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { AddUsersToTeamInput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { GetTeamImageUploadUrlDto } from "../dtos/getTeamImageUploadUrl.dto";
 
 @injectable()
@@ -38,7 +38,9 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const { team } = await this.teamMediatorService.createTeam({ name, createdBy: userId });
 
-      return this.generateCreatedResponse({ team });
+      const response: CreateTeamResponse = { team };
+
+      return this.generateCreatedResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in createTeam", { error, request }, this.constructor.name);
 
@@ -63,7 +65,9 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const { team } = await this.teamMediatorService.getTeam({ teamId });
 
-      return this.generateSuccessResponse({ team });
+      const response: GetTeamResponse = { team };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getTeamsByUserId", { error, request }, this.constructor.name);
 
@@ -89,8 +93,9 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const { uploadUrl } = this.teamMediatorService.getTeamImageUploadUrl({ teamId, mimeType });
 
-      // method needs to return promise
-      return Promise.resolve(this.generateSuccessResponse({ uploadUrl }));
+      const response: GetTeamImageUploadUrlResponse = { uploadUrl };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getTeamImageUploadUrl", { error, request }, this.constructor.name);
 
@@ -116,7 +121,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const { successes, failures } = await this.invitationOrchestratorService.addUsersToTeam({ teamId, users });
 
-      const response = {
+      const response: AddUsersToTeamResponse = {
         message: `Users added to team${failures.length ? ", but with some failures." : "."}`,
         successes,
         ...(failures.length && { failures }),
@@ -147,7 +152,9 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       await this.teamMediatorService.removeUserFromTeam({ teamId, userId });
 
-      return this.generateSuccessResponse({ message: "User removed from team." });
+      const response: RemoveUserFromTeamResponse = { message: "User removed from team." };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromTeam", { error, request }, this.constructor.name);
 
@@ -171,7 +178,9 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
-      return this.generateSuccessResponse({ teams, lastEvaluatedKey });
+      const response: GetTeamsByUserIdResponse = { teams, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getTeamsByUserId", { error, request }, this.constructor.name);
 
@@ -187,4 +196,31 @@ export interface TeamControllerInterface {
   removeUserFromTeam(request: Request): Promise<Response>;
   getTeamImageUploadUrl(request: Request): Promise<Response>;
   getTeamsByUserId(request: Request): Promise<Response>;
+}
+
+interface CreateTeamResponse {
+  team: Team;
+}
+
+interface GetTeamResponse {
+  team: Team;
+}
+
+interface GetTeamImageUploadUrlResponse {
+  uploadUrl: string;
+}
+
+interface AddUsersToTeamResponse {
+  message: string;
+  successes?: User[];
+  failures?: AddUsersToTeamInput["users"];
+}
+
+interface RemoveUserFromTeamResponse {
+  message: string;
+}
+
+interface GetTeamsByUserIdResponse {
+  teams: WithRole<Team>[];
+  lastEvaluatedKey?: string;
 }

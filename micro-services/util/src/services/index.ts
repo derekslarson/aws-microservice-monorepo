@@ -1,4 +1,3 @@
-export * from "./clientsUpdated.sns.service";
 export * from "./id.service";
 export * from "./http.request.service";
 export * from "./logger.service";

@@ -10,6 +10,7 @@ const ExportNames = {
   ClientsUpdatedSnsTopicArn: "clientsUpdatedSnsTopicArn",
   UserSignedUpSnsTopicArn: "userSignedUpSnsTopicArn",
   UserCreatedSnsTopicArn: "userCreatedSnsTopicArn",
+  UserAddedToTeamSnsTopicArn: "userAddedToTeamSnsTopicArn",
   CoreTableName: "coreTableName",
   MessageS3BucketArn: "messageS3BucketArn",
 };

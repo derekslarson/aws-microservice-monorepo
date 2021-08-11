@@ -8,13 +8,13 @@ import { EntityType } from "../enums/entityType.enum";
 import { UserCreatedSnsServiceInterface } from "../sns-services/userCreated.sns.service";
 
 @injectable()
-export class UserCreatedProcessorService implements DynamoProcessorServiceInterface {
+export class UserCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
   private coreTableName: string;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserCreatedSnsServiceInterface) private userCreatedSnsService: UserCreatedSnsServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedProcessorServiceConfigInterface,
+    @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
   }
@@ -50,4 +50,8 @@ export class UserCreatedProcessorService implements DynamoProcessorServiceInterf
   }
 }
 
-export type UserCreatedProcessorServiceConfigInterface = Pick<EnvConfigInterface, "tableNames">;
+export interface UserCreatedDynamoProcessorServiceConfigInterface {
+  tableNames: {
+    core: EnvConfigInterface["tableNames"]["core"];
+  }
+}

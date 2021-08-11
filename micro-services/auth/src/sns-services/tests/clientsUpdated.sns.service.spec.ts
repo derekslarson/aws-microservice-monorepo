@@ -1,10 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { SNS } from "aws-sdk";
-import { SnsFactory } from "../../factories/sns.factory";
-import { Spied, TestSupport } from "../../test-support";
+import { LoggerService, SnsFactory, Spied, TestSupport } from "@yac/util";
 import { ClientsUpdatedSnsService, ClientsUpdatedSnsServiceInterface } from "../clientsUpdated.sns.service";
-
-import { LoggerService } from "../logger.service";
 
 interface ClientsUpdatedSnsServiceWithProtectedMethods extends ClientsUpdatedSnsServiceInterface {
   [key: string]: any;

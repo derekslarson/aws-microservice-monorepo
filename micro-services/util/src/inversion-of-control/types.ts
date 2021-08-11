@@ -5,7 +5,6 @@ const TYPES = {
   S3EventControllerInterface: Symbol.for("S3EventControllerInterface"),
   SnsEventControllerInterface: Symbol.for("SnsEventControllerInterface"),
 
-  ClientsUpdatedSnsServiceInterface: Symbol.for("ClientsUpdatedSnsServiceInterface"),
   HttpRequestServiceInterface: Symbol.for("HttpRequestServiceInterface"),
   IdServiceInterface: Symbol.for("IdServiceInterface"),
   LoggerServiceInterface: Symbol.for("LoggerServiceInterface"),

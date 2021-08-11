@@ -1,12 +1,9 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface } from "./logger.service";
 
+import { BaseSnsService, ClientsUpdatedSnsMessage, LoggerServiceInterface, SnsFactory } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { BaseSnsService } from "./base.sns.service";
-import { SnsFactory } from "../factories/sns.factory";
-import { ClientsUpdatedSnsMessage } from "../api-contracts/sns.topics";
 
 @injectable()
 export class ClientsUpdatedSnsService extends BaseSnsService<ClientsUpdatedSnsMessage> implements ClientsUpdatedSnsServiceInterface {

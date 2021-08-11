@@ -14,7 +14,7 @@ export class UserCreatedProcessorService implements SnsProcessorServiceInterface
     @inject(TYPES.AuthenticationServiceInterface) private authenticationService: AuthenticationServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedProcessorServiceConfigInterface,
   ) {
-    this.userCreatedSnsTopicArn = envConfig.snsTopicArns.userCreated as string;
+    this.userCreatedSnsTopicArn = envConfig.snsTopicArns.userCreated;
   }
 
   public determineRecordSupport(record: SnsProcessorServiceRecord): boolean {

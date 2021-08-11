@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
+import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface, User, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { GetUserDto } from "../dtos/getUser.dto";
 import { GetUsersByTeamIdDto } from "../dtos/getUsersByTeamId.dto";
@@ -34,7 +34,9 @@ export class UserController extends BaseController implements UserControllerInte
 
       const { user } = await this.userMediatorService.createUser(body);
 
-      return this.generateSuccessResponse({ user });
+      const response: CreateUserResponse = { user };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in createUsersByTeamId", { error, request }, this.constructor.name);
 
@@ -50,7 +52,9 @@ export class UserController extends BaseController implements UserControllerInte
 
       const { user } = await this.userMediatorService.getUser({ userId });
 
-      return this.generateSuccessResponse({ user });
+      const response: GetUserResponse = { user };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getUser", { error, request }, this.constructor.name);
 
@@ -101,7 +105,9 @@ export class UserController extends BaseController implements UserControllerInte
 
       const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
-      return this.generateSuccessResponse({ users, lastEvaluatedKey });
+      const response: GetUsersByTeamIdResponse = { users, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getUsersByTeamId", { error, request }, this.constructor.name);
 
@@ -127,7 +133,9 @@ export class UserController extends BaseController implements UserControllerInte
 
       const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByGroupId({ groupId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
-      return this.generateSuccessResponse({ users, lastEvaluatedKey });
+      const response: GetUsersByGroupIdResponse = { users, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getUsersByGroupId", { error, request }, this.constructor.name);
 
@@ -153,7 +161,9 @@ export class UserController extends BaseController implements UserControllerInte
 
       const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByMeetingId({ meetingId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
-      return this.generateSuccessResponse({ users, lastEvaluatedKey });
+      const response: GetUsersByMeetingIdResponse = { users, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getUsersByMeetingId", { error, request }, this.constructor.name);
 
@@ -169,4 +179,27 @@ export interface UserControllerInterface {
   getUsersByTeamId(request: Request): Promise<Response>;
   getUsersByGroupId(request: Request): Promise<Response>;
   getUsersByMeetingId(request: Request): Promise<Response>;
+}
+
+interface CreateUserResponse {
+  user: User;
+}
+
+interface GetUserResponse {
+  user: User;
+}
+
+interface GetUsersByTeamIdResponse {
+  users: WithRole<User>[];
+  lastEvaluatedKey?: string;
+}
+
+interface GetUsersByGroupIdResponse {
+  users: WithRole<User>[];
+  lastEvaluatedKey?: string;
+}
+
+interface GetUsersByMeetingIdResponse {
+  users: WithRole<User>[];
+  lastEvaluatedKey?: string;
 }

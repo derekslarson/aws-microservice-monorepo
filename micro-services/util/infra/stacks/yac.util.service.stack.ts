@@ -24,6 +24,8 @@ export class YacUtilServiceStack extends CDK.Stack {
       throw new Error("'environment' context param required.");
     }
 
+    const stackPrefix = environment === Environment.Local ? developer : environment;
+
     const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
     const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
     const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
@@ -49,6 +51,7 @@ export class YacUtilServiceStack extends CDK.Stack {
 
     const clientsUpdatedSnsTopic = new SNS.Topic(this, `ClientsUpdatedSnsTopic_${id}`, { topicName: `ClientsUpdatedSnsTopic_${id}` });
     const userCreatedSnsTopic = new SNS.Topic(this, `UserCreatedSnsTopic_${id}`, { topicName: `UserCreatedSnsTopic_${id}` });
+    const userAddedToTeamSnsTopic = new SNS.Topic(this, `UserAddedToTeamSnsTopic_${id}`, { topicName: `UserAddedToTeamSnsTopic_${id}` });
 
     new CDK.CfnOutput(this, `CustomDomainNameExport_${id}`, {
       exportName: ExportNames.CustomDomainName,
@@ -74,10 +77,19 @@ export class YacUtilServiceStack extends CDK.Stack {
       exportName: ExportNames.UserCreatedSnsTopicArn,
       value: userCreatedSnsTopic.topicArn,
     });
+    new CDK.CfnOutput(this, `UserAddedToTeamSnsTopicExport_${id}`, {
+      exportName: ExportNames.UserAddedToTeamSnsTopicArn,
+      value: userAddedToTeamSnsTopic.topicArn,
+    });
 
     new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {
       exportName: ExportNames.MessageS3BucketArn,
       value: messageS3Bucket.bucketArn,
+    });
+
+    new SSM.StringParameter(this, `YacClientRedirectUriSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/user-added-to-team-sns-topic-arn`,
+      stringValue: userAddedToTeamSnsTopic.topicArn,
     });
   }
 

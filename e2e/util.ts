@@ -1,11 +1,13 @@
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-floating-promises */
-import { CognitoIdentityServiceProvider, DynamoDB, S3, SSM } from "aws-sdk";
+import { CognitoIdentityServiceProvider, DynamoDB, S3, SNS, SSM } from "aws-sdk";
 import crypto from "crypto";
 import axios from "axios";
+import ksuid from "ksuid";
 
 const ssm = new SSM({ region: "us-east-1" });
 export const s3 = new S3({ region: "us-east-1" });
+export const sns = new SNS({ region: "us-east-1" });
 export const cognito = new CognitoIdentityServiceProvider({ region: "us-east-1" });
 export const documentClient = new DynamoDB.DocumentClient({ region: "us-east-1" });
 
@@ -201,6 +203,42 @@ export async function getAccessTokenByEmail(email: string): Promise<{ accessToke
     return { accessToken };
   } catch (error) {
     console.log("Error in getAccessTokenByEmail:\n", error);
+
+    throw error;
+  }
+}
+
+function createUserPoolClientSecretHash(username: string): string {
+  const secretHash = crypto.createHmac("SHA256", process.env["yac-client-secret"] as string).update(`${username}${process.env["yac-client-id"] as string}`).digest("base64");
+
+  return secretHash;
+}
+
+export async function createRandomCognitoUser(): Promise<{ id: string, email: string }> {
+  try {
+    const id = `user-${ksuid.randomSync().string}`;
+    const email = `${generateRandomString(5)}@${generateRandomString(5)}.com`;
+
+    const secretHash = createUserPoolClientSecretHash(id);
+
+    const signUpParams: CognitoIdentityServiceProvider.Types.SignUpRequest = {
+      ClientId: process.env["yac-client-id"] as string,
+      SecretHash: secretHash,
+      Username: id,
+      Password: `YAC-${process.env.secret as string}`,
+      UserAttributes: [
+        {
+          Name: "email",
+          Value: email,
+        },
+      ],
+    };
+
+    await cognito.signUp(signUpParams).promise();
+
+    return { id, email };
+  } catch (error) {
+    console.log("Error in createRandomCognitoUser:\n", error);
 
     throw error;
   }

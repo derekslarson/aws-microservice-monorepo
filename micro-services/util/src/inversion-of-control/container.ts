@@ -3,7 +3,6 @@ import { TYPES } from "./types";
 
 import { SnsEventController, SnsEventControllerInterface } from "../controllers/snsEvent.controller";
 
-import { ClientsUpdatedSnsService, ClientsUpdatedSnsServiceInterface } from "../services/clientsUpdated.sns.service";
 import { IdService, IdServiceInterface } from "../services/id.service";
 import { HttpRequestService, HttpRequestServiceInterface } from "../services/http.request.service";
 import { LoggerService, LoggerServiceInterface } from "../services/logger.service";
@@ -33,7 +32,6 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<S3EventControllerInterface>(TYPES.S3EventControllerInterface).to(S3EventController);
     bind<SnsEventControllerInterface>(TYPES.SnsEventControllerInterface).to(SnsEventController);
 
-    bind<ClientsUpdatedSnsServiceInterface>(TYPES.ClientsUpdatedSnsServiceInterface).to(ClientsUpdatedSnsService);
     bind<HttpRequestServiceInterface>(TYPES.HttpRequestServiceInterface).to(HttpRequestService);
     bind<IdServiceInterface>(TYPES.IdServiceInterface).to(IdService);
     bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);

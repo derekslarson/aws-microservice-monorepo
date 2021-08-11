@@ -3,4 +3,5 @@ export type ValidatedRequest = {
   queryStringParameters?: { [key: string]: unknown; };
   body?: { [key: string]: unknown; };
   cookies?: string[];
+  requestContext?: { [key: string]: unknown; };
 };
