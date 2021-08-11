@@ -95,8 +95,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const response: GetTeamImageUploadUrlResponse = { uploadUrl };
 
-      // method needs to return promise
-      return Promise.resolve(this.generateSuccessResponse(response));
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getTeamImageUploadUrl", { error, request }, this.constructor.name);
 
