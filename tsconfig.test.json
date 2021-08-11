@@ -3,6 +3,9 @@
   "include": [
     "**/*.spec.ts"
   ],
+  "exclude": [
+    "**/e2e/**"
+  ],
   "compilerOptions": {
     "outDir": "./compiled_tests",
   },

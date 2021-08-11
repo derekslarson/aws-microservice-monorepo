@@ -3,7 +3,7 @@
 import axios from "axios";
 import { Role } from "@yac/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createRandomTeam, createRandomUser, createTeamUserRelationship, getTeamUserRelationship } from "../util";
+import { createRandomTeam, createRandomUser, CreateRandomUserOutput, createTeamUserRelationship, getTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { generateRandomString } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
@@ -19,7 +19,7 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
 
   describe("under normal conditions", () => {
     let team: RawTeam;
-    let otherUser: { id: `${KeyPrefix.User}${string}`, email: string; };
+    let otherUser: CreateRandomUserOutput["user"];
 
     beforeAll(async () => {
       ({ user: otherUser } = await createRandomUser());
