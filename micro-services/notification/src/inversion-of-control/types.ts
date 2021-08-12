@@ -9,11 +9,12 @@ const TYPES = {
   // Mediator Services
   WebSocketMediatorServiceInterface: Symbol.for("WebSocketMediatorServiceInterface"),
 
-  // Processor Services
+  // SNS Processor Services
   UserAddedToTeamSnsProcessorServiceInterface: Symbol.for("UserAddedToTeamSnsProcessorServiceInterface"),
   UserRemovedFromTeamSnsProcessorServiceInterface: Symbol.for("UserRemovedFromTeamSnsProcessorServiceInterface"),
   UserAddedToGroupSnsProcessorServiceInterface: Symbol.for("UserAddedToGroupSnsProcessorServiceInterface"),
   UserRemovedFromGroupSnsProcessorServiceInterface: Symbol.for("UserRemovedFromGroupSnsProcessorServiceInterface"),
+  UserAddedToMeetingSnsProcessorServiceInterface: Symbol.for("UserAddedToMeetingSnsProcessorServiceInterface"),
 
   // Entity Services
   ListenerMappingServiceInterface: Symbol.for("ListenerMappingServiceInterface"),

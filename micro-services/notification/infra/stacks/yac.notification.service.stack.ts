@@ -30,16 +30,22 @@ export class YacNotificationServiceStack extends CDK.Stack {
 
     const ExportNames = generateExportNames(stackPrefix);
 
+    // Imported SNS Topic ARNs from Util
     const userAddedToTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
     const userRemovedFromTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromTeamSnsTopicArn);
     const userAddedToGroupSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToGroupSnsTopicArn);
     const userRemovedFromGroupSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromGroupSnsTopicArn);
+    const userAddedToMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToMeetingSnsTopicArn);
+
+    // Imported User Pool Id from Auth
     const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
 
+    // Manually Set SSM Parameters Related to Route 53
     const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
     const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
     const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
 
+    // Domain Name Related Resources
     const certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn);
 
     const hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, {
@@ -93,8 +99,10 @@ export class YacNotificationServiceStack extends CDK.Stack {
       USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: userRemovedFromTeamSnsTopicArn,
       USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: userAddedToGroupSnsTopicArn,
       USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN: userRemovedFromGroupSnsTopicArn,
+      USER_ADDED_TO_MEETING_SNS_TOPIC_ARN: userAddedToMeetingSnsTopicArn,
     };
 
+    // WebSocket Lambdas
     const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/connect"),
@@ -117,6 +125,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    // WebSocket API
     const webSocketApi = new WebSocketApi(this, `WebSocketApi_${id}`, {
       connectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: connectHandler }) },
       disconnectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: disconnectHandler }) },
@@ -126,13 +135,16 @@ export class YacNotificationServiceStack extends CDK.Stack {
       },
     });
 
+    // Add WebSocket API Endpoint to Environment Variables
+    environmentVariables.WEBSOCKET_API_ENDPOINT = webSocketApi.endpoint;
+
+    // Policy for publishing to Websocket API
     const executeWebSocketApiPolicyStatement = new IAM.PolicyStatement({
       actions: [ "execute-api:ManageConnections" ],
       resources: [ webSocketApi.apiArn ],
     });
 
-    environmentVariables.WEBSOCKET_API_ENDPOINT = webSocketApi.endpoint;
-
+    // SNS Event Lambda Handler
     new Lambda.Function(this, `SnsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
@@ -147,9 +159,11 @@ export class YacNotificationServiceStack extends CDK.Stack {
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromTeamSnsTopic_${id}`, userRemovedFromTeamSnsTopicArn)),
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToGroupSnsTopic_${id}`, userAddedToGroupSnsTopicArn)),
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromGroupSnsTopic_${id}`, userRemovedFromGroupSnsTopicArn)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToMeetingSnsTopic_${id}`, userAddedToMeetingSnsTopicArn)),
       ],
     });
 
+    // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `ListenerMappingTableNameSsmParameter-${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/listener-mapping-table-name`,
       stringValue: listenerMappingTable.tableName,

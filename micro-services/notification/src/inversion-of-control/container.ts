@@ -8,6 +8,7 @@ import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory"
 import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { UserAddedToGroupSnsProcessorService } from "../processor-services/userAddedToGroup.sns.processor.service";
+import { UserAddedToMeetingSnsProcessorService } from "../processor-services/userAddedToMeeting.sns.processor.service";
 import { UserAddedToTeamSnsProcessorService } from "../processor-services/userAddedToTeam.sns.processor.service";
 import { UserRemovedFromGroupSnsProcessorService } from "../processor-services/userRemovedFromGroup.sns.processor.service";
 import { UserRemovedFromTeamSnsProcessorService } from "../processor-services/userRemovedFromTeam.sns.processor.service";
@@ -30,11 +31,12 @@ try {
   // Mediator Services
   container.bind<WebSocketMediatorServiceInterface>(TYPES.WebSocketMediatorServiceInterface).to(WebSocketMediatorService);
 
-  // Processor Services
+  // SNS Processor Services
   container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToTeamSnsProcessorServiceInterface).to(UserAddedToTeamSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserRemovedFromTeamSnsProcessorServiceInterface).to(UserRemovedFromTeamSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToGroupSnsProcessorServiceInterface).to(UserAddedToGroupSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserRemovedFromGroupSnsProcessorServiceInterface).to(UserRemovedFromGroupSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToMeetingSnsProcessorServiceInterface).to(UserAddedToMeetingSnsProcessorService);
 
   // Entity Services
   container.bind<ListenerMappingServiceInterface>(TYPES.ListenerMappingServiceInterface).to(ListenerMappingService);
@@ -57,6 +59,7 @@ try {
     container.get(TYPES.UserRemovedFromTeamSnsProcessorServiceInterface),
     container.get(TYPES.UserAddedToGroupSnsProcessorServiceInterface),
     container.get(TYPES.UserRemovedFromGroupSnsProcessorServiceInterface),
+    container.get(TYPES.UserAddedToMeetingSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([]);

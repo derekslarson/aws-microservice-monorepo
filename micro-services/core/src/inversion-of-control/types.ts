@@ -24,14 +24,17 @@ const TYPES = {
   TeamMediatorServiceInterface: Symbol.for("TeamMediatorServiceInterface"),
   UserMediatorServiceInterface: Symbol.for("UserMediatorServiceInterface"),
 
-  // Processor Services
+  // S3 Processor Services
   ImageFileCreatedS3ProcessorServiceInterface: Symbol.for("ImageFileCreatedS3ProcessorServiceInterface"),
   MessageFileCreatedS3ProcessorServiceInterface: Symbol.for("MessageFileCreatedS3ProcessorServiceInterface"),
+
+  // Dynamo Processor Services
   UserCreatedDynamoProcessorServiceInterface: Symbol.for("UserCreatedDynamoProcessorServiceInterface"),
   UserAddedToTeamDynamoProcessorServiceInterface: Symbol.for("UserAddedToTeamDynamoProcessorServiceInterface"),
   UserRemovedFromTeamDynamoProcessorServiceInterface: Symbol.for("UserRemovedFromTeamDynamoProcessorServiceInterface"),
   UserAddedToGroupDynamoProcessorServiceInterface: Symbol.for("UserAddedToGroupDynamoProcessorServiceInterface"),
   UserRemovedFromGroupDynamoProcessorServiceInterface: Symbol.for("UserRemovedFromGroupDynamoProcessorServiceInterface"),
+  UserAddedToMeetingDynamoProcessorServiceInterface: Symbol.for("UserAddedToMeetingDynamoProcessorServiceInterface"),
 
   // SNS Services
   UserCreatedSnsServiceInterface: Symbol.for("UserCreatedSnsServiceInterface"),
@@ -39,6 +42,7 @@ const TYPES = {
   UserRemovedFromTeamSnsServiceInterface: Symbol.for("UserRemovedFromTeamSnsServiceInterface"),
   UserAddedToGroupSnsServiceInterface: Symbol.for("UserAddedToGroupSnsServiceInterface"),
   UserRemovedFromGroupSnsServiceInterface: Symbol.for("UserRemovedFromGroupSnsServiceInterface"),
+  UserAddedToMeetingSnsServiceInterface: Symbol.for("UserAddedToMeetingSnsServiceInterface"),
 
   // Entity Services
   ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
