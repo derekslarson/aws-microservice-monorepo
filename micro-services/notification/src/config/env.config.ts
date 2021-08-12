@@ -11,6 +11,7 @@ export const envConfig: EnvConfigInterface = {
     userAddedToTeam: process.env.USER_ADDED_TO_TEAM_SNS_TOPIC_ARN || "",
     userRemovedFromTeam: process.env.USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN || "",
     userAddedToGroup: process.env.USER_ADDED_TO_GROUP_SNS_TOPIC_ARN || "",
+    userRemovedFromGroup: process.env.USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN || "",
   },
   globalSecondaryIndexNames: { one: process.env.GSI_ONE_INDEX_NAME || "" },
 };
@@ -25,6 +26,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     userAddedToTeam: string;
     userRemovedFromTeam: string;
     userAddedToGroup: string;
+    userRemovedFromGroup: string;
   }
   bucketNames: Record<string, string>;
   globalSecondaryIndexNames: {
