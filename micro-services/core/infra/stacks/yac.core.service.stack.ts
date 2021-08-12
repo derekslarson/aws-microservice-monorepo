@@ -34,6 +34,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
     const userAddedToTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
+    const userRemovedFromTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromTeamSnsTopicArn);
 
     const messageS3BucketArn = CDK.Fn.importValue(ExportNames.MessageS3BucketArn);
 
@@ -101,6 +102,11 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       resources: [ userAddedToTeamSnsTopicArn ],
     });
 
+    const userRemovedFromTeamSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ userRemovedFromTeamSnsTopicArn ],
+    });
+
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
@@ -110,6 +116,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       GSI_THREE_INDEX_NAME: GlobalSecondaryIndex.Three,
       USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
       USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: userAddedToTeamSnsTopicArn,
+      USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: userRemovedFromTeamSnsTopicArn,
       MESSAGE_S3_BUCKET_NAME: messageS3Bucket.bucketName,
       IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
     };
@@ -122,7 +129,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, userCreatedSnsPublishPolicyStatement, userAddedToTeamSnsPublishPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, userCreatedSnsPublishPolicyStatement, userAddedToTeamSnsPublishPolicyStatement, userRemovedFromTeamSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.DynamoEventSource(coreTable, { startingPosition: Lambda.StartingPosition.LATEST }),

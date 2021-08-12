@@ -23,6 +23,7 @@ const necessaryParams = [
   "yac-client-redirect-uri",
   "listener-mapping-table-name",
   "user-added-to-team-sns-topic-arn",
+  "user-removed-from-team-sns-topic-arn",
 ];
 
 (async () => {
