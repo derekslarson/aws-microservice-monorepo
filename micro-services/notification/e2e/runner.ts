@@ -26,6 +26,7 @@ const necessaryParams = [
   "user-removed-from-team-sns-topic-arn",
   "user-added-to-group-sns-topic-arn",
   "user-removed-from-group-sns-topic-arn",
+  "user-added-to-meeting-sns-topic-arn",
 ];
 
 (async () => {
