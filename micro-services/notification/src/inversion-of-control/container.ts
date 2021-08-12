@@ -7,6 +7,7 @@ import { apiGatewayManagementFactory, ApiGatewayManagementFactory } from "../fac
 import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory";
 import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
+import { UserAddedToGroupSnsProcessorService } from "../processor-services/userAddedToGroup.sns.processor.service";
 import { UserAddedToTeamSnsProcessorService } from "../processor-services/userAddedToTeam.sns.processor.service";
 import { UserRemovedFromTeamSnsProcessorService } from "../processor-services/userRemovedFromTeam.sns.processor.service";
 import { ListenerMappingDynamoRepository, ListenerMappingRepositoryInterface } from "../repositories/listenerMapping.dynamo.repository";
@@ -31,6 +32,7 @@ try {
   // Processor Services
   container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToTeamSnsProcessorServiceInterface).to(UserAddedToTeamSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserRemovedFromTeamSnsProcessorServiceInterface).to(UserRemovedFromTeamSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToGroupSnsProcessorServiceInterface).to(UserAddedToGroupSnsProcessorService);
 
   // Entity Services
   container.bind<ListenerMappingServiceInterface>(TYPES.ListenerMappingServiceInterface).to(ListenerMappingService);
@@ -40,7 +42,6 @@ try {
   container.bind<WebSocketServiceInterface>(TYPES.WebSocketServiceInterface).to(WebSocketService);
 
   // Repositories
-
   container.bind<ListenerMappingRepositoryInterface>(TYPES.ListenerMappingRepositoryInterface).to(ListenerMappingDynamoRepository);
 
   // Factories
@@ -52,6 +53,7 @@ try {
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
     container.get(TYPES.UserAddedToTeamSnsProcessorServiceInterface),
     container.get(TYPES.UserRemovedFromTeamSnsProcessorServiceInterface),
+    container.get(TYPES.UserAddedToGroupSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([]);
