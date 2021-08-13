@@ -33,9 +33,6 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
         createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin }),
         createTeamUserRelationship({ userId: otherUser.id, teamId: team.id, role: Role.User }),
       ]);
-
-      // clear the sns events table so the tests can have a clean slate
-      await deleteSnsEventsByTopicArn({ topicArn: userRemovedFromTeamSnsTopicArn });
     });
 
     it("returns a valid response", async () => {
@@ -66,6 +63,9 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
     });
 
     it("publishes a valid SNS message", async () => {
+      // clear the sns events table so the tests can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userRemovedFromTeamSnsTopicArn });
+
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {

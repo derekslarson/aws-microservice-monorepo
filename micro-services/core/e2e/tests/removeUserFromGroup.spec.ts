@@ -4,7 +4,7 @@ import axios from "axios";
 import { Role, UserRemovedFromGroupSnsMessage } from "@yac/util";
 import { createRandomUser, createConversationUserRelationship, createGroupConversation, getConversationUserRelationship, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { backoff, generateRandomString, URL_REGEX } from "../../../../e2e/util";
+import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { GroupId } from "../../src/types/groupId.type";
@@ -34,9 +34,6 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
         createConversationUserRelationship({ type: ConversationType.Group, userId, conversationId: group.id, role: Role.Admin }),
         createConversationUserRelationship({ type: ConversationType.Group, userId: otherUser.id, conversationId: group.id, role: Role.User }),
       ]);
-
-      // clear the sns events table so the tests can have a clean slate
-      await deleteSnsEventsByTopicArn({ topicArn: userRemovedFromGroupSnsTopicArn });
     });
 
     it("returns a valid response", async () => {
@@ -67,6 +64,9 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
     });
 
     it("publishes a valid SNS message", async () => {
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userRemovedFromGroupSnsTopicArn });
+
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
@@ -88,6 +88,7 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
               id: group.id,
               image: jasmine.stringMatching(URL_REGEX),
               name: group.name,
+              createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             },
             user: {
               email: otherUser.email,

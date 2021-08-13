@@ -4,7 +4,7 @@ import axios from "axios";
 import { Role, UserRemovedFromMeetingSnsMessage } from "@yac/util";
 import { createRandomUser, createConversationUserRelationship, createMeetingConversation, getConversationUserRelationship, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { backoff, generateRandomString, URL_REGEX } from "../../../../e2e/util";
+import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { MeetingId } from "../../src/types/meetingId.type";
@@ -34,9 +34,6 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
         createConversationUserRelationship({ type: ConversationType.Meeting, userId, conversationId: meeting.id, role: Role.Admin }),
         createConversationUserRelationship({ type: ConversationType.Meeting, userId: otherUser.id, conversationId: meeting.id, role: Role.User }),
       ]);
-
-      // clear the sns events table so the tests can have a clean slate
-      await deleteSnsEventsByTopicArn({ topicArn: userRemovedFromMeetingSnsTopicArn });
     });
 
     it("returns a valid response", async () => {
@@ -67,6 +64,9 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
     });
 
     it("publishes a valid SNS message", async () => {
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userRemovedFromMeetingSnsTopicArn });
+
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
@@ -89,6 +89,7 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
               image: jasmine.stringMatching(URL_REGEX),
               name: meeting.name,
               dueDate: meeting.dueDate,
+              createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             },
             user: {
               email: otherUser.email,

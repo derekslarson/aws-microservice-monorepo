@@ -31,6 +31,12 @@ export class YacCoreTestingStack extends CDK.Stack {
     const userAddedToMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToMeetingSnsTopicArn);
     const userRemovedFromMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromMeetingSnsTopicArn);
 
+    // Layers
+    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
+      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
+      code: Lambda.Code.fromAsset("dist/dependencies"),
+    });
+        
     // Databases
     const snsEventTable = new DynamoDB.Table(this, `SnsEventTable_${id}`, {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
@@ -55,7 +61,7 @@ export class YacCoreTestingStack extends CDK.Stack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
       handler: "snsEvent.handler",
-      layers: [],
+      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, snsEventTableFullAccessPolicyStatement ],

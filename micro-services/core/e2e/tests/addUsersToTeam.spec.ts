@@ -52,15 +52,6 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
       ]));
 
       await createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin });
-
-      // wait till the team creator's sns event has been fired
-      await backoff(
-        () => getSnsEventsByTopicArn<UserAddedToTeamSnsMessage>({ topicArn: userAddedToTeamSnsTopicArn }),
-        ({ snsEvents }) => !!snsEvents.find((snsEvent) => snsEvent.message.user.id === userId && snsEvent.message.team.id === team.id),
-      );
-
-      // clear the sns events table so the tests can have a clean slate
-      await deleteSnsEventsByTopicArn({ topicArn: userAddedToTeamSnsTopicArn });
     });
 
     it("returns a valid response", async () => {
@@ -287,6 +278,15 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
     });
 
     it("publishes valid SNS messages", async () => {
+      // wait till the team creator's sns event has been fired
+      await backoff(
+        () => getSnsEventsByTopicArn<UserAddedToTeamSnsMessage>({ topicArn: userAddedToTeamSnsTopicArn }),
+        ({ snsEvents }) => !!snsEvents.find((snsEvent) => snsEvent.message.user.id === userId && snsEvent.message.team.id === team.id),
+      );
+
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userAddedToTeamSnsTopicArn });
+
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       const request: Static<typeof AddUsersToTeamDto> = {

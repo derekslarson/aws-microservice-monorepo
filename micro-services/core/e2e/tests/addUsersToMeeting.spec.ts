@@ -53,15 +53,6 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
       ]));
 
       await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin });
-
-      // wait till the meeting creator's sns event has been fired
-      await backoff(
-        () => getSnsEventsByTopicArn<UserAddedToMeetingSnsMessage>({ topicArn: userAddedToMeetingSnsTopicArn }),
-        ({ snsEvents }) => !!snsEvents.find((snsEvent) => snsEvent.message.user.id === userId && snsEvent.message.meeting.id === meeting.id),
-      );
-
-      // clear the sns events table so the tests can have a clean slate
-      await deleteSnsEventsByTopicArn({ topicArn: userAddedToMeetingSnsTopicArn });
     });
 
     it("returns a valid response", async () => {
@@ -312,6 +303,15 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
     });
 
     it("publishes valid SNS messages", async () => {
+      // wait till the meeting creator's sns event has been fired
+      await backoff(
+        () => getSnsEventsByTopicArn<UserAddedToMeetingSnsMessage>({ topicArn: userAddedToMeetingSnsTopicArn }),
+        ({ snsEvents }) => !!snsEvents.find((snsEvent) => snsEvent.message.user.id === userId && snsEvent.message.meeting.id === meeting.id),
+      );
+
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userAddedToMeetingSnsTopicArn });
+
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       const request: Static<typeof AddUsersToMeetingDto> = {
@@ -356,6 +356,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
                 image: jasmine.stringMatching(URL_REGEX),
                 name: meeting.name,
                 dueDate: meeting.dueDate,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
               },
               user: {
                 email: userByEmail.email,
@@ -373,6 +374,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
                 image: jasmine.stringMatching(URL_REGEX),
                 name: meeting.name,
                 dueDate: meeting.dueDate,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
               },
               user: {
                 phone: userByPhone.phone,
@@ -390,6 +392,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
                 image: jasmine.stringMatching(URL_REGEX),
                 name: meeting.name,
                 dueDate: meeting.dueDate,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
               },
               user: {
                 email: otherUser.email,

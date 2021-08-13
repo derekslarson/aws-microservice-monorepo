@@ -53,15 +53,6 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
       ]));
 
       await createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin });
-
-      // wait till the group creator's sns event has been fired
-      await backoff(
-        () => getSnsEventsByTopicArn<UserAddedToGroupSnsMessage>({ topicArn: userAddedToGroupSnsTopicArn }),
-        ({ snsEvents }) => !!snsEvents.find((snsEvent) => snsEvent.message.user.id === userId && snsEvent.message.group.id === group.id),
-      );
-
-      // clear the sns events table so the tests can have a clean slate
-      await deleteSnsEventsByTopicArn({ topicArn: userAddedToGroupSnsTopicArn });
     });
 
     it("returns a valid response", async () => {
@@ -303,6 +294,15 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
     });
 
     it("publishes valid SNS messages", async () => {
+      // wait till the group creator's sns event has been fired
+      await backoff(
+        () => getSnsEventsByTopicArn<UserAddedToGroupSnsMessage>({ topicArn: userAddedToGroupSnsTopicArn }),
+        ({ snsEvents }) => !!snsEvents.find((snsEvent) => snsEvent.message.user.id === userId && snsEvent.message.group.id === group.id),
+      );
+
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userAddedToGroupSnsTopicArn });
+
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       const request: Static<typeof AddUsersToGroupDto> = {
@@ -346,6 +346,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
                 id: group.id,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: group.name,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
               },
               user: {
                 email: userByEmail.email,
@@ -362,6 +363,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
                 id: group.id,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: group.name,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
               },
               user: {
                 phone: userByPhone.phone,
@@ -378,6 +380,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
                 id: group.id,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: group.name,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
               },
               user: {
                 email: otherUser.email,
