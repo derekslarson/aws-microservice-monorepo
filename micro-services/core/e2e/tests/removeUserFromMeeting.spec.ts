@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/util";
-import { createRandomUser, createConversationUserRelationship, createMeetingConversation, getConversationUserRelationship, CreateRandomUserOutput } from "../util";
+import { Role, UserRemovedFromMeetingSnsMessage } from "@yac/util";
+import { createRandomUser, createConversationUserRelationship, createMeetingConversation, getConversationUserRelationship, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { generateRandomString } from "../../../../e2e/util";
+import { backoff, generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { MeetingId } from "../../src/types/meetingId.type";
@@ -14,6 +14,7 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const userRemovedFromMeetingSnsTopicArn = process.env["user-removed-from-meeting-sns-topic-arn"] as string;
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
   const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
@@ -29,7 +30,13 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
     beforeEach(async () => {
       ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
-      await createConversationUserRelationship({ type: ConversationType.Meeting, userId, conversationId: meeting.id, role: Role.Admin });
+      await Promise.all([
+        createConversationUserRelationship({ type: ConversationType.Meeting, userId, conversationId: meeting.id, role: Role.Admin }),
+        createConversationUserRelationship({ type: ConversationType.Meeting, userId: otherUser.id, conversationId: meeting.id, role: Role.User }),
+      ]);
+
+      // clear the sns events table so the tests can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userRemovedFromMeetingSnsTopicArn });
     });
 
     it("returns a valid response", async () => {
@@ -54,6 +61,45 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
         const { conversationUserRelationship } = await getConversationUserRelationship({ conversationId: meeting.id, userId: otherUser.id });
 
         expect(conversationUserRelationship).not.toBeDefined();
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("publishes a valid SNS message", async () => {
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      try {
+        await axios.delete(`${baseUrl}/meetings/${meeting.id}/users/${otherUser.id}`, { headers });
+
+        // wait the event has been fired
+        const { snsEvents } = await backoff(
+          () => getSnsEventsByTopicArn<UserRemovedFromMeetingSnsMessage>({ topicArn: userRemovedFromMeetingSnsTopicArn }),
+          (response) => response.snsEvents.length === 1,
+        );
+
+        expect(snsEvents.length).toBe(1);
+
+        expect(snsEvents[0]).toEqual(jasmine.objectContaining({
+          message: {
+            meetingMemberIds: jasmine.arrayContaining([ userId ]),
+            meeting: {
+              createdBy: userId,
+              id: meeting.id,
+              image: jasmine.stringMatching(URL_REGEX),
+              name: meeting.name,
+              dueDate: meeting.dueDate,
+            },
+            user: {
+              email: otherUser.email,
+              id: otherUser.id,
+              phone: otherUser.phone,
+              username: otherUser.username,
+              realName: otherUser.realName,
+              image: jasmine.stringMatching(URL_REGEX),
+            },
+          },
+        }));
       } catch (error) {
         fail(error);
       }

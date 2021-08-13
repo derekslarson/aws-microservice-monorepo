@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/util";
-import { createRandomUser, createConversationUserRelationship, createGroupConversation, getConversationUserRelationship, CreateRandomUserOutput } from "../util";
+import { Role, UserRemovedFromGroupSnsMessage } from "@yac/util";
+import { createRandomUser, createConversationUserRelationship, createGroupConversation, getConversationUserRelationship, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { generateRandomString } from "../../../../e2e/util";
+import { backoff, generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { GroupId } from "../../src/types/groupId.type";
@@ -14,6 +14,7 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const userRemovedFromGroupSnsTopicArn = process.env["user-removed-from-group-sns-topic-arn"] as string;
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
   const mockGroupId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
@@ -29,7 +30,13 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
     beforeEach(async () => {
       ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
 
-      await createConversationUserRelationship({ type: ConversationType.Group, userId, conversationId: group.id, role: Role.Admin });
+      await Promise.all([
+        createConversationUserRelationship({ type: ConversationType.Group, userId, conversationId: group.id, role: Role.Admin }),
+        createConversationUserRelationship({ type: ConversationType.Group, userId: otherUser.id, conversationId: group.id, role: Role.User }),
+      ]);
+
+      // clear the sns events table so the tests can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userRemovedFromGroupSnsTopicArn });
     });
 
     it("returns a valid response", async () => {
@@ -54,6 +61,44 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
         const { conversationUserRelationship } = await getConversationUserRelationship({ conversationId: group.id, userId: otherUser.id });
 
         expect(conversationUserRelationship).not.toBeDefined();
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("publishes a valid SNS message", async () => {
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      try {
+        await axios.delete(`${baseUrl}/groups/${group.id}/users/${otherUser.id}`, { headers });
+
+        // wait the event has been fired
+        const { snsEvents } = await backoff(
+          () => getSnsEventsByTopicArn<UserRemovedFromGroupSnsMessage>({ topicArn: userRemovedFromGroupSnsTopicArn }),
+          (response) => response.snsEvents.length === 1,
+        );
+
+        expect(snsEvents.length).toBe(1);
+
+        expect(snsEvents[0]).toEqual(jasmine.objectContaining({
+          message: {
+            groupMemberIds: jasmine.arrayContaining([ userId ]),
+            group: {
+              createdBy: userId,
+              id: group.id,
+              image: jasmine.stringMatching(URL_REGEX),
+              name: group.name,
+            },
+            user: {
+              email: otherUser.email,
+              id: otherUser.id,
+              phone: otherUser.phone,
+              username: otherUser.username,
+              realName: otherUser.realName,
+              image: jasmine.stringMatching(URL_REGEX),
+            },
+          },
+        }));
       } catch (error) {
         fail(error);
       }

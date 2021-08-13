@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { Role, UserRemovedFromTeamSnsMessage } from "@yac/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createRandomTeam, createRandomUser, CreateRandomUserOutput, createTeamUserRelationship, getTeamUserRelationship } from "../util";
+import { createRandomTeam, createRandomUser, CreateRandomUserOutput, createTeamUserRelationship, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn, getTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { generateRandomString } from "../../../../e2e/util";
+import { backoff, generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { TeamId } from "../../src/types/teamId.type";
 
@@ -13,6 +13,7 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const userRemovedFromTeamSnsTopicArn = process.env["user-removed-from-team-sns-topic-arn"] as string;
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
   const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
@@ -28,7 +29,13 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
     beforeEach(async () => {
       ({ team } = await createRandomTeam({ createdBy: userId }));
 
-      await createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin });
+      await Promise.all([
+        createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin }),
+        createTeamUserRelationship({ userId: otherUser.id, teamId: team.id, role: Role.User }),
+      ]);
+
+      // clear the sns events table so the tests can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userRemovedFromTeamSnsTopicArn });
     });
 
     it("returns a valid response", async () => {
@@ -53,6 +60,44 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
         const { teamUserRelationship } = await getTeamUserRelationship({ teamId: team.id, userId: otherUser.id });
 
         expect(teamUserRelationship).not.toBeDefined();
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("publishes a valid SNS message", async () => {
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      try {
+        await axios.delete(`${baseUrl}/teams/${team.id}/users/${otherUser.id}`, { headers });
+
+        // wait the event has been fired
+        const { snsEvents } = await backoff(
+          () => getSnsEventsByTopicArn<UserRemovedFromTeamSnsMessage>({ topicArn: userRemovedFromTeamSnsTopicArn }),
+          (response) => response.snsEvents.length === 1,
+        );
+
+        expect(snsEvents.length).toBe(1);
+
+        expect(snsEvents[0]).toEqual(jasmine.objectContaining({
+          message: {
+            teamMemberIds: jasmine.arrayContaining([ userId ]),
+            team: {
+              createdBy: userId,
+              id: team.id,
+              image: jasmine.stringMatching(URL_REGEX),
+              name: team.name,
+            },
+            user: {
+              email: otherUser.email,
+              id: otherUser.id,
+              phone: otherUser.phone,
+              username: otherUser.username,
+              realName: otherUser.realName,
+              image: jasmine.stringMatching(URL_REGEX),
+            },
+          },
+        }));
       } catch (error) {
         fail(error);
       }

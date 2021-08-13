@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Role } from "@yac/util";
+import { Role, UserAddedToGroupSnsMessage } from "@yac/util";
 import axios from "axios";
 import { Static } from "runtypes";
-import { generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
+import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { AddUsersToGroupDto } from "../../src/dtos/addUsersToGroup.dto";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
@@ -17,9 +17,11 @@ import {
   createGroupConversation,
   createRandomUser,
   CreateRandomUserOutput,
+  deleteSnsEventsByTopicArn,
   generateRandomEmail,
   generateRandomPhone,
   getConversationUserRelationship,
+  getSnsEventsByTopicArn,
   getUniqueProperty,
   getUserByEmail,
   getUserByPhone,
@@ -29,6 +31,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const userAddedToGroupSnsTopicArn = process.env["user-added-to-group-sns-topic-arn"] as string;
 
   const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
 
@@ -50,6 +53,15 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
       ]));
 
       await createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin });
+
+      // wait till the group creator's sns event has been fired
+      await backoff(
+        () => getSnsEventsByTopicArn<UserAddedToGroupSnsMessage>({ topicArn: userAddedToGroupSnsTopicArn }),
+        ({ snsEvents }) => !!snsEvents.find((snsEvent) => snsEvent.message.user.id === userId && snsEvent.message.group.id === group.id),
+      );
+
+      // clear the sns events table so the tests can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userAddedToGroupSnsTopicArn });
     });
 
     it("returns a valid response", async () => {
@@ -285,6 +297,99 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("publishes valid SNS messages", async () => {
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      const request: Static<typeof AddUsersToGroupDto> = {
+        pathParameters: { groupId: group.id },
+        body: {
+          users: [
+            { username: otherUser.username, role: Role.Admin },
+            { email: randomEmail, role: Role.User },
+            { phone: randomPhone, role: Role.Admin },
+            { username: randomUsername, role: Role.User },
+          ],
+        },
+      };
+
+      try {
+        await axios.post(`${baseUrl}/groups/${request.pathParameters.groupId}/users`, request.body, { headers });
+
+        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
+          getUserByEmail({ email: randomEmail }),
+          getUserByPhone({ phone: randomPhone }),
+        ]);
+
+        if (!userByEmail || !userByPhone) {
+          throw new Error("necessary user records not created");
+        }
+
+        // wait till all the events have been fired
+        const { snsEvents } = await backoff(
+          () => getSnsEventsByTopicArn<UserAddedToGroupSnsMessage>({ topicArn: userAddedToGroupSnsTopicArn }),
+          (response) => response.snsEvents.length === 3,
+        );
+
+        expect(snsEvents.length).toBe(3);
+
+        expect(snsEvents).toEqual(jasmine.arrayContaining([
+          jasmine.objectContaining({
+            message: {
+              groupMemberIds: jasmine.arrayContaining([ userId ]),
+              group: {
+                createdBy: userId,
+                id: group.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: group.name,
+              },
+              user: {
+                email: userByEmail.email,
+                id: userByEmail.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              groupMemberIds: jasmine.arrayContaining([ userId ]),
+              group: {
+                createdBy: userId,
+                id: group.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: group.name,
+              },
+              user: {
+                phone: userByPhone.phone,
+                id: userByPhone.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              groupMemberIds: jasmine.arrayContaining([ userId ]),
+              group: {
+                createdBy: userId,
+                id: group.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: group.name,
+              },
+              user: {
+                email: otherUser.email,
+                phone: otherUser.phone,
+                username: otherUser.username,
+                realName: otherUser.realName,
+                id: otherUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+        ]));
       } catch (error) {
         fail(error);
       }
