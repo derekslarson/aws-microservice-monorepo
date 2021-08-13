@@ -1,12 +1,13 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerServiceInterface, Team } from "@yac/util";
+import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { TeamCreatedSnsServiceInterface } from "../sns-services/teamCreated.sns.service";
 import { RawTeam } from "../repositories/team.dynamo.repository";
-import { TeamMediatorService } from "../mediator-services/team.mediator.service";
+import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
+import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 
 @injectable()
 export class TeamCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -15,7 +16,8 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamCreatedSnsServiceInterface) private teamCreatedSnsService: TeamCreatedSnsServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatoService: TeamMediatorService,
+    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatoService: TeamMediatorServiceInterface,
+    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -26,10 +28,10 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
       const isCoreTable = record.tableName === this.coreTableName;
-      const isUser = record.newImage.entityType === EntityType.User;
+      const isTeam = record.newImage.entityType === EntityType.Team;
       const isCreation = record.eventName === "INSERT";
 
-      return isCoreTable && isUser && isCreation;
+      return isCoreTable && isTeam && isCreation;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 
@@ -43,9 +45,12 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
 
       const { newImage: { id: teamId } } = record;
 
-      const { team } = await this.teamMediatoService.getTeam({ teamId });
+      const [ { team }, { users } ] = await Promise.all([
+        this.teamMediatoService.getTeam({ teamId }),
+        this.userMediatorService.getUsersByTeamId({ teamId }),
+      ]);
 
-      await this.teamCreatedSnsService.sendMessage({ team });
+      await this.teamCreatedSnsService.sendMessage({ team, teamMemberIds: users.map((user) => user.id) });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

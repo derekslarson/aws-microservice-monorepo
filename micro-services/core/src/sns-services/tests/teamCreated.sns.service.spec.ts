@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Spied, TestSupport, SnsFactory, Team } from "@yac/util";
+import { LoggerService, Spied, TestSupport, SnsFactory, Team, User } from "@yac/util";
 import SNS from "aws-sdk/clients/sns";
 import { TeamCreatedSnsService, TeamCreatedSnsServiceInterface } from "../teamCreated.sns.service";
 
@@ -17,6 +17,7 @@ describe("TeamCreatedSnsService", () => {
   const mockUserAddedToGroupSnsTopicArn = "mock-user-added-to-group-sns-topic-arn";
   const mockConfig = { snsTopicArns: { teamCreated: mockUserAddedToGroupSnsTopicArn } };
   const mockTeamId = "team-id";
+  const mockUserA: User["id"] = "user-mock-id";
 
   const mockTeam: Team = {
     id: mockTeamId,
@@ -34,7 +35,7 @@ describe("TeamCreatedSnsService", () => {
   });
 
   describe("sendMessage", () => {
-    const mockMessage = { team: mockTeam };
+    const mockMessage = { team: mockTeam, teamMemberIds: [ mockUserA ] };
 
     describe("under normal conditions", () => {
       beforeEach(() => {
