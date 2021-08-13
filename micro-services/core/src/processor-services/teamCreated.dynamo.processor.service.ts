@@ -43,9 +43,7 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
 
       const { newImage: { id: teamId } } = record;
 
-      const [ { team } ] = await Promise.all([
-        this.teamMediatoService.getTeam({ teamId }),
-      ]);
+      const { team } = await this.teamMediatoService.getTeam({ teamId });
 
       await this.teamCreatedSnsService.sendMessage({ team, teamMemberIds: [ team.createdBy ] });
     } catch (error: unknown) {
