@@ -466,6 +466,7 @@ export async function createFriendConversation(params: CreateFriendConversationI
       id: conversationId,
       type: ConversationTypeEnum.Friend,
       createdAt: new Date().toISOString(),
+      createdBy: userId,
     };
 
     await documentClient.put({

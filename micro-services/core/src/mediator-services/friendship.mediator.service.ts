@@ -25,9 +25,9 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
     try {
       this.loggerService.trace("createFriendship called", { params }, this.constructor.name);
 
-      const { userIds } = params;
+      const { userIds, createdBy } = params;
 
-      const { conversation } = await this.conversationService.createFriendConversation({ userIds });
+      const { conversation } = await this.conversationService.createFriendConversation({ userIds, createdBy });
 
       await Promise.all(userIds.map((userId) => this.conversationUserRelationshipService.createConversationUserRelationship({
         type: ConversationType.Friend,
@@ -133,6 +133,7 @@ export interface Friendship {
 
 export interface CreateFriendshipInput {
   userIds: [UserId, UserId];
+  createdBy: UserId;
 }
 
 export interface CreateFriendshipOutput {

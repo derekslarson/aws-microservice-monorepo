@@ -92,12 +92,21 @@ export interface SendUserRemovedFromMeetingMessageInput extends BaseMessageInput
   }
 }
 
+export interface SendUserAddedAsFriendMessageInput extends BaseMessageInput {
+  event: WebSocketEvent.UserAddedAsFriend;
+  data: {
+    addingUser: User;
+    addedUser: User;
+  }
+}
+
 export type SendMessageInput =
   SendUserAddedToTeamMessageInput |
   SendUserRemovedFromTeamMessageInput |
   SendUserAddedToGroupMessageInput |
   SendUserRemovedFromGroupMessageInput |
   SendUserAddedToMeetingMessageInput |
-  SendUserRemovedFromMeetingMessageInput;
+  SendUserRemovedFromMeetingMessageInput |
+  SendUserAddedAsFriendMessageInput;
 
 export type SendMessageOutput = void;
