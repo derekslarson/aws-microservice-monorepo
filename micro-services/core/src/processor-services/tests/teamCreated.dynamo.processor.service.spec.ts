@@ -85,7 +85,7 @@ describe("UserRemovedFromTeamDynamoProcessorService", () => {
           ...mockRecord,
           newImage: {
             ...mockRecord.newImage,
-            entityType: EntityType.Team,
+            entityType: EntityType.User,
           },
         };
 
