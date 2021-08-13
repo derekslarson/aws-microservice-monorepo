@@ -7,7 +7,6 @@ import { EntityType } from "../enums/entityType.enum";
 import { TeamCreatedSnsServiceInterface } from "../sns-services/teamCreated.sns.service";
 import { RawTeam } from "../repositories/team.dynamo.repository";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 
 @injectable()
 export class TeamCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -17,7 +16,6 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamCreatedSnsServiceInterface) private teamCreatedSnsService: TeamCreatedSnsServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatoService: TeamMediatorServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -45,12 +43,11 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
 
       const { newImage: { id: teamId } } = record;
 
-      const [ { team }, { users } ] = await Promise.all([
+      const [ { team } ] = await Promise.all([
         this.teamMediatoService.getTeam({ teamId }),
-        this.userMediatorService.getUsersByTeamId({ teamId }),
       ]);
 
-      await this.teamCreatedSnsService.sendMessage({ team, teamMemberIds: users.map((user) => user.id) });
+      await this.teamCreatedSnsService.sendMessage({ team, teamMemberIds: [ team.createdBy ] });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

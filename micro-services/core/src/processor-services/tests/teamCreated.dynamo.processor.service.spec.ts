@@ -1,33 +1,19 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Spied, TestSupport, DynamoProcessorServiceInterface, User, Team, DynamoProcessorServiceRecord } from "@yac/util";
+import { LoggerService, Spied, TestSupport, DynamoProcessorServiceInterface, Team, DynamoProcessorServiceRecord } from "@yac/util";
 import { EntityType } from "../../enums/entityType.enum";
 import { TeamMediatorService, TeamMediatorServiceInterface } from "../../mediator-services/team.mediator.service";
-import { UserMediatorService, UserMediatorServiceInterface } from "../../mediator-services/user.mediator.service";
 import { TeamCreatedSnsService } from "../../sns-services/teamCreated.sns.service";
 import { TeamCreatedDynamoProcessorService } from "../teamCreated.dynamo.processor.service";
 
-describe("UserRemovedFromTeamDynamoProcessorService", () => {
+describe("TeamCreatedDynamoProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let teamMediatorService: Spied<TeamMediatorServiceInterface>;
   let teamCreatedSnsService: Spied<TeamCreatedSnsService>;
-  let userMediatorService: Spied<UserMediatorServiceInterface>;
   let teamCreatedDynamoProcessorService: DynamoProcessorServiceInterface;
 
   const mockCoreTableName = "mock-core-table-name";
   const mockConfig = { tableNames: { core: mockCoreTableName } };
-  const mockUserIdOne = "user-mock-id-one";
-  const mockUserIdTwo = "user-mock-id-two";
   const mockTeamId = "team-mock-id";
-
-  const mockUserOne: User = {
-    id: mockUserIdOne,
-    image: "mock-image",
-  };
-
-  const mockUserTwo: User = {
-    id: mockUserIdTwo,
-    image: "mock-image",
-  };
 
   const mockTeam: Team = {
     id: mockTeamId,
@@ -52,9 +38,8 @@ describe("UserRemovedFromTeamDynamoProcessorService", () => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     teamCreatedSnsService = TestSupport.spyOnClass(TeamCreatedSnsService);
     teamMediatorService = TestSupport.spyOnClass(TeamMediatorService);
-    userMediatorService = TestSupport.spyOnClass(UserMediatorService);
 
-    teamCreatedDynamoProcessorService = new TeamCreatedDynamoProcessorService(loggerService, teamCreatedSnsService, teamMediatorService, userMediatorService, mockConfig);
+    teamCreatedDynamoProcessorService = new TeamCreatedDynamoProcessorService(loggerService, teamCreatedSnsService, teamMediatorService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
@@ -114,17 +99,8 @@ describe("UserRemovedFromTeamDynamoProcessorService", () => {
   describe("processRecord", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        userMediatorService.getUsersByTeamId.and.returnValue(Promise.resolve({ users: [ mockUserOne, mockUserTwo ] }));
-        userMediatorService.getUser.and.returnValue(Promise.resolve({ user: mockUserOne }));
         teamMediatorService.getTeam.and.returnValue(Promise.resolve({ team: mockTeam }));
         teamCreatedSnsService.sendMessage.and.returnValue(Promise.resolve());
-      });
-
-      it("calls userMediatorService.getUsersByTeamId with the correct parameters", async () => {
-        await teamCreatedDynamoProcessorService.processRecord(mockRecord);
-
-        expect(userMediatorService.getUsersByTeamId).toHaveBeenCalledTimes(1);
-        expect(userMediatorService.getUsersByTeamId).toHaveBeenCalledWith({ teamId: mockTeamId });
       });
 
       it("calls teamMediatorService.getTeam with the correct parameters", async () => {
@@ -138,14 +114,14 @@ describe("UserRemovedFromTeamDynamoProcessorService", () => {
         await teamCreatedDynamoProcessorService.processRecord(mockRecord);
 
         expect(teamCreatedSnsService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(teamCreatedSnsService.sendMessage).toHaveBeenCalledWith({ team: mockTeam, teamMemberIds: [ mockUserIdOne, mockUserIdTwo ] });
+        expect(teamCreatedSnsService.sendMessage).toHaveBeenCalledWith({ team: mockTeam, teamMemberIds: [ mockTeam.createdBy ] });
       });
     });
 
     describe("under error conditions", () => {
-      describe("when userMediatorService.getUsersByTeamId throws an error", () => {
+      describe("when teamMediatorService.getTeam throws an error", () => {
         beforeEach(() => {
-          userMediatorService.getUsersByTeamId.and.throwError(mockError);
+          teamMediatorService.getTeam.and.throwError(mockError);
         });
 
         it("calls loggerService.error with the correct params", async () => {

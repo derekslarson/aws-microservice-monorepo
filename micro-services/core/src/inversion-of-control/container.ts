@@ -146,6 +146,7 @@ try {
     container.get(TYPES.UserAddedToGroupDynamoProcessorServiceInterface),
     container.get(TYPES.UserRemovedFromGroupDynamoProcessorServiceInterface),
     container.get(TYPES.UserAddedToMeetingDynamoProcessorServiceInterface),
+    container.get(TYPES.TeamCreatedDynamoProcessorServiceInterface),
   ]);
 } catch (error: unknown) {
   // eslint-disable-next-line no-console
