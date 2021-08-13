@@ -29,6 +29,7 @@ import { UserMediatorService, UserMediatorServiceInterface } from "../mediator-s
 import { InvitationOrchestratorService, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { ImageFileCreatedS3ProcessorService } from "../processor-services/imageFileCreated.s3.processor.service";
 import { MessageFileCreatedS3ProcessorService } from "../processor-services/messageFileCreated.s3.processor.service";
+import { TeamCreatedDynamoProcessorService } from "../processor-services/teamCreated.dynamo.processor.service";
 import { UserAddedToGroupDynamoProcessorService } from "../processor-services/userAddedToGroup.dynamo.processor.service";
 import { UserAddedToMeetingDynamoProcessorService } from "../processor-services/userAddedToMeeting.dynamo.processor.service";
 import { UserAddedToTeamDynamoProcessorService } from "../processor-services/userAddedToTeam.dynamo.processor.service";
@@ -92,6 +93,7 @@ try {
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserAddedToGroupDynamoProcessorServiceInterface).to(UserAddedToGroupDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserRemovedFromGroupDynamoProcessorServiceInterface).to(UserRemovedFromGroupDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserAddedToMeetingDynamoProcessorServiceInterface).to(UserAddedToMeetingDynamoProcessorService);
+  container.bind<DynamoProcessorServiceInterface>(TYPES.TeamCreatedDynamoProcessorServiceInterface).to(TeamCreatedDynamoProcessorService);
 
   // SNS Services
   container.bind<UserCreatedSnsServiceInterface>(TYPES.UserCreatedSnsServiceInterface).to(UserCreatedSnsService);
@@ -100,6 +102,7 @@ try {
   container.bind<UserAddedToGroupSnsServiceInterface>(TYPES.UserAddedToGroupSnsServiceInterface).to(UserAddedToGroupSnsService);
   container.bind<UserRemovedFromGroupSnsServiceInterface>(TYPES.UserRemovedFromGroupSnsServiceInterface).to(UserRemovedFromGroupSnsService);
   container.bind<UserAddedToMeetingSnsServiceInterface>(TYPES.UserAddedToMeetingSnsServiceInterface).to(UserAddedToMeetingSnsService);
+  // container.bind<TeamCreatedSnsServiceInterface>(TYPES.TeamCreatedSnsServiceInterface).to(UserAddedToMeetingSnsService);
 
   // Entity Services
   container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
