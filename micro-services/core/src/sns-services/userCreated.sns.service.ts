@@ -11,7 +11,7 @@ export class UserCreatedSnsService extends BaseSnsService<UserCreatedSnsMessage>
     @inject(TYPES.SnsFactory) snsFactory: SnsFactory,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedSnsServiceConfigInterface,
   ) {
-    super(envConfig.snsTopicArns.userCreated as string, loggerService, snsFactory);
+    super(envConfig.snsTopicArns.userCreated, loggerService, snsFactory);
   }
 
   public async sendMessage(message: UserCreatedSnsMessage): Promise<void> {
@@ -31,4 +31,6 @@ export interface UserCreatedSnsServiceInterface {
   sendMessage(message: UserCreatedSnsMessage): Promise<void>;
 }
 
-export type UserCreatedSnsServiceConfigInterface = Pick<EnvConfigInterface, "snsTopicArns">;
+export interface UserCreatedSnsServiceConfigInterface {
+  snsTopicArns: Pick<EnvConfigInterface["snsTopicArns"], "userCreated">
+};

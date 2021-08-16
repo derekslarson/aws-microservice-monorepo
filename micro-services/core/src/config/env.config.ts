@@ -17,6 +17,7 @@ export const envConfig: EnvConfigInterface = {
     userAddedToMeeting: process.env.USER_ADDED_TO_MEETING_SNS_TOPIC_ARN || "",
     userRemovedFromMeeting: process.env.USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN || "",
     userAddedAsFriend: process.env.USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN || "",
+    teamCreated: process.env.TEAM_CREATED_SNS_TOPIC_ARN || "",
   },
   globalSecondaryIndexNames: {
     one: process.env.GSI_ONE_INDEX_NAME || "",
@@ -38,6 +39,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     userAddedToMeeting: string;
     userRemovedFromMeeting: string;
     userAddedAsFriend: string;
+    teamCreated: string;
   };
   bucketNames: {
     message: string;

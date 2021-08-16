@@ -61,6 +61,7 @@ export class YacUtilServiceStack extends CDK.Stack {
     const userAddedToMeetingSnsTopic = new SNS.Topic(this, `UserAddedToMeetingSnsTopic_${id}`, { topicName: `UserAddedToMeetingSnsTopic_${id}` });
     const userRemovedFromMeetingSnsTopic = new SNS.Topic(this, `UserRemovedFromMeetingSnsTopic_${id}`, { topicName: `UserRemovedFromMeetingSnsTopic_${id}` });
     const userAddedAsFriendSnsTopic = new SNS.Topic(this, `UserAddedAsFriendSnsTopic_${id}`, { topicName: `UserAddedAsFriendSnsTopic_${id}` });
+    const teamCreatedSnsTopic = new SNS.Topic(this, `TeamCreatedSnsTopic_${id}`, { topicName: `TeamCreatedSnsTopic_${id}` });
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
@@ -114,6 +115,7 @@ export class YacUtilServiceStack extends CDK.Stack {
       exportName: ExportNames.UserAddedToMeetingSnsTopicArn,
       value: userAddedToMeetingSnsTopic.topicArn,
     });
+  
 
     new CDK.CfnOutput(this, `UserRemovedFromMeetingSnsTopicExport_${id}`, {
       exportName: ExportNames.UserRemovedFromMeetingSnsTopicArn,
@@ -123,6 +125,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `UserAddedAsFriendSnsTopicExport_${id}`, {
       exportName: ExportNames.UserAddedAsFriendSnsTopicArn,
       value: userAddedAsFriendSnsTopic.topicArn,
+    });
+
+    new CDK.CfnOutput(this, `TeamCreatedSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.TeamCreatedSnsTopicArn,
+      value: teamCreatedSnsTopic.topicArn,
     });
 
     new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {
@@ -165,6 +172,11 @@ export class YacUtilServiceStack extends CDK.Stack {
       parameterName: `/yac-api-v4/${stackPrefix}/user-added-as-friend-sns-topic-arn`,
       stringValue: userAddedAsFriendSnsTopic.topicArn,
     });
+
+    new SSM.StringParameter(this, `TeamCreatedSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/team-created-sns-topic-arn`,
+      stringValue: teamCreatedSnsTopic.topicArn,
+    });
   }
 
   public get recordName(): string {
@@ -186,7 +198,7 @@ export class YacUtilServiceStack extends CDK.Stack {
 
       return environment;
     } catch (error) {
-      console.log(`${new Date().toISOString()} : Error in YacCoreServiceStackg recordName getter:\n`, error);
+      console.log(`${new Date().toISOString()} : Error in YacUtilServiceStack recordName getter:\n`, error);
 
       throw error;
     }

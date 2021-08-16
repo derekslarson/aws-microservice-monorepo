@@ -142,13 +142,6 @@ describe("UserRemovedFromTeamDynamoProcessorService", () => {
         expect(teamMediatorService.getTeam).toHaveBeenCalledWith({ teamId: mockTeamId });
       });
 
-      it("calls teamMediatorService.getTeam with the correct parameters", async () => {
-        await userRemovedFromTeamDynamoProcessorService.processRecord(mockRecord);
-
-        expect(teamMediatorService.getTeam).toHaveBeenCalledTimes(1);
-        expect(teamMediatorService.getTeam).toHaveBeenCalledWith({ teamId: mockTeamId });
-      });
-
       it("calls userRemovedFromTeamSnsService.sendMessage with the correct parameters", async () => {
         await userRemovedFromTeamDynamoProcessorService.processRecord(mockRecord);
 
