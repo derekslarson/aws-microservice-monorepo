@@ -12,6 +12,7 @@ import { UserAddedAsFriendSnsProcessorService } from "../processor-services/user
 import { UserAddedToGroupSnsProcessorService } from "../processor-services/userAddedToGroup.sns.processor.service";
 import { UserAddedToMeetingSnsProcessorService } from "../processor-services/userAddedToMeeting.sns.processor.service";
 import { UserAddedToTeamSnsProcessorService } from "../processor-services/userAddedToTeam.sns.processor.service";
+import { UserRemovedAsFriendSnsProcessorService } from "../processor-services/userRemovedAsFriend.sns.processor.service";
 import { UserRemovedFromGroupSnsProcessorService } from "../processor-services/userRemovedFromGroup.sns.processor.service";
 import { UserRemovedFromMeetingSnsProcessorService } from "../processor-services/userRemovedFromMeeting.sns.processor.service";
 import { UserRemovedFromTeamSnsProcessorService } from "../processor-services/userRemovedFromTeam.sns.processor.service";
@@ -42,6 +43,7 @@ try {
   container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToMeetingSnsProcessorServiceInterface).to(UserAddedToMeetingSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserRemovedFromMeetingSnsProcessorServiceInterface).to(UserRemovedFromMeetingSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedAsFriendSnsProcessorServiceInterface).to(UserAddedAsFriendSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.UserRemovedAsFriendSnsProcessorServiceInterface).to(UserRemovedAsFriendSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.TeamCreatedSnsProcessorServiceInterface).to(TeamCreatedSnsProcessorService);
 
   // Entity Services
@@ -68,6 +70,7 @@ try {
     container.get(TYPES.UserAddedToMeetingSnsProcessorServiceInterface),
     container.get(TYPES.UserRemovedFromMeetingSnsProcessorServiceInterface),
     container.get(TYPES.UserAddedAsFriendSnsProcessorServiceInterface),
+    container.get(TYPES.UserRemovedAsFriendSnsProcessorServiceInterface),
     container.get(TYPES.TeamCreatedSnsProcessorServiceInterface),
   ]);
 

@@ -32,6 +32,7 @@ const necessaryParams = [
   "user-added-to-meeting-sns-topic-arn",
   "user-removed-from-meeting-sns-topic-arn",
   "user-added-as-friend-sns-topic-arn",
+  "user-removed-as-friend-sns-topic-arn",
   "team-created-sns-topic-arn",
   "core-testing-sns-event-table-name",
 ];
