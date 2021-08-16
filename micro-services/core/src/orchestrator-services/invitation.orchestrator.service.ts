@@ -31,7 +31,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
       const settledInvitations = await Promise.allSettled(invitations.map(async (invitation) => {
         const { user } = await this.getOrCreateUser(invitation);
 
-        await this.friendshipMediatorService.createFriendship({ userIds: [ user.id, userId ] });
+        await this.friendshipMediatorService.createFriendship({ userIds: [ user.id, userId ], createdBy: userId });
 
         return { user };
       }));

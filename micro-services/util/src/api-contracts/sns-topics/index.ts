@@ -6,3 +6,4 @@ export * from "./userAddedToGroup.snsMessage.model";
 export * from "./userRemovedFromGroup.snsMessage.model";
 export * from "./userAddedToMeeting.snsMessage.model";
 export * from "./userRemovedFromMeeting.snsMessage.model";
+export * from "./userAddedAsFriend.snsMessage.model";
