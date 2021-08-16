@@ -32,13 +32,14 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createFriendConversation called", { params }, this.constructor.name);
 
-      const { userIds, teamId } = params;
+      const { userIds, teamId, createdBy } = params;
 
       const conversationId = `${KeyPrefix.FriendConversation}${userIds.sort().join("-")}` as FriendConvoId;
 
       const conversation: FriendConversation = {
         id: conversationId,
         type: ConversationTypeEnum.Friend,
+        createdBy,
         createdAt: new Date().toISOString(),
         ...(teamId && { teamId }),
       };
@@ -238,6 +239,7 @@ export type MeetingConversation = MeetingConversationEntity;
 
 export interface CreateFriendConversationInput {
   userIds: [UserId, UserId];
+  createdBy: UserId;
   teamId?: TeamId;
 }
 

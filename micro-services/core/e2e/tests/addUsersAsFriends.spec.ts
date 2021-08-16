@@ -1,11 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { Role, UserAddedAsFriendSnsMessage } from "@yac/util";
 import { Static } from "runtypes";
-import { createRandomUser, CreateRandomUserOutput, generateRandomEmail, generateRandomPhone, getConversation, getConversationUserRelationship, getUniqueProperty, getUserByEmail, getUserByPhone } from "../util";
+import {
+  createRandomUser,
+  CreateRandomUserOutput,
+  deleteSnsEventsByTopicArn,
+  generateRandomEmail,
+  generateRandomPhone,
+  getConversation,
+  getConversationUserRelationship,
+  getSnsEventsByTopicArn,
+  getUniqueProperty,
+  getUser,
+  getUserByEmail,
+  getUserByPhone,
+} from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
+import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -18,6 +31,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const userAddedAsFriendSnsTopicArn = process.env["user-added-as-friend-sns-topic-arn"] as string;
 
   describe("under normal conditions", () => {
     let otherUser: CreateRandomUserOutput["user"];
@@ -232,6 +246,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           id: conversationId,
           type: ConversationType.Friend,
           createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+          createdBy: userId,
         });
 
         expect(emailInviteConvo).toEqual({
@@ -241,6 +256,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           id: userByEmailConversationId,
           type: ConversationType.Friend,
           createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+          createdBy: userId,
         });
 
         expect(phoneInviteConvio).toEqual({
@@ -250,6 +266,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           id: userByPhoneConversationId,
           type: ConversationType.Friend,
           createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+          createdBy: userId,
         });
       } catch (error) {
         fail(error);
@@ -397,6 +414,106 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("publishes valid SNS messages", async () => {
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userAddedAsFriendSnsTopicArn });
+
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      const request: Static<typeof AddUsersAsFriendsDto> = {
+        pathParameters: { userId },
+        body: {
+          users: [
+            { username: otherUser.username },
+            { email: randomEmail },
+            { phone: randomPhone },
+            { username: randomUsername },
+          ],
+        },
+      };
+
+      try {
+        await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
+
+        const [ { user }, { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
+          getUser({ userId }),
+          getUserByEmail({ email: randomEmail }),
+          getUserByPhone({ phone: randomPhone }),
+        ]);
+
+        if (!user || !userByEmail || !userByPhone) {
+          throw new Error("necessary user records not created");
+        }
+
+        // wait till all the events have been fired
+        const { snsEvents } = await backoff(
+          () => getSnsEventsByTopicArn<UserAddedAsFriendSnsMessage>({ topicArn: userAddedAsFriendSnsTopicArn }),
+          (response) => response.snsEvents.length === 3,
+        );
+
+        expect(snsEvents.length).toBe(3);
+
+        expect(snsEvents).toEqual(jasmine.arrayContaining([
+          jasmine.objectContaining({
+            message: {
+              addingUser: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                phone: user.phone,
+                realName: user.realName,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+              addedUser: {
+                email: userByEmail.email,
+                id: userByEmail.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              addingUser: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                phone: user.phone,
+                realName: user.realName,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+              addedUser: {
+                phone: userByPhone.phone,
+                id: userByPhone.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              addingUser: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                phone: user.phone,
+                realName: user.realName,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+              addedUser: {
+                email: otherUser.email,
+                phone: otherUser.phone,
+                username: otherUser.username,
+                realName: otherUser.realName,
+                id: otherUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+        ]));
       } catch (error) {
         fail(error);
       }

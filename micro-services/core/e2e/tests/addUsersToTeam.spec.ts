@@ -1,12 +1,25 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { Role, UserAddedToTeamSnsMessage } from "@yac/util";
 import { Static } from "runtypes";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createRandomUser, createRandomTeam, createTeamUserRelationship, getTeamUserRelationship, CreateRandomUserOutput, generateRandomEmail, generateRandomPhone, getUserByEmail, getUserByPhone, getUniqueProperty } from "../util";
+import {
+  createRandomUser,
+  createRandomTeam,
+  createTeamUserRelationship,
+  getTeamUserRelationship,
+  CreateRandomUserOutput,
+  generateRandomEmail,
+  generateRandomPhone,
+  getUserByEmail,
+  getUserByPhone,
+  getUniqueProperty,
+  deleteSnsEventsByTopicArn,
+  getSnsEventsByTopicArn,
+} from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { generateRandomString, URL_REGEX } from "../../../../e2e/util";
+import { backoff, generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { AddUsersToTeamDto } from "../../src/dtos/addUsersToTeam.dto";
@@ -17,6 +30,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const userAddedToTeamSnsTopicArn = process.env["user-added-to-team-sns-topic-arn"] as string;
 
   const mockTeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
 
@@ -258,6 +272,108 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
           teamId: team.id,
           userId: userByPhone.id,
         });
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("publishes valid SNS messages", async () => {
+      // wait till the team creator's sns event has been fired
+      await backoff(
+        () => getSnsEventsByTopicArn<UserAddedToTeamSnsMessage>({ topicArn: userAddedToTeamSnsTopicArn }),
+        ({ snsEvents }) => !!snsEvents.find((snsEvent) => snsEvent.message.user.id === userId && snsEvent.message.team.id === team.id),
+      );
+
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userAddedToTeamSnsTopicArn });
+
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      const request: Static<typeof AddUsersToTeamDto> = {
+        pathParameters: { teamId: team.id },
+        body: {
+          users: [
+            { username: otherUser.username, role: Role.Admin },
+            { email: randomEmail, role: Role.User },
+            { phone: randomPhone, role: Role.Admin },
+            { username: randomUsername, role: Role.User },
+          ],
+        },
+      };
+
+      try {
+        await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
+
+        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
+          getUserByEmail({ email: randomEmail }),
+          getUserByPhone({ phone: randomPhone }),
+        ]);
+
+        if (!userByEmail || !userByPhone) {
+          throw new Error("necessary user records not created");
+        }
+
+        // wait till all the events have been fired
+        const { snsEvents } = await backoff(
+          () => getSnsEventsByTopicArn<UserAddedToTeamSnsMessage>({ topicArn: userAddedToTeamSnsTopicArn }),
+          (response) => response.snsEvents.length === 3,
+        );
+
+        expect(snsEvents.length).toBe(3);
+
+        expect(snsEvents).toEqual(jasmine.arrayContaining([
+          jasmine.objectContaining({
+            message: {
+              teamMemberIds: jasmine.arrayContaining([ userId ]),
+              team: {
+                createdBy: userId,
+                id: team.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: team.name,
+              },
+              user: {
+                email: userByEmail.email,
+                id: userByEmail.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              teamMemberIds: jasmine.arrayContaining([ userId ]),
+              team: {
+                createdBy: userId,
+                id: team.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: team.name,
+              },
+              user: {
+                phone: userByPhone.phone,
+                id: userByPhone.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              teamMemberIds: jasmine.arrayContaining([ userId ]),
+              team: {
+                createdBy: userId,
+                id: team.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: team.name,
+              },
+              user: {
+                email: otherUser.email,
+                phone: otherUser.phone,
+                username: otherUser.username,
+                realName: otherUser.realName,
+                id: otherUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+        ]));
       } catch (error) {
         fail(error);
       }

@@ -65,6 +65,7 @@ describe("ConversationDynamoRepository", () => {
           id: `${KeyPrefix.FriendConversation}mock-id`,
           type,
           teamId: mockTeamId,
+          createdBy: mockUserId,
           createdAt: new Date().toISOString(),
         };
         return mockRes as Conversation<T>;
