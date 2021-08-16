@@ -127,9 +127,9 @@ export class YacUtilServiceStack extends CDK.Stack {
       value: userAddedAsFriendSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `TeamCreatedSnsTopic_${id}`, {
+    new CDK.CfnOutput(this, `TeamCreatedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.TeamCreatedSnsTopicArn,
-      value: userAddedToMeetingSnsTopic.topicArn,
+      value: teamCreatedSnsTopic.topicArn,
     });
 
     new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {
@@ -188,8 +188,17 @@ export class YacUtilServiceStack extends CDK.Stack {
         return "api-v4";
       }
 
+      if (environment === Environment.Dev) {
+        return "develop";
+      }
+
+      if (environment === Environment.Local) {
+        return developer;
+      }
+
+      return environment;
     } catch (error) {
-      console.log(`${new Date().toISOString()} : Error in YacCoreServiceStackg recordName getter:\n`, error);
+      console.log(`${new Date().toISOString()} : Error in YacUtilServiceStack recordName getter:\n`, error);
 
       throw error;
     }

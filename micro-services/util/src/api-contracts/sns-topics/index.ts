@@ -5,9 +5,6 @@ export * from "./userRemovedFromTeam.snsMessage.model";
 export * from "./userAddedToGroup.snsMessage.model";
 export * from "./userRemovedFromGroup.snsMessage.model";
 export * from "./userAddedToMeeting.snsMessage.model";
-<<<<<<< HEAD
-export * from "./teamCreated.snsMessage.model";
-=======
 export * from "./userRemovedFromMeeting.snsMessage.model";
 export * from "./userAddedAsFriend.snsMessage.model";
->>>>>>> develop
+export * from "./teamCreated.snsMessage.model";
