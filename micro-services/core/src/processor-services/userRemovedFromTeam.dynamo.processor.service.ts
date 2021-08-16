@@ -28,7 +28,7 @@ export class UserRemovedFromTeamDynamoProcessorService implements DynamoProcesso
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
       const isCoreTable = record.tableName === this.coreTableName;
-      const isTeamUserRelationship = record.newImage.entityType === EntityType.TeamUserRelationship;
+      const isTeamUserRelationship = record.oldImage.entityType === EntityType.TeamUserRelationship;
       const isRemoval = record.eventName === "REMOVE";
 
       return isCoreTable && isTeamUserRelationship && isRemoval;
@@ -43,7 +43,7 @@ export class UserRemovedFromTeamDynamoProcessorService implements DynamoProcesso
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { newImage: { teamId, userId } } = record;
+      const { oldImage: { teamId, userId } } = record;
 
       const [ { users: teamMembers }, { user }, { team } ] = await Promise.all([
         this.userMediatorService.getUsersByTeamId({ teamId }),

@@ -36,6 +36,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
     const userAddedToGroupSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToGroupSnsTopicArn);
     const userRemovedFromGroupSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromGroupSnsTopicArn);
     const userAddedToMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToMeetingSnsTopicArn);
+    const userRemovedFromMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromMeetingSnsTopicArn);
 
     // Imported User Pool Id from Auth
     const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
@@ -100,6 +101,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: userAddedToGroupSnsTopicArn,
       USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN: userRemovedFromGroupSnsTopicArn,
       USER_ADDED_TO_MEETING_SNS_TOPIC_ARN: userAddedToMeetingSnsTopicArn,
+      USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN: userRemovedFromMeetingSnsTopicArn,
     };
 
     // WebSocket Lambdas
@@ -160,6 +162,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToGroupSnsTopic_${id}`, userAddedToGroupSnsTopicArn)),
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromGroupSnsTopic_${id}`, userRemovedFromGroupSnsTopicArn)),
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToMeetingSnsTopic_${id}`, userAddedToMeetingSnsTopicArn)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromMeetingSnsTopic_${id}`, userRemovedFromMeetingSnsTopicArn)),
       ],
     });
 

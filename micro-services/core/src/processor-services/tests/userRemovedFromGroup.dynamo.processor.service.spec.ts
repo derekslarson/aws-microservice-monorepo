@@ -41,8 +41,8 @@ describe("UserRemovedFromGroupDynamoProcessorService", () => {
   const mockRecord: DynamoProcessorServiceRecord = {
     eventName: "REMOVE",
     tableName: mockCoreTableName,
-    oldImage: {},
-    newImage: {
+    newImage: {},
+    oldImage: {
       entityType: EntityType.ConversationUserRelationship,
       type: ConversationType.Group,
       conversationId: mockGroupId,
@@ -87,8 +87,8 @@ describe("UserRemovedFromGroupDynamoProcessorService", () => {
       describe("when passed a record that isn't a conversation-user-relationship", () => {
         const record = {
           ...mockRecord,
-          newImage: {
-            ...mockRecord.newImage,
+          oldImage: {
+            ...mockRecord.oldImage,
             entityType: EntityType.TeamUserRelationship,
           },
         };
@@ -103,8 +103,8 @@ describe("UserRemovedFromGroupDynamoProcessorService", () => {
       describe("when passed a record that isn't a group-conversation-user-relationship", () => {
         const record = {
           ...mockRecord,
-          newImage: {
-            ...mockRecord.newImage,
+          oldImage: {
+            ...mockRecord.oldImage,
             type: ConversationType.Meeting,
           },
         };

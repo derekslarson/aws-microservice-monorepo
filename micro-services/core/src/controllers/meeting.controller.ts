@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Meeting, WithRole, User } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { CreateMeetingDto } from "../dtos/createMeeting.dto";
@@ -11,7 +11,7 @@ import { GetMeetingsByUserIdDto } from "../dtos/getMeetingsByUserId.dto";
 import { GetMeetingsByTeamIdDto } from "../dtos/getMeetingsByTeamId.dto";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GetMeetingImageUploadUrlDto } from "../dtos/getMeetingImageUploadUrl.dto";
-import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { AddUsersToMeetingInput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 
 @injectable()
 export class MeetingController extends BaseController implements MeetingControllerInterface {
@@ -49,7 +49,9 @@ export class MeetingController extends BaseController implements MeetingControll
 
       const { meeting } = await this.meetingMediatorService.createMeeting({ name, createdBy: userId, dueDate, teamId });
 
-      return this.generateCreatedResponse({ meeting });
+      const response: CreateMeetingResponse = { meeting };
+
+      return this.generateCreatedResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in createMeeting", { error, request }, this.constructor.name);
 
@@ -74,7 +76,9 @@ export class MeetingController extends BaseController implements MeetingControll
 
       const { meeting } = await this.meetingMediatorService.getMeeting({ meetingId });
 
-      return this.generateSuccessResponse({ meeting });
+      const response: GetMeetingResponse = { meeting };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeeting", { error, request }, this.constructor.name);
 
@@ -100,8 +104,9 @@ export class MeetingController extends BaseController implements MeetingControll
 
       const { uploadUrl } = this.meetingMediatorService.getMeetingImageUploadUrl({ meetingId, mimeType });
 
-      // method needs to return promise
-      return Promise.resolve(this.generateSuccessResponse({ uploadUrl }));
+      const response: GetMeetingImageUploadUrlResponse = { uploadUrl };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingImageUploadUrl", { error, request }, this.constructor.name);
 
@@ -127,7 +132,7 @@ export class MeetingController extends BaseController implements MeetingControll
 
       const { successes, failures } = await this.invitationOrchestratorService.addUsersToMeeting({ meetingId, users });
 
-      const response = {
+      const response: AddUsersToMeetingResponse = {
         message: `Users added to meeting${failures.length ? ", but with some failures." : "."}`,
         successes,
         ...(failures.length && { failures }),
@@ -158,7 +163,9 @@ export class MeetingController extends BaseController implements MeetingControll
 
       await this.meetingMediatorService.removeUserFromMeeting({ meetingId, userId });
 
-      return this.generateSuccessResponse({ message: "User removed from meeting." });
+      const response: RemoveUserFromMeetingResponse = { message: "User removed from meeting." };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromMeeting", { error, request }, this.constructor.name);
 
@@ -187,7 +194,9 @@ export class MeetingController extends BaseController implements MeetingControll
         limit: limit ? parseInt(limit, 10) : undefined,
       });
 
-      return this.generateSuccessResponse({ meetings, lastEvaluatedKey });
+      const response: GetMeetingsByUserIdResponse = { meetings, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingsByUserId", { error, request }, this.constructor.name);
 
@@ -213,7 +222,9 @@ export class MeetingController extends BaseController implements MeetingControll
 
       const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
-      return this.generateSuccessResponse({ meetings, lastEvaluatedKey });
+      const response: GetMeetingsByTeamIdResponse = { meetings, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingsByTeamId", { error, request }, this.constructor.name);
 
@@ -230,4 +241,36 @@ export interface MeetingControllerInterface {
   getMeetingImageUploadUrl(request: Request): Promise<Response>;
   getMeetingsByUserId(request: Request): Promise<Response>;
   getMeetingsByTeamId(request: Request): Promise<Response>;
+}
+
+interface CreateMeetingResponse {
+  meeting: Meeting;
+}
+
+interface GetMeetingResponse {
+  meeting: Meeting;
+}
+
+interface GetMeetingImageUploadUrlResponse {
+  uploadUrl: string;
+}
+
+interface AddUsersToMeetingResponse {
+  message: string;
+  successes?: User[];
+  failures?: AddUsersToMeetingInput["users"];
+}
+
+interface RemoveUserFromMeetingResponse {
+  message: string;
+}
+
+interface GetMeetingsByUserIdResponse {
+  meetings: WithRole<Meeting>[];
+  lastEvaluatedKey?: string;
+}
+
+interface GetMeetingsByTeamIdResponse {
+  meetings: Meeting[];
+  lastEvaluatedKey?: string;
 }

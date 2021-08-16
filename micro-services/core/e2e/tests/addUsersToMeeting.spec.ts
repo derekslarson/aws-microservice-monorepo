@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Role } from "@yac/util";
+import { Role, UserAddedToMeetingSnsMessage } from "@yac/util";
 import axios from "axios";
 import { Static } from "runtypes";
-import { generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
+import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { AddUsersToMeetingDto } from "../../src/dtos/addUsersToMeeting.dto";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
@@ -17,9 +17,11 @@ import {
   createMeetingConversation,
   createRandomUser,
   CreateRandomUserOutput,
+  deleteSnsEventsByTopicArn,
   generateRandomEmail,
   generateRandomPhone,
   getConversationUserRelationship,
+  getSnsEventsByTopicArn,
   getUniqueProperty,
   getUserByEmail,
   getUserByPhone,
@@ -29,6 +31,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const userAddedToMeetingSnsTopicArn = process.env["user-added-to-meeting-sns-topic-arn"] as string;
 
   const mockMeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
 
@@ -294,6 +297,114 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("publishes valid SNS messages", async () => {
+      // wait till the meeting creator's sns event has been fired
+      await backoff(
+        () => getSnsEventsByTopicArn<UserAddedToMeetingSnsMessage>({ topicArn: userAddedToMeetingSnsTopicArn }),
+        ({ snsEvents }) => !!snsEvents.find((snsEvent) => snsEvent.message.user.id === userId && snsEvent.message.meeting.id === meeting.id),
+      );
+
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userAddedToMeetingSnsTopicArn });
+
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      const request: Static<typeof AddUsersToMeetingDto> = {
+        pathParameters: { meetingId: meeting.id },
+        body: {
+          users: [
+            { username: otherUser.username, role: Role.Admin },
+            { email: randomEmail, role: Role.User },
+            { phone: randomPhone, role: Role.Admin },
+            { username: randomUsername, role: Role.User },
+          ],
+        },
+      };
+
+      try {
+        await axios.post(`${baseUrl}/meetings/${request.pathParameters.meetingId}/users`, request.body, { headers });
+
+        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
+          getUserByEmail({ email: randomEmail }),
+          getUserByPhone({ phone: randomPhone }),
+        ]);
+
+        if (!userByEmail || !userByPhone) {
+          throw new Error("necessary user records not created");
+        }
+
+        // wait till all the events have been fired
+        const { snsEvents } = await backoff(
+          () => getSnsEventsByTopicArn<UserAddedToMeetingSnsMessage>({ topicArn: userAddedToMeetingSnsTopicArn }),
+          (response) => response.snsEvents.length === 3,
+        );
+
+        expect(snsEvents.length).toBe(3);
+
+        expect(snsEvents).toEqual(jasmine.arrayContaining([
+          jasmine.objectContaining({
+            message: {
+              meetingMemberIds: jasmine.arrayContaining([ userId ]),
+              meeting: {
+                createdBy: userId,
+                id: meeting.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: meeting.name,
+                dueDate: meeting.dueDate,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+              },
+              user: {
+                email: userByEmail.email,
+                id: userByEmail.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              meetingMemberIds: jasmine.arrayContaining([ userId ]),
+              meeting: {
+                createdBy: userId,
+                id: meeting.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: meeting.name,
+                dueDate: meeting.dueDate,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+              },
+              user: {
+                phone: userByPhone.phone,
+                id: userByPhone.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              meetingMemberIds: jasmine.arrayContaining([ userId ]),
+              meeting: {
+                createdBy: userId,
+                id: meeting.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: meeting.name,
+                dueDate: meeting.dueDate,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+              },
+              user: {
+                email: otherUser.email,
+                phone: otherUser.phone,
+                username: otherUser.username,
+                realName: otherUser.realName,
+                id: otherUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+        ]));
       } catch (error) {
         fail(error);
       }
