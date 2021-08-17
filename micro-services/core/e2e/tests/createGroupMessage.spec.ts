@@ -50,8 +50,9 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
         expect(data).toEqual({
           pendingMessage: {
             id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Message}.*`)),
-            conversationId: group.id,
+            to: group.id,
             from: userId,
+            type: ConversationType.Group,
             mimeType,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             uploadUrl: jasmine.stringMatching(URL_REGEX),

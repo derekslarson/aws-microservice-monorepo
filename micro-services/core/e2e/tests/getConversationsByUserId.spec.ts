@@ -71,6 +71,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
           expect(data).toEqual({
             conversations: [
               {
+                createdBy: friendship.createdBy,
                 createdAt: friendship.createdAt,
                 id: friendship.id,
                 type: friendship.type,
@@ -92,10 +93,11 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
-                  conversationId: message.conversationId,
+                  to: message.conversationId,
+                  from: otherUser.id,
+                  type: ConversationType.Group,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
-                  from: message.from,
                   fromImage: jasmine.stringMatching(URL_REGEX),
                   id: message.id,
                   mimeType: message.mimeType,
@@ -147,6 +149,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
           expect(data).toEqual({
             conversations: [
               {
+                createdBy: friendship.createdBy,
                 createdAt: friendship.createdAt,
                 id: friendship.id,
                 type: friendship.type,
@@ -168,10 +171,11 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
-                  conversationId: message.conversationId,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
-                  from: message.from,
+                  to: message.conversationId,
+                  from: otherUser.id,
+                  type: ConversationType.Group,
                   id: message.id,
                   mimeType: message.mimeType,
                   fetchUrl: jasmine.stringMatching(URL_REGEX),
@@ -234,6 +238,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
           expect(data).toEqual({
             conversations: [
               {
+                createdBy: friendship.createdBy,
                 createdAt: friendship.createdAt,
                 id: friendship.id,
                 type: friendship.type,
@@ -274,10 +279,11 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
-                  conversationId: message.conversationId,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
-                  from: message.from,
+                  to: message.conversationId,
+                  from: otherUser.id,
+                  type: ConversationType.Group,
                   id: message.id,
                   mimeType: message.mimeType,
                   fetchUrl: jasmine.stringMatching(URL_REGEX),
@@ -404,10 +410,11 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
-                  conversationId: message.conversationId,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
-                  from: message.from,
+                  to: message.conversationId,
+                  from: otherUser.id,
+                  type: ConversationType.Group,
                   id: message.id,
                   mimeType: message.mimeType,
                   fetchUrl: jasmine.stringMatching(URL_REGEX),

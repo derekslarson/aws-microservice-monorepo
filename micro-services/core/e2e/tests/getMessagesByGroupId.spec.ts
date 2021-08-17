@@ -59,8 +59,9 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
             messages: [
               {
                 id: messageTwo.id,
+                to: messageTwo.conversationId,
                 from: messageTwo.from,
-                conversationId: messageTwo.conversationId,
+                type: ConversationType.Group,
                 createdAt: messageTwo.createdAt,
                 seenAt: messageTwo.seenAt,
                 reactions: messageTwo.reactions,
@@ -72,8 +73,9 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
               },
               {
                 id: message.id,
+                to: message.conversationId,
                 from: message.from,
-                conversationId: message.conversationId,
+                type: ConversationType.Group,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
                 reactions: message.reactions,
@@ -103,8 +105,9 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
             messages: [
               {
                 id: messageTwo.id,
+                to: messageTwo.conversationId,
                 from: messageTwo.from,
-                conversationId: messageTwo.conversationId,
+                type: ConversationType.Group,
                 createdAt: messageTwo.createdAt,
                 seenAt: messageTwo.seenAt,
                 reactions: messageTwo.reactions,
@@ -126,8 +129,9 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
             messages: [
               {
                 id: message.id,
+                to: message.conversationId,
                 from: message.from,
-                conversationId: message.conversationId,
+                type: ConversationType.Group,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
                 reactions: message.reactions,

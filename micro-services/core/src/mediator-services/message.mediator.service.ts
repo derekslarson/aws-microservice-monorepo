@@ -18,6 +18,7 @@ import { ImageFileServiceInterface } from "../entity-services/image.file.service
 import { UserServiceInterface } from "../entity-services/user.service";
 import { EntityType } from "../enums/entityType.enum";
 import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
+import { ConversationType } from "../enums/conversationType.enum";
 
 @injectable()
 export class MessageMediatorService implements MessageMediatorServiceInterface {
@@ -51,8 +52,12 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         operation: "upload",
       });
 
+      const { conversationId, ...restOfPendingMessage } = pendingMessage;
+
       const pendingMessageWithUploadUrl = {
-        ...pendingMessage,
+        ...restOfPendingMessage,
+        to,
+        type: ConversationType.Friend,
         id: messageId,
         uploadUrl: signedUrl,
       };
@@ -82,8 +87,12 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         operation: "upload",
       });
 
+      const { conversationId, ...restOfPendingMessage } = pendingMessage;
+
       const pendingMessageWithUploadUrl = {
-        ...pendingMessage,
+        ...restOfPendingMessage,
+        to: groupId,
+        type: ConversationType.Group,
         id: messageId,
         uploadUrl: signedUrl,
       };
@@ -113,8 +122,12 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         operation: "upload",
       });
 
+      const { conversationId, ...restOfPendingMessage } = pendingMessage;
+
       const pendingMessageWithUploadUrl = {
-        ...pendingMessage,
+        ...restOfPendingMessage,
+        to: meetingId,
+        type: ConversationType.Meeting,
         id: messageId,
         uploadUrl: signedUrl,
       };
@@ -179,8 +192,13 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         operation: "get",
       });
 
+      const { conversationId, ...restOfMessageEntity } = messageEntity;
+      const { to, type } = this.getToAndTypeFromConversationIdAndFrom({ conversationId, from: messageEntity.from });
+
       const message = {
-        ...messageEntity,
+        ...restOfMessageEntity,
+        to,
+        type,
         fetchUrl,
         fromImage,
       };
@@ -430,8 +448,13 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
           operation: "get",
         });
 
+        const { conversationId: pulledConversationId, ...restOfMessageEntity } = messageEntity;
+        const { to, type } = this.getToAndTypeFromConversationIdAndFrom({ conversationId, from: messageEntity.from });
+
         return {
-          ...messageEntity,
+          ...restOfMessageEntity,
+          to,
+          type,
           fetchUrl,
           fromImage,
         };
@@ -460,6 +483,39 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
       throw error;
     }
   }
+
+  private getToAndTypeFromConversationIdAndFrom(params: GetToAndTypeFromConversationIdAndFromInput): GetToAndTypeFromConversationIdAndFromOutput {
+    try {
+      this.loggerService.trace("getToAndTypeFromConversationIdAndFrom called", { params }, this.constructor.name);
+
+      const { from, conversationId } = params;
+
+      if (conversationId.startsWith(KeyPrefix.GroupConversation)) {
+        return {
+          to: conversationId as GroupId,
+          type: ConversationType.Group,
+        };
+      }
+
+      if (conversationId.startsWith(KeyPrefix.MeetingConversation)) {
+        return {
+          to: conversationId as MeetingId,
+          type: ConversationType.Meeting,
+        };
+      }
+
+      const toUserId = conversationId.replace(KeyPrefix.FriendConversation, "").replace(from, "").replace(/^-|-$/, "") as UserId;
+
+      return {
+        to: toUserId,
+        type: ConversationType.Friend,
+      };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getToAndTypeFromConversationIdAndFrom", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface MessageMediatorServiceInterface {
@@ -476,14 +532,21 @@ export interface MessageMediatorServiceInterface {
   updateMeetingMessagesByUserId(params: UpdateMeetingMessagesByUserIdInput): Promise<UpdateMeetingMessagesByUserIdOutput>;
   updateGroupMessagesByUserId(params: UpdateGroupMessagesByUserIdInput): Promise<UpdateGroupMessagesByUserIdOutput>;
 }
-export interface PendingMessage extends Omit<PendingMessageEntity, "id"> {
+
+type To = UserId | GroupId | MeetingId;
+
+export interface PendingMessage extends Omit<PendingMessageEntity, "id" | "conversationId"> {
   id: MessageId
   uploadUrl: string;
+  to: To;
+  type: ConversationType;
 }
 
-export interface Message extends MessageEntity {
+export interface Message extends Omit<MessageEntity, "conversationId"> {
   fetchUrl: string;
   fromImage: string;
+  to: To;
+  type: ConversationType;
 }
 
 export interface CreateFriendMessageInput {
@@ -667,4 +730,14 @@ interface ConvertPendingToRegularMessageIdInput {
 
 interface ConvertPendingToRegularMessageIdOutput {
   messageId: MessageId;
+}
+
+interface GetToAndTypeFromConversationIdAndFromInput {
+  from: UserId;
+  conversationId: ConversationId;
+}
+
+interface GetToAndTypeFromConversationIdAndFromOutput {
+  to: To;
+  type: ConversationType;
 }

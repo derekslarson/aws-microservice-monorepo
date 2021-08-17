@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { FriendMessageCreatedSnsMessage, Role } from "@yac/util";
 import axios from "axios";
 import { readFileSync } from "fs";
 import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
@@ -13,16 +13,28 @@ import { ConversationType } from "../../src/enums/conversationType.enum";
 import { MessageId } from "../../src/types/messageId.type";
 import { PendingMessageId } from "../../src/types/pendingMessageId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createFriendConversation, getConversationUserRelationship, getMessage, getPendingMessage } from "../util";
+import {
+  createConversationUserRelationship,
+  createFriendConversation,
+  createRandomUser,
+  CreateRandomUserOutput,
+  deleteSnsEventsByTopicArn,
+  getConversationUserRelationship,
+  getMessage,
+  getPendingMessage,
+  getSnsEventsByTopicArn,
+  getUser,
+} from "../util";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
 
 describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Message)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
+  let toUser: CreateRandomUserOutput["user"];
   const accessToken = process.env.accessToken as string;
+  const friendMessageCreatedSnsTopicArn = process.env["friend-message-created-sns-topic-arn"] as string;
 
   const mimeType = MessageMimeType.AudioMp3;
-  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let friendship: RawConversation<FriendConversation>;
@@ -30,11 +42,12 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
     let conversationUserRelationshipTwo: RawConversationUserRelationship<ConversationType.Friend>;
 
     beforeEach(async () => {
-      ({ conversation: friendship } = await createFriendConversation({ userId, friendId: mockUserId }));
+      ({ user: toUser } = await createRandomUser());
+      ({ conversation: friendship } = await createFriendConversation({ userId, friendId: toUser.id }));
 
       ([ { conversationUserRelationship }, { conversationUserRelationship: conversationUserRelationshipTwo } ] = await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId, role: Role.Admin }),
-        createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId: mockUserId, role: Role.Admin }),
+        createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId: toUser.id, role: Role.Admin }),
       ]));
     });
 
@@ -43,14 +56,15 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
       const body = { mimeType };
 
       try {
-        const { status, data } = await axios.post(`${baseUrl}/users/${userId}/friends/${mockUserId}/messages`, body, { headers });
+        const { status, data } = await axios.post(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
 
         expect(status).toBe(201);
         expect(data).toEqual({
           pendingMessage: {
             id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Message}.*`)),
-            conversationId: friendship.id,
+            to: toUser.id,
             from: userId,
+            type: ConversationType.Friend,
             mimeType,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             uploadUrl: jasmine.stringMatching(URL_REGEX),
@@ -66,7 +80,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
       const body = { mimeType };
 
       try {
-        const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${mockUserId}/messages`, body, { headers });
+        const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
 
         const pendingMessageId = (data.pendingMessage.id as MessageId).replace(KeyPrefix.Message, KeyPrefix.PendingMessage) as PendingMessageId;
 
@@ -93,7 +107,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
         const body = { mimeType };
 
         try {
-          const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${mockUserId}/messages`, body, { headers });
+          const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
 
           await wait(3000);
 
@@ -112,7 +126,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
         const body = { mimeType };
 
         try {
-          const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${mockUserId}/messages`, body, { headers });
+          const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
 
           const file = readFileSync(`${process.cwd()}/e2e/test-message.mp3`);
 
@@ -137,7 +151,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
             conversationId: friendship.id,
             seenAt: {
               [userId]: jasmine.stringMatching(ISO_DATE_REGEX),
-              [mockUserId]: null,
+              [toUser.id]: null,
             },
             reactions: { },
             from: userId,
@@ -153,7 +167,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
         const body = { mimeType };
 
         try {
-          const { data } = await axios.post<{ pendingMessage: PendingMessage; }>(`${baseUrl}/users/${userId}/friends/${mockUserId}/messages`, body, { headers });
+          const { data } = await axios.post<{ pendingMessage: PendingMessage; }>(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
 
           const file = readFileSync(`${process.cwd()}/e2e/test-message.mp3`);
 
@@ -177,7 +191,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
         const body = { mimeType };
 
         try {
-          const { data } = await axios.post<{ pendingMessage: PendingMessage; }>(`${baseUrl}/users/${userId}/friends/${mockUserId}/messages`, body, { headers });
+          const { data } = await axios.post<{ pendingMessage: PendingMessage; }>(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
 
           const file = readFileSync(`${process.cwd()}/e2e/test-message.mp3`);
 
@@ -191,7 +205,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
             { conversationUserRelationship: conversationUserRelationshipTwoUpdated },
           ] = await Promise.all([
             backoff(() => getConversationUserRelationship({ userId, conversationId: friendship.id }), (res) => res.conversationUserRelationship?.updatedAt !== conversationUserRelationship.updatedAt),
-            backoff(() => getConversationUserRelationship({ userId: mockUserId, conversationId: friendship.id }), (res) => !!res.conversationUserRelationship?.unreadMessages),
+            backoff(() => getConversationUserRelationship({ userId: toUser.id, conversationId: friendship.id }), (res) => !!res.conversationUserRelationship?.unreadMessages),
           ]);
 
           expect(conversationUserRelationshipUpdated?.updatedAt).toEqual(jasmine.stringMatching(ISO_DATE_REGEX));
@@ -219,11 +233,87 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
           fail(error);
         }
       });
+
+      it("publishes a valid SNS message", async () => {
+        // clear the sns events table so the test can have a clean slate
+        await deleteSnsEventsByTopicArn({ topicArn: friendMessageCreatedSnsTopicArn });
+
+        const headers = { Authorization: `Bearer ${accessToken}` };
+        const body = { mimeType };
+
+        try {
+          const { data } = await axios.post<{ pendingMessage: PendingMessage; }>(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
+
+          const file = readFileSync(`${process.cwd()}/e2e/test-message.mp3`);
+
+          const uploadHeaders = { "content-type": mimeType };
+          const uploadBody = { data: file };
+
+          await axios.put(data.pendingMessage.uploadUrl, uploadBody, { headers: uploadHeaders });
+
+          await wait(3000);
+
+          const [ { user: fromUser }, { message } ] = await Promise.all([
+            getUser({ userId }),
+            getMessage({ messageId: data.pendingMessage.id }),
+          ]);
+
+          if (!fromUser || !message) {
+            throw new Error("necessary user records not created");
+          }
+
+          // wait till the events have been fired
+          const { snsEvents } = await backoff(
+            () => getSnsEventsByTopicArn<FriendMessageCreatedSnsMessage>({ topicArn: friendMessageCreatedSnsTopicArn }),
+            (response) => response.snsEvents.length === 1,
+          );
+
+          expect(snsEvents.length).toBe(1);
+
+          expect(snsEvents).toEqual([
+            jasmine.objectContaining({
+              message: {
+                toUser: {
+                  id: toUser.id,
+                  email: toUser.email,
+                  username: toUser.username,
+                  phone: toUser.phone,
+                  realName: toUser.realName,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                fromUser: {
+                  id: fromUser.id,
+                  email: fromUser.email,
+                  username: fromUser.username,
+                  phone: fromUser.phone,
+                  realName: fromUser.realName,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                message: {
+                  id: message.id,
+                  to: toUser.id,
+                  from: message.from,
+                  type: ConversationType.Friend,
+                  createdAt: message.createdAt,
+                  seenAt: message.seenAt,
+                  reactions: message.reactions,
+                  replyCount: 0,
+                  mimeType: message.mimeType,
+                  fetchUrl: jasmine.stringMatching(URL_REGEX),
+                  fromImage: jasmine.stringMatching(URL_REGEX),
+                },
+              },
+            }),
+          ]);
+        } catch (error) {
+          fail(error);
+        }
+      }, 45000);
     });
   });
 
   describe("under error conditions", () => {
-    const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+    const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
@@ -246,7 +336,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/users/${mockUserId}/friends/${mockUserIdTwo}/messages`, body, { headers });
+          await axios.post(`${baseUrl}/users/${toUser.id}/friends/${mockUserId}/messages`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {

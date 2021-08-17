@@ -63,6 +63,7 @@ export class YacUtilServiceStack extends CDK.Stack {
     const userAddedAsFriendSnsTopic = new SNS.Topic(this, `UserAddedAsFriendSnsTopic_${id}`, { topicName: `UserAddedAsFriendSnsTopic_${id}` });
     const userRemovedAsFriendSnsTopic = new SNS.Topic(this, `UserRemovedAsFriendSnsTopic_${id}`, { topicName: `UserRemovedAsFriendSnsTopic_${id}` });
     const teamCreatedSnsTopic = new SNS.Topic(this, `TeamCreatedSnsTopic_${id}`, { topicName: `TeamCreatedSnsTopic_${id}` });
+    const friendMessageCreatedSnsTopic = new SNS.Topic(this, `FriendMessageCreatedSnsTopic_${id}`, { topicName: `FriendMessageCreatedSnsTopic_${id}` });
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
@@ -116,7 +117,6 @@ export class YacUtilServiceStack extends CDK.Stack {
       exportName: ExportNames.UserAddedToMeetingSnsTopicArn,
       value: userAddedToMeetingSnsTopic.topicArn,
     });
-  
 
     new CDK.CfnOutput(this, `UserRemovedFromMeetingSnsTopicExport_${id}`, {
       exportName: ExportNames.UserRemovedFromMeetingSnsTopicArn,
@@ -136,6 +136,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `TeamCreatedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.TeamCreatedSnsTopicArn,
       value: teamCreatedSnsTopic.topicArn,
+    });
+
+    new CDK.CfnOutput(this, `FriendMessageCreatedSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.FriendMessageCreatedSnsTopicArn,
+      value: friendMessageCreatedSnsTopic.topicArn,
     });
 
     new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {
@@ -187,6 +192,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new SSM.StringParameter(this, `TeamCreatedSsmParameter_${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/team-created-sns-topic-arn`,
       stringValue: teamCreatedSnsTopic.topicArn,
+    });
+
+    new SSM.StringParameter(this, `FriendMessageCreatedSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/friend-message-created-sns-topic-arn`,
+      stringValue: friendMessageCreatedSnsTopic.topicArn,
     });
   }
 

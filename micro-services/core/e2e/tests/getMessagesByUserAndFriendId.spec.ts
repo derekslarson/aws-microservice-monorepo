@@ -58,8 +58,9 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
             messages: [
               {
                 id: messageTwo.id,
-                from: messageTwo.from,
-                conversationId: messageTwo.conversationId,
+                to: otherUser.id,
+                from: userId,
+                type: ConversationType.Friend,
                 createdAt: messageTwo.createdAt,
                 seenAt: messageTwo.seenAt,
                 reactions: messageTwo.reactions,
@@ -70,8 +71,9 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
               },
               {
                 id: message.id,
-                from: message.from,
-                conversationId: message.conversationId,
+                to: userId,
+                from: otherUser.id,
+                type: ConversationType.Friend,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
                 reactions: message.reactions,
@@ -101,8 +103,9 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
             messages: [
               {
                 id: messageTwo.id,
-                from: messageTwo.from,
-                conversationId: messageTwo.conversationId,
+                to: otherUser.id,
+                from: userId,
+                type: ConversationType.Friend,
                 createdAt: messageTwo.createdAt,
                 seenAt: messageTwo.seenAt,
                 reactions: messageTwo.reactions,
@@ -124,8 +127,9 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
             messages: [
               {
                 id: message.id,
-                from: message.from,
-                conversationId: message.conversationId,
+                to: userId,
+                from: otherUser.id,
+                type: ConversationType.Friend,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
                 reactions: message.reactions,

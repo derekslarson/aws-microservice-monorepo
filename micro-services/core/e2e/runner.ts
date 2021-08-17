@@ -34,6 +34,7 @@ const necessaryParams = [
   "user-added-as-friend-sns-topic-arn",
   "user-removed-as-friend-sns-topic-arn",
   "team-created-sns-topic-arn",
+  "friend-message-created-sns-topic-arn",
   "core-testing-sns-event-table-name",
 ];
 
