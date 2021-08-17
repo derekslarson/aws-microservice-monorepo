@@ -11,19 +11,22 @@ describe("TeamCreatedSnsProcessorService", () => {
 
   const teamCreatedSnsTopicArn = "mock-team-created-sns-topic-arn";
   const mockConfig = { snsTopicArns: { teamCreated: teamCreatedSnsTopicArn } };
+  const mockUserOneId = "user-one-mock-id";
+  const mockUserTwoId = "user-two-mock-id";
+  const mockTeamMembersId = [ mockUserOneId, mockUserTwoId ];
 
   const mockTeam: Team = {
     id: "team-mock-id",
     name: "mock-name",
     image: "mock-image",
-    createdBy: "user-mock-id",
+    createdBy: mockUserOneId,
   };
 
   const mockRecord = {
     topicArn: teamCreatedSnsTopicArn,
     message: {
       team: mockTeam,
-      teamMemberIds: [ mockTeam.createdBy ],
+      teamMemberIds: mockTeamMembersId,
     },
   };
   const mockError = new Error("test");

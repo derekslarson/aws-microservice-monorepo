@@ -87,7 +87,7 @@ describe("GroupCreatedDynamoProcessorService", () => {
         });
       });
 
-      describe("when passed a record that isn't a team", () => {
+      describe("when passed a record that isn't a group", () => {
         const record = {
           ...mockRecord,
           newImage: {
