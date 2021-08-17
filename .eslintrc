@@ -8,7 +8,9 @@
   ],
   "parserOptions": {
     "project": [
-      "./tsconfig.json"
+      "./tsconfig.json",
+      "./tsconfig.test.json",
+      "./tsconfig.e2e.test.json"
     ]
   },
   "plugins": ["promise"],

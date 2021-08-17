@@ -466,6 +466,7 @@ export async function createFriendConversation(params: CreateFriendConversationI
       id: conversationId,
       type: ConversationTypeEnum.Friend,
       createdAt: new Date().toISOString(),
+      createdBy: userId,
     };
 
     await documentClient.put({
@@ -752,6 +753,47 @@ export async function getPendingMessage(params: GetPendingMessageInput): Promise
   }
 }
 
+export async function getSnsEventsByTopicArn<T extends Record<string, unknown> = Record<string, unknown>>(params: GetSnsEventsByTopicArnInput): Promise<GetSnsEventsByTopicArnOutput<T>> {
+  try {
+    const { topicArn } = params;
+
+    const { Items } = await documentClient.query({
+      TableName: process.env["core-testing-sns-event-table-name"] as string,
+      KeyConditionExpression: "#pk = :pk",
+      ExpressionAttributeNames: { "#pk": "pk" },
+      ExpressionAttributeValues: { ":pk": topicArn },
+    }).promise();
+
+    const snsEvents = Items as SnsEvent<T>[];
+
+    return { snsEvents };
+  } catch (error) {
+    console.log("Error in getTeam:\n", error);
+
+    throw error;
+  }
+}
+
+export async function deleteSnsEventsByTopicArn(params: DeleteSnsEventsByTopicArnInput): Promise<DeleteSnsEventsByTopicArnOutput> {
+  try {
+    const { topicArn } = params;
+
+    const { snsEvents } = await getSnsEventsByTopicArn({ topicArn });
+
+    await Promise.all(snsEvents.map((snsEvent) => documentClient.delete({
+      TableName: process.env["core-testing-sns-event-table-name"] as string,
+      Key: {
+        pk: snsEvent.pk,
+        sk: snsEvent.sk,
+      },
+    }).promise()));
+  } catch (error) {
+    console.log("Error in getTeam:\n", error);
+
+    throw error;
+  }
+}
+
 export interface CreateUniquePropertyInput {
   property: UniqueProperty;
   value: string;
@@ -954,3 +996,25 @@ export interface CreateDefaultImageOutput {
   image: Buffer;
   mimeType: ImageMimeType.Png;
 }
+
+export interface GetSnsEventsByTopicArnInput {
+  topicArn: string;
+}
+
+interface SnsEvent<T extends Record<string, unknown>> {
+  // topicArn
+  pk: string;
+  // messageId
+  sk: string;
+  topicArn: string;
+  message: T;
+}
+export interface GetSnsEventsByTopicArnOutput<T extends Record<string, unknown>> {
+  snsEvents: SnsEvent<T>[];
+}
+
+export interface DeleteSnsEventsByTopicArnInput {
+  topicArn: string;
+}
+
+export type DeleteSnsEventsByTopicArnOutput = void;

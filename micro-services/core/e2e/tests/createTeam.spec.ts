@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/util";
-import { generateRandomString, URL_REGEX } from "../../../../e2e/util";
+import { Role, TeamCreatedSnsMessage } from "@yac/util";
+import { backoff, generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { Team } from "../../src/mediator-services/team.mediator.service";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { UserId } from "../../src/types/userId.type";
-import { getTeam, getTeamUserRelationship } from "../util";
+import { deleteSnsEventsByTopicArn, getSnsEventsByTopicArn, getTeam, getTeamUserRelationship, getUser } from "../util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 
@@ -14,6 +14,7 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const teamCreatedSnsTopicArn = process.env["team-created-sns-topic-arn"] as string;
 
   describe("under normal conditions", () => {
     it("returns a valid response", async () => {
@@ -83,6 +84,50 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
           role: Role.Admin,
           userId,
         });
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("publishes a valid SNS message", async () => {
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: teamCreatedSnsTopicArn });
+
+      const name = generateRandomString(5);
+      const body = { name };
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      try {
+        const { data } = await axios.post(`${baseUrl}/users/${userId}/teams`, body, { headers });
+
+        const [ { user }, { team } ] = await Promise.all([
+          getUser({ userId }),
+          getTeam({ teamId: data.team.id }),
+        ]);
+
+        if (!user || !team) {
+          throw new Error("necessary records not created");
+        }
+
+        // wait the event has been fired
+        const { snsEvents } = await backoff(
+          () => getSnsEventsByTopicArn<TeamCreatedSnsMessage>({ topicArn: teamCreatedSnsTopicArn }),
+          (response) => response.snsEvents.length === 1,
+        );
+
+        expect(snsEvents.length).toBe(1);
+
+        expect(snsEvents[0]).toEqual(jasmine.objectContaining({
+          message: {
+            teamMemberIds: [ userId ],
+            team: {
+              createdBy: team.createdBy,
+              id: team.id,
+              image: jasmine.stringMatching(URL_REGEX),
+              name: team.name,
+            },
+          },
+        }));
       } catch (error) {
         fail(error);
       }

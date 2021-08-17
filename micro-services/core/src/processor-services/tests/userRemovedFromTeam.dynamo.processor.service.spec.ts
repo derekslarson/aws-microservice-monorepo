@@ -39,8 +39,8 @@ describe("UserRemovedFromTeamDynamoProcessorService", () => {
   const mockRecord: DynamoProcessorServiceRecord = {
     eventName: "REMOVE",
     tableName: mockCoreTableName,
-    oldImage: {},
-    newImage: {
+    newImage: {},
+    oldImage: {
       entityType: EntityType.TeamUserRelationship,
       teamId: mockTeamId,
       userId: mockUserIdOne,
@@ -84,8 +84,8 @@ describe("UserRemovedFromTeamDynamoProcessorService", () => {
       describe("when passed a record that isn't a team-user-relationship", () => {
         const record = {
           ...mockRecord,
-          newImage: {
-            ...mockRecord.newImage,
+          oldImage: {
+            ...mockRecord.oldImage,
             entityType: EntityType.Team,
           },
         };

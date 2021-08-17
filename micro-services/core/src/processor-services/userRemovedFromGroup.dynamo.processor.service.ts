@@ -29,11 +29,11 @@ export class UserRemovedFromGroupDynamoProcessorService implements DynamoProcess
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
       const isCoreTable = record.tableName === this.coreTableName;
-      const isConversationUserRelationship = record.newImage.entityType === EntityType.ConversationUserRelationship;
-      const isGroupConversationUserRelationship = (record.newImage as RawConversationUserRelationship<ConversationType>).type === ConversationType.Group;
-      const isCreation = record.eventName === "REMOVE";
+      const isConversationUserRelationship = record.oldImage.entityType === EntityType.ConversationUserRelationship;
+      const isGroupConversationUserRelationship = (record.oldImage as RawConversationUserRelationship<ConversationType>).type === ConversationType.Group;
+      const isRemoval = record.eventName === "REMOVE";
 
-      return isCoreTable && isConversationUserRelationship && isGroupConversationUserRelationship && isCreation;
+      return isCoreTable && isConversationUserRelationship && isGroupConversationUserRelationship && isRemoval;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 
@@ -45,7 +45,7 @@ export class UserRemovedFromGroupDynamoProcessorService implements DynamoProcess
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { newImage: { conversationId: groupId, userId } } = record;
+      const { oldImage: { conversationId: groupId, userId } } = record;
 
       const [ { users: groupMembers }, { user }, { group } ] = await Promise.all([
         this.userMediatorService.getUsersByGroupId({ groupId }),
