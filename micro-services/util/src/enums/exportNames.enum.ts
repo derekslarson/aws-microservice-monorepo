@@ -16,6 +16,7 @@ const ExportNames = {
   UserRemovedFromGroupSnsTopicArn: "userRemovedFromGroupSnsTopicArn",
   UserAddedToMeetingSnsTopicArn: "userAddedToMeetingSnsTopicArn",
   TeamCreatedSnsTopicArn: "teamCreatedSnsTopicArn",
+  GroupCreatedSnsTopicArn: "groupCreatedSnsTopicArn",
   CoreTableName: "coreTableName",
   MessageS3BucketArn: "messageS3BucketArn",
 };

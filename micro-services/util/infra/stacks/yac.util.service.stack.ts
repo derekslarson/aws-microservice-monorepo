@@ -60,6 +60,7 @@ export class YacUtilServiceStack extends CDK.Stack {
     const userRemovedFromGroupSnsTopic = new SNS.Topic(this, `UserRemovedFromGroupSnsTopic_${id}`, { topicName: `UserRemovedFromGroupSnsTopic_${id}` });
     const userAddedToMeetingSnsTopic = new SNS.Topic(this, `UserAddedToMeetingSnsTopic_${id}`, { topicName: `UserAddedToMeetingSnsTopic_${id}` });
     const teamCreatedSnsTopic = new SNS.Topic(this, `TeamCreatedSnsTopic_${id}`, { topicName: `TeamCreatedSnsTopic_${id}` });
+    const groupCreatedSnsTopic = new SNS.Topic(this, `GroupCreatedSnsTopic_${id}`, { topicName: `GroupreatedSnsTopic_${id}` });
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
@@ -117,6 +118,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `TeamCreatedSnsTopic_${id}`, {
       exportName: ExportNames.TeamCreatedSnsTopicArn,
       value: userAddedToMeetingSnsTopic.topicArn,
+    });
+    
+    new CDK.CfnOutput(this, `GroupCreatedSnsTopic_${id}`, {
+      exportName: ExportNames.GroupCreatedSnsTopicArn,
+      value: groupCreatedSnsTopic.topicArn,
     });
 
     new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {

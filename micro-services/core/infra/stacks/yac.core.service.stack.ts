@@ -40,6 +40,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const userRemovedFromGroupSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromGroupSnsTopicArn);
     const userAddedToMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToMeetingSnsTopicArn);
     const teamCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
+    const groupCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
 
     // S3 Bucket ARN Imports from Util
     const messageS3BucketArn = CDK.Fn.importValue(ExportNames.MessageS3BucketArn);
@@ -133,6 +134,11 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       actions: [ "SNS:Publish" ],
       resources: [ teamCreatedSnsTopicArn ],
     });
+    
+    const groupCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ groupCreatedSnsTopicArn ],
+    });
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
@@ -148,6 +154,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       USER_ADDED_TO_MEETING_SNS_TOPIC_ARN: userAddedToMeetingSnsTopicArn,
       USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN: userRemovedFromGroupSnsTopicArn,
       TEAM_CREATED_SNS_TOPIC_ARN: teamCreatedSnsTopicArn,
+      GROUP_CREATED_SNS_TOPIC_ARN: groupCreatedSnsTopicArn,
       MESSAGE_S3_BUCKET_NAME: messageS3Bucket.bucketName,
       IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
     };
@@ -169,7 +176,8 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         userAddedToGroupSnsPublishPolicyStatement,
         userRemovedFromGroupSnsPublishPolicyStatement,
         userAddedToMeetingSnsPublishPolicyStatement,
-        teamCreatedSnsPublishPolicyStatement
+        teamCreatedSnsPublishPolicyStatement,
+        groupCreatedSnsPublishPolicyStatement
       ],
       timeout: CDK.Duration.seconds(15),
       events: [
