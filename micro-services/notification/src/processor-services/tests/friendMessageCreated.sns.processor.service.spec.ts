@@ -42,8 +42,8 @@ describe("FriendMessageCreatedSnsProcessorService", () => {
   const mockRecord = {
     topicArn: mockFriendMessageCreatedSnsTopicArn,
     message: {
-      toUser: mockToUser,
-      fromUser: mockFromUser,
+      to: mockToUser,
+      from: mockFromUser,
       message: mockFriendMessage,
     },
   };
@@ -91,8 +91,8 @@ describe("FriendMessageCreatedSnsProcessorService", () => {
         await friendMessageCreatedSnsProcessorService.processRecord(mockRecord);
 
         expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockToUserId, event: WebSocketEvent.FriendMessageCreated, data: { toUser: mockToUser, fromUser: mockFromUser, message: mockFriendMessage } });
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockFromUserId, event: WebSocketEvent.FriendMessageCreated, data: { toUser: mockToUser, fromUser: mockFromUser, message: mockFriendMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockToUserId, event: WebSocketEvent.FriendMessageCreated, data: { to: mockToUser, from: mockFromUser, message: mockFriendMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockFromUserId, event: WebSocketEvent.FriendMessageCreated, data: { to: mockToUser, from: mockFromUser, message: mockFriendMessage } });
       });
     });
 

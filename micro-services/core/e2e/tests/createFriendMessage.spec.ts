@@ -273,7 +273,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
           expect(snsEvents).toEqual([
             jasmine.objectContaining({
               message: {
-                toUser: {
+                to: {
                   id: toUser.id,
                   email: toUser.email,
                   username: toUser.username,
@@ -281,7 +281,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
                   realName: toUser.realName,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
-                fromUser: {
+                from: {
                   id: fromUser.id,
                   email: fromUser.email,
                   username: fromUser.username,

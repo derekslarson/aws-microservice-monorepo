@@ -55,7 +55,7 @@ export class FriendMessageCreatedDynamoProcessorService implements DynamoProcess
         this.userMediatorService.getUser({ userId: from }),
       ]);
 
-      await this.friendMessageCreatedSnsService.sendMessage({ message, toUser, fromUser });
+      await this.friendMessageCreatedSnsService.sendMessage({ message, to: toUser, from: fromUser });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

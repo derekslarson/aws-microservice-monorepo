@@ -83,11 +83,11 @@ describe("Friend Message Created (WebSocket Event)", () => {
   describe("under normal conditions", () => {
     it("sends valid websocket events to the correct connectionIds", async () => {
       const message: FriendMessageCreatedSnsMessage = {
-        toUser: {
+        to: {
           id: userOneId,
           image: "test-image-one",
         },
-        fromUser: {
+        from: {
           id: userTwoId,
           image: "test-image-two",
         },
@@ -123,8 +123,8 @@ describe("Friend Message Created (WebSocket Event)", () => {
       expect(connections.userOneA.messages[0]).toEqual({
         event: WebSocketEvent.FriendMessageCreated,
         data: {
-          toUser: message.toUser,
-          fromUser: message.fromUser,
+          to: message.to,
+          from: message.from,
           message: message.message,
         },
       });
@@ -133,8 +133,8 @@ describe("Friend Message Created (WebSocket Event)", () => {
       expect(connections.userOneB.messages[0]).toEqual({
         event: WebSocketEvent.FriendMessageCreated,
         data: {
-          toUser: message.toUser,
-          fromUser: message.fromUser,
+          to: message.to,
+          from: message.from,
           message: message.message,
         },
       });
@@ -143,8 +143,8 @@ describe("Friend Message Created (WebSocket Event)", () => {
       expect(connections.userTwo.messages[0]).toEqual({
         event: WebSocketEvent.FriendMessageCreated,
         data: {
-          toUser: message.toUser,
-          fromUser: message.fromUser,
+          to: message.to,
+          from: message.from,
           message: message.message,
         },
       });
