@@ -118,8 +118,8 @@ export interface TeamCreatedMessageInput extends BaseMessageInput {
 export interface FriendMessageCreatedMessageInput extends BaseMessageInput {
   event: WebSocketEvent.FriendMessageCreated;
   data: {
-    toUser: User;
-    fromUser: User;
+    to: User;
+    from: User;
     message: Message;
   }
 }

@@ -20,18 +20,18 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
 
   const mockCoreTableName = "mock-core-table-name";
   const mockConfig = { tableNames: { core: mockCoreTableName } };
-  const mockUserIdOne = "user-mock-id-one";
-  const mockUserIdTwo = "user-mock-id-two";
+  const mockToUserId = "user-mock-id-to";
+  const mockFromUserId = "user-mock-id-from";
   const mockMessageId: MessageId = `${KeyPrefix.Message}-id`;
-  const mockFriendConversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${mockUserIdOne}-${mockUserIdTwo}`;
+  const mockFriendConversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${mockToUserId}-${mockFromUserId}`;
 
-  const mockUserOne: User = {
-    id: mockUserIdOne,
+  const mockToUser: User = {
+    id: mockToUserId,
     image: "mock-image",
   };
 
-  const mockUserTwo: User = {
-    id: mockUserIdTwo,
+  const mockFromUser: User = {
+    id: mockFromUserId,
     image: "mock-image",
   };
 
@@ -43,17 +43,17 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
       entityType: EntityType.Message,
       id: mockMessageId,
       conversationId: mockFriendConversationId,
-      from: mockUserIdOne,
+      from: mockToUserId,
     },
   };
 
   const mockMessage: Message = {
     id: mockMessageId,
-    to: mockUserIdTwo,
-    from: mockUserIdOne,
+    to: mockFromUserId,
+    from: mockToUserId,
     type: ConversationType.Friend,
     createdAt: new Date().toISOString(),
-    seenAt: { [mockUserIdOne]: new Date().toISOString() },
+    seenAt: { [mockToUserId]: new Date().toISOString() },
     reactions: {},
     replyCount: 0,
     mimeType: MessageMimeType.AudioMp3,
@@ -146,7 +146,7 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
   describe("processRecord", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        userMediatorService.getUser.and.returnValues(Promise.resolve({ user: mockUserOne }), Promise.resolve({ user: mockUserTwo }));
+        userMediatorService.getUser.and.returnValues(Promise.resolve({ user: mockToUser }), Promise.resolve({ user: mockFromUser }));
         messageMediatorService.getMessage.and.returnValue(Promise.resolve({ message: mockMessage }));
         friendMessageCreatedSnsService.sendMessage.and.returnValue(Promise.resolve());
       });
@@ -162,22 +162,22 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
         await friendMessageCreatedDynamoProcessorService.processRecord(mockRecord);
 
         expect(userMediatorService.getUser).toHaveBeenCalledTimes(2);
-        expect(userMediatorService.getUser).toHaveBeenCalledWith({ userId: mockUserIdOne });
-        expect(userMediatorService.getUser).toHaveBeenCalledWith({ userId: mockUserIdTwo });
+        expect(userMediatorService.getUser).toHaveBeenCalledWith({ userId: mockToUserId });
+        expect(userMediatorService.getUser).toHaveBeenCalledWith({ userId: mockFromUserId });
       });
 
       it("calls friendMessageCreatedSnsService.sendMessage with the correct parameters", async () => {
         await friendMessageCreatedDynamoProcessorService.processRecord(mockRecord);
 
         expect(friendMessageCreatedSnsService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(friendMessageCreatedSnsService.sendMessage).toHaveBeenCalledWith({ toUser: mockUserOne, fromUser: mockUserTwo, message: mockMessage });
+        expect(friendMessageCreatedSnsService.sendMessage).toHaveBeenCalledWith({ to: mockToUser, from: mockFromUser, message: mockMessage });
       });
     });
 
     describe("under error conditions", () => {
       describe("when friendMessageCreatedSnsService.sendMessage throws an error", () => {
         beforeEach(() => {
-          userMediatorService.getUser.and.returnValues(Promise.resolve({ user: mockUserOne }), Promise.resolve({ user: mockUserTwo }));
+          userMediatorService.getUser.and.returnValues(Promise.resolve({ user: mockToUser }), Promise.resolve({ user: mockFromUser }));
           messageMediatorService.getMessage.and.returnValue(Promise.resolve({ message: mockMessage }));
           friendMessageCreatedSnsService.sendMessage.and.throwError(mockError);
         });

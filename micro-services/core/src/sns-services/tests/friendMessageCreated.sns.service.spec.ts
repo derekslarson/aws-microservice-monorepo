@@ -56,7 +56,7 @@ describe("FriendMessageCreatedSnsService", () => {
   });
 
   describe("sendMessage", () => {
-    const mockMessage = { message: mockFriendMessage, toUser: mockToUser, fromUser: mockFromUser };
+    const mockMessage = { message: mockFriendMessage, to: mockToUser, from: mockFromUser };
 
     describe("under normal conditions", () => {
       beforeEach(() => {

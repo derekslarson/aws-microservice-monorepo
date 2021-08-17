@@ -34,12 +34,12 @@ export class FriendMessageCreatedSnsProcessorService implements SnsProcessorServ
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { message: { toUser, fromUser, message } } = record;
+      const { message: { to, from, message } } = record;
 
-      await Promise.all([ toUser.id, fromUser.id ].map((userId) => this.webSocketMediatorService.sendMessage({
+      await Promise.all([ to.id, from.id ].map((userId) => this.webSocketMediatorService.sendMessage({
         userId,
         event: WebSocketEvent.FriendMessageCreated,
-        data: { toUser, fromUser, message },
+        data: { to, from, message },
       })));
 
       // add support for push notifications
