@@ -8,7 +8,6 @@ import { GroupCreatedSnsServiceInterface } from "../sns-services/groupCreated.sn
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { RawConversation } from "../repositories/conversation.dynamo.repository";
 import { GroupConversation } from "../entity-services/conversation.service";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 
 @injectable()
 export class GroupCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -18,7 +17,6 @@ export class GroupCreatedDynamoProcessorService implements DynamoProcessorServic
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.GroupCreatedSnsServiceInterface) private groupCreatedSnsService: GroupCreatedSnsServiceInterface,
     @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -46,12 +44,11 @@ export class GroupCreatedDynamoProcessorService implements DynamoProcessorServic
 
       const { newImage: { id: groupId } } = record;
 
-      const [ { group }, { users } ] = await Promise.all([
-        this.groupMediatorService.getGroup({ groupId }),
-        this.userMediatorService.getUsersByGroupId({ groupId }),
+      const [ { group } ] = await Promise.all([
+        this.groupMediatorService.getGroup({ groupId })
       ]);
 
-      await this.groupCreatedSnsService.sendMessage({ group, groupMemberIds: users.map((u) => u.id) });
+      await this.groupCreatedSnsService.sendMessage({ group, groupMemberIds: [ group.createdBy ] });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 
