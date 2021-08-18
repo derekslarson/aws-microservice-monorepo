@@ -128,8 +128,7 @@ describe("GroupMessageCreatedDynamoProcessorService", () => {
           ...mockRecord,
           newImage: {
             ...mockRecord.newImage,
-            to: `${KeyPrefix.FriendConversation}-id`,
-            entityType: EntityType.Message,
+            conversationId: `${KeyPrefix.FriendConversation}-id`,
           },
         };
 
