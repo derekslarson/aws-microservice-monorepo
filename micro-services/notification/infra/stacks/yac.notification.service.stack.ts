@@ -42,6 +42,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
     const teamCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
     const friendMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageCreatedSnsTopicArn);
     const groupMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupMessageCreatedSnsTopicArn);
+    const meetingMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageCreatedSnsTopicArn);
 
     // Imported User Pool Id from Auth
     const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
@@ -112,6 +113,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       TEAM_CREATED_SNS_TOPIC_ARN: teamCreatedSnsTopicArn,
       FRIEND_MESSAGE_CREATED_SNS_TOPIC_ARN: friendMessageCreatedSnsTopicArn,
       GROUP_MESSAGE_CREATED_SNS_TOPIC_ARN: groupMessageCreatedSnsTopicArn,
+      MEETING_MESSAGE_CREATED_SNS_TOPIC_ARN: meetingMessageCreatedSnsTopicArn,
     };
 
     // WebSocket Lambdas
@@ -178,6 +180,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `TeamCreatedSnsTopic_${id}`, teamCreatedSnsTopicArn)),
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `FriendMessageCreatedSnsTopic_${id}`, friendMessageCreatedSnsTopicArn)),
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `GroupMessageCreatedSnsTopic_${id}`, groupMessageCreatedSnsTopicArn)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MeetingMessageCreatedSnsTopic_${id}`, meetingMessageCreatedSnsTopicArn)),
       ],
     });
 

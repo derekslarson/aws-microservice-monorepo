@@ -41,6 +41,7 @@ const TYPES = {
   TeamCreatedDynamoProcessorServiceInterface: Symbol.for("TeamCreatedDynamoProcessorServiceInterface"),
   FriendMessageCreatedDynamoProcessorServiceInterface: Symbol.for("FriendMessageCreatedDynamoProcessorServiceInterface"),
   GroupMessageCreatedDynamoProcessorServiceInterface: Symbol.for("GroupMessageCreatedDynamoProcessorServiceInterface"),
+  MeetingMessageCreatedDynamoProcessorServiceInterface: Symbol.for("MeetingMessageCreatedDynamoProcessorServiceInterface"),
 
   // SNS Services
   UserCreatedSnsServiceInterface: Symbol.for("UserCreatedSnsServiceInterface"),
@@ -55,6 +56,7 @@ const TYPES = {
   TeamCreatedSnsServiceInterface: Symbol.for("TeamCreatedSnsServiceInterface"),
   FriendMessageCreatedSnsServiceInterface: Symbol.for("FriendMessageCreatedSnsServiceInterface"),
   GroupMessageCreatedSnsServiceInterface: Symbol.for("GroupMessageCreatedSnsServiceInterface"),
+  MeetingMessageCreatedSnsServiceInterface: Symbol.for("MeetingMessageCreatedSnsServiceInterface"),
 
   // Entity Services
   ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),

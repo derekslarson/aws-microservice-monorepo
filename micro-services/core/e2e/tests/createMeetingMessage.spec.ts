@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { MeetingMessageCreatedSnsMessage, Role } from "@yac/util";
 import axios from "axios";
 import { readFileSync } from "fs";
 import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
@@ -14,28 +14,45 @@ import { RawConversationUserRelationship } from "../../src/repositories/conversa
 import { MessageId } from "../../src/types/messageId.type";
 import { PendingMessageId } from "../../src/types/pendingMessageId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createMeetingConversation, getConversationUserRelationship, getMessage, getPendingMessage } from "../util";
+import {
+  createConversationUserRelationship,
+  createMeetingConversation,
+  createRandomUser,
+  CreateRandomUserOutput,
+  deleteSnsEventsByTopicArn,
+  getConversationUserRelationship,
+  getMessage,
+  getPendingMessage,
+  getSnsEventsByTopicArn,
+  getUser,
+} from "../util";
 
 describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const meetingMessageCreatedSnsTopicArn = process.env["meeting-message-created-sns-topic-arn"] as string;
 
   const mimeType = MessageMimeType.AudioMp3;
 
   describe("under normal conditions", () => {
-    const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+    let otherUser: CreateRandomUserOutput["user"];
 
     let meeting: RawConversation<MeetingConversation>;
     let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Meeting>;
     let conversationUserRelationshipTwo: RawConversationUserRelationship<ConversationType.Meeting>;
 
     beforeEach(async () => {
+      ([ { user: otherUser }, { conversation: meeting } ] = await Promise.all([
+        createRandomUser(),
+        createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+      ]));
+
       ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       ([ { conversationUserRelationship }, { conversationUserRelationship: conversationUserRelationshipTwo } ] = await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin }),
-        createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId: mockUserId, role: Role.User }),
+        createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId: otherUser.id, role: Role.User }),
       ]));
     });
 
@@ -139,7 +156,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
             conversationId: meeting.id,
             seenAt: {
               [userId]: jasmine.stringMatching(ISO_DATE_REGEX),
-              [mockUserId]: null,
+              [otherUser.id]: null,
             },
             reactions: { },
             from: userId,
@@ -193,7 +210,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
             { conversationUserRelationship: conversationUserRelationshipTwoUpdated },
           ] = await Promise.all([
             backoff(() => getConversationUserRelationship({ userId, conversationId: meeting.id }), (res) => res.conversationUserRelationship?.updatedAt !== conversationUserRelationship.updatedAt),
-            backoff(() => getConversationUserRelationship({ userId: mockUserId, conversationId: meeting.id }), (res) => !!res.conversationUserRelationship?.unreadMessages),
+            backoff(() => getConversationUserRelationship({ userId: otherUser.id, conversationId: meeting.id }), (res) => !!res.conversationUserRelationship?.unreadMessages),
           ]);
 
           expect(conversationUserRelationshipUpdated?.updatedAt).toEqual(jasmine.stringMatching(ISO_DATE_REGEX));
@@ -221,6 +238,83 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
           fail(error);
         }
       });
+
+      it("publishes a valid SNS message", async () => {
+        // clear the sns events table so the test can have a clean slate
+        await deleteSnsEventsByTopicArn({ topicArn: meetingMessageCreatedSnsTopicArn });
+
+        const headers = { Authorization: `Bearer ${accessToken}` };
+        const body = { mimeType };
+
+        try {
+          const { data } = await axios.post<{ pendingMessage: PendingMessage; }>(`${baseUrl}/meetings/${meeting.id}/messages`, body, { headers });
+
+          const file = readFileSync(`${process.cwd()}/e2e/test-message.mp3`);
+
+          const uploadHeaders = { "content-type": mimeType };
+          const uploadBody = { data: file };
+
+          await axios.put(data.pendingMessage.uploadUrl, uploadBody, { headers: uploadHeaders });
+
+          await wait(3000);
+
+          const [ { user: fromUser }, { message } ] = await Promise.all([
+            getUser({ userId }),
+            getMessage({ messageId: data.pendingMessage.id }),
+          ]);
+
+          if (!fromUser || !message) {
+            throw new Error("necessary user records not created");
+          }
+
+          // wait till the events have been fired
+          const { snsEvents } = await backoff(
+            () => getSnsEventsByTopicArn<MeetingMessageCreatedSnsMessage>({ topicArn: meetingMessageCreatedSnsTopicArn }),
+            (response) => response.snsEvents.length === 1,
+          );
+
+          expect(snsEvents.length).toBe(1);
+
+          expect(snsEvents).toEqual([
+            jasmine.objectContaining({
+              message: {
+                meetingMemberIds: jasmine.arrayContaining([ userId, otherUser.id ]),
+                to: {
+                  id: meeting.id,
+                  name: meeting.name,
+                  createdBy: meeting.createdBy,
+                  createdAt: meeting.createdAt,
+                  dueDate: meeting.dueDate,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  id: fromUser.id,
+                  email: fromUser.email,
+                  username: fromUser.username,
+                  phone: fromUser.phone,
+                  realName: fromUser.realName,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                message: {
+                  id: message.id,
+                  to: meeting.id,
+                  from: message.from,
+                  type: ConversationType.Meeting,
+                  createdAt: message.createdAt,
+                  seenAt: message.seenAt,
+                  reactions: message.reactions,
+                  replyCount: 0,
+                  mimeType: message.mimeType,
+                  fetchUrl: jasmine.stringMatching(URL_REGEX),
+                  fromImage: jasmine.stringMatching(URL_REGEX),
+                },
+              },
+            }),
+          ]);
+        } catch (error) {
+          fail(error);
+        }
+      }, 45000);
     });
   });
 

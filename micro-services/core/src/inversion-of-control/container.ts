@@ -30,6 +30,7 @@ import { InvitationOrchestratorService, InvitationOrchestratorServiceInterface }
 import { FriendMessageCreatedDynamoProcessorService } from "../processor-services/friendMessageCreated.dynamo.processor.service";
 import { GroupMessageCreatedDynamoProcessorService } from "../processor-services/groupMessageCreated.dynamo.processor.service";
 import { ImageFileCreatedS3ProcessorService } from "../processor-services/imageFileCreated.s3.processor.service";
+import { MeetingMessageCreatedDynamoProcessorService } from "../processor-services/meetingMessageCreated.dynamo.processor.service";
 import { MessageFileCreatedS3ProcessorService } from "../processor-services/messageFileCreated.s3.processor.service";
 import { TeamCreatedDynamoProcessorService } from "../processor-services/teamCreated.dynamo.processor.service";
 import { UserAddedAsFriendDynamoProcessorService } from "../processor-services/userAddedAsFriend.dynamo.processor.service";
@@ -52,6 +53,7 @@ import { UniquePropertyDynamoRepository, UniquePropertyRepositoryInterface } fro
 import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
 import { FriendMessageCreatedSnsService, FriendMessageCreatedSnsServiceInterface } from "../sns-services/friendMessageCreated.sns.service";
 import { GroupMessageCreatedSnsService, GroupMessageCreatedSnsServiceInterface } from "../sns-services/groupMessageCreated.sns.service";
+import { MeetingMessageCreatedSnsService, MeetingMessageCreatedSnsServiceInterface } from "../sns-services/meetingMessageCreated.sns.service";
 import { TeamCreatedSnsService, TeamCreatedSnsServiceInterface } from "../sns-services/teamCreated.sns.service";
 import { UserAddedAsFriendSnsService, UserAddedAsFriendSnsServiceInterface } from "../sns-services/userAddedAsFriend.sns.service";
 import { UserAddedToGroupSnsService, UserAddedToGroupSnsServiceInterface } from "../sns-services/userAddedToGroup.sns.service";
@@ -110,6 +112,7 @@ try {
   container.bind<DynamoProcessorServiceInterface>(TYPES.TeamCreatedDynamoProcessorServiceInterface).to(TeamCreatedDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.FriendMessageCreatedDynamoProcessorServiceInterface).to(FriendMessageCreatedDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.GroupMessageCreatedDynamoProcessorServiceInterface).to(GroupMessageCreatedDynamoProcessorService);
+  container.bind<DynamoProcessorServiceInterface>(TYPES.MeetingMessageCreatedDynamoProcessorServiceInterface).to(MeetingMessageCreatedDynamoProcessorService);
 
   // SNS Services
   container.bind<UserCreatedSnsServiceInterface>(TYPES.UserCreatedSnsServiceInterface).to(UserCreatedSnsService);
@@ -124,6 +127,7 @@ try {
   container.bind<TeamCreatedSnsServiceInterface>(TYPES.TeamCreatedSnsServiceInterface).to(TeamCreatedSnsService);
   container.bind<FriendMessageCreatedSnsServiceInterface>(TYPES.FriendMessageCreatedSnsServiceInterface).to(FriendMessageCreatedSnsService);
   container.bind<GroupMessageCreatedSnsServiceInterface>(TYPES.GroupMessageCreatedSnsServiceInterface).to(GroupMessageCreatedSnsService);
+  container.bind<MeetingMessageCreatedSnsServiceInterface>(TYPES.MeetingMessageCreatedSnsServiceInterface).to(MeetingMessageCreatedSnsService);
 
   // Entity Services
   container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
@@ -172,6 +176,7 @@ try {
     container.get(TYPES.TeamCreatedDynamoProcessorServiceInterface),
     container.get(TYPES.FriendMessageCreatedDynamoProcessorServiceInterface),
     container.get(TYPES.GroupMessageCreatedDynamoProcessorServiceInterface),
+    container.get(TYPES.MeetingMessageCreatedDynamoProcessorServiceInterface),
   ]);
 } catch (error: unknown) {
   // eslint-disable-next-line no-console

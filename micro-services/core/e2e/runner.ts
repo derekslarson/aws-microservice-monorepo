@@ -36,6 +36,7 @@ const necessaryParams = [
   "team-created-sns-topic-arn",
   "friend-message-created-sns-topic-arn",
   "group-message-created-sns-topic-arn",
+  "meeting-message-created-sns-topic-arn",
   "core-testing-sns-event-table-name",
 ];
 

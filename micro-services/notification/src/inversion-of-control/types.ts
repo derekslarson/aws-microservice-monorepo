@@ -21,6 +21,7 @@ const TYPES = {
   TeamCreatedSnsProcessorServiceInterface: Symbol.for("TeamCreatedSnsProcessorServiceInterface"),
   FriendMessageCreatedSnsProcessorServiceInterface: Symbol.for("FriendMessageCreatedSnsProcessorServiceInterface"),
   GroupMessageCreatedSnsProcessorServiceInterface: Symbol.for("GroupMessageCreatedSnsProcessorServiceInterface"),
+  MeetingMessageCreatedSnsProcessorServiceInterface: Symbol.for("MeetingMessageCreatedSnsProcessorServiceInterface"),
 
   // Entity Services
   ListenerMappingServiceInterface: Symbol.for("ListenerMappingServiceInterface"),
