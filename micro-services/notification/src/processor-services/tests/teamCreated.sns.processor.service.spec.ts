@@ -72,8 +72,9 @@ describe("TeamCreatedSnsProcessorService", () => {
       it("calls webSocketMediatorService.sendMessage with the correct parameters", async () => {
         await teamCreatedSnsProcessorService.processRecord(mockRecord);
 
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockTeam.createdBy, event: WebSocketEvent.TeamCreated, data: { team: mockTeam } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserOneId, event: WebSocketEvent.TeamCreated, data: { team: mockTeam } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserTwoId, event: WebSocketEvent.TeamCreated, data: { team: mockTeam } });
       });
     });
 

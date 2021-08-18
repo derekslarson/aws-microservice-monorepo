@@ -22,7 +22,7 @@ describe("GroupCreatedDynamoProcessorService", () => {
     id: mockGroupId,
     name: "mock-name",
     image: "mock-image",
-    createdBy: "user-mock-id",
+    createdBy: mockUserOneId,
     createdAt: mockDate,
   };
 
