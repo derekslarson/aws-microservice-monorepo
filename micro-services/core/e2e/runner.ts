@@ -24,7 +24,6 @@ const necessaryParams = [
   "yac-client-redirect-uri",
   "core-table-name",
   "image-s3-bucket-name",
-  "image-s3-bucket-name",
   "user-added-to-team-sns-topic-arn",
   "user-removed-from-team-sns-topic-arn",
   "user-added-to-group-sns-topic-arn",
@@ -33,6 +32,7 @@ const necessaryParams = [
   "user-removed-from-meeting-sns-topic-arn",
   "user-added-as-friend-sns-topic-arn",
   "team-created-sns-topic-arn",
+  "group-created-sns-topic-arn",
   "core-testing-sns-event-table-name",
 ];
 

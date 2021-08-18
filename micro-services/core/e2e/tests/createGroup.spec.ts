@@ -1,21 +1,23 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/util";
-import { generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
+import { GroupCreatedSnsMessage, Role } from "@yac/util";
+import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { Group } from "../../src/mediator-services/group.mediator.service";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { UserId } from "../../src/types/userId.type";
-import { createRandomTeam, createTeamUserRelationship, getConversation, getConversationUserRelationship } from "../util";
+import { createRandomTeam, createTeamUserRelationship, deleteSnsEventsByTopicArn, getConversation, getConversationUserRelationship, getSnsEventsByTopicArn, getUser } from "../util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
+import { GroupId } from "../../src/types/groupId.type";
 
 describe("POST /users/{userId}/groups (Create Group)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const groupCreatedSnsTopicArn = process.env["group-created-sns-topic-arn"] as string;
 
   describe("under normal conditions", () => {
     let team: RawTeam;
@@ -104,6 +106,52 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("publishes a valid SNS message", async () => {
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: groupCreatedSnsTopicArn });
+
+      const name = generateRandomString(5);
+      const body = { name, teamId: team.id };
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      try {
+        const { data } = await axios.post(`${baseUrl}/users/${userId}/groups `, body, { headers });
+
+        const [ { user }, { conversation: group } ] = await Promise.all([
+          getUser({ userId }),
+          getConversation<GroupId>({ conversationId: (data.group as Group).id }),
+        ]);
+
+        if (!user || !group) {
+          throw new Error("necessary records not created");
+        }
+
+        // wait the event has been fired
+        const { snsEvents } = await backoff(
+          () => getSnsEventsByTopicArn<GroupCreatedSnsMessage>({ topicArn: groupCreatedSnsTopicArn }),
+          (response) => response.snsEvents.length === 1,
+        );
+
+        expect(snsEvents.length).toBe(1);
+
+        expect(snsEvents[0]).toEqual(jasmine.objectContaining({
+          message: {
+            groupMemberIds: [ userId ],
+            group: {
+              createdBy: group.createdBy,
+              teamId: group.teamId,
+              image: jasmine.stringMatching(URL_REGEX),
+              name: group.name,
+              createdAt: group.createdAt,
+              id: group.id,
+            },
+          },
+        }));
       } catch (error) {
         fail(error);
       }
