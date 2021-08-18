@@ -46,7 +46,7 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
   const mockRecord = {
     topicArn: mockGroupMessageCreatedSnsTopicArn,
     message: {
-      groupMemberIds: [ mockUser, mockUserIdTwo ],
+      groupMemberIds: [ mockUserIdOne, mockUserIdTwo ],
       to: mockGroup,
       from: mockUser,
       message: mockMessage,
