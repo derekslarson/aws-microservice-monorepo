@@ -15,7 +15,7 @@ describe("TeamCreatedDynamoProcessorService", () => {
   const mockConfig = { tableNames: { core: mockCoreTableName } };
   const mockTeamId = "team-mock-id";
   const mockUserIdOne = "user-mock-one";
-  const mockTeamMembersId = [mockUserIdOne];
+  const mockTeamMemberIds = [mockUserIdOne];
 
   const mockTeam: Team = {
     id: mockTeamId,
@@ -116,7 +116,7 @@ describe("TeamCreatedDynamoProcessorService", () => {
         await teamCreatedDynamoProcessorService.processRecord(mockRecord);
 
         expect(teamCreatedSnsService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(teamCreatedSnsService.sendMessage).toHaveBeenCalledWith({ team: mockTeam, teamMemberIds: mockTeamMembersId });
+        expect(teamCreatedSnsService.sendMessage).toHaveBeenCalledWith({ team: mockTeam, teamMemberIds: mockTeamMemberIds });
       });
     });
 
