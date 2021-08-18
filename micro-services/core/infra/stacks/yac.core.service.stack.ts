@@ -51,7 +51,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     // S3 Buckets
     const messageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket_${id}`, messageS3BucketArn);
-    const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket-${id}`, {});
+    const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket-${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {

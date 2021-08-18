@@ -49,7 +49,7 @@ export class YacUtilServiceStack extends CDK.Stack {
 
     // S3 Buckets
     // We need to define this here so that it can be accessed in core as well as the message streaming service
-    const messageS3Bucket = new S3.Bucket(this, `MessageS3Bucket_${id}`, {});
+    const messageS3Bucket = new S3.Bucket(this, `MessageS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
 
     // SNS Topics
     const clientsUpdatedSnsTopic = new SNS.Topic(this, `ClientsUpdatedSnsTopic_${id}`, { topicName: `ClientsUpdatedSnsTopic_${id}` });
