@@ -50,7 +50,7 @@ function createDefaultImage(): CreateDefaultImageOutput {
 
     return { image, mimeType: ImageMimeType.Png };
   } catch (error) {
-    console.log("Error in getTeam:\n", error);
+    console.log("Error in createDefaultImage:\n", error);
 
     throw error;
   }
@@ -75,7 +75,7 @@ export async function getUniqueProperty(params: GetUniquePropertyInput): Promise
 
     return { uniqueProperty: Item as RawUniqueProperty | undefined };
   } catch (error) {
-    console.log("Error in getTeam:\n", error);
+    console.log("Error in getUniqueProperty:\n", error);
 
     throw error;
   }
@@ -92,7 +92,7 @@ export async function isUniqueEmail(params: IsUniqueEmailInput): Promise<IsUniqu
 
     return { isUniqueEmail: !Item };
   } catch (error) {
-    console.log("Error in getTeam:\n", error);
+    console.log("Error in isUniqueEmail:\n", error);
 
     throw error;
   }
@@ -109,7 +109,7 @@ export async function isUniqueUsername(params: IsUniqueUsernameInput): Promise<I
 
     return { isUniqueUsername: !Item };
   } catch (error) {
-    console.log("Error in getTeam:\n", error);
+    console.log("Error in isUniqueUsername:\n", error);
 
     throw error;
   }
@@ -126,7 +126,7 @@ export async function isUniquePhone(params: IsUniquePhoneInput): Promise<IsUniqu
 
     return { isUniquePhone: !Item };
   } catch (error) {
-    console.log("Error in getTeam:\n", error);
+    console.log("Error in isUniquePhone:\n", error);
 
     throw error;
   }
@@ -252,7 +252,7 @@ export async function getUser(params: GetUserInput): Promise<GetUserOutput> {
 
     return { user };
   } catch (error) {
-    console.log("Error in getTeam:\n", error);
+    console.log("Error in getUser:\n", error);
 
     throw error;
   }
@@ -282,7 +282,7 @@ export async function getUserByEmail(params: GetUserByEmailInput): Promise<GetUs
 
     return { user };
   } catch (error) {
-    console.log("Error in getTeam:\n", error);
+    console.log("Error in getUserByEmail:\n", error);
 
     throw error;
   }
@@ -312,7 +312,7 @@ export async function getUserByPhone(params: GetUserByPhoneInput): Promise<GetUs
 
     return { user };
   } catch (error) {
-    console.log("Error in getTeam:\n", error);
+    console.log("Error in getUserByPhone:\n", error);
 
     throw error;
   }
@@ -768,7 +768,7 @@ export async function getSnsEventsByTopicArn<T extends Record<string, unknown> =
 
     return { snsEvents };
   } catch (error) {
-    console.log("Error in getTeam:\n", error);
+    console.log("Error in getSnsEventsByTopicArn:\n", error);
 
     throw error;
   }
@@ -788,7 +788,7 @@ export async function deleteSnsEventsByTopicArn(params: DeleteSnsEventsByTopicAr
       },
     }).promise()));
   } catch (error) {
-    console.log("Error in getTeam:\n", error);
+    console.log("Error in deleteSnsEventsByTopicArn:\n", error);
 
     throw error;
   }
