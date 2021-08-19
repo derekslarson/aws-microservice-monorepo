@@ -191,8 +191,11 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         throw new Error("redirect path missing in response");
       }
 
-      const [ , authorizationCode ] = redirectPath.split("=");
+      const authorizationCode = redirectPath.split("code=")[1]?.split("&")[0];
 
+      if (!authorizationCode) {
+        throw new Error("authorizationCode missing in response");
+      }
       return authorizationCode;
     } catch (error: unknown) {
       this.loggerService.error("Error in getAuthorizationCode", { error, username, clientId, redirectUri, xsrfToken }, this.constructor.name);
