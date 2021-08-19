@@ -9,4 +9,5 @@ export enum WebSocketEvent {
   UserRemovedAsFriend = "user_removed_as_friend",
   TeamCreated = "team_created",
   GroupCreated = "group_created",
+  FriendMessageCreated = "friend_message_created",
 }

@@ -20,6 +20,7 @@ const ExportNames = {
   UserRemovedAsFriendSnsTopicArn: "userRemovedAsFriendSnsTopicArn",
   TeamCreatedSnsTopicArn: "teamCreatedSnsTopicArn",
   GroupCreatedSnsTopicArn: "groupCreatedSnsTopicArn",
+  FriendMessageCreatedSnsTopicArn: "friendMessageCreatedSnsTopicArn",
   CoreTableName: "coreTableName",
   MessageS3BucketArn: "messageS3BucketArn",
 };

@@ -14,8 +14,8 @@ describe("TeamCreatedSnsService", () => {
   let loggerService: Spied<LoggerService>;
   let teamCreatedSnsService: TeamCreatedSnsServiceWithAnyMethod;
 
-  const mockUserAddedToGroupSnsTopicArn = "mock-user-added-to-group-sns-topic-arn";
-  const mockConfig = { snsTopicArns: { teamCreated: mockUserAddedToGroupSnsTopicArn } };
+  const mockTeamCreatedSnsTopicArn = "mock-team-created-sns-topic-arn";
+  const mockConfig = { snsTopicArns: { teamCreated: mockTeamCreatedSnsTopicArn } };
   const mockTeamId = "team-id";
   const mockUserA: User["id"] = "user-mock-id";
 

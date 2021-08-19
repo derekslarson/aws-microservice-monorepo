@@ -10,3 +10,4 @@ export * from "./userAddedAsFriend.snsMessage.model";
 export * from "./userRemovedAsFriend.snsMessage.model";
 export * from "./teamCreated.snsMessage.model";
 export * from "./groupCreated.snsMessage.model";
+export * from "./friendMessageCreated.snsMessage.model";

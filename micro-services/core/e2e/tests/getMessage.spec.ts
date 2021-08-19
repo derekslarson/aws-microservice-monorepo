@@ -44,8 +44,9 @@ describe("GET /messages/{messageId} (Get Message)", () => {
         expect(data).toEqual({
           message: {
             id: message.id,
+            to: mockConversationId,
             from: message.from,
-            conversationId: message.conversationId,
+            type: ConversationType.Group,
             createdAt: message.createdAt,
             seenAt: message.seenAt,
             reactions: message.reactions,

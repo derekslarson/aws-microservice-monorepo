@@ -16,6 +16,8 @@ import { UserServiceInterface } from "../entity-services/user.service";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
 import { ConversationFetchType } from "../enums/conversationFetchType.enum";
+import { GroupId } from "../types/groupId.type";
+import { MeetingId } from "../types/meetingId.type";
 
 @injectable()
 export class ConversationMediatorService implements ConversationMediatorServiceInterface {
@@ -186,8 +188,13 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
           operation: "get",
         });
 
+        const { conversationId, ...restOfMessage } = message;
+        const { to, type } = this.getToAndTypeFromConversationIdAndFrom({ conversationId, from: message.from });
+
         acc[message.id] = {
-          ...message,
+          ...restOfMessage,
+          to,
+          type,
           fetchUrl: messageUrl,
           fromImage: imageUrl,
         };
@@ -204,6 +211,39 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       throw error;
     }
   }
+
+  private getToAndTypeFromConversationIdAndFrom(params: GetToAndTypeFromConversationIdAndFromInput): GetToAndTypeFromConversationIdAndFromOutput {
+    try {
+      this.loggerService.trace("getToAndTypeFromConversationIdAndFrom called", { params }, this.constructor.name);
+
+      const { from, conversationId } = params;
+
+      if (conversationId.startsWith(KeyPrefix.GroupConversation)) {
+        return {
+          to: conversationId as GroupId,
+          type: ConversationTypeEnum.Group,
+        };
+      }
+
+      if (conversationId.startsWith(KeyPrefix.MeetingConversation)) {
+        return {
+          to: conversationId as MeetingId,
+          type: ConversationTypeEnum.Meeting,
+        };
+      }
+
+      const toUserId = conversationId.replace(KeyPrefix.FriendConversation, "").replace(from, "").replace(/^-|-$/, "") as UserId;
+
+      return {
+        to: toUserId,
+        type: ConversationTypeEnum.Friend,
+      };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getToAndTypeFromConversationIdAndFrom", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface ConversationMediatorServiceInterface {
@@ -211,9 +251,13 @@ export interface ConversationMediatorServiceInterface {
   isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
 }
 
-export interface Message extends MessageEntity {
+type To = UserId | GroupId | MeetingId;
+
+export interface Message extends Omit<MessageEntity, "conversationId"> {
   fetchUrl: string;
   fromImage: string;
+  to: To;
+  type: ConversationType;
 }
 
 export type Conversation<T extends ConversationType> = Omit<ConversationEntity<T>, "imageMimeType"> & {
@@ -260,4 +304,14 @@ interface GetRecentMessagesInput {
 
 interface GetRecentMessagesOutput {
   recentMessages: Array<Message | undefined>;
+}
+
+interface GetToAndTypeFromConversationIdAndFromInput {
+  from: UserId;
+  conversationId: ConversationId;
+}
+
+interface GetToAndTypeFromConversationIdAndFromOutput {
+  to: To;
+  type: ConversationTypeEnum;
 }

@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { Group, LoggerServiceInterface, Meeting, Team, User } from "@yac/util";
+import { Group, LoggerServiceInterface, Meeting, Message, Team, User } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
 import { ListenerType } from "../enums/listenerType.enum";
@@ -114,11 +114,18 @@ export interface TeamCreatedMessageInput extends BaseMessageInput {
     team: Team;
   }
 }
-
 export interface GroupCreatedMessageInput extends BaseMessageInput {
   event: WebSocketEvent.GroupCreated;
   data: {
     group: Group
+  }
+}
+export interface FriendMessageCreatedMessageInput extends BaseMessageInput {
+  event: WebSocketEvent.FriendMessageCreated;
+  data: {
+    to: User;
+    from: User;
+    message: Message;
   }
 }
 
@@ -132,6 +139,7 @@ export type SendMessageInput =
   SendUserRemovedFromMeetingMessageInput |
   SendUserAddedAsFriendMessageInput |
   SendUserRemovedAsFriendMessageInput |
-  TeamCreatedMessageInput;
+  TeamCreatedMessageInput |
+  FriendMessageCreatedMessageInput;
 
 export type SendMessageOutput = void;

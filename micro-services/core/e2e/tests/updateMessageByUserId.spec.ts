@@ -69,7 +69,8 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
               message: {
                 id: message.id,
                 from: message.from,
-                conversationId: message.conversationId,
+                to: mockConversationId,
+                type: ConversationType.Group,
                 createdAt: message.createdAt,
                 seenAt: {
                   ...message.seenAt,
@@ -152,8 +153,9 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
             expect(data).toEqual({
               message: {
                 id: message.id,
+                to: mockConversationId,
                 from: message.from,
-                conversationId: message.conversationId,
+                type: ConversationType.Group,
                 createdAt: message.createdAt,
                 seenAt: {
                   ...message.seenAt,
@@ -239,8 +241,9 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
             expect(data).toEqual({
               message: {
                 id: message.id,
+                to: mockConversationId,
                 from: message.from,
-                conversationId: message.conversationId,
+                type: ConversationType.Group,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
                 reactions: {
@@ -311,8 +314,9 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
             expect(data).toEqual({
               message: {
                 id: message.id,
+                to: mockConversationId,
                 from: message.from,
-                conversationId: message.conversationId,
+                type: ConversationType.Group,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
                 reactions: {},
