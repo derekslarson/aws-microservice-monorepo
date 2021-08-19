@@ -19,6 +19,7 @@ export const envConfig: EnvConfigInterface = {
     userAddedAsFriend: process.env.USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN || "",
     userRemovedAsFriend: process.env.USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN || "",
     teamCreated: process.env.TEAM_CREATED_SNS_TOPIC_ARN || "",
+    groupCreated: process.env.GROUP_CREATED_SNS_TOPIC_ARN || "",
   },
   globalSecondaryIndexNames: {
     one: process.env.GSI_ONE_INDEX_NAME || "",
@@ -42,6 +43,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     userAddedAsFriend: string;
     userRemovedAsFriend: string;
     teamCreated: string;
+    groupCreated: string;
   };
   bucketNames: {
     message: string;
