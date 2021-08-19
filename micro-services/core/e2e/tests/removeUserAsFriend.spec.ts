@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/util";
-import { createRandomUser, createConversationUserRelationship, createFriendConversation, getConversation, getConversationUserRelationship, CreateRandomUserOutput } from "../util";
+import { Role, UserRemovedAsFriendSnsMessage } from "@yac/util";
+import { createRandomUser, createConversationUserRelationship, createFriendConversation, getConversation, getConversationUserRelationship, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getUser, getSnsEventsByTopicArn } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { generateRandomString } from "../../../../e2e/util";
+import { backoff, generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { ConversationId } from "../../src/types/conversationId.type";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -13,6 +13,7 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const userRemovedAsFriendSnsTopicArn = process.env["user-removed-as-friend-sns-topic-arn"] as string;
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
@@ -75,6 +76,56 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
 
         expect(conversationUserRelationshipA).not.toBeDefined();
         expect(conversationUserRelationshipB).not.toBeDefined();
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("publishes valid SNS messages", async () => {
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: userRemovedAsFriendSnsTopicArn });
+
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      try {
+        await axios.delete(`${baseUrl}/users/${userId}/friends/${otherUser.id}`, { headers });
+
+        const { user } = await getUser({ userId });
+
+        if (!user) {
+          throw new Error("necessary user records not created");
+        }
+
+        // wait till all the events have been fired
+        const { snsEvents } = await backoff(
+          () => getSnsEventsByTopicArn<UserRemovedAsFriendSnsMessage>({ topicArn: userRemovedAsFriendSnsTopicArn }),
+          (response) => response.snsEvents.length === 1,
+        );
+
+        expect(snsEvents.length).toBe(1);
+
+        expect(snsEvents).toEqual([
+          jasmine.objectContaining({
+            message: {
+              userA: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                phone: user.phone,
+                realName: user.realName,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+              userB: {
+                id: otherUser.id,
+                email: otherUser.email,
+                username: otherUser.username,
+                phone: otherUser.phone,
+                realName: otherUser.realName,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+        ]);
       } catch (error) {
         fail(error);
       }

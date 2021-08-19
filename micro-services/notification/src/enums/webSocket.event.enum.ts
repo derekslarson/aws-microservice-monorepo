@@ -6,6 +6,7 @@ export enum WebSocketEvent {
   UserAddedToMeeting = "user_added_to_meeting",
   UserRemovedFromMeeting = "user_removed_from_meeting",
   UserAddedAsFriend = "user_added_as_friend",
+  UserRemovedAsFriend = "user_removed_as_friend",
   TeamCreated = "team_created",
   GroupCreated = "group_created",
 }

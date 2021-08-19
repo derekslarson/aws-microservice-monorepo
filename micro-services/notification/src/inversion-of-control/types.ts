@@ -18,6 +18,7 @@ const TYPES = {
   GroupCreatedSnsProcessorServiceInterface: Symbol.for("GroupCreatedSnsProcessorServiceInterface"),
   UserRemovedFromMeetingSnsProcessorServiceInterface: Symbol.for("UserRemovedFromMeetingSnsProcessorServiceInterface"),
   UserAddedAsFriendSnsProcessorServiceInterface: Symbol.for("UserAddedAsFriendSnsProcessorServiceInterface"),
+  UserRemovedAsFriendSnsProcessorServiceInterface: Symbol.for("UserRemovedAsFriendSnsProcessorServiceInterface"),
   TeamCreatedSnsProcessorServiceInterface: Symbol.for("TeamCreatedSnsProcessorServiceInterface"),
 
   // Entity Services
