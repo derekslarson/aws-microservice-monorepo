@@ -42,6 +42,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const userRemovedFromMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromMeetingSnsTopicArn);
     const userAddedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedAsFriendSnsTopicArn);
     const teamCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
+    const meetingCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
 
     // S3 Bucket ARN Imports from Util
     const messageS3BucketArn = CDK.Fn.importValue(ExportNames.MessageS3BucketArn);
@@ -130,10 +131,15 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       actions: [ "SNS:Publish" ],
       resources: [ userAddedToMeetingSnsTopicArn ],
     });
-    
+
     const teamCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
       resources: [ teamCreatedSnsTopicArn ],
+    });
+
+    const meetingCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ meetingCreatedSnsTopicArn ],
     });
 
     const userRemovedFromMeetingSnsPublishPolicyStatement = new IAM.PolicyStatement({
@@ -159,6 +165,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: userAddedToGroupSnsTopicArn,
       USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN: userRemovedFromGroupSnsTopicArn,
       TEAM_CREATED_SNS_TOPIC_ARN: teamCreatedSnsTopicArn,
+      MEETING_CREATED_SNS_TOPIC_ARN: meetingCreatedSnsTopicArn,
       USER_ADDED_TO_MEETING_SNS_TOPIC_ARN: userAddedToMeetingSnsTopicArn,
       USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN: userRemovedFromMeetingSnsTopicArn,
       USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN: userAddedAsFriendSnsTopicArn,
@@ -186,6 +193,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         userRemovedFromMeetingSnsPublishPolicyStatement,
         userAddedAsFriendSnsPublishPolicyStatement,
         teamCreatedSnsPublishPolicyStatement,
+        meetingCreatedSnsPublishPolicyStatement,
       ],
       timeout: CDK.Duration.seconds(15),
       events: [

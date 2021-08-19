@@ -1,20 +1,22 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { Role } from "@yac/util";
-import { generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
+import { MeetingCreatedSnsMessage, Role, Meeting } from "@yac/util";
+import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { UserId } from "../../src/types/userId.type";
-import { createRandomTeam, createTeamUserRelationship, getConversation, getConversationUserRelationship } from "../util";
+import { createRandomTeam, createTeamUserRelationship, deleteSnsEventsByTopicArn, getConversation, getConversationUserRelationship, getSnsEventsByTopicArn, getUser } from "../util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
+import { MeetingConversation } from "../../src/repositories/conversation.dynamo.repository";
 
 describe("POST /users/{userId}/meetings (Create Meeting)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const meetingCreatedSnsTopicArn = process.env["meeting-created-sns-topic-arn"] as string;
 
   describe("under normal conditions", () => {
     let team: RawTeam;
@@ -112,6 +114,55 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });
+      } catch (error) {
+        fail(error);
+      }
+    });
+
+    it("publishes a valid SNS message", async () => {
+      // clear the sns events table so the test can have a clean slate
+      await deleteSnsEventsByTopicArn({ topicArn: meetingCreatedSnsTopicArn });
+
+      const name = generateRandomString(5);
+      const dueDate = new Date().toISOString();
+      const body = { name, dueDate, teamId: team.id };
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      try {
+        const { data } = await axios.post<{ meeting: Meeting }>(`${baseUrl}/users/${userId}/meetings`, body, { headers });
+
+        const [ { user }, { conversation: meeting } ] = await Promise.all([
+          getUser({ userId }),
+          getConversation<MeetingConversation["id"]>({ conversationId: data.meeting.id }),
+        ]);
+
+        if (!user || !meeting) {
+          throw new Error("necessary records not created");
+        }
+
+        // wait the event has been fired
+        const { snsEvents } = await backoff(
+          () => getSnsEventsByTopicArn<MeetingCreatedSnsMessage>({ topicArn: meetingCreatedSnsTopicArn }),
+          (response) => response.snsEvents.length === 1,
+        );
+
+        expect(snsEvents.length).toBe(1);
+
+        expect(snsEvents[0]).toEqual(jasmine.objectContaining({
+          message: {
+            meetingMemberIds: [ userId ],
+            meeting: {
+              createdBy: meeting.createdBy,
+              id: meeting.id,
+              image: jasmine.stringMatching(URL_REGEX),
+              name: meeting.name,
+              dueDate: meeting.dueDate,
+              teamId: meeting.teamId,
+              createdAt: meeting.createdAt,
+              outcomes: meeting.outcomes,
+            },
+          },
+        }));
       } catch (error) {
         fail(error);
       }
