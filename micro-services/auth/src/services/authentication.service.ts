@@ -196,6 +196,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
       if (!authorizationCode) {
         throw new Error("authorizationCode missing in response");
       }
+
       return authorizationCode;
     } catch (error: unknown) {
       this.loggerService.error("Error in getAuthorizationCode", { error, username, clientId, redirectUri, xsrfToken }, this.constructor.name);
