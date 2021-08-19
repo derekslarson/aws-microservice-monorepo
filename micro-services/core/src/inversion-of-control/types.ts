@@ -39,6 +39,7 @@ const TYPES = {
   UserAddedAsFriendDynamoProcessorServiceInterface: Symbol.for("UserAddedAsFriendDynamoProcessorServiceInterface"),
   UserRemovedAsFriendDynamoProcessorServiceInterface: Symbol.for("UserRemovedAsFriendDynamoProcessorServiceInterface"),
   TeamCreatedDynamoProcessorServiceInterface: Symbol.for("TeamCreatedDynamoProcessorServiceInterface"),
+  GroupCreatedDynamoProcessorServiceInterface: Symbol.for("GroupCreatedDynamoProcessorServiceInterface"),
   FriendMessageCreatedDynamoProcessorServiceInterface: Symbol.for("FriendMessageCreatedDynamoProcessorServiceInterface"),
 
   // SNS Services
@@ -52,6 +53,7 @@ const TYPES = {
   UserAddedAsFriendSnsServiceInterface: Symbol.for("UserAddedAsFriendSnsServiceInterface"),
   UserRemovedAsFriendSnsServiceInterface: Symbol.for("UserRemovedAsFriendSnsServiceInterface"),
   TeamCreatedSnsServiceInterface: Symbol.for("TeamCreatedSnsServiceInterface"),
+  GroupCreatedSnsServiceInterface: Symbol.for("GroupCreatedSnsServiceInterface"),
   FriendMessageCreatedSnsServiceInterface: Symbol.for("FriendMessageCreatedSnsServiceInterface"),
 
   // Entity Services

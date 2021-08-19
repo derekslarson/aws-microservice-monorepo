@@ -41,7 +41,10 @@ function useQuery() {
   return {
     client_id: params.get('client_id'),
     redirect_uri: params.get('redirect_uri'),
-    state: params.get('state')
+    state: params.get('state'),
+    code_challenge: params.get('code_challenge'),
+    code_challenge_method: params.get('code_challenge_method'),
+    scope: params.get('scope')
   }
 }
 
@@ -148,11 +151,19 @@ const Login: React.FC<ILoginProps> = () => {
               phone: (data as IManualAuthenticate).phone,
               clientId: query.client_id,
               redirectUri: query.redirect_uri,
-              session: request.data.session
+              session: request.data.session,
+              ...(query.code_challenge && { codeChallenge: query.code_challenge }),
+              ...(query.code_challenge_method && { codeChallengeMethod: query.code_challenge_method }),
+              ...(query.state && {  state: query.state }),
+              ...(query.scope && {  scope: query.scope })
             } : {
               session: (data as ITokenAuthenticate).token,
               clientId: query.client_id,
               redirectUri: query.redirect_uri,
+              ...(query.code_challenge && { codeChallenge: query.code_challenge }),
+              ...(query.code_challenge_method && { codeChallengeMethod: query.code_challenge_method }),
+              ...(query.state && { state: query.state }),
+              ...(query.scope && { scope: query.scope })
             })
           }
         )

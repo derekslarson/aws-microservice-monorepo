@@ -14,12 +14,14 @@ describe("TeamCreatedDynamoProcessorService", () => {
   const mockCoreTableName = "mock-core-table-name";
   const mockConfig = { tableNames: { core: mockCoreTableName } };
   const mockTeamId = "team-mock-id";
+  const mockUserIdOne = "user-mock-one";
+  const mockTeamMemberIds = [mockUserIdOne];
 
   const mockTeam: Team = {
     id: mockTeamId,
     name: "mock-name",
     image: "mock-image",
-    createdBy: "user-mock-id",
+    createdBy: mockUserIdOne,
   };
 
   const mockRecord: DynamoProcessorServiceRecord = {
@@ -114,7 +116,7 @@ describe("TeamCreatedDynamoProcessorService", () => {
         await teamCreatedDynamoProcessorService.processRecord(mockRecord);
 
         expect(teamCreatedSnsService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(teamCreatedSnsService.sendMessage).toHaveBeenCalledWith({ team: mockTeam, teamMemberIds: [ mockTeam.createdBy ] });
+        expect(teamCreatedSnsService.sendMessage).toHaveBeenCalledWith({ team: mockTeam, teamMemberIds: mockTeamMemberIds });
       });
     });
 
