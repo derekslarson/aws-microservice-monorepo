@@ -1,32 +1,34 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, Team } from "@yac/util";
+import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, Group } from "@yac/util";
 import { WebSocketEvent } from "../../enums/webSocket.event.enum";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../../mediator-services/webSocket.mediator.service";
-import { TeamCreatedSnsProcessorService } from "../teamCreated.sns.processor.service";
+import { GroupCreatedSnsProcessorService } from "../groupCreated.sns.processor.service";
 
-describe("TeamCreatedSnsProcessorService", () => {
+describe("GroupCreatedSnsProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let webSocketMediatorService: Spied<WebSocketMediatorServiceInterface>;
-  let teamCreatedSnsProcessorService: SnsProcessorServiceInterface;
+  let groupCreatedSnsProcessorService: SnsProcessorServiceInterface;
 
-  const teamCreatedSnsTopicArn = "mock-team-created-sns-topic-arn";
-  const mockConfig = { snsTopicArns: { teamCreated: teamCreatedSnsTopicArn } };
-  const mockUserOneId = "user-one-mock-id";
-  const mockUserTwoId = "user-two-mock-id";
-  const mockTeamMemberIds = [ mockUserOneId, mockUserTwoId ];
+  const groupCreatedSnsTopicArn = "mock-group-created-sns-topic-arn";
+  const mockConfig = { snsTopicArns: { groupCreated: groupCreatedSnsTopicArn } };
+  const mockUserIdOne = "user-mock-id-one";
+  const mockUserIdTwo = "user-mock-id-two";
+  const mockDate = new Date().toISOString();
+  const mockGroupMemberIds = [ mockUserIdOne, mockUserIdTwo ];
 
-  const mockTeam: Team = {
-    id: "team-mock-id",
+  const mockGroup: Group = {
+    id: "convo-group-mock-id",
     name: "mock-name",
     image: "mock-image",
-    createdBy: mockUserOneId,
+    createdBy: "user-mock-id",
+    createdAt: mockDate,
   };
 
   const mockRecord = {
-    topicArn: teamCreatedSnsTopicArn,
+    topicArn: groupCreatedSnsTopicArn,
     message: {
-      team: mockTeam,
-      teamMemberIds: mockTeamMemberIds,
+      group: mockGroup,
+      groupMemberIds: mockGroupMemberIds,
     },
   };
   const mockError = new Error("test");
@@ -35,27 +37,27 @@ describe("TeamCreatedSnsProcessorService", () => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     webSocketMediatorService = TestSupport.spyOnClass(WebSocketMediatorService);
 
-    teamCreatedSnsProcessorService = new TeamCreatedSnsProcessorService(loggerService, webSocketMediatorService, mockConfig);
+    groupCreatedSnsProcessorService = new GroupCreatedSnsProcessorService(loggerService, webSocketMediatorService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
     describe("under normal conditions", () => {
-      describe("when passed a record with a topic arn matching snsTopicArns.teamCreated in the config", () => {
+      describe("when passed a record with a topic arn matching snsTopicArns.groupCreated in the config", () => {
         it("returns true", () => {
-          const result = teamCreatedSnsProcessorService.determineRecordSupport(mockRecord);
+          const result = groupCreatedSnsProcessorService.determineRecordSupport(mockRecord);
 
           expect(result).toBe(true);
         });
       });
 
-      describe("when passed a record with a topic arn not matching snsTopicArns.teamCreated in the config", () => {
+      describe("when passed a record with a topic arn not matching snsTopicArns.groupCreated in the config", () => {
         const record = {
           ...mockRecord,
           topicArn: "test",
         };
 
         it("returns false", () => {
-          const result = teamCreatedSnsProcessorService.determineRecordSupport(record);
+          const result = groupCreatedSnsProcessorService.determineRecordSupport(record);
 
           expect(result).toBe(false);
         });
@@ -70,11 +72,11 @@ describe("TeamCreatedSnsProcessorService", () => {
       });
 
       it("calls webSocketMediatorService.sendMessage with the correct parameters", async () => {
-        await teamCreatedSnsProcessorService.processRecord(mockRecord);
+        await groupCreatedSnsProcessorService.processRecord(mockRecord);
 
         expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserOneId, event: WebSocketEvent.TeamCreated, data: { team: mockTeam } });
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserTwoId, event: WebSocketEvent.TeamCreated, data: { team: mockTeam } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupCreated, data: { group: mockGroup } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdTwo, event: WebSocketEvent.GroupCreated, data: { group: mockGroup } });
       });
     });
 
@@ -86,18 +88,18 @@ describe("TeamCreatedSnsProcessorService", () => {
 
         it("calls loggerService.error with the correct params", async () => {
           try {
-            await teamCreatedSnsProcessorService.processRecord(mockRecord);
+            await groupCreatedSnsProcessorService.processRecord(mockRecord);
 
             fail("Should have thrown");
           } catch (error) {
             expect(loggerService.error).toHaveBeenCalledTimes(1);
-            expect(loggerService.error).toHaveBeenCalledWith("Error in processRecord", { error: mockError, record: mockRecord }, teamCreatedSnsProcessorService.constructor.name);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in processRecord", { error: mockError, record: mockRecord }, groupCreatedSnsProcessorService.constructor.name);
           }
         });
 
         it("throws the caught error", async () => {
           try {
-            await teamCreatedSnsProcessorService.processRecord(mockRecord);
+            await groupCreatedSnsProcessorService.processRecord(mockRecord);
 
             fail("Should have thrown");
           } catch (error) {
