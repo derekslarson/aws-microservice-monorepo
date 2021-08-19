@@ -126,7 +126,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     try {
       this.loggerService.trace("confirm called", { params }, this.constructor.name);
 
-      const { clientId, session, confirmationCode, redirectUri, xsrfToken } = params;
+      const { clientId, session, confirmationCode, redirectUri, xsrfToken, state, codeChallengeMethod, codeChallenge, scope } = params;
 
       const username = this.isEmailConfirmInput(params) ? params.email : params.phone;
 
@@ -144,13 +144,13 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         },
       };
 
-      const [ authorizationCode, respondToAuthChallengeResponse ] = await Promise.all([
-        this.getAuthorizationCode(username, clientId, redirectUri, xsrfToken),
+      const [ { authorizationCode }, { AuthenticationResult, Session } ] = await Promise.all([
+        this.getAuthorizationCode({ username, clientId, redirectUri, xsrfToken, state, codeChallengeMethod, codeChallenge, scope }),
         this.cognito.adminRespondToAuthChallenge(respondToAuthChallengeParams).promise(),
       ]);
 
-      if (!respondToAuthChallengeResponse.AuthenticationResult) {
-        return { confirmed: false, session: respondToAuthChallengeResponse.Session as string };
+      if (!AuthenticationResult) {
+        return { confirmed: false, session: Session as string };
       }
 
       return { confirmed: true, authorizationCode };
@@ -161,9 +161,11 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     }
   }
 
-  private async getAuthorizationCode(username: string, clientId: string, redirectUri: string, xsrfToken: string): Promise<string> {
+  private async getAuthorizationCode(params: GetAuthorizationCodeInput): Promise<GetAuthorizationCodeOutput> {
     try {
-      this.loggerService.trace("getAuthorizationCode called", { username, clientId, redirectUri, xsrfToken }, this.constructor.name);
+      this.loggerService.trace("getAuthorizationCode called", { params }, this.constructor.name);
+
+      const { username, clientId, redirectUri, xsrfToken, state, codeChallenge, codeChallengeMethod, scope } = params;
 
       const data = `_csrf=${xsrfToken}&username=${encodeURIComponent(username)}&password=YAC-${this.config.secret}`;
 
@@ -171,6 +173,10 @@ export class AuthenticationService implements AuthenticationServiceInterface {
         response_type: "code",
         client_id: clientId,
         redirect_uri: redirectUri,
+        ...(state && { state }),
+        ...(codeChallenge && { code_challenge: codeChallenge }),
+        ...(codeChallengeMethod && { code_challenge_method: codeChallengeMethod }),
+        ...(scope && { scope }),
       };
 
       const headers = {
@@ -193,9 +199,9 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       const [ , authorizationCode ] = redirectPath.split("=");
 
-      return authorizationCode;
+      return { authorizationCode };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getAuthorizationCode", { error, username, clientId, redirectUri, xsrfToken }, this.constructor.name);
+      this.loggerService.error("Error in getAuthorizationCode", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -271,6 +277,10 @@ export interface BaseConfirmInput {
   confirmationCode: string;
   redirectUri: string;
   xsrfToken: string;
+  state?: string;
+  codeChallenge?: string;
+  codeChallengeMethod?: string;
+  scope?: string;
 }
 interface EmailConfirmInput extends BaseConfirmInput {
   email: string;
@@ -300,3 +310,18 @@ export interface CreateUserInput {
 }
 
 export type CreateUserOutput = void;
+
+export interface GetAuthorizationCodeInput {
+  username: string;
+  clientId: string;
+  redirectUri: string;
+  xsrfToken: string;
+  state?: string;
+  codeChallenge?: string;
+  codeChallengeMethod?: string;
+  scope?: string;
+}
+
+export interface GetAuthorizationCodeOutput {
+  authorizationCode: string;
+}

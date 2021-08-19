@@ -57,7 +57,10 @@ export class AuthorizationController extends BaseController implements Authoriza
         return this.generateSuccessResponse({ xsrfToken });
       }
 
-      const redirectLocation = `${this.config.authUI}?client_id=${clientId}&redirect_uri=${redirectUri}${state ? `&state=${state}` : ""}`;
+      const optionalQueryParams = { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod, state, scope };
+      const optionalQueryString = Object.entries(optionalQueryParams).reduce((acc, [ key, value ]) => (value ? `${acc}&${key}=${value}` : acc), "");
+
+      const redirectLocation = `${this.config.authUI}?client_id=${clientId}&redirect_uri=${redirectUri}${optionalQueryString}`;
       const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Domain=${request.headers.host as string}; Secure; HttpOnly; SameSite=Lax`;
 
       return this.generateSeeOtherResponse(redirectLocation, {}, [ xsrfTokenCookie ]);
