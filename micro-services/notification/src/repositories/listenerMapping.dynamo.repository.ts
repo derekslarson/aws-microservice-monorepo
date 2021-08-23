@@ -133,6 +133,7 @@ export interface ListenerMapping {
   type: ListenerType;
   value: string;
   userId: string;
+  valueTwo?: string;
 }
 
 export interface RawListenerMapping extends ListenerMapping {

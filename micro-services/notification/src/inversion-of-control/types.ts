@@ -4,9 +4,11 @@ const TYPES = {
   ...CORE_TYPES,
 
   // Controllers
+  PushNotificationControllerInterface: Symbol.for("PushNotificationControllerInterface"),
   WebSocketControllerInterface: Symbol.for("WebSocketControllerInterface"),
 
   // Mediator Services
+  PushNotificationMediatorServiceInterface: Symbol.for("PushNotificationMediatorServiceInterface"),
   WebSocketMediatorServiceInterface: Symbol.for("WebSocketMediatorServiceInterface"),
 
   // SNS Processor Services
@@ -31,6 +33,7 @@ const TYPES = {
   ListenerMappingServiceInterface: Symbol.for("ListenerMappingServiceInterface"),
 
   // General Services
+  PushNotificationServiceInterface: Symbol.for("PushNotificationServiceInterface"),
   TokenVerificationServiceInterface: Symbol.for("TokenVerificationServiceInterface"),
   WebSocketServiceInterface: Symbol.for("WebSocketServiceInterface"),
 

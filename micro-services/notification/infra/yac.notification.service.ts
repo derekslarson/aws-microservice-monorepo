@@ -17,4 +17,4 @@ if (!environment) {
 const stackPrefix = environment === Environment.Local ? developer : environment;
 
 // eslint-disable-next-line no-new
-new YacNotificationServiceStack(app, `${stackPrefix}-YacNotificationService`, {});
+new YacNotificationServiceStack(app, `${stackPrefix}-YacNotificationService`, { serviceName: "notification" });

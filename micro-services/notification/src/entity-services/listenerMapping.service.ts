@@ -15,12 +15,13 @@ export class ListenerMappingService implements ListenerMappingServiceInterface {
     try {
       this.loggerService.trace("createListenerMapping called", { params }, this.constructor.name);
 
-      const { userId, type, value } = params;
+      const { userId, type, value, valueTwo } = params;
 
       const listenerMapping: ListenerMappingEntity = {
         userId,
         type,
         value,
+        valueTwo,
       };
 
       await this.listenerMappingRepository.createListenerMapping({ listenerMapping });
@@ -99,6 +100,7 @@ export interface CreateListenerMappingInput {
   userId: string;
   type: ListenerType;
   value: string;
+  valueTwo?: string;
 }
 
 export interface CreateListenerMappingOutput {

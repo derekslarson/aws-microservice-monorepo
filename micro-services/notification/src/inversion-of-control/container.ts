@@ -27,6 +27,9 @@ import { TYPES } from "./types";
 import { FriendMessageUpdatedSnsProcessorService } from "../processor-services/friendMessageUpdated.sns.processor.service";
 import { GroupMessageUpdatedSnsProcessorService } from "../processor-services/groupMessageUpdated.sns.processor.service";
 import { MeetingMessageUpdatedSnsProcessorService } from "../processor-services/meetingMessageUpdated.sns.processor.service";
+import { PushNotificationService, PushNotificationServiceInterface } from "../services/pushNotification.service";
+import { PushNotificationMediatorService, PushNotificationMediatorServiceInterface } from "../mediator-services/pushNotification.mediator.service";
+import { PushNotificationController, PushNotificationControllerInterface } from "../controllers/pushNotification.controller";
 
 const container = new Container();
 
@@ -37,9 +40,11 @@ try {
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
 
   // Controllers
+  container.bind<PushNotificationControllerInterface>(TYPES.PushNotificationControllerInterface).to(PushNotificationController);
   container.bind<WebSocketControllerInterface>(TYPES.WebSocketControllerInterface).to(WebSocketController);
 
   // Mediator Services
+  container.bind<PushNotificationMediatorServiceInterface>(TYPES.PushNotificationMediatorServiceInterface).to(PushNotificationMediatorService);
   container.bind<WebSocketMediatorServiceInterface>(TYPES.WebSocketMediatorServiceInterface).to(WebSocketMediatorService);
 
   // SNS Processor Services
@@ -64,6 +69,7 @@ try {
   container.bind<ListenerMappingServiceInterface>(TYPES.ListenerMappingServiceInterface).to(ListenerMappingService);
 
   // General Services
+  container.bind<PushNotificationServiceInterface>(TYPES.PushNotificationServiceInterface).to(PushNotificationService);
   container.bind<TokenVerificationServiceInterface>(TYPES.TokenVerificationServiceInterface).to(TokenVerificationService);
   container.bind<WebSocketServiceInterface>(TYPES.WebSocketServiceInterface).to(WebSocketService);
 
