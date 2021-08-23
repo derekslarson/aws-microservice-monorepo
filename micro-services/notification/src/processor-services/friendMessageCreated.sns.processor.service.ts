@@ -5,6 +5,8 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { WebSocketEvent } from "../enums/webSocket.event.enum";
+import { PushNotificationMediatorServiceInterface } from "../mediator-services/pushNotification.mediator.service";
+import { PushNotificationEvent } from "../enums/pushNotification.event.enum";
 
 @injectable()
 export class FriendMessageCreatedSnsProcessorService implements SnsProcessorServiceInterface {
@@ -13,6 +15,7 @@ export class FriendMessageCreatedSnsProcessorService implements SnsProcessorServ
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.WebSocketMediatorServiceInterface) private webSocketMediatorService: WebSocketMediatorServiceInterface,
+    @inject(TYPES.PushNotificationMediatorServiceInterface) private pushNotificationMediatorService: PushNotificationMediatorServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: FriendMessageCreatedSnsProcessorServiceConfigInterface,
   ) {
     this.friendMessageCreatedSnsTopicArn = envConfig.snsTopicArns.friendMessageCreated;
@@ -36,13 +39,19 @@ export class FriendMessageCreatedSnsProcessorService implements SnsProcessorServ
 
       const { message: { to, from, message } } = record;
 
-      await Promise.all([ to.id, from.id ].map((userId) => this.webSocketMediatorService.sendMessage({
-        userId,
-        event: WebSocketEvent.FriendMessageCreated,
-        data: { to, from, message },
-      })));
+      await Promise.allSettled([ to.id, from.id ].map((userId) => Promise.allSettled([
+        this.webSocketMediatorService.sendMessage({
+          userId,
+          event: WebSocketEvent.FriendMessageCreated,
+          data: { to, from, message },
+        }),
+        this.pushNotificationMediatorService.sendPushNotification({
+          userId,
+          event: PushNotificationEvent.FriendMessageCreated,
+          data: { to, from, message },
+        }),
+      ])));
 
-      // add support for push notifications
       // add support for http integrations
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);

@@ -1,9 +1,10 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/util";
+import { LoggerServiceInterface, Message, User } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { PushNotificationServiceInterface } from "../services/pushNotification.service";
 import { ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
 import { ListenerType } from "../enums/listenerType.enum";
+import { PushNotificationEvent } from "../enums/pushNotification.event.enum";
 
 @injectable()
 export class PushNotificationMediatorService implements PushNotificationMediatorServiceInterface {
@@ -41,10 +42,36 @@ export class PushNotificationMediatorService implements PushNotificationMediator
       throw error;
     }
   }
+
+  public async sendPushNotification(params: SendPushNotificationInput): Promise<SendPushNotificationOutput> {
+    try {
+      this.loggerService.trace("sendPushNotification called", { params }, this.constructor.name);
+
+      const { userId, event, data } = params;
+
+      const { listenerMappings } = await this.listenerMappingService.getListenerMappingsByTypeAndValue({
+        type: ListenerType.PushNotification,
+        value: userId,
+      });
+
+      const endpointArns = listenerMappings.map((mapping) => mapping.valueTwo as string);
+
+      await Promise.allSettled(endpointArns.map((endpointArn) => this.pushNotificationService.sendPushNotification({
+        endpointArn,
+        event,
+        data,
+      })));
+    } catch (error: unknown) {
+      this.loggerService.error("Error in sendPushNotification", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface PushNotificationMediatorServiceInterface {
   registerDevice(params: RegisterDeviceInput): Promise<RegisterDeviceOutput>;
+  sendPushNotification(params: SendPushNotificationInput): Promise<SendPushNotificationOutput>;
 }
 
 export interface RegisterDeviceInput {
@@ -54,3 +81,22 @@ export interface RegisterDeviceInput {
 }
 
 export type RegisterDeviceOutput = void;
+
+interface BaseSendPushNotificationInput {
+  userId: string;
+  event: PushNotificationEvent;
+  data: Record<string, unknown>;
+}
+
+export interface SendFriendMessageCreatedPushNotificationInput extends BaseSendPushNotificationInput {
+  event: PushNotificationEvent.FriendMessageCreated;
+  data: {
+    to: User;
+    from: User;
+    message: Message;
+  };
+}
+
+export type SendPushNotificationInput = SendFriendMessageCreatedPushNotificationInput;
+
+export type SendPushNotificationOutput = void;

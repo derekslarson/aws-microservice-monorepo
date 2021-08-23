@@ -75,25 +75,29 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       sortKey: { name: "gsi1sk", type: DynamoDB.AttributeType.STRING },
     });
 
-    // Policies
-    const basePolicy: IAM.PolicyStatement[] = [];
+    // SNS Push Notification Platform Application
+    const platformApplicationPlatform = "GCM";
+    const platformApplicationName = `PlatformApplication_${id}`;
+    const platformApplicationArn = `arn:aws:sns:${this.region}:${this.account}:app/${platformApplicationPlatform}/${platformApplicationName}`;
 
-    const listenerMappingTableFullAccessPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "dynamodb:*" ],
-      resources: [ listenerMappingTable.tableArn, `${listenerMappingTable.tableArn}/*` ],
-    });
-
-    const createPlatformApplication = new CustomResources.AwsCustomResource(this, `CreatePlatformApplicationCustomResource_${id}`, {
-      resourceType: "Custom::CreatePlatformApplication",
+    new CustomResources.AwsCustomResource(this, `PlatformApplicationCustomResource_${id}`, {
+      resourceType: "Custom::PlatformApplication",
       onCreate: {
         region: this.region,
         service: "SNS",
         action: "createPlatformApplication",
         parameters: {
-          Name: `PlatformApplication_${id}`,
-          Platform: "GCM",
+          Name: platformApplicationName,
+          Platform: platformApplicationPlatform,
           Attributes: { PlatformCredential: gcmServerKey },
         },
+        physicalResourceId: CustomResources.PhysicalResourceId.of(this.stackId),
+      },
+      onDelete: {
+        region: this.region,
+        service: "SNS",
+        action: "deletePlatformApplication",
+        parameters: { PlatformApplicationArn: platformApplicationArn },
         physicalResourceId: CustomResources.PhysicalResourceId.of(this.stackId),
       },
       policy: CustomResources.AwsCustomResourcePolicy.fromStatements([
@@ -104,7 +108,18 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       ]),
     });
 
-    const platformApplicationArn = createPlatformApplication.getResponseField("PlatformApplicationArn");
+    // Policies
+    const basePolicy: IAM.PolicyStatement[] = [];
+
+    const listenerMappingTableFullAccessPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "dynamodb:*" ],
+      resources: [ listenerMappingTable.tableArn, `${listenerMappingTable.tableArn}/*` ],
+    });
+
+    const createPlatformEndpointPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:CreatePlatformEndpoint" ],
+      resources: [ platformApplicationArn ],
+    });
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
@@ -211,6 +226,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       ],
     });
 
+    // HTTP Lambdas
     const registerDeviceHandler = new Lambda.Function(this, `RegisterDeviceHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/registerDevice"),
@@ -218,7 +234,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, createPlatformEndpointPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 

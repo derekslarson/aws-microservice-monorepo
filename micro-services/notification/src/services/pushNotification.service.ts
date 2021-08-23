@@ -4,6 +4,7 @@ import { LoggerServiceInterface, SnsFactory } from "@yac/util";
 import { SNS } from "aws-sdk";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
+import { PushNotificationEvent } from "../enums/pushNotification.event.enum";
 
 @injectable()
 export class PushNotificationService implements PushNotificationServiceInterface {
@@ -39,12 +40,33 @@ export class PushNotificationService implements PushNotificationServiceInterface
       throw error;
     }
   }
+
+  public async sendPushNotification(params: SendPushNotificationInput): Promise<SendPushNotificationOutput> {
+    try {
+      this.loggerService.trace("sendPushNotification called", { params }, this.constructor.name);
+
+      const { endpointArn, event, data } = params;
+
+      const stringifiedMessage = JSON.stringify({ event, data });
+
+      await this.sns.publish({
+        Message: stringifiedMessage,
+        TargetArn: endpointArn,
+        MessageStructure: "json",
+      }).promise();
+    } catch (error: unknown) {
+      this.loggerService.error("Error in sendPushNotification", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 type PushNotificationServiceConfig = Pick<EnvConfigInterface, "platformApplicationArn">;
 
 export interface PushNotificationServiceInterface {
   createPlatformEndpoint(params: CreatePlatformEndpointInput): Promise<CreatePlatformEndpointOutput>;
+  sendPushNotification(params: SendPushNotificationInput): Promise<SendPushNotificationOutput>;
 }
 
 export interface CreatePlatformEndpointInput {
@@ -54,3 +76,11 @@ export interface CreatePlatformEndpointInput {
 export interface CreatePlatformEndpointOutput {
   endpointArn: string;
 }
+
+export interface SendPushNotificationInput {
+  endpointArn: string;
+  event: PushNotificationEvent;
+  data: Record<string, unknown>;
+}
+
+export type SendPushNotificationOutput = void;
