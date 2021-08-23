@@ -2,19 +2,19 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import WebSocket from "ws";
-import { FriendMessageUpdatedSnsMessage } from "@yac/util";
+import { GroupMessageUpdatedSnsMessage } from "@yac/util";
 import { backoff, createRandomCognitoUser, getAccessTokenByEmail, sns } from "../../../../e2e/util";
 import { WebSocketEvent } from "../../src/enums/webSocket.event.enum";
-import { FriendMessageUpdatedWebSocketMessage } from "../../src/models/websocket-messages/friendMessageUpdated.websocket.message";
+import { GroupMessageUpdatedWebSocketMessage } from "../../src/models/websocket-messages/groupMessageUpdated.websocket.message";
 import { UserId } from "../../../core/src/types/userId.type";
 
-describe("Friend Message Updated (WebSocket Event)", () => {
+describe("Group Message Updated (WebSocket Event)", () => {
   const webSocketUrl = process.env.webSocketUrl as string;
-  const friendMessageUpdatedSnsTopicArn = process.env["friend-message-updated-sns-topic-arn"] as string;
+  const groupMessageUpdatedSnsTopicArn = process.env["group-message-updated-sns-topic-arn"] as string;
   let userOneId: UserId;
   let userTwoId: UserId;
 
-  const connections: Record<string, { messages: FriendMessageUpdatedWebSocketMessage[], instance: null | WebSocket }> = {
+  const connections: Record<string, { messages: GroupMessageUpdatedWebSocketMessage[], instance: null | WebSocket }> = {
     userOneA: {
       messages: [],
       instance: null,
@@ -66,7 +66,7 @@ describe("Friend Message Updated (WebSocket Event)", () => {
       instance.on("message", (event) => {
         const message = JSON.parse(event as string);
 
-        if (message.event === WebSocketEvent.FriendMessageUpdated) {
+        if (message.event === WebSocketEvent.GroupMessageUpdated) {
           connections[connectionName].messages.push(message);
         }
       });
@@ -82,10 +82,14 @@ describe("Friend Message Updated (WebSocket Event)", () => {
 
   describe("under normal conditions", () => {
     it("sends valid websocket events to the correct connectionIds", async () => {
-      const message: FriendMessageUpdatedSnsMessage = {
+      const message: GroupMessageUpdatedSnsMessage = {
+        groupMemberIds: [ userOneId, userTwoId ],
         to: {
-          id: userOneId,
-          image: "test-image-one",
+          id: "convo-group-id",
+          name: "mock-name",
+          image: "mock-image",
+          createdBy: "user-mock-id",
+          createdAt: new Date().toISOString(),
         },
         from: {
           id: userTwoId,
@@ -93,9 +97,9 @@ describe("Friend Message Updated (WebSocket Event)", () => {
         },
         message: {
           id: "message-id",
-          to: userOneId,
+          to: "convo-group-id",
           from: userTwoId,
-          type: "friend",
+          type: "group",
           createdAt: new Date().toISOString(),
           seenAt: { [userOneId]: new Date().toISOString() },
           reactions: {},
@@ -107,7 +111,7 @@ describe("Friend Message Updated (WebSocket Event)", () => {
       };
 
       await sns.publish({
-        TopicArn: friendMessageUpdatedSnsTopicArn,
+        TopicArn: groupMessageUpdatedSnsTopicArn,
         Message: JSON.stringify(message),
       }).promise();
 
@@ -121,7 +125,7 @@ describe("Friend Message Updated (WebSocket Event)", () => {
       // Assert that they have the right structure
       expect(connections.userOneA.messages.length).toBe(1);
       expect(connections.userOneA.messages[0]).toEqual({
-        event: WebSocketEvent.FriendMessageUpdated,
+        event: WebSocketEvent.GroupMessageUpdated,
         data: {
           to: message.to,
           from: message.from,
@@ -131,7 +135,7 @@ describe("Friend Message Updated (WebSocket Event)", () => {
 
       expect(connections.userOneB.messages.length).toBe(1);
       expect(connections.userOneB.messages[0]).toEqual({
-        event: WebSocketEvent.FriendMessageUpdated,
+        event: WebSocketEvent.GroupMessageUpdated,
         data: {
           to: message.to,
           from: message.from,
@@ -141,7 +145,7 @@ describe("Friend Message Updated (WebSocket Event)", () => {
 
       expect(connections.userTwo.messages.length).toBe(1);
       expect(connections.userTwo.messages[0]).toEqual({
-        event: WebSocketEvent.FriendMessageUpdated,
+        event: WebSocketEvent.GroupMessageUpdated,
         data: {
           to: message.to,
           from: message.from,

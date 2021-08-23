@@ -25,6 +25,7 @@ import { TokenVerificationService, TokenVerificationServiceInterface } from "../
 import { WebSocketService, WebSocketServiceInterface } from "../services/webSocket.service";
 import { TYPES } from "./types";
 import { FriendMessageUpdatedSnsProcessorService } from "../processor-services/friendMessageUpdated.sns.processor.service";
+import { GroupMessageUpdatedSnsProcessorService } from "../processor-services/groupMessageUpdated.sns.processor.service";
 
 const container = new Container();
 
@@ -54,6 +55,7 @@ try {
   container.bind<SnsProcessorServiceInterface>(TYPES.FriendMessageCreatedSnsProcessorServiceInterface).to(FriendMessageCreatedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.FriendMessageUpdatedSnsProcessorServiceInterface).to(FriendMessageUpdatedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.GroupMessageCreatedSnsProcessorServiceInterface).to(GroupMessageCreatedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.GroupMessageUpdatedSnsProcessorServiceInterface).to(GroupMessageUpdatedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.MeetingMessageCreatedSnsProcessorServiceInterface).to(MeetingMessageCreatedSnsProcessorService);
 
   // Entity Services
@@ -86,6 +88,7 @@ try {
     container.get(TYPES.FriendMessageCreatedSnsProcessorServiceInterface),
     container.get(TYPES.FriendMessageUpdatedSnsProcessorServiceInterface),
     container.get(TYPES.GroupMessageCreatedSnsProcessorServiceInterface),
+    container.get(TYPES.GroupMessageUpdatedSnsProcessorServiceInterface),
     container.get(TYPES.MeetingMessageCreatedSnsProcessorServiceInterface),
   ]);
 
