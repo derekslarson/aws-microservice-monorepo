@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { MeetingMessageUpdatedSnsMessage, Role } from "@yac/util";
 import axios from "axios";
-import { documentClient, generateRandomString, ISO_DATE_REGEX } from "../../../../e2e/util";
+import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
@@ -11,42 +11,47 @@ import { RawConversationUserRelationship } from "../../src/repositories/conversa
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { MeetingId } from "../../src/types/meetingId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createMeetingConversation, createMessage, getConversationUserRelationship, getMessage } from "../util";
+import { createConversationUserRelationship, createMeetingConversation, createMessage, createRandomUser, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getConversationUserRelationship, getMessage, getSnsEventsByTopicArn } from "../util";
 
 describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Messages by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
-
-  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const meetingMessageUpdatedSnsTopicArn = process.env["meeting-message-updated-sns-topic-arn"] as string;
 
   describe("under normal conditions", () => {
+    let fromUser: CreateRandomUserOutput["user"];
+    let meeting: RawConversation<MeetingConversation>;
+    let message: RawMessage;
+    let messageTwo: RawMessage;
+
+    let conversationUserRelationship: RawConversationUserRelationship<ConversationType>;
+
+    beforeEach(async () => {
+      ([ { user: fromUser }, { conversation: meeting } ] = await Promise.all([
+        createRandomUser(),
+        createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+      ]));
+
+      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+
+      ([ { message }, { message: messageTwo } ] = await Promise.all([
+        createMessage({ from: fromUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: fromUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+      ]));
+
+      ({ conversationUserRelationship } = await createConversationUserRelationship({
+        type: ConversationType.Meeting,
+        conversationId: meeting.id,
+        userId,
+        role: Role.Admin,
+        unreadMessageIds: [ message.id, messageTwo.id ],
+      }));
+    });
+
     describe("when passed a 'seen' value", () => {
       describe("when 'seen: true'", () => {
         const seen = true;
-
-        let meeting: RawConversation<MeetingConversation>;
-        let message: RawMessage;
-        let messageTwo: RawMessage;
-
-        let conversationUserRelationship: RawConversationUserRelationship<ConversationType>;
-
-        beforeEach(async () => {
-          ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
-
-          ([ { message }, { message: messageTwo } ] = await Promise.all([
-            createMessage({ from: mockUserId, conversationId: meeting.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-            createMessage({ from: mockUserId, conversationId: meeting.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-          ]));
-
-          ({ conversationUserRelationship } = await createConversationUserRelationship({
-            type: ConversationType.Meeting,
-            conversationId: meeting.id,
-            userId,
-            role: Role.Admin,
-            unreadMessageIds: [ message.id, messageTwo.id ],
-          }));
-        });
 
         it("returns a valid response", async () => {
           const headers = { Authorization: `Bearer ${accessToken}` };
@@ -110,33 +115,112 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
             fail(error);
           }
         });
+
+        it("publishes a valid SNS message", async () => {
+          // clear the sns events table so the test can have a clean slate
+          await deleteSnsEventsByTopicArn({ topicArn: meetingMessageUpdatedSnsTopicArn });
+
+          const headers = { Authorization: `Bearer ${accessToken}` };
+          const body = { seen };
+
+          try {
+            await axios.patch(`${baseUrl}/users/${userId}/meetings/${meeting.id}/messages`, body, { headers });
+
+            const [ { message: updatedMessage }, { message: updatedMessageTwo } ] = await Promise.all([
+              getMessage({ messageId: message.id }),
+              getMessage({ messageId: messageTwo.id }),
+            ]);
+
+            if (!updatedMessage || !updatedMessageTwo) {
+              throw new Error("necessary records not created");
+            }
+
+            // wait till the events have been fired
+            const { snsEvents } = await backoff(
+              () => getSnsEventsByTopicArn<MeetingMessageUpdatedSnsMessage>({ topicArn: meetingMessageUpdatedSnsTopicArn }),
+              (response) => response.snsEvents.length === 2,
+            );
+
+            expect(snsEvents.length).toBe(2);
+
+            expect(snsEvents).toEqual(jasmine.arrayContaining([
+              jasmine.objectContaining({
+                message: {
+                  meetingMemberIds: [ userId ],
+                  to: {
+                    id: meeting.id,
+                    name: meeting.name,
+                    createdBy: meeting.createdBy,
+                    createdAt: meeting.createdAt,
+                    dueDate: meeting.dueDate,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  from: {
+                    id: fromUser.id,
+                    email: fromUser.email,
+                    username: fromUser.username,
+                    phone: fromUser.phone,
+                    realName: fromUser.realName,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  message: {
+                    id: updatedMessage.id,
+                    to: meeting.id,
+                    from: updatedMessage.from,
+                    type: ConversationType.Meeting,
+                    createdAt: updatedMessage.createdAt,
+                    seenAt: updatedMessage.seenAt,
+                    reactions: updatedMessage.reactions,
+                    replyCount: 0,
+                    mimeType: updatedMessage.mimeType,
+                    fetchUrl: jasmine.stringMatching(URL_REGEX),
+                    fromImage: jasmine.stringMatching(URL_REGEX),
+                  },
+                },
+              }),
+              jasmine.objectContaining({
+                message: {
+                  meetingMemberIds: [ userId ],
+                  to: {
+                    id: meeting.id,
+                    name: meeting.name,
+                    createdBy: meeting.createdBy,
+                    createdAt: meeting.createdAt,
+                    dueDate: meeting.dueDate,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  from: {
+                    id: fromUser.id,
+                    email: fromUser.email,
+                    username: fromUser.username,
+                    phone: fromUser.phone,
+                    realName: fromUser.realName,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  message: {
+                    id: updatedMessageTwo.id,
+                    to: meeting.id,
+                    from: updatedMessageTwo.from,
+                    type: ConversationType.Meeting,
+                    createdAt: updatedMessageTwo.createdAt,
+                    seenAt: updatedMessageTwo.seenAt,
+                    reactions: updatedMessageTwo.reactions,
+                    replyCount: 0,
+                    mimeType: updatedMessageTwo.mimeType,
+                    fetchUrl: jasmine.stringMatching(URL_REGEX),
+                    fromImage: jasmine.stringMatching(URL_REGEX),
+                  },
+                },
+              }),
+            ]));
+          } catch (error) {
+            fail(error);
+          }
+        }, 45000);
       });
 
       describe("when 'seen: false'", () => {
         const seen = false;
-
-        let meeting: RawConversation<MeetingConversation>;
-        let message: RawMessage;
-        let messageTwo: RawMessage;
-
-        let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Meeting>;
-
-        beforeEach(async () => {
-          ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
-
-          ([ { message }, { message: messageTwo } ] = await Promise.all([
-            createMessage({ from: mockUserId, conversationId: meeting.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-            createMessage({ from: mockUserId, conversationId: meeting.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-          ]));
-
-          ({ conversationUserRelationship } = await createConversationUserRelationship({
-            type: ConversationType.Meeting,
-            conversationId: meeting.id,
-            userId,
-            role: Role.Admin,
-            unreadMessageIds: [ message.id, messageTwo.id ],
-          }));
-        });
 
         it("returns a valid response", async () => {
           const headers = { Authorization: `Bearer ${accessToken}` };
@@ -214,7 +298,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
         const body = { seen: true };
 
         try {
-          await axios.patch(`${baseUrl}/users/${mockUserId}/meetings/${mockMeetingId}/messages`, body, { headers });
+          await axios.patch(`${baseUrl}/users/${userId}/meetings/${mockMeetingId}/messages`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -230,7 +314,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
         const body = { seen: true };
 
         try {
-          await axios.patch(`${baseUrl}/users/${mockUserId}/meetings/${mockMeetingId}/messages`, body, { headers });
+          await axios.patch(`${baseUrl}/users/${userId}/meetings/${mockMeetingId}/messages`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {

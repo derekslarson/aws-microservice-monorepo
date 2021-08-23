@@ -69,6 +69,7 @@ export class YacUtilServiceStack extends CDK.Stack {
     const groupMessageCreatedSnsTopic = new SNS.Topic(this, `GroupMessageCreatedSnsTopic_${id}`, { topicName: `GroupMessageCreatedSnsTopic_${id}` });
     const groupMessageUpdatedSnsTopic = new SNS.Topic(this, `GroupMessageUpdatedSnsTopic_${id}`, { topicName: `GroupMessageUpdatedSnsTopic_${id}` });
     const meetingMessageCreatedSnsTopic = new SNS.Topic(this, `MeetingMessageCreatedSnsTopic_${id}`, { topicName: `MeetingMessageCreatedSnsTopic_${id}` });
+    const meetingMessageUpdatedSnsTopic = new SNS.Topic(this, `MeetingMessageUpdatedSnsTopic_${id}`, { topicName: `MeetingMessageUpdatedSnsTopic_${id}` });
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
@@ -173,6 +174,11 @@ export class YacUtilServiceStack extends CDK.Stack {
       value: meetingMessageCreatedSnsTopic.topicArn,
     });
 
+    new CDK.CfnOutput(this, `MeetingMessageUpdatedSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.MeetingMessageUpdatedSnsTopicArn,
+      value: meetingMessageUpdatedSnsTopic.topicArn,
+    });
+
     new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {
       exportName: ExportNames.MessageS3BucketArn,
       value: messageS3Bucket.bucketArn,
@@ -252,6 +258,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new SSM.StringParameter(this, `MeetingMessageCreatedSsmParameter_${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/meeting-message-created-sns-topic-arn`,
       stringValue: meetingMessageCreatedSnsTopic.topicArn,
+    });
+
+    new SSM.StringParameter(this, `MeetingMessageUpdatedSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/meeting-message-updated-sns-topic-arn`,
+      stringValue: meetingMessageUpdatedSnsTopic.topicArn,
     });
   }
 

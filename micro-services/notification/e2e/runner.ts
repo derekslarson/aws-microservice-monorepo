@@ -37,6 +37,7 @@ const necessaryParams = [
   "group-message-created-sns-topic-arn",
   "group-message-updated-sns-topic-arn",
   "meeting-message-created-sns-topic-arn",
+  "meeting-message-updated-sns-topic-arn",
 ];
 
 (async () => {
