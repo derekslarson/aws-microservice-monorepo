@@ -8,7 +8,7 @@ import { WebSocketEvent } from "../../src/enums/webSocket.event.enum";
 import { FriendMessageUpdatedWebSocketMessage } from "../../src/models/websocket-messages/friendMessageUpdated.websocket.message";
 import { UserId } from "../../../core/src/types/userId.type";
 
-fdescribe("Friend Message Updated (WebSocket Event)", () => {
+describe("Friend Message Updated (WebSocket Event)", () => {
   const webSocketUrl = process.env.webSocketUrl as string;
   const friendMessageUpdatedSnsTopicArn = process.env["friend-message-updated-sns-topic-arn"] as string;
   let userOneId: UserId;
