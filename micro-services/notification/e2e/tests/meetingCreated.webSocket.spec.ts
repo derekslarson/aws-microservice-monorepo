@@ -8,7 +8,7 @@ import { WebSocketEvent } from "../../src/enums/webSocket.event.enum";
 import { MeetingCreatedWebSocketMessage } from "../../src/models/websocket-messages/meetingCreated.websocket.message";
 import { UserId } from "../../../core/src/types/userId.type";
 
-describe("Meeting Created (WebSocket Event)", () => {
+fdescribe("Meeting Created (WebSocket Event)", () => {
   const webSocketUrl = process.env.webSocketUrl as string;
   const meetingCreatedSnsTopicArn = process.env["meeting-created-sns-topic-arn"] as string;
   let userOneId: UserId;

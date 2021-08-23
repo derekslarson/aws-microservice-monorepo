@@ -158,8 +158,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
               name: meeting.name,
               dueDate: meeting.dueDate,
               teamId: meeting.teamId,
-              createdAt: meeting.createdAt,
-              outcomes: meeting.outcomes,
+              createdAt: meeting.createdAt
             },
           },
         }));
