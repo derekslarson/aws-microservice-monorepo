@@ -45,6 +45,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const teamCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
     const groupCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
     const friendMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageCreatedSnsTopicArn);
+    const friendMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageUpdatedSnsTopicArn);
     const groupMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupMessageCreatedSnsTopicArn);
     const meetingMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageCreatedSnsTopicArn);
 
@@ -166,6 +167,11 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       resources: [ friendMessageCreatedSnsTopicArn ],
     });
 
+    const friendMessageUpdatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ friendMessageUpdatedSnsTopicArn ],
+    });
+
     const groupMessageCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
       resources: [ groupMessageCreatedSnsTopicArn ],
@@ -195,6 +201,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       TEAM_CREATED_SNS_TOPIC_ARN: teamCreatedSnsTopicArn,
       GROUP_CREATED_SNS_TOPIC_ARN: groupCreatedSnsTopicArn,
       FRIEND_MESSAGE_CREATED_SNS_TOPIC_ARN: friendMessageCreatedSnsTopicArn,
+      FRIEND_MESSAGE_UPDATED_SNS_TOPIC_ARN: friendMessageUpdatedSnsTopicArn,
       GROUP_MESSAGE_CREATED_SNS_TOPIC_ARN: groupMessageCreatedSnsTopicArn,
       MEETING_MESSAGE_CREATED_SNS_TOPIC_ARN: meetingMessageCreatedSnsTopicArn,
       MESSAGE_S3_BUCKET_NAME: messageS3Bucket.bucketName,
@@ -224,6 +231,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         userRemovedAsFriendSnsPublishPolicyStatement,
         teamCreatedSnsPublishPolicyStatement,
         friendMessageCreatedSnsPublishPolicyStatement,
+        friendMessageUpdatedSnsPublishPolicyStatement,
         groupMessageCreatedSnsPublishPolicyStatement,
         meetingMessageCreatedSnsPublishPolicyStatement,
       ],

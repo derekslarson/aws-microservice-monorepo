@@ -21,6 +21,7 @@ export const envConfig: EnvConfigInterface = {
     teamCreated: process.env.TEAM_CREATED_SNS_TOPIC_ARN || "",
     groupCreated: process.env.GROUP_CREATED_SNS_TOPIC_ARN || "",
     friendMessageCreated: process.env.FRIEND_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
+    friendMessageUpdated: process.env.FRIEND_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
     groupMessageCreated: process.env.GROUP_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
     meetingMessageCreated: process.env.MEETING_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
   },
@@ -48,6 +49,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     teamCreated: string;
     groupCreated: string;
     friendMessageCreated: string;
+    friendMessageUpdated: string;
     groupMessageCreated: string;
     meetingMessageCreated: string;
   };

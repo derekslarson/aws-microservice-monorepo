@@ -21,6 +21,7 @@ const TYPES = {
   UserRemovedAsFriendSnsProcessorServiceInterface: Symbol.for("UserRemovedAsFriendSnsProcessorServiceInterface"),
   TeamCreatedSnsProcessorServiceInterface: Symbol.for("TeamCreatedSnsProcessorServiceInterface"),
   FriendMessageCreatedSnsProcessorServiceInterface: Symbol.for("FriendMessageCreatedSnsProcessorServiceInterface"),
+  FriendMessageUpdatedSnsProcessorServiceInterface: Symbol.for("FriendMessageUpdatedSnsProcessorServiceInterface"),
   GroupMessageCreatedSnsProcessorServiceInterface: Symbol.for("GroupMessageCreatedSnsProcessorServiceInterface"),
   MeetingMessageCreatedSnsProcessorServiceInterface: Symbol.for("MeetingMessageCreatedSnsProcessorServiceInterface"),
 
