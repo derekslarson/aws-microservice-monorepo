@@ -50,8 +50,9 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
         expect(data).toEqual({
           pendingMessage: {
             id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Message}.*`)),
-            conversationId: meeting.id,
+            to: meeting.id,
             from: userId,
+            type: ConversationType.Meeting,
             mimeType,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             uploadUrl: jasmine.stringMatching(URL_REGEX),

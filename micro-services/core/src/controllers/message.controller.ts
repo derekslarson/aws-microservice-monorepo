@@ -1,8 +1,8 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/util";
+import { Message, BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
+import { MessageMediatorServiceInterface, PendingMessage } from "../mediator-services/message.mediator.service";
 import { CreateFriendMessageDto } from "../dtos/createFriendMessage.dto";
 import { CreateGroupMessageDto } from "../dtos/createGroupMessage.dto";
 import { CreateMeetingMessageDto } from "../dtos/createMeetingMessage.dto";
@@ -17,6 +17,9 @@ import { ConversationMediatorServiceInterface } from "../mediator-services/conve
 import { UpdateMeetingMessagesByUserIdDto } from "../dtos/updateMeetingMessagesByUserId.dto";
 import { UpdateGroupMessagesByUserIdDto } from "../dtos/updateGroupMessagesByUserId.dto";
 import { UpdateFriendMessagesByUserIdDto } from "../dtos/updateFriendMessagesByUserId.dto";
+import { ConversationType } from "../enums/conversationType.enum";
+import { GroupId } from "../../../util/lib/src/api-contracts/types/groupId.type";
+import { MeetingId } from "../types/meetingId.type";
 
 @injectable()
 export class MessageController extends BaseController implements MessageControllerInterface {
@@ -47,7 +50,9 @@ export class MessageController extends BaseController implements MessageControll
 
       const { pendingMessage } = await this.messageMediatorService.createFriendMessage({ to: friendId, from: userId, mimeType });
 
-      return this.generateCreatedResponse({ pendingMessage });
+      const response: CreateFriendMessageResponse = { pendingMessage };
+
+      return this.generateCreatedResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in createFriendMessage", { error, request }, this.constructor.name);
 
@@ -73,7 +78,9 @@ export class MessageController extends BaseController implements MessageControll
 
       const { pendingMessage } = await this.messageMediatorService.createGroupMessage({ groupId, from: jwtId, mimeType });
 
-      return this.generateCreatedResponse({ pendingMessage });
+      const response: CreateGroupMessageResponse = { pendingMessage };
+
+      return this.generateCreatedResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in createGroupMessage", { error, request }, this.constructor.name);
 
@@ -99,7 +106,9 @@ export class MessageController extends BaseController implements MessageControll
 
       const { pendingMessage } = await this.messageMediatorService.createMeetingMessage({ meetingId, from: jwtId, mimeType });
 
-      return this.generateCreatedResponse({ pendingMessage });
+      const response: CreateMeetingMessageResponse = { pendingMessage };
+
+      return this.generateCreatedResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in createMeetingMessage", { error, request }, this.constructor.name);
 
@@ -123,7 +132,9 @@ export class MessageController extends BaseController implements MessageControll
 
       const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByUserAndFriendIds({ userId, friendId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
-      return this.generateSuccessResponse({ messages, lastEvaluatedKey });
+      const response: GetMessagesByUserAndFriendIdsResponse = { messages, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByUserAndFriendIds", { error, request }, this.constructor.name);
 
@@ -149,7 +160,9 @@ export class MessageController extends BaseController implements MessageControll
 
       const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByGroupId({ groupId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
-      return this.generateSuccessResponse({ messages, lastEvaluatedKey });
+      const response: GetMessagesByGroupIdResponse = { messages, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByGroupId", { error, request }, this.constructor.name);
 
@@ -175,7 +188,9 @@ export class MessageController extends BaseController implements MessageControll
 
       const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByMeetingId({ meetingId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
-      return this.generateSuccessResponse({ messages, lastEvaluatedKey });
+      const response: GetMessagesByMeetingIdResponse = { messages, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByMeetingId", { error, request }, this.constructor.name);
 
@@ -194,13 +209,21 @@ export class MessageController extends BaseController implements MessageControll
 
       const { message } = await this.messageMediatorService.getMessage({ messageId });
 
-      const { isConversationMember } = await this.conversationMediatorService.isConversationMember({ conversationId: message.conversationId, userId: jwtId });
+      let isConversationMember: boolean;
+
+      if (message.type === ConversationType.Friend) {
+        isConversationMember = message.to === jwtId || message.from === jwtId;
+      } else {
+        ({ isConversationMember } = await this.conversationMediatorService.isConversationMember({ conversationId: message.to as GroupId | MeetingId, userId: jwtId }));
+      }
 
       if (!isConversationMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      return this.generateSuccessResponse({ message });
+      const response: GetMessageResponse = { message };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessage", { error, request }, this.constructor.name);
 
@@ -224,7 +247,13 @@ export class MessageController extends BaseController implements MessageControll
 
       const { message } = await this.messageMediatorService.getMessage({ messageId });
 
-      const { isConversationMember } = await this.conversationMediatorService.isConversationMember({ conversationId: message.conversationId, userId: jwtId });
+      let isConversationMember: boolean;
+
+      if (message.type === ConversationType.Friend) {
+        isConversationMember = message.to === jwtId || message.from === jwtId;
+      } else {
+        ({ isConversationMember } = await this.conversationMediatorService.isConversationMember({ conversationId: message.to as GroupId | MeetingId, userId: jwtId }));
+      }
 
       if (!isConversationMember) {
         throw new ForbiddenError("Forbidden");
@@ -232,7 +261,9 @@ export class MessageController extends BaseController implements MessageControll
 
       const { message: updatedMessage } = await this.messageMediatorService.updateMessageByUserId({ userId, messageId, updates: body });
 
-      return this.generateSuccessResponse({ message: updatedMessage });
+      const response: UpdateMessageByUserIdResponse = { message: updatedMessage };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in updateMessageByUserId", { error, request }, this.constructor.name);
 
@@ -256,7 +287,9 @@ export class MessageController extends BaseController implements MessageControll
 
       await this.messageMediatorService.updateFriendMessagesByUserId({ userId, friendId, updates: body });
 
-      return this.generateSuccessResponse({ message: "Friend messages updated." });
+      const response: UpdateFriendMessagesByUserIdResponse = { message: "Friend messages updated." };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in updateFriendMessagesByUserId", { error, request }, this.constructor.name);
 
@@ -286,7 +319,9 @@ export class MessageController extends BaseController implements MessageControll
 
       await this.messageMediatorService.updateGroupMessagesByUserId({ userId, groupId, updates: body });
 
-      return this.generateSuccessResponse({ message: "Group messages updated." });
+      const response: UpdateGroupMessagesByUserIdResponse = { message: "Group messages updated." };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in updateGroupMessagesByUserId", { error, request }, this.constructor.name);
 
@@ -316,7 +351,9 @@ export class MessageController extends BaseController implements MessageControll
 
       await this.messageMediatorService.updateMeetingMessagesByUserId({ userId, meetingId, updates: body });
 
-      return this.generateSuccessResponse({ message: "Meeting messages updated." });
+      const response: UpdateMeetingMessagesByUserIdResponse = { message: "Meeting messages updated." };
+
+      return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in updateMeetingMessagesByUserId", { error, request }, this.constructor.name);
 
@@ -337,4 +374,51 @@ export interface MessageControllerInterface {
   updateFriendMessagesByUserId(request: Request): Promise<Response>;
   updateGroupMessagesByUserId(request: Request): Promise<Response>;
   updateMeetingMessagesByUserId(request: Request): Promise<Response>;
+}
+
+export interface CreateFriendMessageResponse {
+  pendingMessage: PendingMessage;
+}
+
+export interface CreateGroupMessageResponse {
+  pendingMessage: PendingMessage;
+}
+
+export interface CreateMeetingMessageResponse {
+  pendingMessage: PendingMessage;
+}
+
+export interface GetMessagesByUserAndFriendIdsResponse {
+  messages: Message[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetMessagesByGroupIdResponse {
+  messages: Message[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetMessagesByMeetingIdResponse {
+  messages: Message[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetMessageResponse {
+  message: Message;
+}
+
+export interface UpdateMessageByUserIdResponse {
+  message: Message;
+}
+
+export interface UpdateFriendMessagesByUserIdResponse {
+  message: "Friend messages updated.";
+}
+
+export interface UpdateGroupMessagesByUserIdResponse {
+  message: "Group messages updated.";
+}
+
+export interface UpdateMeetingMessagesByUserIdResponse {
+  message: "Meeting messages updated.";
 }

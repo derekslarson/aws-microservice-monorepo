@@ -8,11 +8,14 @@ import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory"
 import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { MeetingCreatedSnsProcessorService } from "../processor-services/meetingCreated.sns.processor.service";
+import { FriendMessageCreatedSnsProcessorService } from "../processor-services/friendMessageCreated.sns.processor.service";
+import { GroupCreatedSnsProcessorService } from "../processor-services/groupCreated.sns.processor.service";
 import { TeamCreatedSnsProcessorService } from "../processor-services/teamCreated.sns.processor.service";
 import { UserAddedAsFriendSnsProcessorService } from "../processor-services/userAddedAsFriend.sns.processor.service";
 import { UserAddedToGroupSnsProcessorService } from "../processor-services/userAddedToGroup.sns.processor.service";
 import { UserAddedToMeetingSnsProcessorService } from "../processor-services/userAddedToMeeting.sns.processor.service";
 import { UserAddedToTeamSnsProcessorService } from "../processor-services/userAddedToTeam.sns.processor.service";
+import { UserRemovedAsFriendSnsProcessorService } from "../processor-services/userRemovedAsFriend.sns.processor.service";
 import { UserRemovedFromGroupSnsProcessorService } from "../processor-services/userRemovedFromGroup.sns.processor.service";
 import { UserRemovedFromMeetingSnsProcessorService } from "../processor-services/userRemovedFromMeeting.sns.processor.service";
 import { UserRemovedFromTeamSnsProcessorService } from "../processor-services/userRemovedFromTeam.sns.processor.service";
@@ -43,8 +46,11 @@ try {
   container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToMeetingSnsProcessorServiceInterface).to(UserAddedToMeetingSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserRemovedFromMeetingSnsProcessorServiceInterface).to(UserRemovedFromMeetingSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedAsFriendSnsProcessorServiceInterface).to(UserAddedAsFriendSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.UserRemovedAsFriendSnsProcessorServiceInterface).to(UserRemovedAsFriendSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.TeamCreatedSnsProcessorServiceInterface).to(TeamCreatedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.MeetingCreatedSnsProcessorServiceInterface).to(MeetingCreatedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.GroupCreatedSnsProcessorServiceInterface).to(GroupCreatedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.FriendMessageCreatedSnsProcessorServiceInterface).to(FriendMessageCreatedSnsProcessorService);
 
   // Entity Services
   container.bind<ListenerMappingServiceInterface>(TYPES.ListenerMappingServiceInterface).to(ListenerMappingService);
@@ -70,8 +76,11 @@ try {
     container.get(TYPES.UserAddedToMeetingSnsProcessorServiceInterface),
     container.get(TYPES.UserRemovedFromMeetingSnsProcessorServiceInterface),
     container.get(TYPES.UserAddedAsFriendSnsProcessorServiceInterface),
+    container.get(TYPES.UserRemovedAsFriendSnsProcessorServiceInterface),
     container.get(TYPES.TeamCreatedSnsProcessorServiceInterface),
     container.get(TYPES.MeetingCreatedSnsProcessorServiceInterface),
+    container.get(TYPES.GroupCreatedSnsProcessorServiceInterface),
+    container.get(TYPES.FriendMessageCreatedSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([]);

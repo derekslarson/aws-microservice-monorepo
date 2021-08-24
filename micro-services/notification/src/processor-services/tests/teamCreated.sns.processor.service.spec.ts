@@ -11,15 +11,15 @@ describe("TeamCreatedSnsProcessorService", () => {
 
   const teamCreatedSnsTopicArn = "mock-team-created-sns-topic-arn";
   const mockConfig = { snsTopicArns: { teamCreated: teamCreatedSnsTopicArn } };
-  const mockUserIdOne = "user-mock-id-one";
-  const mockUserIdTwo = "user-mock-id-two";
-  const mockTeamMemberIds = [ mockUserIdOne, mockUserIdTwo ];
+  const mockUserOneId = "user-one-mock-id";
+  const mockUserTwoId = "user-two-mock-id";
+  const mockTeamMemberIds = [ mockUserOneId, mockUserTwoId ];
 
   const mockTeam: Team = {
     id: "team-mock-id",
     name: "mock-name",
     image: "mock-image",
-    createdBy: "user-mock-id",
+    createdBy: mockUserOneId,
   };
 
   const mockRecord = {
@@ -40,7 +40,7 @@ describe("TeamCreatedSnsProcessorService", () => {
 
   describe("determineRecordSupport", () => {
     describe("under normal conditions", () => {
-      describe("when passed a record with a topic arn matching snsTopicArns.userRemovedFromTeam in the config", () => {
+      describe("when passed a record with a topic arn matching snsTopicArns.teamCreated in the config", () => {
         it("returns true", () => {
           const result = teamCreatedSnsProcessorService.determineRecordSupport(mockRecord);
 
@@ -48,7 +48,7 @@ describe("TeamCreatedSnsProcessorService", () => {
         });
       });
 
-      describe("when passed a record with a topic arn not matching snsTopicArns.userRemovedFromTeam in the config", () => {
+      describe("when passed a record with a topic arn not matching snsTopicArns.teamCreated in the config", () => {
         const record = {
           ...mockRecord,
           topicArn: "test",
@@ -73,8 +73,8 @@ describe("TeamCreatedSnsProcessorService", () => {
         await teamCreatedSnsProcessorService.processRecord(mockRecord);
 
         expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.TeamCreated, data: { team: mockTeam } });
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdTwo, event: WebSocketEvent.TeamCreated, data: { team: mockTeam } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserOneId, event: WebSocketEvent.TeamCreated, data: { team: mockTeam } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserTwoId, event: WebSocketEvent.TeamCreated, data: { team: mockTeam } });
       });
     });
 

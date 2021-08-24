@@ -14,7 +14,7 @@ describe("UserAddedAsFriendSnsService", () => {
   let loggerService: Spied<LoggerService>;
   let userAddedAsFriendSnsService: UserAddedAsFriendSnsServiceWithAnyMethod;
 
-  const mockUserAddedAsFriendSnsTopicArn = "mock-user-added-to-group-sns-topic-arn";
+  const mockUserAddedAsFriendSnsTopicArn = "mock-user-added-as-friend-sns-topic-arn";
   const mockConfig = { snsTopicArns: { userAddedAsFriend: mockUserAddedAsFriendSnsTopicArn } };
   const mockUserIdOne = "user-mock-id-one";
   const mockUserIdTwo = "user-mock-id-two";
