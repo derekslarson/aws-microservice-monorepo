@@ -39,18 +39,21 @@ export class FriendMessageCreatedSnsProcessorService implements SnsProcessorServ
 
       const { message: { to, from, message } } = record;
 
-      await Promise.allSettled([ to.id, from.id ].map((userId) => Promise.allSettled([
-        this.webSocketMediatorService.sendMessage({
+      const senderName = from.realName || from.username || from.email || from.phone as string;
+
+      await Promise.allSettled([
+        this.pushNotificationMediatorService.sendPushNotification({
+          userId: to.id,
+          event: PushNotificationEvent.FriendMessageCreated,
+          title: "New Message Received",
+          body: `Message from ${senderName}`,
+        }),
+        Promise.allSettled([ to.id, from.id ].map((userId) => this.webSocketMediatorService.sendMessage({
           userId,
           event: WebSocketEvent.FriendMessageCreated,
           data: { to, from, message },
-        }),
-        this.pushNotificationMediatorService.sendPushNotification({
-          userId,
-          event: PushNotificationEvent.FriendMessageCreated,
-          data: { to, from, message },
-        }),
-      ])));
+        }))),
+      ]);
 
       // add support for http integrations
     } catch (error: unknown) {

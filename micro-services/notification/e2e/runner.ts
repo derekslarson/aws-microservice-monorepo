@@ -38,6 +38,8 @@ const necessaryParams = [
   "group-message-updated-sns-topic-arn",
   "meeting-message-created-sns-topic-arn",
   "meeting-message-updated-sns-topic-arn",
+  "gcm-sender-id",
+  "platform-application-arn",
 ];
 
 (async () => {

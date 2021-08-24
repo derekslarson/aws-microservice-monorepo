@@ -49,6 +49,8 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
     const meetingMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageCreatedSnsTopicArn);
     const meetingMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageUpdatedSnsTopicArn);
 
+    const pushNotificationFailedSnsTopic = new SNS.Topic(this, `PushNotificationFailedSnsTopic_${id}`, { topicName: `PushNotificationFailedSnsTopic_${id}` });
+
     // Imported SSM Parameters
     const gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/gcm-server-key`);
 
@@ -82,6 +84,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
 
     new CustomResources.AwsCustomResource(this, `PlatformApplicationCustomResource_${id}`, {
       resourceType: "Custom::PlatformApplication",
+      installLatestAwsSdk: false,
       onCreate: {
         region: this.region,
         service: "SNS",
@@ -89,16 +92,19 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
         parameters: {
           Name: platformApplicationName,
           Platform: platformApplicationPlatform,
-          Attributes: { PlatformCredential: gcmServerKey },
+          Attributes: {
+            PlatformCredential: gcmServerKey,
+            EventDeliveryFailure: pushNotificationFailedSnsTopic.topicArn,
+          },
         },
-        physicalResourceId: CustomResources.PhysicalResourceId.of(this.stackId),
+        physicalResourceId: CustomResources.PhysicalResourceId.of(platformApplicationName),
       },
       onDelete: {
         region: this.region,
         service: "SNS",
         action: "deletePlatformApplication",
         parameters: { PlatformApplicationArn: platformApplicationArn },
-        physicalResourceId: CustomResources.PhysicalResourceId.of(this.stackId),
+        physicalResourceId: CustomResources.PhysicalResourceId.of(platformApplicationName),
       },
       policy: CustomResources.AwsCustomResourcePolicy.fromStatements([
         new IAM.PolicyStatement({
@@ -118,6 +124,11 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
 
     const createPlatformEndpointPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:CreatePlatformEndpoint" ],
+      resources: [ platformApplicationArn ],
+    });
+
+    const sendPushNotificationPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
       resources: [ platformApplicationArn ],
     });
 
@@ -204,7 +215,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement ],
+      initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement, sendPushNotificationPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn)),
@@ -253,6 +264,11 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
     new SSM.StringParameter(this, `ListenerMappingTableNameSsmParameter-${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/listener-mapping-table-name`,
       stringValue: listenerMappingTable.tableName,
+    });
+
+    new SSM.StringParameter(this, `PlatformApplicationArnSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/platform-application-arn`,
+      stringValue: platformApplicationArn,
     });
   }
 

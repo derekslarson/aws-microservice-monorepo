@@ -45,9 +45,12 @@ export class PushNotificationService implements PushNotificationServiceInterface
     try {
       this.loggerService.trace("sendPushNotification called", { params }, this.constructor.name);
 
-      const { endpointArn, event, data } = params;
+      const { endpointArn, event, title, body } = params;
 
-      const stringifiedMessage = JSON.stringify({ event, data });
+      const stringifiedMessage = JSON.stringify({
+        default: event,
+        GCM: JSON.stringify({ notification: { title, body }, data: { event } }),
+      });
 
       await this.sns.publish({
         Message: stringifiedMessage,
@@ -80,7 +83,8 @@ export interface CreatePlatformEndpointOutput {
 export interface SendPushNotificationInput {
   endpointArn: string;
   event: PushNotificationEvent;
-  data: Record<string, unknown>;
+  title: string;
+  body: string;
 }
 
 export type SendPushNotificationOutput = void;

@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Message, User } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { PushNotificationServiceInterface } from "../services/pushNotification.service";
 import { ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
@@ -47,11 +47,11 @@ export class PushNotificationMediatorService implements PushNotificationMediator
     try {
       this.loggerService.trace("sendPushNotification called", { params }, this.constructor.name);
 
-      const { userId, event, data } = params;
+      const { userId, event, title, body } = params;
 
-      const { listenerMappings } = await this.listenerMappingService.getListenerMappingsByTypeAndValue({
+      const { listenerMappings } = await this.listenerMappingService.getListenerMappingsByUserIdAndType({
+        userId,
         type: ListenerType.PushNotification,
-        value: userId,
       });
 
       const endpointArns = listenerMappings.map((mapping) => mapping.valueTwo as string);
@@ -59,7 +59,8 @@ export class PushNotificationMediatorService implements PushNotificationMediator
       await Promise.allSettled(endpointArns.map((endpointArn) => this.pushNotificationService.sendPushNotification({
         endpointArn,
         event,
-        data,
+        title,
+        body,
       })));
     } catch (error: unknown) {
       this.loggerService.error("Error in sendPushNotification", { error, params }, this.constructor.name);
@@ -82,21 +83,11 @@ export interface RegisterDeviceInput {
 
 export type RegisterDeviceOutput = void;
 
-interface BaseSendPushNotificationInput {
+interface SendPushNotificationInput {
   userId: string;
   event: PushNotificationEvent;
-  data: Record<string, unknown>;
+  title: string;
+  body: string;
 }
-
-export interface SendFriendMessageCreatedPushNotificationInput extends BaseSendPushNotificationInput {
-  event: PushNotificationEvent.FriendMessageCreated;
-  data: {
-    to: User;
-    from: User;
-    message: Message;
-  };
-}
-
-export type SendPushNotificationInput = SendFriendMessageCreatedPushNotificationInput;
 
 export type SendPushNotificationOutput = void;

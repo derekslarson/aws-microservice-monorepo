@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User, Message } from "@yac/util";
 import { WebSocketEvent } from "../../enums/webSocket.event.enum";
+import { PushNotificationMediatorService, PushNotificationMediatorServiceInterface } from "../../mediator-services/pushNotification.mediator.service";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../../mediator-services/webSocket.mediator.service";
 import { FriendMessageCreatedSnsProcessorService } from "../friendMessageCreated.sns.processor.service";
 
 describe("FriendMessageCreatedSnsProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let webSocketMediatorService: Spied<WebSocketMediatorServiceInterface>;
+  let pushNotificationMediatorService: Spied<PushNotificationMediatorServiceInterface>;
   let friendMessageCreatedSnsProcessorService: SnsProcessorServiceInterface;
 
   const mockFriendMessageCreatedSnsTopicArn = "mock-friend-message-created-sns-topic-arn";
@@ -52,8 +54,9 @@ describe("FriendMessageCreatedSnsProcessorService", () => {
   beforeEach(() => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     webSocketMediatorService = TestSupport.spyOnClass(WebSocketMediatorService);
+    pushNotificationMediatorService = TestSupport.spyOnClass(PushNotificationMediatorService);
 
-    friendMessageCreatedSnsProcessorService = new FriendMessageCreatedSnsProcessorService(loggerService, webSocketMediatorService, mockConfig);
+    friendMessageCreatedSnsProcessorService = new FriendMessageCreatedSnsProcessorService(loggerService, webSocketMediatorService, pushNotificationMediatorService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {

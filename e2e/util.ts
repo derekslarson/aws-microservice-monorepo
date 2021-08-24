@@ -45,7 +45,7 @@ export async function getSsmParameters(environment: string, paramNames: string[]
       const prefix = "/yac-api-v4";
       let env = environment;
 
-      if (param === "secret" && ![ "dev", "stage" ].includes(environment)) {
+      if ((param === "secret" || param === "gcm-sender-id") && ![ "dev", "stage" ].includes(environment)) {
         env = "dev";
       }
 
@@ -123,9 +123,9 @@ async function getXsrfToken(): Promise<{ xsrfToken: string }> {
   }
 }
 
-async function getAuthorizationCode(email: string, xsrfToken: string, logError?: boolean): Promise<{ authorizationCode: string; }> {
+async function getAuthorizationCode(emailOrId: string, xsrfToken: string, logError?: boolean): Promise<{ authorizationCode: string; }> {
   try {
-    const data = `_csrf=${xsrfToken}&username=${email}&password=YAC-${process.env.secret as string}`;
+    const data = `_csrf=${xsrfToken}&username=${emailOrId}&password=YAC-${process.env.secret as string}`;
 
     const queryParameters = {
       response_type: "code",
@@ -208,15 +208,36 @@ export async function getAccessTokenByEmail(email: string): Promise<{ accessToke
   }
 }
 
+export async function getAccessToken(userId: string): Promise<{ accessToken: string; }> {
+  try {
+    const { xsrfToken } = await getXsrfToken();
+
+    const { authorizationCode } = await backoff(
+      () => getAuthorizationCode(userId, xsrfToken, false),
+      (res) => !!res.authorizationCode,
+      8000,
+      1000,
+    );
+
+    const { accessToken } = await getToken(authorizationCode);
+
+    return { accessToken };
+  } catch (error) {
+    console.log("Error in getAccessTokenByEmail:\n", error);
+
+    throw error;
+  }
+}
+
 function createUserPoolClientSecretHash(username: string): string {
   const secretHash = crypto.createHmac("SHA256", process.env["yac-client-secret"] as string).update(`${username}${process.env["yac-client-id"] as string}`).digest("base64");
 
   return secretHash;
 }
 
-export async function createRandomCognitoUser(): Promise<{ id: string, email: string }> {
+export async function createRandomCognitoUser(): Promise<{ id: `user-${string}`, email: string }> {
   try {
-    const id = `user-${ksuid.randomSync().string}`;
+    const id: `user-${string}` = `user-${ksuid.randomSync().string}`;
     const email = `${generateRandomString(5)}@${generateRandomString(5)}.com`;
 
     const secretHash = createUserPoolClientSecretHash(id);
