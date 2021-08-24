@@ -106,7 +106,7 @@ export class PushNotificationListener {
     await listen({ ...creds, persistentIds: this.persistentIds }, (event) => {
       this.persistentIds.push(event.persistentId);
 
-      if (event.notification.data.event === eventType) {
+      if (event.notification.data?.event === eventType) {
         this.notifications.push(event.notification);
       }
     });
