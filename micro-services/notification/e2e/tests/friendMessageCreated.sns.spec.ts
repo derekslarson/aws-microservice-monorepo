@@ -113,7 +113,7 @@ describe("Friend Message Created SNS Topic", () => {
         });
       });
 
-      fdescribe("push notifications", () => {
+      describe("push notifications", () => {
         let userOneAPushNotificationListener: PushNotificationListener;
         let userOneBPushNotificationListener: PushNotificationListener;
         let userTwoPushNotificationListener: PushNotificationListener;
@@ -180,18 +180,14 @@ describe("Friend Message Created SNS Topic", () => {
           // Assert that they have the right structure
           expect(userOneAPushNotificationListener.notifications.length).toBe(1);
           expect(userOneAPushNotificationListener.notifications[0]).toEqual(jasmine.objectContaining({
-            notification: {
-              data: { event: PushNotificationEvent.FriendMessageCreated },
-              notification: { title: "New Message Received", body: `Message from ${message.from.realName as string}` },
-            },
+            data: { event: PushNotificationEvent.FriendMessageCreated },
+            notification: { title: "New Message Received", body: `Message from ${message.from.realName as string}` },
           }));
 
           expect(userOneBPushNotificationListener.notifications.length).toBe(1);
           expect(userOneBPushNotificationListener.notifications[0]).toEqual(jasmine.objectContaining({
-            notification: {
-              data: { event: PushNotificationEvent.FriendMessageCreated },
-              notification: { title: "New Message Received", body: `Message from ${message.from.realName as string}` },
-            },
+            data: { event: PushNotificationEvent.FriendMessageCreated },
+            notification: { title: "New Message Received", body: `Message from ${message.from.realName as string}` },
           }));
 
           expect(userTwoPushNotificationListener.notifications.length).toBe(0);

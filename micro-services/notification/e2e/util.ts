@@ -103,11 +103,11 @@ export class PushNotificationListener {
 
     await createListenerMapping({ userId, type: ListenerType.PushNotification, value: creds.gcm.appId, valueTwo: endpointArn });
 
-    await listen({ ...creds, persistentIds: this.persistentIds }, (content) => {
-      this.persistentIds.push(content.persistentId);
+    await listen({ ...creds, persistentIds: this.persistentIds }, (event) => {
+      this.persistentIds.push(event.persistentId);
 
-      if ((content.notification as any).data.event === eventType) {
-        this.notifications.push(content.notification);
+      if (event.notification.data.event === eventType) {
+        this.notifications.push(event.notification);
       }
     });
   }
