@@ -7,6 +7,7 @@ import { apiGatewayManagementFactory, ApiGatewayManagementFactory } from "../fac
 import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory";
 import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
+import { MeetingCreatedSnsProcessorService } from "../processor-services/meetingCreated.sns.processor.service";
 import { TeamCreatedSnsProcessorService } from "../processor-services/teamCreated.sns.processor.service";
 import { UserAddedAsFriendSnsProcessorService } from "../processor-services/userAddedAsFriend.sns.processor.service";
 import { UserAddedToGroupSnsProcessorService } from "../processor-services/userAddedToGroup.sns.processor.service";
@@ -43,6 +44,7 @@ try {
   container.bind<SnsProcessorServiceInterface>(TYPES.UserRemovedFromMeetingSnsProcessorServiceInterface).to(UserRemovedFromMeetingSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedAsFriendSnsProcessorServiceInterface).to(UserAddedAsFriendSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.TeamCreatedSnsProcessorServiceInterface).to(TeamCreatedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.MeetingCreatedSnsProcessorServiceInterface).to(MeetingCreatedSnsProcessorService);
 
   // Entity Services
   container.bind<ListenerMappingServiceInterface>(TYPES.ListenerMappingServiceInterface).to(ListenerMappingService);
@@ -69,6 +71,7 @@ try {
     container.get(TYPES.UserRemovedFromMeetingSnsProcessorServiceInterface),
     container.get(TYPES.UserAddedAsFriendSnsProcessorServiceInterface),
     container.get(TYPES.TeamCreatedSnsProcessorServiceInterface),
+    container.get(TYPES.MeetingCreatedSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([]);
