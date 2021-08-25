@@ -99,6 +99,19 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
         },
         physicalResourceId: CustomResources.PhysicalResourceId.of(platformApplicationName),
       },
+      onUpdate: {
+        region: this.region,
+        service: "SNS",
+        action: "setPlatformApplicationAttributes",
+        parameters: {
+          PlatformApplicationArn: platformApplicationArn,
+          Attributes: {
+            PlatformCredential: gcmServerKey,
+            EventDeliveryFailure: pushNotificationFailedSnsTopic.topicArn,
+          },
+        },
+        physicalResourceId: CustomResources.PhysicalResourceId.of(platformApplicationName),
+      },
       onDelete: {
         region: this.region,
         service: "SNS",
@@ -260,10 +273,21 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
 
     routes.forEach((route) => this.httpApi.addRoute(route));
 
+    // PushNotificationFailedSnsTopic ARN Export (to be imported by test stack)
+    new CDK.CfnOutput(this, `PushNotificationFailedSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.PushNotificationFailedSnsTopicArn,
+      value: pushNotificationFailedSnsTopic.topicArn,
+    });
+
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `ListenerMappingTableNameSsmParameter-${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/listener-mapping-table-name`,
       stringValue: listenerMappingTable.tableName,
+    });
+
+    new SSM.StringParameter(this, `PushNotificationFailedSnsTopicArnSsmParameter_-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/push-notification-failed-sns-topic-arn`,
+      stringValue: pushNotificationFailedSnsTopic.topicArn,
     });
 
     new SSM.StringParameter(this, `PlatformApplicationArnSsmParameter-${id}`, {

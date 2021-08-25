@@ -17,7 +17,7 @@ export abstract class BaseIntegrationMediatorService implements BaseIntegrationM
 
       const { userId, listener } = params;
 
-      await this.listenerMappingService.createListenerMapping({ userId, type: this.type, value: listener });
+      await this.listenerMappingService.createListenerMapping({ userId, type: this.type, value: listener.value, valueTwo: listener.valueTwo });
     } catch (error: unknown) {
       this.loggerService.error("Error in persistListener", { error, params }, this.constructor.name);
 
@@ -31,9 +31,9 @@ export abstract class BaseIntegrationMediatorService implements BaseIntegrationM
 
       const { listener } = params;
 
-      const { listenerMappings } = await this.listenerMappingService.getListenerMappingsByTypeAndValue({ type: this.type, value: listener });
+      const { listenerMappings } = await this.listenerMappingService.getListenerMappingsByTypeAndValue({ type: this.type, value: listener.value });
 
-      await Promise.all(listenerMappings.map((listenerMapping) => this.listenerMappingService.deleteListenerMapping({ userId: listenerMapping.userId, type: this.type, value: listener })));
+      await Promise.all(listenerMappings.map((listenerMapping) => this.listenerMappingService.deleteListenerMapping({ userId: listenerMapping.userId, type: this.type, value: listener.value })));
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteListener", { error, params }, this.constructor.name);
 
@@ -49,7 +49,7 @@ export abstract class BaseIntegrationMediatorService implements BaseIntegrationM
 
       const { listenerMappings } = await this.listenerMappingService.getListenerMappingsByUserIdAndType({ userId, type: this.type });
 
-      const listeners = listenerMappings.map((listenerMapping) => listenerMapping.value);
+      const listeners = listenerMappings.map(({ value, valueTwo }) => ({ value, valueTwo }));
 
       return { listeners };
     } catch (error: unknown) {
@@ -65,9 +65,14 @@ export interface BaseIntegrationMediatorServiceInterface {
   deleteListener(params: DeleteListenerInput): Promise<DeleteListenerOutput>;
 }
 
+export interface Listener {
+  value: string;
+  valueTwo?: string;
+}
+
 export interface PersistListenerInput {
   userId: string;
-  listener: string;
+  listener: Listener;
 }
 
 export type PersistListenerOutput = void;
@@ -77,11 +82,19 @@ export interface GetListenersByUserIdInput {
 }
 
 export interface GetListenersByUserIdOutput {
-  listeners: string[];
+  listeners: Listener[];
+}
+
+export interface GetListenersByValueInput {
+  value: string;
+}
+
+export interface GetListenersByValueOutput {
+  listeners: Listener[];
 }
 
 export interface DeleteListenerInput {
-  listener: string;
+  listener: Listener;
 }
 
 export type DeleteListenerOutput = void;

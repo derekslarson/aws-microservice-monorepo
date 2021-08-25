@@ -13802,7 +13802,7 @@ punycode@^2.1.0, punycode@^2.1.1:
   resolved "https://registry.yarnpkg.com/punycode/-/punycode-2.1.1.tgz#b58b010ac40c22c5657616c8d2c2c02c7bf479ec"
   integrity sha512-XRsRjdf+j5ml+y/6GKHPZbrF/8p2Yga0JPtdqTIY2Xe5ohJPD9saDJJLPvp9+NSBprVvevdXZybnj2cv8OEd0A==
 
-push-receiver@^2.1.1:
+push-receiver@~2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/push-receiver/-/push-receiver-2.1.1.tgz#88d273f02e3a288aa18b688df1154790edeafdd2"
   integrity sha512-2f+Rglq6B+J6x06JEypDkm48vGf0lPCSjqO/+1F7Pg/8gippvZRSb/vloWuQlWGJw8ulma7lgPei34HAnJba5w==

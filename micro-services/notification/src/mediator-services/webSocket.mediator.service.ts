@@ -23,9 +23,9 @@ export class WebSocketMediatorService extends BaseIntegrationMediatorService imp
 
       const { userId, event, data } = params;
 
-      const { listeners: connectionIds } = await this.getListenersByUserId({ userId });
+      const { listeners } = await this.getListenersByUserId({ userId });
 
-      await Promise.allSettled(connectionIds.map((connectionId) => this.webSocketService.sendMessage({ connectionId, event, data })));
+      await Promise.allSettled(listeners.map((listener) => this.webSocketService.sendMessage({ connectionId: listener.value, event, data })));
     } catch (error: unknown) {
       this.loggerService.error("Error in sendMessage", { error, params }, this.constructor.name);
 

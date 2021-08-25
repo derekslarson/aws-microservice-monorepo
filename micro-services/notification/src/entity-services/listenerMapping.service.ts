@@ -72,13 +72,7 @@ export class ListenerMappingService implements ListenerMappingServiceInterface {
 
       const { userId, type, value } = params;
 
-      const listenerMapping: ListenerMappingEntity = {
-        userId,
-        type,
-        value,
-      };
-
-      await this.listenerMappingRepository.deleteListenerMapping({ listenerMapping });
+      await this.listenerMappingRepository.deleteListenerMapping({ userId, type, value });
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteListenerMapping", { error, params }, this.constructor.name);
 

@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import WebSocket from "ws";
 import { register, listen, NotificationContent } from "push-receiver";
+import ksuid from "ksuid";
 import { documentClient, getAccessToken, sns } from "../../../e2e/util";
 import { EntityType } from "../src/enums/entityType.enum";
 import { ListenerType } from "../src/enums/listenerType.enum";
@@ -85,6 +86,28 @@ export async function createPlatformEndpoint(params: CreatePlatformEndpointInput
   }
 }
 
+export async function registerMockDevice(params: RegisterMockDeviceInput): Promise<RegisterMockDeviceOutput> {
+  try {
+    const { userId } = params;
+
+    const deviceId = ksuid.randomSync().string;
+    const token = ksuid.randomSync().string;
+
+    const { endpointArn } = await createPlatformEndpoint({ token });
+
+    await createListenerMapping({ userId, type: ListenerType.PushNotification, value: deviceId, valueTwo: endpointArn });
+
+    return { deviceId, endpointArn };
+  } catch (error) {
+    console.log("Error in registerMockDevice:\n", error);
+
+    throw error;
+  }
+}
+
+// This doesn't consistently work. There is most likely a bug in the library (push-receiver).
+// It can be used to test the push flow end-to-end though (using a valid FCM token)
+// In the future, if we can find the issue in the library, or it is fixed by someone else, we can use it
 export class PushNotificationListener {
   private persistentIds: string[];
 
@@ -179,6 +202,47 @@ export async function createPushNotificationListener(params: CreatePushNotificat
   }
 }
 
+export async function getSnsEventsByTopicArn<T extends Record<string, unknown> = Record<string, unknown>>(params: GetSnsEventsByTopicArnInput): Promise<GetSnsEventsByTopicArnOutput<T>> {
+  try {
+    const { topicArn } = params;
+
+    const { Items } = await documentClient.query({
+      TableName: process.env["notification-testing-sns-event-table-name"] as string,
+      KeyConditionExpression: "#pk = :pk",
+      ExpressionAttributeNames: { "#pk": "pk" },
+      ExpressionAttributeValues: { ":pk": topicArn },
+    }).promise();
+
+    const snsEvents = Items as SnsEvent<T>[];
+
+    return { snsEvents };
+  } catch (error) {
+    console.log("Error in getSnsEventsByTopicArn:\n", error);
+
+    throw error;
+  }
+}
+
+export async function deleteSnsEventsByTopicArn(params: DeleteSnsEventsByTopicArnInput): Promise<DeleteSnsEventsByTopicArnOutput> {
+  try {
+    const { topicArn } = params;
+
+    const { snsEvents } = await getSnsEventsByTopicArn({ topicArn });
+
+    await Promise.all(snsEvents.map((snsEvent) => documentClient.delete({
+      TableName: process.env["notification-testing-sns-event-table-name"] as string,
+      Key: {
+        pk: snsEvent.pk,
+        sk: snsEvent.sk,
+      },
+    }).promise()));
+  } catch (error) {
+    console.log("Error in deleteSnsEventsByTopicArn:\n", error);
+
+    throw error;
+  }
+}
+
 export interface CreateListenerMappingInput {
   userId: string;
   type: ListenerType;
@@ -220,3 +284,34 @@ export interface CreatePlatformEndpointInput {
 export interface CreatePlatformEndpointOutput {
   endpointArn: string;
 }
+
+export interface RegisterMockDeviceInput {
+  userId: string;
+}
+
+export interface RegisterMockDeviceOutput {
+  deviceId: string;
+  endpointArn: string;
+}
+
+export interface GetSnsEventsByTopicArnInput {
+  topicArn: string;
+}
+
+interface SnsEvent<T extends Record<string, unknown>> {
+  // topicArn
+  pk: string;
+  // messageId
+  sk: string;
+  topicArn: string;
+  message: T;
+}
+export interface GetSnsEventsByTopicArnOutput<T extends Record<string, unknown>> {
+  snsEvents: SnsEvent<T>[];
+}
+
+export interface DeleteSnsEventsByTopicArnInput {
+  topicArn: string;
+}
+
+export type DeleteSnsEventsByTopicArnOutput = void;

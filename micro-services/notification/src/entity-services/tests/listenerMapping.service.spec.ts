@@ -12,6 +12,7 @@ describe("ListenerMappingService", () => {
   const mockUserId = "mock-user-id";
   const mockType = ListenerType.WebSocket;
   const mockValue = "mock-value";
+  const mockValueTwo = "mock-value-two";
   const mockListenerMapping = { userId: mockUserId, type: mockType, value: mockValue };
   const mockError = new Error("mock-error");
 
@@ -23,7 +24,7 @@ describe("ListenerMappingService", () => {
   });
 
   describe("createListenerMapping", () => {
-    const params = { userId: mockUserId, type: mockType, value: mockValue };
+    const params = { userId: mockUserId, type: mockType, value: mockValue, valueTwo: mockValueTwo };
 
     describe("under normal conditions", () => {
       beforeEach(() => {
@@ -34,13 +35,13 @@ describe("ListenerMappingService", () => {
         await listenerMappingService.createListenerMapping(params);
 
         expect(listenerMappingRepository.createListenerMapping).toHaveBeenCalledTimes(1);
-        expect(listenerMappingRepository.createListenerMapping).toHaveBeenCalledWith({ listenerMapping: { userId: mockUserId, type: mockType, value: mockValue } });
+        expect(listenerMappingRepository.createListenerMapping).toHaveBeenCalledWith({ listenerMapping: { userId: mockUserId, type: mockType, value: mockValue, valueTwo: mockValueTwo } });
       });
 
       it("returns the listenerMapping entity", async () => {
         const result = await listenerMappingService.createListenerMapping(params);
 
-        expect(result).toEqual({ listenerMapping: { userId: mockUserId, type: mockType, value: mockValue } });
+        expect(result).toEqual({ listenerMapping: { userId: mockUserId, type: mockType, value: mockValue, valueTwo: mockValueTwo } });
       });
     });
 
@@ -190,7 +191,7 @@ describe("ListenerMappingService", () => {
         await listenerMappingService.deleteListenerMapping(params);
 
         expect(listenerMappingRepository.deleteListenerMapping).toHaveBeenCalledTimes(1);
-        expect(listenerMappingRepository.deleteListenerMapping).toHaveBeenCalledWith({ listenerMapping: { userId: mockUserId, type: mockType, value: mockValue } });
+        expect(listenerMappingRepository.deleteListenerMapping).toHaveBeenCalledWith({ userId: mockUserId, type: mockType, value: mockValue });
       });
     });
 

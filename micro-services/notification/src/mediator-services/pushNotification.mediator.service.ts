@@ -5,14 +5,17 @@ import { PushNotificationServiceInterface } from "../services/pushNotification.s
 import { ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
 import { ListenerType } from "../enums/listenerType.enum";
 import { PushNotificationEvent } from "../enums/pushNotification.event.enum";
+import { BaseIntegrationMediatorService } from "./base.integration.mediator.service";
 
 @injectable()
-export class PushNotificationMediatorService implements PushNotificationMediatorServiceInterface {
+export class PushNotificationMediatorService extends BaseIntegrationMediatorService implements PushNotificationMediatorServiceInterface {
   constructor(
-    @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.ListenerMappingServiceInterface) private listenerMappingService: ListenerMappingServiceInterface,
     @inject(TYPES.PushNotificationServiceInterface) private pushNotificationService: PushNotificationServiceInterface,
-  ) {}
+    @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
+    @inject(TYPES.ListenerMappingServiceInterface) listenerMappingService: ListenerMappingServiceInterface,
+  ) {
+    super(ListenerType.PushNotification, loggerService, listenerMappingService);
+  }
 
   public async registerDevice(params: RegisterDeviceInput): Promise<RegisterDeviceOutput> {
     try {
@@ -20,22 +23,11 @@ export class PushNotificationMediatorService implements PushNotificationMediator
 
       const { userId, deviceId, deviceToken } = params;
 
-      const { listenerMappings } = await this.listenerMappingService.getListenerMappingsByTypeAndValue({
-        type: ListenerType.PushNotification,
-        value: deviceId,
-      });
-
-      if (listenerMappings.length) {
-        await Promise.all(listenerMappings.map((listenerMapping) => this.listenerMappingService.deleteListenerMapping({
-          userId: listenerMapping.userId,
-          type: listenerMapping.type,
-          value: listenerMapping.value,
-        })));
-      }
+      await this.deleteListener({ listener: { value: deviceId } });
 
       const { endpointArn } = await this.pushNotificationService.createPlatformEndpoint({ token: deviceToken });
 
-      await this.listenerMappingService.createListenerMapping({ userId, type: ListenerType.PushNotification, value: deviceId, valueTwo: endpointArn });
+      await this.persistListener({ userId, listener: { value: deviceId, valueTwo: endpointArn } });
     } catch (error: unknown) {
       this.loggerService.error("Error in registerDevice", { error, params }, this.constructor.name);
 
@@ -49,15 +41,10 @@ export class PushNotificationMediatorService implements PushNotificationMediator
 
       const { userId, event, title, body } = params;
 
-      const { listenerMappings } = await this.listenerMappingService.getListenerMappingsByUserIdAndType({
-        userId,
-        type: ListenerType.PushNotification,
-      });
+      const { listeners } = await this.getListenersByUserId({ userId });
 
-      const endpointArns = listenerMappings.map((mapping) => mapping.valueTwo as string);
-
-      await Promise.allSettled(endpointArns.map((endpointArn) => this.pushNotificationService.sendPushNotification({
-        endpointArn,
+      await Promise.allSettled(listeners.map((listener) => this.pushNotificationService.sendPushNotification({
+        endpointArn: listener.valueTwo as string,
         event,
         title,
         body,

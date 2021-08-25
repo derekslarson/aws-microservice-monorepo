@@ -62,7 +62,7 @@ describe("WebSocketController", () => {
         await webSocketController.connect(mockRequest);
 
         expect(webSocketMediatorService.persistListener).toHaveBeenCalledTimes(1);
-        expect(webSocketMediatorService.persistListener).toHaveBeenCalledWith({ userId: mockUserId, listener: mockConnectionId });
+        expect(webSocketMediatorService.persistListener).toHaveBeenCalledWith({ userId: mockUserId, listener: { value: mockConnectionId } });
       });
 
       it("returns a valid response", async () => {
@@ -94,7 +94,7 @@ describe("WebSocketController", () => {
         });
 
         it("returns the response of this.generateErrorResponse", async () => {
-          const response = await webSocketController.disconnect(mockRequest);
+          const response = await webSocketController.connect(mockRequest);
 
           expect(response).toEqual(mockErrorResponse);
         });
@@ -124,7 +124,7 @@ describe("WebSocketController", () => {
         await webSocketController.disconnect(mockRequest);
 
         expect(webSocketMediatorService.deleteListener).toHaveBeenCalledTimes(1);
-        expect(webSocketMediatorService.deleteListener).toHaveBeenCalledWith({ listener: mockConnectionId });
+        expect(webSocketMediatorService.deleteListener).toHaveBeenCalledWith({ listener: { value: mockConnectionId } });
       });
 
       it("returns a valid response", async () => {

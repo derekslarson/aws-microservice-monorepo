@@ -5,11 +5,11 @@
 import { FriendMessageCreatedSnsMessage } from "@yac/util";
 import { backoff, createRandomCognitoUser, sns } from "../../../../e2e/util";
 import { WebSocketEvent } from "../../src/enums/webSocket.event.enum";
-import { createPushNotificationListener, createWebSocketListener, PushNotificationListener, WebSocketListener } from "../util";
-import { PushNotificationEvent } from "../../src/enums/pushNotification.event.enum";
+import { createWebSocketListener, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn, registerMockDevice, RegisterMockDeviceOutput, WebSocketListener } from "../util";
 
 describe("Friend Message Created SNS Topic", () => {
   const friendMessageCreatedSnsTopicArn = process.env["friend-message-created-sns-topic-arn"] as string;
+  const pushNotificationFailedSnsTopicArn = process.env["push-notification-failed-sns-topic-arn"] as string;
   let userOneId: `user-${string}`;
   let userTwoId: `user-${string}`;
   let userThreeId: `user-${string}`;
@@ -114,33 +114,24 @@ describe("Friend Message Created SNS Topic", () => {
       });
 
       describe("push notifications", () => {
-        let userOneAPushNotificationListener: PushNotificationListener;
-        let userOneBPushNotificationListener: PushNotificationListener;
-        let userTwoPushNotificationListener: PushNotificationListener;
-        let userThreePushNotificationListener: PushNotificationListener;
+        let userOneAMockDevice: RegisterMockDeviceOutput;
+        let userOneBMockDevice: RegisterMockDeviceOutput;
 
         beforeAll(async () => {
-          ([
-            userOneAPushNotificationListener,
-            userOneBPushNotificationListener,
-            userTwoPushNotificationListener,
-            userThreePushNotificationListener,
-          ] = await Promise.all([
-            createPushNotificationListener({ userId: userOneId, eventType: PushNotificationEvent.FriendMessageCreated }),
-            createPushNotificationListener({ userId: userOneId, eventType: PushNotificationEvent.FriendMessageCreated }),
-            createPushNotificationListener({ userId: userTwoId, eventType: PushNotificationEvent.FriendMessageCreated }),
-            createPushNotificationListener({ userId: userThreeId, eventType: PushNotificationEvent.FriendMessageCreated }),
+          ([ userOneAMockDevice, userOneBMockDevice ] = await Promise.all([
+            registerMockDevice({ userId: userOneId }),
+            registerMockDevice({ userId: userOneId }),
+            registerMockDevice({ userId: userTwoId }),
+            registerMockDevice({ userId: userThreeId }),
           ]));
         });
 
-        beforeEach(() => {
-          userOneAPushNotificationListener.clearNotifications();
-          userOneBPushNotificationListener.clearNotifications();
-          userTwoPushNotificationListener.clearNotifications();
-          userThreePushNotificationListener.clearNotifications();
+        beforeEach(async () => {
+          // clear the sns events table so the test can have a clean slate
+          await deleteSnsEventsByTopicArn({ topicArn: pushNotificationFailedSnsTopicArn });
         });
 
-        it("sends valid push notification events to the correct device tokens", async () => {
+        fit("sends valid push notification events to the correct device tokens", async () => {
           const message: FriendMessageCreatedSnsMessage = {
             to: {
               id: userOneId,
@@ -171,27 +162,31 @@ describe("Friend Message Created SNS Topic", () => {
             Message: JSON.stringify(message),
           }).promise();
 
-          // Wait until all the expected messages arrive
-          await Promise.all([
-            backoff(() => Promise.resolve(userOneAPushNotificationListener.notifications), (arr) => arr.length > 0), 8000,
-            backoff(() => Promise.resolve(userOneBPushNotificationListener.notifications), (arr) => arr.length > 0), 8000,
-          ]);
+          // We are sending mock tokens that aren't registered with GCM.
+          // If we get back an InvalidPlatformToken failure, it means everything about
+          // the push notification was valid, but that it was to an invalid token.
+          // Therefore, we just need to check that there are errors like this for the users
+          // we expect to get a push notification
+          const { snsEvents } = await backoff(
+            () => getSnsEventsByTopicArn({ topicArn: pushNotificationFailedSnsTopicArn }),
+            (response) => response.snsEvents.length === 2,
+          );
 
-          // Assert that they have the right structure
-          expect(userOneAPushNotificationListener.notifications.length).toBe(1);
-          expect(userOneAPushNotificationListener.notifications[0]).toEqual(jasmine.objectContaining({
-            data: { event: PushNotificationEvent.FriendMessageCreated },
-            notification: { title: "New Message Received", body: `Message from ${message.from.realName as string}` },
-          }));
-
-          expect(userOneBPushNotificationListener.notifications.length).toBe(1);
-          expect(userOneBPushNotificationListener.notifications[0]).toEqual(jasmine.objectContaining({
-            data: { event: PushNotificationEvent.FriendMessageCreated },
-            notification: { title: "New Message Received", body: `Message from ${message.from.realName as string}` },
-          }));
-
-          expect(userTwoPushNotificationListener.notifications.length).toBe(0);
-          expect(userThreePushNotificationListener.notifications.length).toBe(0);
+          expect(snsEvents.length).toBe(2);
+          expect(snsEvents).toEqual(jasmine.arrayContaining([
+            jasmine.objectContaining({
+              message: jasmine.objectContaining({
+                FailureType: "InvalidPlatformToken",
+                EndpointArn: userOneAMockDevice.endpointArn,
+              }),
+            }),
+            jasmine.objectContaining({
+              message: jasmine.objectContaining({
+                FailureType: "InvalidPlatformToken",
+                EndpointArn: userOneBMockDevice.endpointArn,
+              }),
+            }),
+          ]));
         });
       });
     });

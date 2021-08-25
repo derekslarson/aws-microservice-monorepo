@@ -104,13 +104,13 @@ export class ListenerMappingDynamoRepository extends BaseDynamoRepositoryV2<List
     try {
       this.loggerService.trace("deleteListenerMapping called", { params }, this.constructor.name);
 
-      const { listenerMapping } = params;
+      const { userId, type, value } = params;
 
-      const sk = `${listenerMapping.type}-${listenerMapping.value}`;
+      const sk = `${type}-${value}`;
 
       await this.documentClient.delete({
         TableName: this.tableName,
-        Key: { pk: listenerMapping.userId, sk },
+        Key: { pk: userId, sk },
       }).promise();
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteListenerMapping", { error, params }, this.constructor.name);
@@ -175,7 +175,9 @@ export interface GetListenerMappingsByTypeAndValueOutput {
 }
 
 export interface DeleteListenerMappingInput {
-  listenerMapping: ListenerMapping;
+  userId: string;
+  type: ListenerType;
+  value: string;
 }
 
 export type DeleteListenerMappingOutput = void;

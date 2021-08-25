@@ -41,8 +41,8 @@ describe("Group Message Updated (WebSocket Event)", () => {
       createRandomCognitoUser(),
     ]);
 
-    userOneId = idOne as UserId;
-    userTwoId = idTwo as UserId;
+    userOneId = idOne;
+    userTwoId = idTwo;
 
     // Get JWT tokens for each user
     const [ { accessToken: accessTokenOne }, { accessToken: accessTokenTwo }, { accessToken: accessTokenThree } ] = await Promise.all([

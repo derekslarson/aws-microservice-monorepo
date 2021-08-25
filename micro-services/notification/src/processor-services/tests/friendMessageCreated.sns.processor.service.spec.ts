@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User, Message } from "@yac/util";
+import { PushNotificationEvent } from "../../enums/pushNotification.event.enum";
 import { WebSocketEvent } from "../../enums/webSocket.event.enum";
 import { PushNotificationMediatorService, PushNotificationMediatorServiceInterface } from "../../mediator-services/pushNotification.mediator.service";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../../mediator-services/webSocket.mediator.service";
@@ -25,6 +26,7 @@ describe("FriendMessageCreatedSnsProcessorService", () => {
   const mockFromUser: User = {
     id: mockFromUserId,
     image: "mock-image",
+    realName: "mock-realName",
   };
 
   const mockFriendMessage: Message = {
@@ -88,6 +90,92 @@ describe("FriendMessageCreatedSnsProcessorService", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         webSocketMediatorService.sendMessage.and.returnValue(Promise.resolve());
+      });
+
+      describe("when from.realName is defined", () => {
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await friendMessageCreatedSnsProcessorService.processRecord(mockRecord);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockToUserId,
+            event: PushNotificationEvent.FriendMessageCreated,
+            title: "New Message Received",
+            body: `Message from ${mockFromUser.realName as string}`,
+          });
+        });
+      });
+
+      describe("when from.realName isn't defined, but from.username is", () => {
+        const mockRecordTwo = {
+          ...mockRecord,
+          message: {
+            ...mockRecord.message,
+            from: {
+              id: mockRecord.message.from.id,
+              username: "mock-username",
+            },
+          },
+        };
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await friendMessageCreatedSnsProcessorService.processRecord(mockRecordTwo);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockToUserId,
+            event: PushNotificationEvent.FriendMessageCreated,
+            title: "New Message Received",
+            body: `Message from ${mockRecordTwo.message.from.username}`,
+          });
+        });
+      });
+
+      describe("when from.realName and from.username aren't defined, but from.email is", () => {
+        const mockRecordTwo = {
+          ...mockRecord,
+          message: {
+            ...mockRecord.message,
+            from: {
+              id: mockRecord.message.from.id,
+              email: "mock-email",
+            },
+          },
+        };
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await friendMessageCreatedSnsProcessorService.processRecord(mockRecordTwo);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockToUserId,
+            event: PushNotificationEvent.FriendMessageCreated,
+            title: "New Message Received",
+            body: `Message from ${mockRecordTwo.message.from.email}`,
+          });
+        });
+      });
+
+      describe("when from.realName, from.username and from.email aren't defined, but from.phone is", () => {
+        const mockRecordTwo = {
+          ...mockRecord,
+          message: {
+            ...mockRecord.message,
+            from: {
+              id: mockRecord.message.from.id,
+              phone: "mock-phone",
+            },
+          },
+        };
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await friendMessageCreatedSnsProcessorService.processRecord(mockRecordTwo);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockToUserId,
+            event: PushNotificationEvent.FriendMessageCreated,
+            title: "New Message Received",
+            body: `Message from ${mockRecordTwo.message.from.phone}`,
+          });
+        });
       });
 
       it("calls webSocketMediatorService.sendMessage with the correct parameters", async () => {

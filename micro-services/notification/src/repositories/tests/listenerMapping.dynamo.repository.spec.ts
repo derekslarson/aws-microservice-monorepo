@@ -25,11 +25,13 @@ describe("ListenerMappingDynamoRepository", () => {
 
   const mockType = ListenerType.WebSocket;
   const mockValue = "mock-value";
+  const mockValueTwo = "mock-value-two";
   const mockUserId = "mock-user-id";
 
   const mockListenerMapping: ListenerMapping = {
     type: mockType,
     value: mockValue,
+    valueTwo: mockValueTwo,
     userId: mockUserId,
   };
 
@@ -227,7 +229,7 @@ describe("ListenerMappingDynamoRepository", () => {
   });
 
   describe("deleteListenerMapping", () => {
-    const params = { listenerMapping: mockListenerMapping };
+    const params = { userId: mockUserId, type: mockType, value: mockValue };
 
     describe("under normal conditions", () => {
       beforeEach(() => {

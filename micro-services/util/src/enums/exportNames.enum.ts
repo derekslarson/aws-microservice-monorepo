@@ -26,6 +26,7 @@ const ExportNames = {
   GroupMessageUpdatedSnsTopicArn: "groupMessageUpdatedSnsTopicArn",
   MeetingMessageCreatedSnsTopicArn: "meetingMessageCreatedSnsTopicArn",
   MeetingMessageUpdatedSnsTopicArn: "meetingMessageUpdatedSnsTopicArn",
+  PushNotificationFailedSnsTopicArn: "pushNotificationFailedSnsTopicArn",
   CoreTableName: "coreTableName",
   MessageS3BucketArn: "messageS3BucketArn",
 };
