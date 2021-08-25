@@ -131,7 +131,7 @@ describe("Friend Message Created SNS Topic", () => {
           await deleteSnsEventsByTopicArn({ topicArn: pushNotificationFailedSnsTopicArn });
         });
 
-        fit("sends valid push notification events to the correct device tokens", async () => {
+        it("sends valid push notification events to the correct device tokens", async () => {
           const message: FriendMessageCreatedSnsMessage = {
             to: {
               id: userOneId,
@@ -162,7 +162,7 @@ describe("Friend Message Created SNS Topic", () => {
             Message: JSON.stringify(message),
           }).promise();
 
-          // We are sending mock tokens that aren't registered with GCM.
+          // We are sending to mock tokens that aren't registered with FCM.
           // If we get back an InvalidPlatformToken failure, it means everything about
           // the push notification was valid, but that it was to an invalid token.
           // Therefore, we just need to check that there are errors like this for the users
