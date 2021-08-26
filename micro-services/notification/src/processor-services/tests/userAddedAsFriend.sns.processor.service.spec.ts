@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User } from "@yac/util";
+import { PushNotificationEvent } from "../../enums/pushNotification.event.enum";
 import { WebSocketEvent } from "../../enums/webSocket.event.enum";
+import { PushNotificationMediatorService, PushNotificationMediatorServiceInterface } from "../../mediator-services/pushNotification.mediator.service";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../../mediator-services/webSocket.mediator.service";
 import { UserAddedAsFriendSnsProcessorService } from "../userAddedAsFriend.sns.processor.service";
 
 describe("UserAddedAsFriendSnsProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let webSocketMediatorService: Spied<WebSocketMediatorServiceInterface>;
+  let pushNotificationMediatorService: Spied<PushNotificationMediatorServiceInterface>;
   let userAddedAsFriendSnsProcessorService: SnsProcessorServiceInterface;
 
   const mockUserAddedAsFriendSnsTopicArn = "mock-user-added-as-friend-sns-topic-arn";
@@ -17,6 +20,7 @@ describe("UserAddedAsFriendSnsProcessorService", () => {
   const mockUserOne: User = {
     id: mockUserIdOne,
     image: "mock-image",
+    realName: "mock-realName",
   };
 
   const mockUserTwo: User = {
@@ -36,8 +40,9 @@ describe("UserAddedAsFriendSnsProcessorService", () => {
   beforeEach(() => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     webSocketMediatorService = TestSupport.spyOnClass(WebSocketMediatorService);
+    pushNotificationMediatorService = TestSupport.spyOnClass(PushNotificationMediatorService);
 
-    userAddedAsFriendSnsProcessorService = new UserAddedAsFriendSnsProcessorService(loggerService, webSocketMediatorService, mockConfig);
+    userAddedAsFriendSnsProcessorService = new UserAddedAsFriendSnsProcessorService(loggerService, webSocketMediatorService, pushNotificationMediatorService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
@@ -69,6 +74,92 @@ describe("UserAddedAsFriendSnsProcessorService", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         webSocketMediatorService.sendMessage.and.returnValue(Promise.resolve());
+      });
+
+      describe("when from.realName is defined", () => {
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await userAddedAsFriendSnsProcessorService.processRecord(mockRecord);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockUserIdTwo,
+            event: PushNotificationEvent.UserAddedAsFriend,
+            title: "Added as Friend",
+            body: `${mockUserOne.realName as string} added you as a friend`,
+          });
+        });
+      });
+
+      describe("when from.realName isn't defined, but from.username is", () => {
+        const mockRecordTwo = {
+          ...mockRecord,
+          message: {
+            ...mockRecord.message,
+            addingUser: {
+              id: mockRecord.message.addingUser.id,
+              username: "mock-username",
+            },
+          },
+        };
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await userAddedAsFriendSnsProcessorService.processRecord(mockRecordTwo);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockUserIdTwo,
+            event: PushNotificationEvent.UserAddedAsFriend,
+            title: "Added as Friend",
+            body: `${mockRecordTwo.message.addingUser.username} added you as a friend`,
+          });
+        });
+      });
+
+      describe("when from.realName and from.username aren't defined, but from.email is", () => {
+        const mockRecordTwo = {
+          ...mockRecord,
+          message: {
+            ...mockRecord.message,
+            addingUser: {
+              id: mockRecord.message.addingUser.id,
+              email: "mock-email",
+            },
+          },
+        };
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await userAddedAsFriendSnsProcessorService.processRecord(mockRecordTwo);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockUserIdTwo,
+            event: PushNotificationEvent.UserAddedAsFriend,
+            title: "Added as Friend",
+            body: `${mockRecordTwo.message.addingUser.email} added you as a friend`,
+          });
+        });
+      });
+
+      describe("when from.realName, from.username and from.email aren't defined, but from.phone is", () => {
+        const mockRecordTwo = {
+          ...mockRecord,
+          message: {
+            ...mockRecord.message,
+            addingUser: {
+              id: mockRecord.message.addingUser.id,
+              phone: "mock-phone",
+            },
+          },
+        };
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await userAddedAsFriendSnsProcessorService.processRecord(mockRecordTwo);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockUserIdTwo,
+            event: PushNotificationEvent.UserAddedAsFriend,
+            title: "Added as Friend",
+            body: `${mockRecordTwo.message.addingUser.phone} added you as a friend`,
+          });
+        });
       });
 
       it("calls webSocketMediatorService.sendMessage with the correct parameters", async () => {
