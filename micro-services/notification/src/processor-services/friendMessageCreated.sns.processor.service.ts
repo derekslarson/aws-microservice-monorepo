@@ -48,11 +48,11 @@ export class FriendMessageCreatedSnsProcessorService implements SnsProcessorServ
           title: "New Message Received",
           body: `Message from ${senderName}`,
         }),
-        Promise.allSettled([ to.id, from.id ].map((userId) => this.webSocketMediatorService.sendMessage({
+        ...[ to.id, from.id ].map((userId) => this.webSocketMediatorService.sendMessage({
           userId,
           event: WebSocketEvent.FriendMessageCreated,
           data: { to, from, message },
-        }))),
+        })),
       ]);
 
       // add support for http integrations

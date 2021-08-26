@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User, Message, Group } from "@yac/util";
+import { PushNotificationEvent } from "../../enums/pushNotification.event.enum";
 import { WebSocketEvent } from "../../enums/webSocket.event.enum";
+import { PushNotificationMediatorService, PushNotificationMediatorServiceInterface } from "../../mediator-services/pushNotification.mediator.service";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../../mediator-services/webSocket.mediator.service";
 import { GroupMessageCreatedSnsProcessorService } from "../groupMessageCreated.sns.processor.service";
 
 describe("GroupMessageCreatedSnsProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let webSocketMediatorService: Spied<WebSocketMediatorServiceInterface>;
+  let pushNotificationMediatorService: Spied<PushNotificationMediatorServiceInterface>;
   let groupMessageCreatedSnsProcessorService: SnsProcessorServiceInterface;
 
   const mockGroupMessageCreatedSnsTopicArn = "mock-group-message-created-sns-topic-arn";
@@ -19,6 +22,7 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
   const mockUser: User = {
     id: mockUserIdOne,
     image: "mock-image",
+    realName: "mock-realName",
   };
 
   const mockGroup: Group = {
@@ -57,8 +61,9 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
   beforeEach(() => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     webSocketMediatorService = TestSupport.spyOnClass(WebSocketMediatorService);
+    pushNotificationMediatorService = TestSupport.spyOnClass(PushNotificationMediatorService);
 
-    groupMessageCreatedSnsProcessorService = new GroupMessageCreatedSnsProcessorService(loggerService, webSocketMediatorService, mockConfig);
+    groupMessageCreatedSnsProcessorService = new GroupMessageCreatedSnsProcessorService(loggerService, webSocketMediatorService, pushNotificationMediatorService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
@@ -90,6 +95,92 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         webSocketMediatorService.sendMessage.and.returnValue(Promise.resolve());
+      });
+
+      describe("when from.realName is defined", () => {
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await groupMessageCreatedSnsProcessorService.processRecord(mockRecord);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockUserIdTwo,
+            event: PushNotificationEvent.GroupMessageCreated,
+            title: "New Message Received",
+            body: `Message from ${mockUser.realName as string} in ${mockGroup.name}`,
+          });
+        });
+      });
+
+      describe("when from.realName isn't defined, but from.username is", () => {
+        const mockRecordTwo = {
+          ...mockRecord,
+          message: {
+            ...mockRecord.message,
+            from: {
+              id: mockRecord.message.from.id,
+              username: "mock-username",
+            },
+          },
+        };
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await groupMessageCreatedSnsProcessorService.processRecord(mockRecordTwo);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockUserIdTwo,
+            event: PushNotificationEvent.GroupMessageCreated,
+            title: "New Message Received",
+            body: `Message from ${mockRecordTwo.message.from.username} in ${mockGroup.name}`,
+          });
+        });
+      });
+
+      describe("when from.realName and from.username aren't defined, but from.email is", () => {
+        const mockRecordTwo = {
+          ...mockRecord,
+          message: {
+            ...mockRecord.message,
+            from: {
+              id: mockRecord.message.from.id,
+              email: "mock-email",
+            },
+          },
+        };
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await groupMessageCreatedSnsProcessorService.processRecord(mockRecordTwo);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockUserIdTwo,
+            event: PushNotificationEvent.GroupMessageCreated,
+            title: "New Message Received",
+            body: `Message from ${mockRecordTwo.message.from.email} in ${mockGroup.name}`,
+          });
+        });
+      });
+
+      describe("when from.realName, from.username and from.email aren't defined, but from.phone is", () => {
+        const mockRecordTwo = {
+          ...mockRecord,
+          message: {
+            ...mockRecord.message,
+            from: {
+              id: mockRecord.message.from.id,
+              phone: "mock-phone",
+            },
+          },
+        };
+        it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+          await groupMessageCreatedSnsProcessorService.processRecord(mockRecordTwo);
+
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+          expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+            userId: mockUserIdTwo,
+            event: PushNotificationEvent.GroupMessageCreated,
+            title: "New Message Received",
+            body: `Message from ${mockRecordTwo.message.from.phone} in ${mockGroup.name}`,
+          });
+        });
       });
 
       it("calls webSocketMediatorService.sendMessage with the correct parameters", async () => {

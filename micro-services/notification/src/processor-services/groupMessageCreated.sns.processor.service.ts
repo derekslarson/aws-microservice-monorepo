@@ -5,6 +5,8 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { WebSocketEvent } from "../enums/webSocket.event.enum";
+import { PushNotificationMediatorServiceInterface } from "../mediator-services/pushNotification.mediator.service";
+import { PushNotificationEvent } from "../enums/pushNotification.event.enum";
 
 @injectable()
 export class GroupMessageCreatedSnsProcessorService implements SnsProcessorServiceInterface {
@@ -13,6 +15,7 @@ export class GroupMessageCreatedSnsProcessorService implements SnsProcessorServi
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.WebSocketMediatorServiceInterface) private webSocketMediatorService: WebSocketMediatorServiceInterface,
+    @inject(TYPES.PushNotificationMediatorServiceInterface) private pushNotificationMediatorService: PushNotificationMediatorServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: GroupMessageCreatedSnsProcessorServiceConfigInterface,
   ) {
     this.groupMessageCreatedSnsTopicArn = envConfig.snsTopicArns.groupMessageCreated;
@@ -36,13 +39,24 @@ export class GroupMessageCreatedSnsProcessorService implements SnsProcessorServi
 
       const { message: { groupMemberIds, to, from, message } } = record;
 
-      await Promise.all(groupMemberIds.map((userId) => this.webSocketMediatorService.sendMessage({
-        userId,
-        event: WebSocketEvent.GroupMessageCreated,
-        data: { to, from, message },
-      })));
+      const senderName = from.realName || from.username || from.email || from.phone as string;
 
-      // add support for push notifications
+      const memberIdsOtherThanSender = groupMemberIds.filter((groupMemberId) => groupMemberId !== from.id);
+
+      await Promise.allSettled([
+        ...memberIdsOtherThanSender.map((memberId) => this.pushNotificationMediatorService.sendPushNotification({
+          userId: memberId,
+          event: PushNotificationEvent.GroupMessageCreated,
+          title: "New Message Received",
+          body: `Message from ${senderName} in ${to.name}`,
+        })),
+        ...groupMemberIds.map((userId) => this.webSocketMediatorService.sendMessage({
+          userId,
+          event: WebSocketEvent.GroupMessageCreated,
+          data: { to, from, message },
+        })),
+      ]);
+
       // add support for http integrations
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
