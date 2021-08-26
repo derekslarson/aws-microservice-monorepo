@@ -5,6 +5,8 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { WebSocketEvent } from "../enums/webSocket.event.enum";
+import { PushNotificationMediatorServiceInterface } from "../mediator-services/pushNotification.mediator.service";
+import { PushNotificationEvent } from "../enums/pushNotification.event.enum";
 
 @injectable()
 export class UserAddedToTeamSnsProcessorService implements SnsProcessorServiceInterface {
@@ -13,6 +15,7 @@ export class UserAddedToTeamSnsProcessorService implements SnsProcessorServiceIn
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.WebSocketMediatorServiceInterface) private webSocketMediatorService: WebSocketMediatorServiceInterface,
+    @inject(TYPES.PushNotificationMediatorServiceInterface) private pushNotificationMediatorService: PushNotificationMediatorServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserAddedToTeamSnsProcessorServiceConfigInterface,
   ) {
     this.userAddedToTeamSnsTopicArn = envConfig.snsTopicArns.userAddedToTeam;
@@ -36,13 +39,20 @@ export class UserAddedToTeamSnsProcessorService implements SnsProcessorServiceIn
 
       const { message: { team, user, teamMemberIds } } = record;
 
-      await Promise.all(teamMemberIds.map((teamMemberId) => this.webSocketMediatorService.sendMessage({
-        userId: teamMemberId,
-        event: WebSocketEvent.UserAddedToTeam,
-        data: { team, user },
-      })));
+      await Promise.allSettled([
+        this.pushNotificationMediatorService.sendPushNotification({
+          userId: user.id,
+          event: PushNotificationEvent.UserAddedToTeam,
+          title: "Added to Team",
+          body: `You've been added to the team ${team.name}`,
+        }),
+        ...teamMemberIds.map((teamMemberId) => this.webSocketMediatorService.sendMessage({
+          userId: teamMemberId,
+          event: WebSocketEvent.UserAddedToTeam,
+          data: { team, user },
+        })),
+      ]);
 
-      // add support for push notifications
       // add support for http integrations
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
