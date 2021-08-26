@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User, Group } from "@yac/util";
+import { PushNotificationEvent } from "../../enums/pushNotification.event.enum";
 import { WebSocketEvent } from "../../enums/webSocket.event.enum";
+import { PushNotificationMediatorService, PushNotificationMediatorServiceInterface } from "../../mediator-services/pushNotification.mediator.service";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../../mediator-services/webSocket.mediator.service";
 import { UserAddedToGroupSnsProcessorService } from "../userAddedToGroup.sns.processor.service";
 
 describe("UserAddedToGroupSnsProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let webSocketMediatorService: Spied<WebSocketMediatorServiceInterface>;
+  let pushNotificationMediatorService: Spied<PushNotificationMediatorServiceInterface>;
   let userAddedToGroupSnsProcessorService: SnsProcessorServiceInterface;
 
   const mockUserAddedToGroupSnsTopicArn = "mock-user-added-to-group-sns-topic-arn";
@@ -41,8 +44,9 @@ describe("UserAddedToGroupSnsProcessorService", () => {
   beforeEach(() => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     webSocketMediatorService = TestSupport.spyOnClass(WebSocketMediatorService);
+    pushNotificationMediatorService = TestSupport.spyOnClass(PushNotificationMediatorService);
 
-    userAddedToGroupSnsProcessorService = new UserAddedToGroupSnsProcessorService(loggerService, webSocketMediatorService, mockConfig);
+    userAddedToGroupSnsProcessorService = new UserAddedToGroupSnsProcessorService(loggerService, webSocketMediatorService, pushNotificationMediatorService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
@@ -74,6 +78,18 @@ describe("UserAddedToGroupSnsProcessorService", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         webSocketMediatorService.sendMessage.and.returnValue(Promise.resolve());
+      });
+
+      it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+        await userAddedToGroupSnsProcessorService.processRecord(mockRecord);
+
+        expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+        expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+          userId: mockUserIdOne,
+          event: PushNotificationEvent.UserAddedToGroup,
+          title: "Added to Group",
+          body: `You've been added to the group ${mockGroup.name}`,
+        });
       });
 
       it("calls webSocketMediatorService.sendMessage with the correct parameters", async () => {

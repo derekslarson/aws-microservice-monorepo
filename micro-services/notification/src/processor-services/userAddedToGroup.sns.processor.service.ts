@@ -5,6 +5,8 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { WebSocketEvent } from "../enums/webSocket.event.enum";
+import { PushNotificationMediatorServiceInterface } from "../mediator-services/pushNotification.mediator.service";
+import { PushNotificationEvent } from "../enums/pushNotification.event.enum";
 
 @injectable()
 export class UserAddedToGroupSnsProcessorService implements SnsProcessorServiceInterface {
@@ -13,6 +15,7 @@ export class UserAddedToGroupSnsProcessorService implements SnsProcessorServiceI
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.WebSocketMediatorServiceInterface) private webSocketMediatorService: WebSocketMediatorServiceInterface,
+    @inject(TYPES.PushNotificationMediatorServiceInterface) private pushNotificationMediatorService: PushNotificationMediatorServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserAddedToGroupSnsProcessorServiceConfigInterface,
   ) {
     this.userAddedToGroupSnsTopicArn = envConfig.snsTopicArns.userAddedToGroup;
@@ -36,13 +39,20 @@ export class UserAddedToGroupSnsProcessorService implements SnsProcessorServiceI
 
       const { message: { group, user, groupMemberIds } } = record;
 
-      await Promise.all(groupMemberIds.map((groupMemberId) => this.webSocketMediatorService.sendMessage({
-        userId: groupMemberId,
-        event: WebSocketEvent.UserAddedToGroup,
-        data: { group, user },
-      })));
+      await Promise.allSettled([
+        this.pushNotificationMediatorService.sendPushNotification({
+          userId: user.id,
+          event: PushNotificationEvent.UserAddedToGroup,
+          title: "Added to Group",
+          body: `You've been added to the group ${group.name}`,
+        }),
+        ...groupMemberIds.map((groupMemberId) => this.webSocketMediatorService.sendMessage({
+          userId: groupMemberId,
+          event: WebSocketEvent.UserAddedToGroup,
+          data: { group, user },
+        })),
+      ]);
 
-      // add support for push notifications
       // add support for http integrations
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
