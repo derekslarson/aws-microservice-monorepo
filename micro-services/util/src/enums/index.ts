@@ -5,3 +5,4 @@ export * from "./logLevel.enum";
 export * from "./statusCode.enum";
 export * from "./request.portion.enum";
 export * from "./role.enum";
+export * from "./message.mimeType.enum";

@@ -32,7 +32,6 @@ import { GroupMessageCreatedDynamoProcessorService } from "../processor-services
 import { GroupCreatedDynamoProcessorService } from "../processor-services/groupCreated.dynamo.processor.service";
 import { ImageFileCreatedS3ProcessorService } from "../processor-services/imageFileCreated.s3.processor.service";
 import { MeetingMessageCreatedDynamoProcessorService } from "../processor-services/meetingMessageCreated.dynamo.processor.service";
-import { MessageFileCreatedS3ProcessorService } from "../processor-services/messageFileCreated.s3.processor.service";
 import { TeamCreatedDynamoProcessorService } from "../processor-services/teamCreated.dynamo.processor.service";
 import { UserAddedAsFriendDynamoProcessorService } from "../processor-services/userAddedAsFriend.dynamo.processor.service";
 import { UserAddedToGroupDynamoProcessorService } from "../processor-services/userAddedToGroup.dynamo.processor.service";
@@ -73,6 +72,8 @@ import { GroupMessageUpdatedSnsService, GroupMessageUpdatedSnsServiceInterface }
 import { GroupMessageUpdatedDynamoProcessorService } from "../processor-services/groupMessageUpdated.dynamo.processor.service";
 import { MeetingMessageUpdatedSnsService, MeetingMessageUpdatedSnsServiceInterface } from "../sns-services/meetingMessageUpdated.sns.service";
 import { MeetingMessageUpdatedDynamoProcessorService } from "../processor-services/meetingMessageUpdated.dynamo.processor.service";
+import { MessageTranscodedSnsProcessorService } from "../processor-services/messageTranscoded.sns.processor.service";
+import { MessageTranscribedSnsProcessorService } from "../processor-services/messageTranscribed.sns.processor.service";
 
 const container = new Container();
 
@@ -105,7 +106,10 @@ try {
 
   // S3 Processor Services
   container.bind<S3ProcessorServiceInterface>(TYPES.ImageFileCreatedS3ProcessorServiceInterface).to(ImageFileCreatedS3ProcessorService);
-  container.bind<S3ProcessorServiceInterface>(TYPES.MessageFileCreatedS3ProcessorServiceInterface).to(MessageFileCreatedS3ProcessorService);
+
+  // SNS Processor Services
+  container.bind<SnsProcessorServiceInterface>(TYPES.MessageTranscodedSnsProcessorServiceInterface).to(MessageTranscodedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.MessageTranscribedSnsProcessorServiceInterface).to(MessageTranscribedSnsProcessorService);
 
   // Dynamo Processor Services
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserCreatedDynamoProcessorServiceInterface).to(UserCreatedDynamoProcessorService);
@@ -172,11 +176,13 @@ try {
   container.bind<IdenticonFactory>(TYPES.IdenticonFactory).toFactory(() => identiconFactory);
 
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)
-  container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([]);
+  container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
+    container.get(TYPES.MessageTranscodedSnsProcessorServiceInterface),
+    container.get(TYPES.MessageTranscribedSnsProcessorServiceInterface),
+  ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([
     container.get(TYPES.ImageFileCreatedS3ProcessorServiceInterface),
-    container.get(TYPES.MessageFileCreatedS3ProcessorServiceInterface),
   ]);
 
   container.bind<DynamoProcessorServiceInterface[]>(TYPES.DynamoProcessorServicesInterface).toConstantValue([

@@ -5,7 +5,8 @@ export const envConfig: EnvConfigInterface = {
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   tableNames: { core: process.env.CORE_TABLE_NAME || "" },
   bucketNames: {
-    message: process.env.MESSAGE_S3_BUCKET_NAME || "",
+    rawMessage: process.env.RAW_MESSAGE_S3_BUCKET_NAME || "",
+    enhancedMessage: process.env.ENHANCED_MESSAGE_S3_BUCKET_NAME || "",
     image: process.env.IMAGE_S3_BUCKET_NAME || "",
   },
   snsTopicArns: {
@@ -26,6 +27,8 @@ export const envConfig: EnvConfigInterface = {
     groupMessageUpdated: process.env.GROUP_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
     meetingMessageCreated: process.env.MEETING_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
     meetingMessageUpdated: process.env.MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
+    messageTranscoded: process.env.MESSAGE_TRANSCODED_SNS_TOPIC_ARN || "",
+    messageTranscribed: process.env.MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN || "",
   },
   globalSecondaryIndexNames: {
     one: process.env.GSI_ONE_INDEX_NAME || "",
@@ -56,9 +59,12 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     groupMessageUpdated: string;
     meetingMessageCreated: string;
     meetingMessageUpdated: string;
+    messageTranscoded: string;
+    messageTranscribed: string;
   };
   bucketNames: {
-    message: string;
+    rawMessage: string;
+    enhancedMessage: string;
     image: string;
   };
   globalSecondaryIndexNames: {

@@ -307,7 +307,7 @@ export interface Message {
   reactions: Record<string, UserId[]>;
   replyCount: number;
   mimeType: MessageMimeType;
-  transcript?: string;
+  transcript: string;
   replyTo?: MessageId;
 }
 

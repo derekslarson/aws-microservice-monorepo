@@ -51,6 +51,9 @@ export class YacUtilServiceStack extends CDK.Stack {
     // We need to define this here so that it can be accessed in core as well as the message streaming service
     const messageS3Bucket = new S3.Bucket(this, `MessageS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
 
+    const rawMessageS3Bucket = new S3.Bucket(this, `RawMessageS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
+    const enhancedMessageS3Bucket = new S3.Bucket(this, `EnhancedMessageS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
+
     // SNS Topics
     const clientsUpdatedSnsTopic = new SNS.Topic(this, `ClientsUpdatedSnsTopic_${id}`, { topicName: `ClientsUpdatedSnsTopic_${id}` });
     const userCreatedSnsTopic = new SNS.Topic(this, `UserCreatedSnsTopic_${id}`, { topicName: `UserCreatedSnsTopic_${id}` });
@@ -70,6 +73,8 @@ export class YacUtilServiceStack extends CDK.Stack {
     const groupMessageUpdatedSnsTopic = new SNS.Topic(this, `GroupMessageUpdatedSnsTopic_${id}`, { topicName: `GroupMessageUpdatedSnsTopic_${id}` });
     const meetingMessageCreatedSnsTopic = new SNS.Topic(this, `MeetingMessageCreatedSnsTopic_${id}`, { topicName: `MeetingMessageCreatedSnsTopic_${id}` });
     const meetingMessageUpdatedSnsTopic = new SNS.Topic(this, `MeetingMessageUpdatedSnsTopic_${id}`, { topicName: `MeetingMessageUpdatedSnsTopic_${id}` });
+    const messageTranscodedSnsTopic = new SNS.Topic(this, `MessageTranscodedSnsTopic_${id}`, { topicName: `MessageTranscodedSnsTopic_${id}` });
+    const messageTranscribedSnsTopic = new SNS.Topic(this, `MessageTranscribedSnsTopic_${id}`, { topicName: `MessageTranscribedSnsTopic_${id}` });
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
@@ -179,9 +184,29 @@ export class YacUtilServiceStack extends CDK.Stack {
       value: meetingMessageUpdatedSnsTopic.topicArn,
     });
 
+    new CDK.CfnOutput(this, `MessageTranscodedSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.MessageTranscodedSnsTopicArn,
+      value: messageTranscodedSnsTopic.topicArn,
+    });
+
+    new CDK.CfnOutput(this, `MessageTranscribedSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.MessageTranscribedSnsTopicArn,
+      value: messageTranscribedSnsTopic.topicArn,
+    });
+
     new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {
       exportName: ExportNames.MessageS3BucketArn,
       value: messageS3Bucket.bucketArn,
+    });
+
+    new CDK.CfnOutput(this, `RawMessageS3BucketArnExport_${id}`, {
+      exportName: ExportNames.RawMessageS3BucketArn,
+      value: rawMessageS3Bucket.bucketArn,
+    });
+
+    new CDK.CfnOutput(this, `EnhancedMessageS3BucketArnExport_${id}`, {
+      exportName: ExportNames.EnhancedMessageS3BucketArn,
+      value: enhancedMessageS3Bucket.bucketArn,
     });
 
     // SSM Parameters (to be imported in e2e tests)
@@ -263,6 +288,16 @@ export class YacUtilServiceStack extends CDK.Stack {
     new SSM.StringParameter(this, `MeetingMessageUpdatedSsmParameter_${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/meeting-message-updated-sns-topic-arn`,
       stringValue: meetingMessageUpdatedSnsTopic.topicArn,
+    });
+
+    new SSM.StringParameter(this, `MessageTranscodedSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/message-transcoded-sns-topic-arn`,
+      stringValue: messageTranscodedSnsTopic.topicArn,
+    });
+
+    new SSM.StringParameter(this, `MessageTranscribedSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/message-transcribed-sns-topic-arn`,
+      stringValue: messageTranscribedSnsTopic.topicArn,
     });
   }
 

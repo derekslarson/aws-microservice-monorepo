@@ -27,8 +27,12 @@ const ExportNames = {
   MeetingMessageCreatedSnsTopicArn: "meetingMessageCreatedSnsTopicArn",
   MeetingMessageUpdatedSnsTopicArn: "meetingMessageUpdatedSnsTopicArn",
   PushNotificationFailedSnsTopicArn: "pushNotificationFailedSnsTopicArn",
+  MessageTranscodedSnsTopicArn: "messageTranscodedSnsTopicArn",
+  MessageTranscribedSnsTopicArn: "messageTranscribedSnsTopicArn",
   CoreTableName: "coreTableName",
   MessageS3BucketArn: "messageS3BucketArn",
+  RawMessageS3BucketArn: "rawMessageS3BucketArn",
+  EnhancedMessageS3BucketArn: "enhancedMessageS3BucketArn",
 };
 
 export function generateExportNames(id: string): Readonly<typeof ExportNames> {

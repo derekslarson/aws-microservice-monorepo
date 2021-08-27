@@ -121,46 +121,47 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
     });
 
     describe("after a file is uploaded to the 'uploadUrl' in the response", () => {
-      it("a creates a valid Message entity", async () => {
+      fit("a creates a valid Message entity", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
-        const body = { mimeType };
+        const body = { mimeType: MessageMimeType.AudioMp4 };
 
         try {
           const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
 
-          const file = readFileSync(`${process.cwd()}/e2e/test-message.mp3`);
+          console.log({ to: toUser.id, from: userId, accessToken, ...data });
+          // const file = readFileSync(`${process.cwd()}/e2e/test-message.mp3`);
 
-          const uploadHeaders = { "content-type": mimeType };
-          const uploadBody = { data: file };
+          // const uploadHeaders = { "content-type": mimeType };
+          // const uploadBody = { data: file };
 
-          await axios.put(data.pendingMessage.uploadUrl, uploadBody, { headers: uploadHeaders });
+          // await axios.put(data.pendingMessage.uploadUrl, uploadBody, { headers: uploadHeaders });
 
-          await wait(3000);
+          // await wait(10000);
 
-          const { message } = await backoff(() => getMessage({ messageId: data.pendingMessage.id }), (res) => !!res.message);
+          // const { message } = await backoff(() => getMessage({ messageId: data.pendingMessage.id }), (res) => !!res.message);
 
-          expect(message).toEqual({
-            entityType: EntityType.Message,
-            pk: data.pendingMessage.id,
-            sk: data.pendingMessage.id,
-            gsi1pk: friendship.id,
-            gsi1sk: data.pendingMessage.id,
-            id: data.pendingMessage.id,
-            mimeType,
-            createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
-            conversationId: friendship.id,
-            seenAt: {
-              [userId]: jasmine.stringMatching(ISO_DATE_REGEX),
-              [toUser.id]: null,
-            },
-            reactions: { },
-            from: userId,
-            replyCount: 0,
-          });
+          // expect(message).toEqual({
+          //   entityType: EntityType.Message,
+          //   pk: data.pendingMessage.id,
+          //   sk: data.pendingMessage.id,
+          //   gsi1pk: friendship.id,
+          //   gsi1sk: data.pendingMessage.id,
+          //   id: data.pendingMessage.id,
+          //   mimeType,
+          //   createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+          //   conversationId: friendship.id,
+          //   seenAt: {
+          //     [userId]: jasmine.stringMatching(ISO_DATE_REGEX),
+          //     [toUser.id]: null,
+          //   },
+          //   reactions: { },
+          //   from: userId,
+          //   replyCount: 0,
+          // });
         } catch (error) {
           fail(error);
         }
-      });
+      }, 60000);
 
       it("a deletes the PendingMessage entity", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };

@@ -19,7 +19,7 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("createMessage called", { params }, this.constructor.name);
 
-      const { messageId, conversationId, from, mimeType, seenAt, replyTo } = params;
+      const { messageId, conversationId, from, mimeType, seenAt, transcript, replyTo } = params;
 
       const message: MessageEntity = {
         id: messageId,
@@ -28,6 +28,7 @@ export class MessageService implements MessageServiceInterface {
         seenAt,
         replyTo,
         mimeType,
+        transcript,
         createdAt: new Date().toISOString(),
         replyCount: 0,
         reactions: {},
@@ -166,6 +167,7 @@ export interface CreateMessageInput {
   from: UserId;
   seenAt: Record<UserId, string | null>;
   mimeType: MessageMimeType;
+  transcript: string;
   replyTo?: MessageId;
 }
 

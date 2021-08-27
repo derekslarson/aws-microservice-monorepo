@@ -9,7 +9,7 @@ import { LoggerService, LoggerServiceInterface } from "../services/logger.servic
 // import { UserSignedUpSnsService, UserSignedUpSnsServiceInterface } from "../services/userSignedUp.sns.service";
 import { ValidationService, ValidationServiceInterface } from "../services/validation.service";
 import { ValidationServiceV2, ValidationServiceV2Interface } from "../services/validation.service.v2";
-import { MessageS3Repository, MessageFileRepositoryInterface } from "../repositories/message.s3.repository";
+import { RawMessageS3Repository, RawMessageFileRepositoryInterface } from "../repositories/rawMessage.s3.repository";
 
 import { axiosFactory, AxiosFactory } from "../factories/axios.factory";
 import { classTransformerFactory, ClassTransformerFactory } from "../factories/classTransformer.factory";
@@ -25,6 +25,7 @@ import { uuidV4Factory, UuidV4Factory } from "../factories/uuidV4.factory";
 import { S3EventController, S3EventControllerInterface } from "../controllers/s3Event.controller";
 import { DynamoStreamController, DynamoStreamControllerInterface } from "../controllers/dynamoStream.controller";
 import { SmsService, SmsServiceInterface } from "../services/sms.service";
+import { EnhancedMessageFileRepositoryInterface, EnhancedMessageS3Repository } from "../repositories/enhancedMessage.s3.repository";
 
 const coreContainerModule = new ContainerModule((bind) => {
   try {
@@ -40,7 +41,8 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
     bind<ValidationServiceV2Interface>(TYPES.ValidationServiceV2Interface).to(ValidationServiceV2);
 
-    bind<MessageFileRepositoryInterface>(TYPES.MessageFileRepositoryInterface).to(MessageS3Repository);
+    bind<EnhancedMessageFileRepositoryInterface>(TYPES.EnhancedMessageFileRepositoryInterface).to(EnhancedMessageS3Repository);
+    bind<RawMessageFileRepositoryInterface>(TYPES.RawMessageFileRepositoryInterface).to(RawMessageS3Repository);
 
     bind<AxiosFactory>(TYPES.AxiosFactory).toFactory(() => axiosFactory);
     bind<ClassTransformerFactory>(TYPES.ClassTransformerFactory).toFactory(() => classTransformerFactory);
