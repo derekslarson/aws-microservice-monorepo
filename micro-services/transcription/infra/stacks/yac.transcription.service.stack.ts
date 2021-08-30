@@ -5,6 +5,8 @@ import * as SSM from "@aws-cdk/aws-ssm";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as S3 from "@aws-cdk/aws-s3";
 import * as SNS from "@aws-cdk/aws-sns";
+import * as EventBridge from "@aws-cdk/aws-events";
+import * as EventBridgeTargets from "@aws-cdk/aws-events-targets";
 import { Environment, generateExportNames, LogLevel } from "@yac/util";
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 
@@ -37,6 +39,10 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
     const enhancedMessageS3Bucket = S3.Bucket.fromBucketArn(this, `EnhancedMessageS3Bucket_${id}`, enhancedMessageS3BucketArn);
     const transcriptionS3Bucket = new S3.Bucket(this, `TranscriptionS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
 
+    // SNS Topics
+    const transcriptionJobCompletedSnsTopic = new SNS.Topic(this, `TranscriptionJobCompleted_${id}`, { topicName: `TranscriptionJobCompleted_${id}` });
+    const transcriptionJobFailedSnsTopic = new SNS.Topic(this, `TranscriptionJobFailed_${id}`, { topicName: `TranscriptionJobFailed_${id}` });
+
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
       compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
@@ -68,6 +74,7 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
+      ENVIRONMENT: stackPrefix,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       AUDO_AI_API_DOMAIN: "https://api.audo.ai",
       AUDO_AI_API_KEY: audoAiApiKey,
@@ -75,24 +82,12 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
       TRANSCRIPTION_S3_BUCKET_NAME: transcriptionS3Bucket.bucketName,
       MESSAGE_TRANSCODED_SNS_TOPIC_ARN: messageTranscodedSnsTopicArn,
       MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN: messageTranscribedSnsTopicArn,
+      TRANSCRIPTION_JOB_COMPLETED_SNS_TOPIC_ARN: transcriptionJobCompletedSnsTopic.topicArn,
+      TRANSCRIPTION_JOB_FAILED_SNS_TOPIC_ARN: transcriptionJobFailedSnsTopic.topicArn,
 
     };
 
     // Lambdas
-    new Lambda.Function(this, `S3EventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/s3Event"),
-      handler: "s3Event.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      memorySize: 2048,
-      initialPolicy: [ ...basePolicy, transcriptionS3BucketFullAccessPolicyStatement, messageTranscribedSnsPublishPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-      events: [
-        new LambdaEventSources.S3EventSource(transcriptionS3Bucket, { events: [ S3.EventType.OBJECT_CREATED ] }),
-      ],
-    });
-
     new Lambda.Function(this, `SnsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
@@ -100,11 +95,52 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, enhancedMessageS3BucketFullAccessPolicyStatement, transcriptionS3BucketFullAccessPolicyStatement, startTranscriptionJobPolicyStatement ],
+      initialPolicy: [ ...basePolicy, enhancedMessageS3BucketFullAccessPolicyStatement, transcriptionS3BucketFullAccessPolicyStatement, startTranscriptionJobPolicyStatement, messageTranscribedSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn)),
+        new LambdaEventSources.SnsEventSource(transcriptionJobCompletedSnsTopic),
+        new LambdaEventSources.SnsEventSource(transcriptionJobFailedSnsTopic),
       ],
+    });
+
+    new EventBridge.Rule(this, `TranscriptionJobCompletedEvent_${id}`, {
+      targets: [ new EventBridgeTargets.SnsTopic(transcriptionJobCompletedSnsTopic) ],
+      eventPattern: {
+        source: [ "aws.transcribe" ],
+        detailType: [ "Transcribe Job State Change" ],
+        detail: {
+          TranscriptionJobName: [ { prefix: `${stackPrefix}_` } ],
+          TranscriptionJobStatus: [ "COMPLETED" ],
+        },
+      },
+    });
+
+    new EventBridge.Rule(this, `TranscriptionJobFailedEvent_${id}`, {
+      targets: [ new EventBridgeTargets.SnsTopic(transcriptionJobCompletedSnsTopic) ],
+      eventPattern: {
+        source: [ "aws.transcribe" ],
+        detailType: [ "Transcribe Job State Change" ],
+        detail: {
+          TranscriptionJobName: [ { prefix: `${stackPrefix}_` } ],
+          TranscriptionJobStatus: [ "FAILED" ],
+        },
+      },
+    });
+
+    new SSM.StringParameter(this, `TranscriptionS3BucketNameSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/transcription-s3-bucket-name`,
+      stringValue: transcriptionS3Bucket.bucketName,
+    });
+
+    new SSM.StringParameter(this, `TranscriptionJobCompletedSnsTopicArnSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/transcription-job-completed-sns-topic-arn`,
+      stringValue: transcriptionJobCompletedSnsTopic.topicArn,
+    });
+
+    new SSM.StringParameter(this, `TranscriptionJobFailedSnsTopicArnSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/transcription-job-failed-sns-topic-arn`,
+      stringValue: transcriptionJobFailedSnsTopic.topicArn,
     });
   }
 }

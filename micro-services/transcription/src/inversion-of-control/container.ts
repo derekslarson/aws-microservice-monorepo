@@ -3,7 +3,8 @@ import { Container } from "inversify";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { transcribeFactory, TranscribeFactory } from "../factories/transcribe.factory";
 import { MessageTranscodedSnsProcessorService } from "../processor-services/messageTranscoded.sns.processor.service";
-import { TranscriptionFileCreatedS3ProcessorService } from "../processor-services/transcriptionFileCreated.s3.processor.service";
+import { TranscriptionJobCompletedSnsProcessorService } from "../processor-services/transcriptionJobCompleted.sns.processor.service";
+import { TranscriptionJobFailedSnsProcessorService } from "../processor-services/transcriptionJobFailed.sns.processor.services";
 import { TranscriptionFileRepositoryInterface, TranscriptionS3Repository } from "../repositories/transcriptionFile.repository";
 import { TranscriptionService, TranscriptionServiceInterface } from "../services/transcription.service";
 import { MessageTranscribedSnsService, MessageTranscribedSnsServiceInterface } from "../sns-services/messageTranscribed.sns.service";
@@ -23,11 +24,10 @@ try {
   // SNS Services
   container.bind<MessageTranscribedSnsServiceInterface>(TYPES.MessageTranscribedSnsServiceInterface).to(MessageTranscribedSnsService);
 
-  // S3 Processor Services
-  container.bind<S3ProcessorServiceInterface>(TYPES.TranscriptionFileCreatedS3ProcessorServiceInterface).to(TranscriptionFileCreatedS3ProcessorService);
-
   // SNS Processor Services
   container.bind<SnsProcessorServiceInterface>(TYPES.MessageTranscodedSnsProcessorServiceInterface).to(MessageTranscodedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.TranscriptionJobCompletedSnsProcessorServiceInterface).to(TranscriptionJobCompletedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.TranscriptionJobFailedSnsProcessorServiceInterface).to(TranscriptionJobFailedSnsProcessorService);
 
   // Repositories
   container.bind<TranscriptionFileRepositoryInterface>(TYPES.TranscriptionFileRepositoryInterface).to(TranscriptionS3Repository);
@@ -38,11 +38,11 @@ try {
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
     container.get(TYPES.MessageTranscodedSnsProcessorServiceInterface),
+    container.get(TYPES.TranscriptionJobCompletedSnsProcessorServiceInterface),
+    container.get(TYPES.TranscriptionJobFailedSnsProcessorServiceInterface),
   ]);
 
-  container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([
-    container.get(TYPES.TranscriptionFileCreatedS3ProcessorServiceInterface),
-  ]);
+  container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([]);
 
   container.bind<DynamoProcessorServiceInterface[]>(TYPES.DynamoProcessorServicesInterface).toConstantValue([]);
 } catch (error: unknown) {

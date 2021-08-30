@@ -9,11 +9,10 @@ const TYPES = {
   // SNS Services
   MessageTranscribedSnsServiceInterface: Symbol.for("MessageTranscribedSnsServiceInterface"),
 
-  // S3 Processor Services
+  // SNS Processor Services
   MessageTranscodedSnsProcessorServiceInterface: Symbol.for("MessageTranscodedSnsProcessorServiceInterface"),
-
-  // S3 Processor Services
-  TranscriptionFileCreatedS3ProcessorServiceInterface: Symbol.for("TranscriptionFileCreatedS3ProcessorServiceInterface"),
+  TranscriptionJobCompletedSnsProcessorServiceInterface: Symbol.for("TranscriptionJobCompletedSnsProcessorServiceInterface"),
+  TranscriptionJobFailedSnsProcessorServiceInterface: Symbol.for("TranscriptionJobFailedSnsProcessorServiceInterface"),
 
   // Repositories
   TranscriptionFileRepositoryInterface: Symbol.for("TranscriptionFileRepositoryInterface"),

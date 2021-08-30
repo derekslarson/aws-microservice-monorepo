@@ -14,8 +14,12 @@ if (!environment) {
   throw new Error("--environment is required");
 }
 
-const necessaryParams = [];
-
+const necessaryParams = [
+  "transcoding-testing-table-name",
+  "message-transcoded-sns-topic-arn",
+  "raw-message-s3-bucket-name",
+  "enhanced-message-s3-bucket-name",
+];
 (async () => {
   const initialEnvVals = await getSsmParameters(environment, necessaryParams);
 

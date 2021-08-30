@@ -33,9 +33,9 @@ export class MessageTranscodedSnsProcessorService implements SnsProcessorService
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { message: { key } } = record;
+      const { message: { key, messageId } } = record;
 
-      await this.transcriptionService.startTranscriptionJob({ key });
+      await this.transcriptionService.startTranscriptionJob({ messageFileKey: key, messageId });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

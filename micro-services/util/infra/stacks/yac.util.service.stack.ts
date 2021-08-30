@@ -299,6 +299,16 @@ export class YacUtilServiceStack extends CDK.Stack {
       parameterName: `/yac-api-v4/${stackPrefix}/message-transcribed-sns-topic-arn`,
       stringValue: messageTranscribedSnsTopic.topicArn,
     });
+
+    new SSM.StringParameter(this, `RawMessageS3BucketNameSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/raw-message-s3-bucket-name`,
+      stringValue: rawMessageS3Bucket.bucketName,
+    });
+
+    new SSM.StringParameter(this, `EnhancedMessageS3BucketNameSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/enhanced-message-s3-bucket-name`,
+      stringValue: enhancedMessageS3Bucket.bucketName,
+    });
   }
 
   public get recordName(): string {

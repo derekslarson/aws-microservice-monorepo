@@ -14,6 +14,8 @@ export class TranscriptionService implements TranscriptionServiceInterface {
 
   private transcriptionBucketName: string;
 
+  private environment: string;
+
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MessageTranscribedSnsServiceInterface) private messageTranscribedSnsService: MessageTranscribedSnsServiceInterface,
@@ -24,21 +26,21 @@ export class TranscriptionService implements TranscriptionServiceInterface {
     this.transcribe = transcribeFactory();
     this.messageBucketName = config.bucketNames.message;
     this.transcriptionBucketName = config.bucketNames.transcription;
+    this.environment = config.environment;
   }
 
   public async startTranscriptionJob(params: StartTranscriptionJobInput): Promise<StartTranscriptionJobOutput> {
     try {
       this.loggerService.trace("startTranscriptionJob called", { params }, this.constructor.name);
 
-      const { key } = params;
+      const { messageId, messageFileKey } = params;
 
-      const fileLocation = key.slice(0, key.lastIndexOf("/"));
-      const fileName = key.slice(key.lastIndexOf("/") + 1, key.lastIndexOf("."));
+      const transcriptionJobName = `${this.environment}_${messageId}`;
+      const mediaFileUri = `s3://${this.messageBucketName}/${messageFileKey}`;
 
       await this.transcribe.startTranscriptionJob({
-        TranscriptionJobName: fileName,
-        Media: { MediaFileUri: `s3://${this.messageBucketName}/${key}` },
-        OutputKey: `${fileLocation}/`,
+        TranscriptionJobName: transcriptionJobName,
+        Media: { MediaFileUri: mediaFileUri },
         OutputBucketName: this.transcriptionBucketName,
         IdentifyLanguage: true,
       }).promise();
@@ -49,13 +51,15 @@ export class TranscriptionService implements TranscriptionServiceInterface {
     }
   }
 
-  public async transcriptionJobComplete(params: TranscriptionJobCompleteInput): Promise<TranscriptionJobCompleteOutput> {
+  public async transcriptionJobCompleted(params: TranscriptionJobCompletedInput): Promise<TranscriptionJobCompletedOutput> {
     try {
-      this.loggerService.trace("startTranscriptionJob called", { params }, this.constructor.name);
+      this.loggerService.trace("transcriptionJobCompleted called", { params }, this.constructor.name);
 
-      const { key } = params;
+      const { transcriptionJobName } = params;
 
-      const { Body } = await this.transcriptionFileRepository.getObject({ key });
+      const transcriptionFileKey = `${transcriptionJobName}.json`;
+
+      const { Body } = await this.transcriptionFileRepository.getObject({ key: transcriptionFileKey });
 
       if (!Body) {
         throw new NotFoundError("Transcription file not found");
@@ -69,11 +73,24 @@ export class TranscriptionService implements TranscriptionServiceInterface {
 
       const { transcript: transcriptWithBreaks } = this.addSentenceBreaks({ transcript: transcriptWithReplacements });
 
-      const messageId = key.slice(key.lastIndexOf("/") + 1, key.lastIndexOf(".")) as MessageTranscodedSnsMessage["messageId"];
+      const messageId = transcriptionJobName.replace(`${this.environment}_`, "") as MessageTranscodedSnsMessage["messageId"];
 
       await this.messageTranscribedSnsService.sendMessage({ messageId, transcript: transcriptWithBreaks });
     } catch (error: unknown) {
-      this.loggerService.error("Error in transcriptionJobComplete", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in transcriptionJobCompleted", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async transcriptionJobFailed(params: TranscriptionJobFailedInput): Promise<TranscriptionJobFailedOutput> {
+    try {
+      this.loggerService.trace("transcriptionJobFailed called", { params }, this.constructor.name);
+
+      // TODO: Add error handling
+      await Promise.resolve();
+    } catch (error: unknown) {
+      this.loggerService.error("Error in transcriptionJobFailed", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -130,24 +147,33 @@ export class TranscriptionService implements TranscriptionServiceInterface {
 
 export interface TranscriptionServiceInterface {
   startTranscriptionJob(params: StartTranscriptionJobInput): Promise<StartTranscriptionJobOutput>;
-  transcriptionJobComplete(params: TranscriptionJobCompleteInput): Promise<TranscriptionJobCompleteOutput>;
+  transcriptionJobCompleted(params: TranscriptionJobCompletedInput): Promise<TranscriptionJobCompletedOutput>;
+  transcriptionJobFailed(params: TranscriptionJobFailedInput): Promise<TranscriptionJobFailedOutput>;
 }
 
 export interface TranscriptionServiceConfig {
+  environment: EnvConfigInterface["environment"];
   bucketNames: Pick<EnvConfigInterface["bucketNames"], "message" | "transcription">;
 }
 
 export interface StartTranscriptionJobInput {
-  key: string;
+  messageFileKey: string;
+  messageId: string;
 }
 
 export type StartTranscriptionJobOutput = void;
 
-export interface TranscriptionJobCompleteInput {
-  key: string;
+export interface TranscriptionJobCompletedInput {
+  transcriptionJobName: string;
 }
 
-export type TranscriptionJobCompleteOutput = void;
+export type TranscriptionJobCompletedOutput = void;
+
+export interface TranscriptionJobFailedInput {
+  transcriptionJobName: string;
+}
+
+export type TranscriptionJobFailedOutput = void;
 
 interface Transcript {
   transcript: string;

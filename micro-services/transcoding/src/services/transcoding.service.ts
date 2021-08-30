@@ -34,7 +34,7 @@ export class TranscodingService implements TranscodingServiceInterface {
       const keyWithoutExtension = key.slice(0, key.lastIndexOf("."));
       const outputExtension = isVideo ? "mp4" : "mp3";
       const outputKey = `${keyWithoutExtension}.${outputExtension}`;
-      const outputContentType = isVideo ? "video/mp4" : "audio/mpeg";
+      const outputContentType = isVideo ? MessageMimeType.VideoMp4 : MessageMimeType.AudioMp3;
 
       const { signedUrl: inputUrl } = this.rawMessageFileRepository.getSignedUrl({ operation: "getObject", key });
 

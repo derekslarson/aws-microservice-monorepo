@@ -60,10 +60,12 @@ export class YacTranscodingServiceStack extends CDK.Stack {
       resources: [ messageTranscodedSnsTopicArn ],
     });
 
+    const mockHttpIntegrationDomain = `https://${developer}.yacchat.com/transcoding-testing`;
+
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
-      AUDO_AI_API_DOMAIN: "https://api.audo.ai",
+      AUDO_AI_API_DOMAIN: environment === Environment.Local ? mockHttpIntegrationDomain : "https://api.audo.ai",
       AUDO_AI_API_KEY: audoAiApiKey,
       RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
       ENHANCED_MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,

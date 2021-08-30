@@ -14,10 +14,19 @@ if (!environment) {
   throw new Error("--environment is required");
 }
 
-const necessaryParams = [];
+const necessaryParams = [
+  "transcription-testing-table-name",
+  "message-transcoded-sns-topic-arn",
+  "message-transcribed-sns-topic-arn",
+  "transcription-job-completed-sns-topic-arn",
+  "transcription-job-failed-sns-topic-arn",
+  "enhanced-message-s3-bucket-name",
+  "transcription-s3-bucket-name",
+];
 
 (async () => {
   const initialEnvVals = await getSsmParameters(environment, necessaryParams);
+  initialEnvVals.environment = environment;
 
   setEnvVars(initialEnvVals);
 
