@@ -137,7 +137,7 @@ export interface GetPendingMessageOutput {
   pendingMessage: PendingMessage;
 }
 
-export type PendingMessageUpdates = Pick<PendingMessage, "mimeType">;
+export type PendingMessageUpdates = Partial<Pick<PendingMessage, "mimeType">>;
 export interface UpdatePendingMessageInput {
   pendingMessageId: PendingMessageId;
   updates: PendingMessageUpdates;
