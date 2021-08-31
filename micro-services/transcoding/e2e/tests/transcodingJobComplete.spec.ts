@@ -13,7 +13,7 @@ describe("Transcoding Job Complete", () => {
       await deleteSnsEventsByTopicArn({ topicArn: messageTranscodedSnsTopicArn });
     });
 
-    fit("publishes a message to the Message Transcoded SNS topic", async () => {
+    it("publishes a message to the Message Transcoded SNS topic", async () => {
       try {
         const mockConversationId = "mock-conversation-id";
         const mockMessageId = "mock-message-id";

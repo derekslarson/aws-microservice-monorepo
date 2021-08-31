@@ -3,7 +3,7 @@ import { backoff, sns } from "../../../../e2e/util";
 import { deleteSnsEventsByTopicArn, getSnsEventsByTopicArn, uploadTestTranscriptionFileIfNecessary } from "../util";
 import { TranscriptionJobCompletedEvent } from "../../src/processor-services/transcriptionJobCompleted.sns.processor.service";
 
-describe("Transcription Job Complete", () => {
+describe("Transcription Job Completed", () => {
   const transcriptionJobCompletedSnsTopicArn = process.env["transcription-job-completed-sns-topic-arn"] as string;
   const messageTranscribedTopicArn = process.env["message-transcribed-sns-topic-arn"] as string;
   const environment = process.env.environment as string;

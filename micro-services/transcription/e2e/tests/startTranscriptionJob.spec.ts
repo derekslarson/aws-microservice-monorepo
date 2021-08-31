@@ -11,12 +11,12 @@ describe("Start Transcription Job", () => {
   const fileExtension = "mp3";
   const jobName = `${environment}_${mockMessageId}`;
 
-  describe("when a message is published to the message transcoded SNS topic", () => {
+  describe("when a message is published to the Message Transcoded SNS topic", () => {
     beforeAll(async () => {
       await uploadTestMessageFileIfNecessary({ conversationId: mockConversationId, messageId: mockMessageId });
     });
 
-    fit("starts a transcription job", async () => {
+    it("starts a transcription job", async () => {
       try {
         const message: MessageTranscodedSnsMessage = {
           key: `${mockConversationId}/${mockMessageId}.${fileExtension}`,

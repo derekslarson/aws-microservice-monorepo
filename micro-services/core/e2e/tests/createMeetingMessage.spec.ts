@@ -1,16 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { MeetingMessageCreatedSnsMessage, Role } from "@yac/util";
+import { Role } from "@yac/util";
 import axios from "axios";
-import { readFileSync } from "fs";
-import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
+import { generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { PendingMessage } from "../../src/mediator-services/message.mediator.service";
 import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
-import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { MessageId } from "../../src/types/messageId.type";
 import { PendingMessageId } from "../../src/types/pendingMessageId.type";
 import { UserId } from "../../src/types/userId.type";
@@ -19,19 +16,14 @@ import {
   createMeetingConversation,
   createRandomUser,
   CreateRandomUserOutput,
-  deleteSnsEventsByTopicArn,
-  getConversationUserRelationship,
   getMessage,
   getPendingMessage,
-  getSnsEventsByTopicArn,
-  getUser,
 } from "../util";
 
 describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
-  const meetingMessageCreatedSnsTopicArn = process.env["meeting-message-created-sns-topic-arn"] as string;
 
   const mimeType = MessageMimeType.AudioMp3;
 
@@ -39,8 +31,6 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
     let otherUser: CreateRandomUserOutput["user"];
 
     let meeting: RawConversation<MeetingConversation>;
-    let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Meeting>;
-    let conversationUserRelationshipTwo: RawConversationUserRelationship<ConversationType.Meeting>;
 
     beforeEach(async () => {
       ([ { user: otherUser }, { conversation: meeting } ] = await Promise.all([
@@ -50,10 +40,10 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
 
       ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
-      ([ { conversationUserRelationship }, { conversationUserRelationship: conversationUserRelationshipTwo } ] = await Promise.all([
+      await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin }),
         createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId: otherUser.id, role: Role.User }),
-      ]));
+      ]);
     });
 
     it("returns a valid response", async () => {

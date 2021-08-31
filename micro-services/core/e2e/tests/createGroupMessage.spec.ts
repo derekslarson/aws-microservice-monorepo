@@ -1,16 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { GroupMessageCreatedSnsMessage, Role } from "@yac/util";
+import { Role } from "@yac/util";
 import axios from "axios";
-import { readFileSync } from "fs";
-import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
+import { generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { PendingMessage } from "../../src/mediator-services/message.mediator.service";
 import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
-import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { MessageId } from "../../src/types/messageId.type";
 import { PendingMessageId } from "../../src/types/pendingMessageId.type";
 import { UserId } from "../../src/types/userId.type";
@@ -19,19 +16,14 @@ import {
   createGroupConversation,
   createRandomUser,
   CreateRandomUserOutput,
-  deleteSnsEventsByTopicArn,
-  getConversationUserRelationship,
   getMessage,
   getPendingMessage,
-  getSnsEventsByTopicArn,
-  getUser,
 } from "../util";
 
 describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
-  const groupMessageCreatedSnsTopicArn = process.env["group-message-created-sns-topic-arn"] as string;
 
   const mimeType = MessageMimeType.AudioMp3;
 
@@ -39,8 +31,6 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
     let otherUser: CreateRandomUserOutput["user"];
 
     let group: RawConversation<GroupConversation>;
-    let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Group>;
-    let conversationUserRelationshipTwo: RawConversationUserRelationship<ConversationType.Group>;
 
     beforeEach(async () => {
       ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
@@ -48,10 +38,10 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
         createGroupConversation({ createdBy: userId, name: generateRandomString(5) }),
       ]));
 
-      ([ { conversationUserRelationship }, { conversationUserRelationship: conversationUserRelationshipTwo } ] = await Promise.all([
+      await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin }),
         createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId: otherUser.id, role: Role.User }),
-      ]));
+      ]);
     });
 
     it("returns a valid response", async () => {

@@ -103,7 +103,7 @@ export class TranscriptionService implements TranscriptionServiceInterface {
       const { transcript } = params;
 
       const transcriptWithReplacements = transcript
-        .replace(/[ ,]?[ ,]?(um|uh)[ , ]?/gi, " ")
+        .replace(/[ ,]?[ ,]{1}(um|uh)[ ,]{1}/gi, " ")
         .replace(/yak/gi, "Yac")
         .replace(/amen/gi, "Hey man")
         .replace(/a sink/gi, "async");
