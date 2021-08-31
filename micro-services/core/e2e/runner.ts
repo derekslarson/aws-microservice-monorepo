@@ -41,6 +41,7 @@ const necessaryParams = [
   "meeting-message-created-sns-topic-arn",
   "meeting-message-updated-sns-topic-arn",
   "message-transcribed-sns-topic-arn",
+  "message-transcoded-sns-topic-arn",
   "core-testing-sns-event-table-name",
 ];
 

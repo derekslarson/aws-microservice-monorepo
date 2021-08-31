@@ -27,7 +27,7 @@ import {
   createFriendConversation,
 } from "../util";
 
-fdescribe("Message Transcribed SNS Topic", () => {
+describe("Message Transcribed SNS Topic", () => {
   const userId = process.env.userId as UserId;
   const messageTranscribedSnsTopicArn = process.env["message-transcribed-sns-topic-arn"] as string;
   const mockTranscript = "mock-transcript";
