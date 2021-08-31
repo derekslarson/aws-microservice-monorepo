@@ -67,7 +67,7 @@ export class TranscriptionService implements TranscriptionServiceInterface {
 
       const transcriptionData = JSON.parse(Body as string) as TranscriptionData;
 
-      const transcript = transcriptionData.results.transcripts[0] ? transcriptionData.results.transcripts[0].transcript : "";
+      const transcript = transcriptionData.results.transcripts[0] ? transcriptionData.results.transcripts[0]?.transcript : "";
 
       const { transcript: transcriptWithReplacements } = this.replaceUnwantedWords({ transcript });
 

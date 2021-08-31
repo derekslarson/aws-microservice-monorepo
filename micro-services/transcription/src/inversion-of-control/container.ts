@@ -4,7 +4,7 @@ import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { transcribeFactory, TranscribeFactory } from "../factories/transcribe.factory";
 import { MessageTranscodedSnsProcessorService } from "../processor-services/messageTranscoded.sns.processor.service";
 import { TranscriptionJobCompletedSnsProcessorService } from "../processor-services/transcriptionJobCompleted.sns.processor.service";
-import { TranscriptionJobFailedSnsProcessorService } from "../processor-services/transcriptionJobFailed.sns.processor.services";
+import { TranscriptionJobFailedSnsProcessorService } from "../processor-services/transcriptionJobFailed.sns.processor.service";
 import { TranscriptionFileRepositoryInterface, TranscriptionS3Repository } from "../repositories/transcriptionFile.repository";
 import { TranscriptionService, TranscriptionServiceInterface } from "../services/transcription.service";
 import { MessageTranscribedSnsService, MessageTranscribedSnsServiceInterface } from "../sns-services/messageTranscribed.sns.service";
