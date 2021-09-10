@@ -4,19 +4,20 @@ import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerSe
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
-import { TeamCreatedSnsServiceInterface } from "../sns-services/teamCreated.sns.service";
-import { RawTeam } from "../repositories/team.dynamo.repository";
-import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
+import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
+import { RawConversation } from "../repositories/conversation.dynamo.repository";
+import { MeetingConversation } from "../entity-services/conversation.service";
+import { MeetingCreatedSnsServiceInterface } from "../sns-services/meetingCreated.sns.service";
 
 @injectable()
-export class TeamCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
+export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
   private coreTableName: string;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.TeamCreatedSnsServiceInterface) private teamCreatedSnsService: TeamCreatedSnsServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatoService: TeamMediatorServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: TeamCreatedDynamoProcessorServiceConfigInterface,
+    @inject(TYPES.MeetingCreatedSnsServiceInterface) private meetingCreatedSnsService: MeetingCreatedSnsServiceInterface,
+    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
+    @inject(TYPES.EnvConfigInterface) envConfig: MeetingCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
   }
@@ -26,10 +27,10 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
       const isCoreTable = record.tableName === this.coreTableName;
-      const isTeam = record.newImage.entityType === EntityType.Team;
+      const isMeeting = record.newImage.entityType === EntityType.MeetingConversation;
       const isCreation = record.eventName === "INSERT";
 
-      return isCoreTable && isTeam && isCreation;
+      return isCoreTable && isMeeting && isCreation;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 
@@ -37,15 +38,15 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
     }
   }
 
-  public async processRecord(record: DynamoProcessorServiceRecord<RawTeam>): Promise<void> {
+  public async processRecord(record: DynamoProcessorServiceRecord<RawConversation<MeetingConversation>>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { newImage: { id: teamId } } = record;
+      const { newImage: { id: meetingId } } = record;
 
-      const { team } = await this.teamMediatoService.getTeam({ teamId });
+      const { meeting } = await this.meetingMediatorService.getMeeting({ meetingId });
 
-      await this.teamCreatedSnsService.sendMessage({ team, teamMemberIds: [ team.createdBy ] });
+      await this.meetingCreatedSnsService.sendMessage({ meeting, meetingMemberIds: [ meeting.createdBy ] });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 
@@ -54,7 +55,7 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
   }
 }
 
-export interface TeamCreatedDynamoProcessorServiceConfigInterface {
+export interface MeetingCreatedDynamoProcessorServiceConfigInterface {
   tableNames: {
     core: EnvConfigInterface["tableNames"]["core"];
   }
