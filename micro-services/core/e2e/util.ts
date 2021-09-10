@@ -663,7 +663,7 @@ export async function getConversationUserRelationship<T extends ConversationId>(
 
 export async function createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
   try {
-    const { from, conversationId, conversationMemberIds, mimeType, replyTo, markSeenByAll, reactions = {}, replyCount = 0 } = params;
+    const { from, conversationId, conversationMemberIds, mimeType, replyTo, markSeenByAll, transcript = "", reactions = {}, replyCount = 0 } = params;
 
     const messageId = `${replyTo ? KeyPrefix.Reply : KeyPrefix.Message}${ksuid.randomSync().string}` as MessageId;
 
@@ -697,6 +697,7 @@ export async function createMessage(params: CreateMessageInput): Promise<CreateM
       reactions: rawReactions,
       mimeType,
       replyCount,
+      transcript,
       ...(replyTo && { gsi2pk: replyTo }),
       ...(replyTo && { gsi2sk: messageId }),
       ...(replyTo && { replyTo }),
@@ -727,6 +728,36 @@ export async function getMessage(params: GetMessageInput): Promise<GetMessageOut
     const message = Item as RawMessage;
 
     return { message };
+  } catch (error) {
+    console.log("Error in getMessage:\n", error);
+
+    throw error;
+  }
+}
+
+export async function createPendingMessage(params: CreatePendingMessageInput): Promise<CreatePendingMessageOutput> {
+  try {
+    const { conversationId, from, mimeType } = params;
+
+    const pendingMessageId: PendingMessageId = `${KeyPrefix.PendingMessage}${ksuid.randomSync().string}`;
+
+    const pendingMessage: RawPendingMessage = {
+      entityType: EntityType.PendingMessage,
+      pk: pendingMessageId,
+      sk: pendingMessageId,
+      id: pendingMessageId,
+      createdAt: new Date().toISOString(),
+      conversationId,
+      from,
+      mimeType,
+    };
+
+    await documentClient.put({
+      TableName: process.env["core-table-name"] as string,
+      Item: pendingMessage,
+    }).promise();
+
+    return { pendingMessage };
   } catch (error) {
     console.log("Error in getMessage:\n", error);
 
@@ -966,6 +997,7 @@ export interface CreateMessageInput {
   conversationId: ConversationId;
   conversationMemberIds: UserId[];
   mimeType: MessageMimeType;
+  transcript?: string;
   reactions?: Record<string, UserId[]>
   replyTo?: MessageId;
   replyCount?: number;
@@ -974,6 +1006,16 @@ export interface CreateMessageInput {
 
 export interface CreateMessageOutput {
   message: RawMessage;
+}
+
+export interface CreatePendingMessageInput {
+  from: UserId;
+  conversationId: ConversationId;
+  mimeType: MessageMimeType;
+}
+
+export interface CreatePendingMessageOutput {
+  pendingMessage: RawPendingMessage;
 }
 
 export interface GetMessageInput {

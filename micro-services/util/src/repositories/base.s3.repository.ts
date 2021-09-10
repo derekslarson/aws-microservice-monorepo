@@ -44,18 +44,16 @@ export abstract class BaseS3Repository {
     try {
       this.loggerService.trace("getSignedUrl called", { params }, this.constructor.name);
 
-      const { operation, key, contentType } = params;
-
       const getSignedUrlInput: S3GetSignedUrlInput = {
         Bucket: this.bucketName,
-        Key: key,
+        Key: params.key,
       };
 
-      if (operation === "putObject") {
-        getSignedUrlInput.ContentType = contentType;
+      if (params.operation === "putObject") {
+        getSignedUrlInput.ContentType = params.contentType;
       }
 
-      const signedUrl = this.s3.getSignedUrl(operation, getSignedUrlInput);
+      const signedUrl = this.s3.getSignedUrl(params.operation, getSignedUrlInput);
 
       return { signedUrl };
     } catch (error: unknown) {
@@ -64,13 +62,65 @@ export abstract class BaseS3Repository {
       throw error;
     }
   }
+
+  public async getObject(params: GetObjectInput): Promise<GetObjectOutput> {
+    try {
+      this.loggerService.trace("getObject called", { params }, this.constructor.name);
+
+      const { key } = params;
+
+      const getObjectInput: S3.HeadObjectRequest = {
+        Bucket: this.bucketName,
+        Key: key,
+      };
+
+      const getObjectOutput = await this.s3.getObject(getObjectInput).promise();
+
+      return getObjectOutput;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getObject", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async headObject(params: HeadObjectInput): Promise<HeadObjectOutput> {
+    try {
+      this.loggerService.trace("headObject called", { params }, this.constructor.name);
+
+      const { key } = params;
+
+      const headObjectInput: S3.HeadObjectRequest = {
+        Bucket: this.bucketName,
+        Key: key,
+      };
+
+      const headObjectOutput = await this.s3.headObject(headObjectInput).promise();
+
+      return headObjectOutput;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in headObject", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
-export interface GetSignedUrlInput {
+interface BaseGetSignedUrlInput {
   operation: "getObject" | "putObject";
   key: string;
+}
+
+interface GetSignedUrlGetObjectInput extends BaseGetSignedUrlInput {
+  operation: "getObject";
+}
+
+interface GetSignedUrlPutObjectInput extends BaseGetSignedUrlInput {
+  operation: "putObject";
   contentType: string;
 }
+
+export type GetSignedUrlInput = GetSignedUrlGetObjectInput | GetSignedUrlPutObjectInput;
 
 export interface GetSignedUrlOutput {
   signedUrl: string;
@@ -83,6 +133,18 @@ export interface UploadFileInput {
 }
 
 export type UploadFileOutput = void;
+
+export interface HeadObjectInput {
+  key: string;
+}
+
+export type HeadObjectOutput = S3.HeadObjectOutput;
+
+export interface GetObjectInput {
+  key: string;
+}
+
+export type GetObjectOutput = S3.GetObjectOutput;
 
 interface S3GetSignedUrlInput {
   Bucket: string;

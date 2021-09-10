@@ -17,3 +17,5 @@ export * from "./groupMessageCreated.snsMessage.model";
 export * from "./groupMessageUpdated.snsMessage.model";
 export * from "./meetingMessageCreated.snsMessage.model";
 export * from "./meetingMessageUpdated.snsMessage.model";
+export * from "./messageTranscoded.snsMessage.model";
+export * from "./messageTranscribed.snsMessage.model";

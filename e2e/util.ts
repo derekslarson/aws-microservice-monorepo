@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-floating-promises */
-import { CognitoIdentityServiceProvider, DynamoDB, S3, SNS, SSM } from "aws-sdk";
+import { CognitoIdentityServiceProvider, DynamoDB, S3, SNS, SSM, TranscribeService } from "aws-sdk";
 import crypto from "crypto";
 import axios from "axios";
 import ksuid from "ksuid";
@@ -10,6 +10,7 @@ export const s3 = new S3({ region: "us-east-1" });
 export const sns = new SNS({ region: "us-east-1" });
 export const cognito = new CognitoIdentityServiceProvider({ region: "us-east-1" });
 export const documentClient = new DynamoDB.DocumentClient({ region: "us-east-1" });
+export const transcribe = new TranscribeService({ region: "us-east-1" });
 
 export async function backoff<T>(func: (...args: unknown[]) => Promise<T>, successFunc: (res: T) => boolean, maxBackoff = 4000, currentBackoff = 500): Promise<T> {
   try {

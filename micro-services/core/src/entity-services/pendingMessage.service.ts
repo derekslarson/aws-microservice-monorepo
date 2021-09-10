@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { PendingMessageRepositoryInterface, PendingMessage as PendingMessageEntity } from "../repositories/pendingMessage.dynamo.repository";
+import { PendingMessageRepositoryInterface, PendingMessage as PendingMessageEntity, PendingMessageUpdates } from "../repositories/pendingMessage.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { UserId } from "../types/userId.type";
 import { ConversationId } from "../types/conversationId.type";
@@ -58,6 +58,22 @@ export class PendingMessageService implements PendingMessageServiceInterface {
     }
   }
 
+  public async updatePendingMessage(params: UpdatePendingMessageInput): Promise<UpdatePendingMessageOutput> {
+    try {
+      this.loggerService.trace("updatePendingMessage called", { params }, this.constructor.name);
+
+      const { pendingMessageId, updates } = params;
+
+      const { pendingMessage } = await this.pendingMessageRepository.updatePendingMessage({ pendingMessageId, updates });
+
+      return { pendingMessage };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updatePendingMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async deletePendingMessage(params: DeletePendingMessageInput): Promise<DeletePendingMessageOutput> {
     try {
       this.loggerService.trace("deletePendingMessage called", { params }, this.constructor.name);
@@ -76,6 +92,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
 export interface PendingMessageServiceInterface {
   createPendingMessage(params: CreatePendingMessageInput): Promise<CreatePendingMessageOutput>;
   getPendingMessage(params: GetPendingMessageInput): Promise<GetPendingMessageOutput>;
+  updatePendingMessage(params: UpdatePendingMessageInput): Promise<UpdatePendingMessageOutput>;
   deletePendingMessage(params: DeletePendingMessageInput): Promise<DeletePendingMessageOutput>;
 }
 
@@ -96,6 +113,15 @@ export interface GetPendingMessageInput {
 }
 
 export interface GetPendingMessageOutput {
+  pendingMessage: PendingMessage;
+}
+
+export interface UpdatePendingMessageInput {
+  pendingMessageId: PendingMessageId;
+  updates: PendingMessageUpdates;
+}
+
+export interface UpdatePendingMessageOutput {
   pendingMessage: PendingMessage;
 }
 

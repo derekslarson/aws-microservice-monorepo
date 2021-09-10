@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/util";
+import { EnhancedMessageFileRepositoryInterface, LoggerServiceInterface, RawMessageFileRepositoryInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationId } from "../types/conversationId.type";
 import { MessageId } from "../types/messageId.type";
@@ -9,7 +9,8 @@ import { MessageMimeType } from "../enums/message.mimeType.enum";
 export class MessageFileService implements MessageFileServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.MessageFileRepositoryInterface) private messageFileRepository: MessageFileRepositoryInterface,
+    @inject(TYPES.RawMessageFileRepositoryInterface) private rawMessageFileRepository: RawMessageFileRepositoryInterface,
+    @inject(TYPES.EnhancedMessageFileRepositoryInterface) private enhancedMessageFileRepository: EnhancedMessageFileRepositoryInterface,
   ) {}
 
   public getSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput {
@@ -29,11 +30,20 @@ export class MessageFileService implements MessageFileServiceInterface {
 
       const key = `${conversationId}/${messageId}.${fileExtension}`;
 
-      const { signedUrl } = this.messageFileRepository.getSignedUrl({
-        operation: operation === "get" ? "getObject" : "putObject",
-        key,
-        contentType: mimeType,
-      });
+      let signedUrl: string;
+
+      if (operation === "get") {
+        ({ signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
+          operation: "getObject",
+          key,
+        }));
+      } else {
+        ({ signedUrl } = this.rawMessageFileRepository.getSignedUrl({
+          operation: "putObject",
+          key,
+          contentType: mimeType,
+        }));
+      }
 
       return { signedUrl };
     } catch (error: unknown) {

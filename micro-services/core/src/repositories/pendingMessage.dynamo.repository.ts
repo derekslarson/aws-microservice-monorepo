@@ -63,6 +63,22 @@ export class PendingMessageDynamoRepository extends BaseDynamoRepositoryV2<Pendi
     }
   }
 
+  public async updatePendingMessage(params: UpdatePendingMessageInput): Promise<UpdatePendingMessageOutput> {
+    try {
+      this.loggerService.trace("updatePendingMessage called", { params }, this.constructor.name);
+
+      const { pendingMessageId, updates } = params;
+
+      const pendingMessage = await this.partialUpdate(pendingMessageId, pendingMessageId, updates);
+
+      return { pendingMessage };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updatePendingMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async deletePendingMessage(params: DeletePendingMessageInput): Promise<DeletePendingMessageOutput> {
     try {
       this.loggerService.trace("deletePendingMessage called", { params }, this.constructor.name);
@@ -84,6 +100,7 @@ export class PendingMessageDynamoRepository extends BaseDynamoRepositoryV2<Pendi
 export interface PendingMessageRepositoryInterface {
   createPendingMessage(params: CreatePendingMessageInput): Promise<CreatePendingMessageOutput>;
   getPendingMessage(params: GetPendingMessageInput): Promise<GetPendingMessageOutput>;
+  updatePendingMessage(params: UpdatePendingMessageInput): Promise<UpdatePendingMessageOutput>;
   deletePendingMessage(params: DeletePendingMessageInput): Promise<DeletePendingMessageOutput>;
 }
 
@@ -117,6 +134,16 @@ export interface GetPendingMessageInput {
 }
 
 export interface GetPendingMessageOutput {
+  pendingMessage: PendingMessage;
+}
+
+export type PendingMessageUpdates = Partial<Pick<PendingMessage, "mimeType">>;
+export interface UpdatePendingMessageInput {
+  pendingMessageId: PendingMessageId;
+  updates: PendingMessageUpdates;
+}
+
+export interface UpdatePendingMessageOutput {
   pendingMessage: PendingMessage;
 }
 

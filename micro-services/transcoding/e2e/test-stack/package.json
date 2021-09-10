@@ -1,0 +1,47 @@
+{
+  "name": "@yac/transcoding-testing",
+  "version": "0.1.0",
+  "scripts": {
+    "build:local": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.dev.js && yarn build:layer",
+    "build:dev": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.dev.js && yarn build:layer",
+    "build:stage": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.release.js && yarn build:layer",
+    "build:prod": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.release.js && yarn build:layer",
+    "build:layer": "ts-node ../../../../config/layer/buildLayer.ts",
+    "clean": "rm -rf ./dist",
+    "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",
+    "synth:dev": "cdk synth --context environment=dev",
+    "synth:stage": "cdk synth --context environment=stage",
+    "synth:prod": "cdk synth --context environment=prod",
+    "deploy:local": "yarn workspace @yac/util build:library && yarn build:local && cdk deploy --context environment=local --context developer=$(whoami)",
+    "deploy:dev": "yarn workspace @yac/util build:library && yarn build:dev && cdk deploy --context environment=dev",
+    "deploy:stage": "yarn workspace @yac/util build:library && yarn build:stage && cdk deploy --context environment=stage",
+    "deploy:prod": "yarn workspace @yac/util build:library && yarn build:prod && cdk deploy --context environment=prod",
+    "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)"
+  },
+  "devDependencies": {
+    "@aws-cdk/aws-dynamodb": "~1.114.0",
+    "@aws-cdk/aws-lambda": "~1.114.0",
+    "@aws-cdk/aws-lambda-event-sources": "~1.114.0",
+    "@aws-cdk/aws-sns": "~1.114.0",
+    "@aws-cdk/aws-ssm": "~1.114.0",
+    "@aws-cdk/core": "~1.114.0",
+    "@types/node": "10.17.27",
+    "@typescript-eslint/eslint-plugin": "^4.15.2",
+    "@yac/util": "0.1.0",
+    "aws-cdk": "~1.114.0",
+    "case-sensitive-paths-webpack-plugin": "^2.4.0",
+    "eslint": "^7.20.0",
+    "eslint-config-airbnb-typescript": "^11.4.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-promise": "^4.3.1",
+    "ts-loader": "^8.0.17",
+    "ts-node": "^8.1.0",
+    "typescript": "^4.2.2",
+    "webpack": "^5.24.1",
+    "webpack-cli": "^4.5.0"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.783.0",
+    "ksuid": "^2.0.0"
+  }
+}

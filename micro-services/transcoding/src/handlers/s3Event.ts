@@ -9,11 +9,11 @@ export const handler = async (event: S3Event): Promise<void> => {
   const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
   try {
-    loggerService.trace("messageFileCreated called", { event }, "messageFileCreated handler");
+    loggerService.trace("s3Event called", { event }, "s3Event handler");
 
     await s3EventController.handleS3Event(event);
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
-    loggerService.error("Catastrophic error in messageFileCreated handler", { error, event }, "messageFileCreated handler");
+    loggerService.error("Catastrophic error in s3Event handler", { error, event }, "s3Event handler");
   }
 };

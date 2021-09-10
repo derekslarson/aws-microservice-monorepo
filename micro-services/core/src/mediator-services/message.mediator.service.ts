@@ -144,7 +144,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("convertPendingToRegularMessage called", { params }, this.constructor.name);
 
-      const { pendingMessageId } = params;
+      const { pendingMessageId, transcript } = params;
 
       const { pendingMessage } = await this.pendingMessageService.getPendingMessage({ pendingMessageId });
 
@@ -156,6 +156,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         from: pendingMessage.from,
         mimeType: pendingMessage.mimeType,
         replyTo: pendingMessage.replyTo,
+        transcript,
       });
 
       await this.pendingMessageService.deletePendingMessage({ pendingMessageId });
@@ -393,7 +394,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("createMessage called", { params }, this.constructor.name);
 
-      const { messageId, conversationId, from, replyTo, mimeType } = params;
+      const { messageId, conversationId, from, replyTo, transcript, mimeType } = params;
 
       const timestamp = new Date().toISOString();
 
@@ -405,7 +406,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         return acc;
       }, {});
 
-      const { message } = await this.messageService.createMessage({ messageId, conversationId, from, replyTo, mimeType, seenAt });
+      const { message } = await this.messageService.createMessage({ messageId, conversationId, from, replyTo, mimeType, transcript, seenAt });
 
       await Promise.all(conversationUserRelationships.map((relationship) => this.conversationUserRelationshipService.addMessageToConversationUserRelationship({
         conversationId,
@@ -670,6 +671,7 @@ export type UpdateMeetingMessagesByUserIdOutput = void;
 
 export interface ConvertPendingToRegularMessageInput {
   pendingMessageId: PendingMessageId;
+  transcript: string;
 }
 
 export interface ConvertPendingToRegularMessageOutput {
@@ -691,6 +693,7 @@ interface CreateMessageInput {
   conversationId: ConversationId;
   from: UserId;
   mimeType: MessageMimeType;
+  transcript: string;
   replyTo?: MessageId;
 }
 

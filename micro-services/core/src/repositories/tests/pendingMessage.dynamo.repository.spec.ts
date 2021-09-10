@@ -169,6 +169,59 @@ describe("PendingMessageDynamoRepository", () => {
     });
   });
 
+  describe("updatePendingMessage", () => {
+    const mockUpdates = { mimeType: mockMimeType };
+    const params = { pendingMessageId: mockPendingMessageId, updates: mockUpdates };
+
+    describe("under normal conditions", () => {
+      beforeEach(() => {
+        spyOn(pendingMessageDynamoRepository, "partialUpdate").and.returnValue(Promise.resolve(mockPendingMessage));
+      });
+
+      it("calls this.partialUpdate with the correct params", async () => {
+        await pendingMessageDynamoRepository.updatePendingMessage(params);
+
+        expect(pendingMessageDynamoRepository.partialUpdate).toHaveBeenCalledTimes(1);
+        expect(pendingMessageDynamoRepository.partialUpdate).toHaveBeenCalledWith(mockPendingMessageId, mockPendingMessageId, mockUpdates);
+      });
+
+      it("returns the user updated via this.partialUpdate", async () => {
+        const response = await pendingMessageDynamoRepository.updatePendingMessage(params);
+
+        expect(response).toEqual({ pendingMessage: mockPendingMessage });
+      });
+    });
+
+    describe("under error conditions", () => {
+      describe("when this.partialUpdate throws an error", () => {
+        beforeEach(() => {
+          spyOn(pendingMessageDynamoRepository, "partialUpdate").and.returnValue(Promise.reject(mockError));
+        });
+
+        it("calls loggerService.error with the correct params", async () => {
+          try {
+            await pendingMessageDynamoRepository.updatePendingMessage(params);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(loggerService.error).toHaveBeenCalledTimes(1);
+            expect(loggerService.error).toHaveBeenCalledWith("Error in updatePendingMessage", { error: mockError, params }, pendingMessageDynamoRepository.constructor.name);
+          }
+        });
+
+        it("throws the caught error", async () => {
+          try {
+            await pendingMessageDynamoRepository.updatePendingMessage(params);
+
+            fail("Should have thrown");
+          } catch (error) {
+            expect(error).toBe(mockError);
+          }
+        });
+      });
+    });
+  });
+
   describe("deletePendingMessage", () => {
     const params = { pendingMessageId: mockPendingMessageId };
 
