@@ -68,6 +68,7 @@ export class YacUtilServiceStack extends CDK.Stack {
     const friendMessageCreatedSnsTopic = new SNS.Topic(this, `FriendMessageCreatedSnsTopic_${id}`, { topicName: `FriendMessageCreatedSnsTopic_${id}` });
     const friendMessageUpdatedSnsTopic = new SNS.Topic(this, `FriendMessageUpdatedSnsTopic_${id}`, { topicName: `FriendMessageUpdatedSnsTopic_${id}` });
     const groupMessageCreatedSnsTopic = new SNS.Topic(this, `GroupMessageCreatedSnsTopic_${id}`, { topicName: `GroupMessageCreatedSnsTopic_${id}` });
+    const groupMessageUpdatedSnsTopic = new SNS.Topic(this, `GroupMessageUpdatedSnsTopic_${id}`, { topicName: `GroupMessageUpdatedSnsTopic_${id}` });
     const meetingMessageCreatedSnsTopic = new SNS.Topic(this, `MeetingMessageCreatedSnsTopic_${id}`, { topicName: `MeetingMessageCreatedSnsTopic_${id}` });
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
@@ -168,6 +169,11 @@ export class YacUtilServiceStack extends CDK.Stack {
       value: groupMessageCreatedSnsTopic.topicArn,
     });
 
+    new CDK.CfnOutput(this, `GroupMessageUpdatedSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.GroupMessageUpdatedSnsTopicArn,
+      value: groupMessageUpdatedSnsTopic.topicArn,
+    });
+
     new CDK.CfnOutput(this, `MeetingMessageCreatedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.MeetingMessageCreatedSnsTopicArn,
       value: meetingMessageCreatedSnsTopic.topicArn,
@@ -247,6 +253,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new SSM.StringParameter(this, `GroupMessageCreatedSsmParameter_${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/group-message-created-sns-topic-arn`,
       stringValue: groupMessageCreatedSnsTopic.topicArn,
+    });
+
+    new SSM.StringParameter(this, `GroupMessageUpdatedSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/group-message-updated-sns-topic-arn`,
+      stringValue: groupMessageUpdatedSnsTopic.topicArn,
     });
 
     new SSM.StringParameter(this, `MeetingMessageCreatedSsmParameter_${id}`, {

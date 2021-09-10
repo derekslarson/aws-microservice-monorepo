@@ -71,6 +71,8 @@ import { UserRemovedFromTeamSnsService, UserRemovedFromTeamSnsServiceInterface }
 import { TYPES } from "./types";
 import { FriendMessageUpdatedSnsService, FriendMessageUpdatedSnsServiceInterface } from "../sns-services/friendMessageUpdated.sns.service";
 import { FriendMessageUpdatedDynamoProcessorService } from "../processor-services/friendMessageUpdated.dynamo.processor.service";
+import { GroupMessageUpdatedSnsService, GroupMessageUpdatedSnsServiceInterface } from "../sns-services/groupMessageUpdated.sns.service";
+import { GroupMessageUpdatedDynamoProcessorService } from "../processor-services/groupMessageUpdated.dynamo.processor.service";
 
 const container = new Container();
 
@@ -120,6 +122,7 @@ try {
   container.bind<DynamoProcessorServiceInterface>(TYPES.FriendMessageCreatedDynamoProcessorServiceInterface).to(FriendMessageCreatedDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.FriendMessageUpdatedDynamoProcessorServiceInterface).to(FriendMessageUpdatedDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.GroupMessageCreatedDynamoProcessorServiceInterface).to(GroupMessageCreatedDynamoProcessorService);
+  container.bind<DynamoProcessorServiceInterface>(TYPES.GroupMessageUpdatedDynamoProcessorServiceInterface).to(GroupMessageUpdatedDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.MeetingMessageCreatedDynamoProcessorServiceInterface).to(MeetingMessageCreatedDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.MeetingCreatedDynamoProcessorServiceInterface).to(MeetingCreatedDynamoProcessorService);
 
@@ -138,6 +141,7 @@ try {
   container.bind<FriendMessageCreatedSnsServiceInterface>(TYPES.FriendMessageCreatedSnsServiceInterface).to(FriendMessageCreatedSnsService);
   container.bind<FriendMessageUpdatedSnsServiceInterface>(TYPES.FriendMessageUpdatedSnsServiceInterface).to(FriendMessageUpdatedSnsService);
   container.bind<GroupMessageCreatedSnsServiceInterface>(TYPES.GroupMessageCreatedSnsServiceInterface).to(GroupMessageCreatedSnsService);
+  container.bind<GroupMessageUpdatedSnsServiceInterface>(TYPES.GroupMessageUpdatedSnsServiceInterface).to(GroupMessageUpdatedSnsService);
   container.bind<MeetingMessageCreatedSnsServiceInterface>(TYPES.MeetingMessageCreatedSnsServiceInterface).to(MeetingMessageCreatedSnsService);
   container.bind<MeetingCreatedSnsServiceInterface>(TYPES.MeetingCreatedSnsServiceInterface).to(MeetingCreatedSnsService);
 
@@ -190,6 +194,7 @@ try {
     container.get(TYPES.FriendMessageCreatedDynamoProcessorServiceInterface),
     container.get(TYPES.FriendMessageUpdatedDynamoProcessorServiceInterface),
     container.get(TYPES.GroupMessageCreatedDynamoProcessorServiceInterface),
+    container.get(TYPES.GroupMessageUpdatedDynamoProcessorServiceInterface),
     container.get(TYPES.MeetingMessageCreatedDynamoProcessorServiceInterface),
     container.get(TYPES.MeetingCreatedDynamoProcessorServiceInterface),
   ]);

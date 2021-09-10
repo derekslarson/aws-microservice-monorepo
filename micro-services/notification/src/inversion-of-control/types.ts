@@ -24,6 +24,7 @@ const TYPES = {
   FriendMessageCreatedSnsProcessorServiceInterface: Symbol.for("FriendMessageCreatedSnsProcessorServiceInterface"),
   FriendMessageUpdatedSnsProcessorServiceInterface: Symbol.for("FriendMessageUpdatedSnsProcessorServiceInterface"),
   GroupMessageCreatedSnsProcessorServiceInterface: Symbol.for("GroupMessageCreatedSnsProcessorServiceInterface"),
+  GroupMessageUpdatedSnsProcessorServiceInterface: Symbol.for("GroupMessageUpdatedSnsProcessorServiceInterface"),
   MeetingMessageCreatedSnsProcessorServiceInterface: Symbol.for("MeetingMessageCreatedSnsProcessorServiceInterface"),
 
   // Entity Services

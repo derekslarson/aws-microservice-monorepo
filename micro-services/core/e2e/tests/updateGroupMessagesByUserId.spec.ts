@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { GroupMessageUpdatedSnsMessage, Role } from "@yac/util";
 import axios from "axios";
-import { documentClient, generateRandomString, ISO_DATE_REGEX } from "../../../../e2e/util";
+import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
@@ -11,42 +11,45 @@ import { RawConversationUserRelationship } from "../../src/repositories/conversa
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { GroupId } from "../../src/types/groupId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createGroupConversation, createMessage, getConversationUserRelationship, getMessage } from "../util";
+import { createConversationUserRelationship, createGroupConversation, createMessage, createRandomUser, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getConversationUserRelationship, getMessage, getSnsEventsByTopicArn } from "../util";
 
 describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
-
-  const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const groupMessageUpdatedSnsTopicArn = process.env["group-message-updated-sns-topic-arn"] as string;
 
   describe("under normal conditions", () => {
+    let fromUser: CreateRandomUserOutput["user"];
+    let group: RawConversation<GroupConversation>;
+    let message: RawMessage;
+    let messageTwo: RawMessage;
+
+    let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Group>;
+
+    beforeEach(async () => {
+      ([ { user: fromUser }, { conversation: group } ] = await Promise.all([
+        createRandomUser(),
+        createGroupConversation({ createdBy: userId, name: generateRandomString(5) }),
+      ]));
+
+      ([ { message }, { message: messageTwo } ] = await Promise.all([
+        createMessage({ from: fromUser.id, conversationId: group.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: fromUser.id, conversationId: group.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+      ]));
+
+      ({ conversationUserRelationship } = await createConversationUserRelationship({
+        type: ConversationType.Group,
+        conversationId: group.id,
+        userId,
+        role: Role.Admin,
+        unreadMessageIds: [ message.id, messageTwo.id ],
+      }));
+    });
+
     describe("when passed a 'seen' value", () => {
       describe("when 'seen: true'", () => {
         const seen = true;
-
-        let group: RawConversation<GroupConversation>;
-        let message: RawMessage;
-        let messageTwo: RawMessage;
-
-        let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Group>;
-
-        beforeEach(async () => {
-          ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
-
-          ([ { message }, { message: messageTwo } ] = await Promise.all([
-            createMessage({ from: mockUserId, conversationId: group.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-            createMessage({ from: mockUserId, conversationId: group.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-          ]));
-
-          ({ conversationUserRelationship } = await createConversationUserRelationship({
-            type: ConversationType.Group,
-            conversationId: group.id,
-            userId,
-            role: Role.Admin,
-            unreadMessageIds: [ message.id, messageTwo.id ],
-          }));
-        });
 
         it("returns a valid response", async () => {
           const headers = { Authorization: `Bearer ${accessToken}` };
@@ -110,33 +113,110 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
             fail(error);
           }
         });
+
+        it("publishes a valid SNS message", async () => {
+          // clear the sns events table so the test can have a clean slate
+          await deleteSnsEventsByTopicArn({ topicArn: groupMessageUpdatedSnsTopicArn });
+
+          const headers = { Authorization: `Bearer ${accessToken}` };
+          const body = { seen };
+
+          try {
+            await axios.patch(`${baseUrl}/users/${userId}/groups/${group.id}/messages`, body, { headers });
+
+            const [ { message: updatedMessage }, { message: updatedMessageTwo } ] = await Promise.all([
+              getMessage({ messageId: message.id }),
+              getMessage({ messageId: messageTwo.id }),
+            ]);
+
+            if (!updatedMessage || !updatedMessageTwo) {
+              throw new Error("necessary records not created");
+            }
+
+            // wait till the events have been fired
+            const { snsEvents } = await backoff(
+              () => getSnsEventsByTopicArn<GroupMessageUpdatedSnsMessage>({ topicArn: groupMessageUpdatedSnsTopicArn }),
+              (response) => response.snsEvents.length === 2,
+            );
+
+            expect(snsEvents.length).toBe(2);
+
+            expect(snsEvents).toEqual(jasmine.arrayContaining([
+              jasmine.objectContaining({
+                message: {
+                  groupMemberIds: [ userId ],
+                  to: {
+                    id: group.id,
+                    name: group.name,
+                    createdBy: group.createdBy,
+                    createdAt: group.createdAt,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  from: {
+                    id: fromUser.id,
+                    email: fromUser.email,
+                    username: fromUser.username,
+                    phone: fromUser.phone,
+                    realName: fromUser.realName,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  message: {
+                    id: updatedMessage.id,
+                    to: group.id,
+                    from: updatedMessage.from,
+                    type: ConversationType.Group,
+                    createdAt: updatedMessage.createdAt,
+                    seenAt: updatedMessage.seenAt,
+                    reactions: updatedMessage.reactions,
+                    replyCount: 0,
+                    mimeType: updatedMessage.mimeType,
+                    fetchUrl: jasmine.stringMatching(URL_REGEX),
+                    fromImage: jasmine.stringMatching(URL_REGEX),
+                  },
+                },
+              }),
+              jasmine.objectContaining({
+                message: {
+                  groupMemberIds: [ userId ],
+                  to: {
+                    id: group.id,
+                    name: group.name,
+                    createdBy: group.createdBy,
+                    createdAt: group.createdAt,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  from: {
+                    id: fromUser.id,
+                    email: fromUser.email,
+                    username: fromUser.username,
+                    phone: fromUser.phone,
+                    realName: fromUser.realName,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  message: {
+                    id: updatedMessageTwo.id,
+                    to: group.id,
+                    from: updatedMessageTwo.from,
+                    type: ConversationType.Group,
+                    createdAt: updatedMessageTwo.createdAt,
+                    seenAt: updatedMessageTwo.seenAt,
+                    reactions: updatedMessageTwo.reactions,
+                    replyCount: 0,
+                    mimeType: updatedMessageTwo.mimeType,
+                    fetchUrl: jasmine.stringMatching(URL_REGEX),
+                    fromImage: jasmine.stringMatching(URL_REGEX),
+                  },
+                },
+              }),
+            ]));
+          } catch (error) {
+            fail(error);
+          }
+        }, 45000);
       });
 
       describe("when 'seen: false'", () => {
         const seen = false;
-
-        let group: RawConversation<GroupConversation>;
-        let message: RawMessage;
-        let messageTwo: RawMessage;
-
-        let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Group>;
-
-        beforeEach(async () => {
-          ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
-
-          ([ { message }, { message: messageTwo } ] = await Promise.all([
-            createMessage({ from: mockUserId, conversationId: group.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-            createMessage({ from: mockUserId, conversationId: group.id, conversationMemberIds: [ userId, mockUserId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-          ]));
-
-          ({ conversationUserRelationship } = await createConversationUserRelationship({
-            type: ConversationType.Group,
-            conversationId: group.id,
-            userId,
-            role: Role.Admin,
-            unreadMessageIds: [ message.id, messageTwo.id ],
-          }));
-        });
 
         it("returns a valid response", async () => {
           const headers = { Authorization: `Bearer ${accessToken}` };
@@ -214,7 +294,7 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
         const body = { seen: true };
 
         try {
-          await axios.patch(`${baseUrl}/users/${mockUserId}/groups/${mockGroupId}/messages`, body, { headers });
+          await axios.patch(`${baseUrl}/users/${userId}/groups/${mockGroupId}/messages`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -230,7 +310,7 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
         const body = { seen: true };
 
         try {
-          await axios.patch(`${baseUrl}/users/${mockUserId}/groups/${mockGroupId}/messages`, body, { headers });
+          await axios.patch(`${baseUrl}/users/${userId}/groups/${mockGroupId}/messages`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {

@@ -38,6 +38,7 @@ const necessaryParams = [
   "friend-message-created-sns-topic-arn",
   "friend-message-updated-sns-topic-arn",
   "group-message-created-sns-topic-arn",
+  "group-message-updated-sns-topic-arn",
   "meeting-message-created-sns-topic-arn",
   "core-testing-sns-event-table-name",
 ];
