@@ -33,6 +33,7 @@ const necessaryParams = [
   "user-added-as-friend-sns-topic-arn",
   "user-removed-as-friend-sns-topic-arn",
   "team-created-sns-topic-arn",
+  "meeting-created-sns-topic-arn",
   "group-created-sns-topic-arn",
   "friend-message-created-sns-topic-arn",
   "group-message-created-sns-topic-arn",
