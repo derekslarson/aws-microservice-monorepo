@@ -40,6 +40,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
     const userAddedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedAsFriendSnsTopicArn);
     const userRemovedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedAsFriendSnsTopicArn);
     const teamCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
+    const meetingCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
     const groupCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
     const friendMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageCreatedSnsTopicArn);
 
@@ -112,6 +113,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       TEAM_CREATED_SNS_TOPIC_ARN: teamCreatedSnsTopicArn,
       GROUP_CREATED_SNS_TOPIC_ARN: groupCreatedSnsTopicArn,
       FRIEND_MESSAGE_CREATED_SNS_TOPIC_ARN: friendMessageCreatedSnsTopicArn,
+      MEETING_CREATED_SNS_TOPIC_ARN: meetingCreatedSnsTopicArn,
     };
 
     // WebSocket Lambdas
