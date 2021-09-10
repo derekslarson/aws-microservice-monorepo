@@ -1,14 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { FriendMessageCreatedSnsMessage } from "@yac/util";
+import { GroupMessageCreatedSnsMessage } from "@yac/util";
 import { backoff, createRandomCognitoUser, sns } from "../../../../e2e/util";
 import { WebSocketEvent } from "../../src/enums/webSocket.event.enum";
 import { createWebSocketListener, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn, registerMockDevice, RegisterMockDeviceOutput, WebSocketListener } from "../util";
 
-describe("Friend Message Created SNS Topic", () => {
-  const friendMessageCreatedSnsTopicArn = process.env["friend-message-created-sns-topic-arn"] as string;
+describe("Group Message Created SNS Topic", () => {
+  const groupMessageCreatedSnsTopicArn = process.env["group-message-created-sns-topic-arn"] as string;
   const pushNotificationFailedSnsTopicArn = process.env["push-notification-failed-sns-topic-arn"] as string;
   let userOneId: `user-${string}`;
   let userTwoId: `user-${string}`;
@@ -38,10 +37,10 @@ describe("Friend Message Created SNS Topic", () => {
             userTwoWebSocketListener,
             userThreeWebSocketListener,
           ] = await Promise.all([
-            createWebSocketListener({ userId: userOneId, eventType: WebSocketEvent.FriendMessageCreated }),
-            createWebSocketListener({ userId: userOneId, eventType: WebSocketEvent.FriendMessageCreated }),
-            createWebSocketListener({ userId: userTwoId, eventType: WebSocketEvent.FriendMessageCreated }),
-            createWebSocketListener({ userId: userThreeId, eventType: WebSocketEvent.FriendMessageCreated }),
+            createWebSocketListener({ userId: userOneId, eventType: WebSocketEvent.GroupMessageCreated }),
+            createWebSocketListener({ userId: userOneId, eventType: WebSocketEvent.GroupMessageCreated }),
+            createWebSocketListener({ userId: userTwoId, eventType: WebSocketEvent.GroupMessageCreated }),
+            createWebSocketListener({ userId: userThreeId, eventType: WebSocketEvent.GroupMessageCreated }),
           ]));
         });
 
@@ -53,21 +52,24 @@ describe("Friend Message Created SNS Topic", () => {
         });
 
         it("sends valid web socket events to the correct connectionIds", async () => {
-          const message: FriendMessageCreatedSnsMessage = {
+          const message: GroupMessageCreatedSnsMessage = {
+            groupMemberIds: [ userOneId, userTwoId ],
             to: {
-              id: userOneId,
-              image: "test-image-one",
+              id: "convo-group-id",
+              name: "mock-name",
+              image: "mock-image",
+              createdBy: "user-mock-id",
+              createdAt: new Date().toISOString(),
             },
             from: {
               id: userTwoId,
               image: "test-image-two",
-              realName: "User Two",
             },
             message: {
               id: "message-id",
-              to: userOneId,
+              to: "convo-group-id",
               from: userTwoId,
-              type: "friend",
+              type: "group",
               createdAt: new Date().toISOString(),
               seenAt: { [userOneId]: new Date().toISOString() },
               reactions: {},
@@ -79,7 +81,7 @@ describe("Friend Message Created SNS Topic", () => {
           };
 
           await sns.publish({
-            TopicArn: friendMessageCreatedSnsTopicArn,
+            TopicArn: groupMessageCreatedSnsTopicArn,
             Message: JSON.stringify(message),
           }).promise();
 
@@ -93,7 +95,7 @@ describe("Friend Message Created SNS Topic", () => {
           // Assert that they have the right structure
           expect(userOneAWebSocketListener.messages.length).toBe(1);
           expect(userOneAWebSocketListener.messages[0]).toEqual({
-            event: WebSocketEvent.FriendMessageCreated,
+            event: WebSocketEvent.GroupMessageCreated,
             data: {
               to: message.to,
               from: message.from,
@@ -103,13 +105,25 @@ describe("Friend Message Created SNS Topic", () => {
 
           expect(userOneBWebSocketListener.messages.length).toBe(1);
           expect(userOneBWebSocketListener.messages[0]).toEqual({
-            event: WebSocketEvent.FriendMessageCreated,
+            event: WebSocketEvent.GroupMessageCreated,
             data: {
               to: message.to,
               from: message.from,
               message: message.message,
             },
           });
+
+          expect(userTwoWebSocketListener.messages.length).toBe(1);
+          expect(userTwoWebSocketListener.messages[0]).toEqual({
+            event: WebSocketEvent.GroupMessageCreated,
+            data: {
+              to: message.to,
+              from: message.from,
+              message: message.message,
+            },
+          });
+
+          expect(userThreeWebSocketListener.messages.length).toBe(0);
         });
       });
 
@@ -132,21 +146,24 @@ describe("Friend Message Created SNS Topic", () => {
         });
 
         it("sends valid push notification events to the correct device tokens", async () => {
-          const message: FriendMessageCreatedSnsMessage = {
+          const message: GroupMessageCreatedSnsMessage = {
+            groupMemberIds: [ userOneId, userTwoId ],
             to: {
-              id: userOneId,
-              image: "test-image-one",
+              id: "convo-group-id",
+              name: "mock-name",
+              image: "mock-image",
+              createdBy: "user-mock-id",
+              createdAt: new Date().toISOString(),
             },
             from: {
               id: userTwoId,
               image: "test-image-two",
-              realName: "User Two",
             },
             message: {
               id: "message-id",
-              to: userOneId,
+              to: "convo-group-id",
               from: userTwoId,
-              type: "friend",
+              type: "group",
               createdAt: new Date().toISOString(),
               seenAt: { [userOneId]: new Date().toISOString() },
               reactions: {},
@@ -156,9 +173,8 @@ describe("Friend Message Created SNS Topic", () => {
               fromImage: "mock-from-image",
             },
           };
-
           await sns.publish({
-            TopicArn: friendMessageCreatedSnsTopicArn,
+            TopicArn: groupMessageCreatedSnsTopicArn,
             Message: JSON.stringify(message),
           }).promise();
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable max-classes-per-file */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
