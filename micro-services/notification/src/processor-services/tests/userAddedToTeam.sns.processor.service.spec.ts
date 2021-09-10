@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User, Team } from "@yac/util";
+import { PushNotificationEvent } from "../../enums/pushNotification.event.enum";
 import { WebSocketEvent } from "../../enums/webSocket.event.enum";
+import { PushNotificationMediatorService, PushNotificationMediatorServiceInterface } from "../../mediator-services/pushNotification.mediator.service";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../../mediator-services/webSocket.mediator.service";
 import { UserAddedToTeamSnsProcessorService } from "../userAddedToTeam.sns.processor.service";
 
 describe("UserAddedToTeamSnsProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let webSocketMediatorService: Spied<WebSocketMediatorServiceInterface>;
+  let pushNotificationMediatorService: Spied<PushNotificationMediatorServiceInterface>;
   let userAddedToTeamSnsProcessorService: SnsProcessorServiceInterface;
 
   const mockUserAddedToTeamSnsTopicArn = "mock-user-added-to-team-sns-topic-arn";
@@ -40,8 +43,9 @@ describe("UserAddedToTeamSnsProcessorService", () => {
   beforeEach(() => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     webSocketMediatorService = TestSupport.spyOnClass(WebSocketMediatorService);
+    pushNotificationMediatorService = TestSupport.spyOnClass(PushNotificationMediatorService);
 
-    userAddedToTeamSnsProcessorService = new UserAddedToTeamSnsProcessorService(loggerService, webSocketMediatorService, mockConfig);
+    userAddedToTeamSnsProcessorService = new UserAddedToTeamSnsProcessorService(loggerService, webSocketMediatorService, pushNotificationMediatorService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
@@ -73,6 +77,18 @@ describe("UserAddedToTeamSnsProcessorService", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         webSocketMediatorService.sendMessage.and.returnValue(Promise.resolve());
+      });
+
+      it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+        await userAddedToTeamSnsProcessorService.processRecord(mockRecord);
+
+        expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+        expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+          userId: mockUserIdOne,
+          event: PushNotificationEvent.UserAddedToTeam,
+          title: "Added to Team",
+          body: `You've been added to the team ${mockTeam.name}`,
+        });
       });
 
       it("calls webSocketMediatorService.sendMessage with the correct parameters", async () => {
