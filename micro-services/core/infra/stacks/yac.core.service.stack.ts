@@ -43,6 +43,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const userAddedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedAsFriendSnsTopicArn);
     const userRemovedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedAsFriendSnsTopicArn);
     const teamCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
+    const meetingCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
     const groupCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
     const friendMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageCreatedSnsTopicArn);
     const friendMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageUpdatedSnsTopicArn);
@@ -138,6 +139,16 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       resources: [ userAddedToMeetingSnsTopicArn ],
     });
 
+    const teamCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ teamCreatedSnsTopicArn ],
+    });
+
+    const meetingCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ meetingCreatedSnsTopicArn ],
+    });
+
     const userRemovedFromMeetingSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
       resources: [ userRemovedFromMeetingSnsTopicArn ],
@@ -151,11 +162,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const userRemovedAsFriendSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
       resources: [ userRemovedAsFriendSnsTopicArn ],
-    });
-
-    const teamCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "SNS:Publish" ],
-      resources: [ teamCreatedSnsTopicArn ],
     });
 
     const groupCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
@@ -200,11 +206,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: userRemovedFromTeamSnsTopicArn,
       USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: userAddedToGroupSnsTopicArn,
       USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN: userRemovedFromGroupSnsTopicArn,
+      TEAM_CREATED_SNS_TOPIC_ARN: teamCreatedSnsTopicArn,
+      MEETING_CREATED_SNS_TOPIC_ARN: meetingCreatedSnsTopicArn,
       USER_ADDED_TO_MEETING_SNS_TOPIC_ARN: userAddedToMeetingSnsTopicArn,
       USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN: userRemovedFromMeetingSnsTopicArn,
       USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN: userAddedAsFriendSnsTopicArn,
       USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN: userRemovedAsFriendSnsTopicArn,
-      TEAM_CREATED_SNS_TOPIC_ARN: teamCreatedSnsTopicArn,
       GROUP_CREATED_SNS_TOPIC_ARN: groupCreatedSnsTopicArn,
       FRIEND_MESSAGE_CREATED_SNS_TOPIC_ARN: friendMessageCreatedSnsTopicArn,
       FRIEND_MESSAGE_UPDATED_SNS_TOPIC_ARN: friendMessageUpdatedSnsTopicArn,
@@ -237,6 +244,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         userAddedAsFriendSnsPublishPolicyStatement,
         userRemovedAsFriendSnsPublishPolicyStatement,
         teamCreatedSnsPublishPolicyStatement,
+        meetingCreatedSnsPublishPolicyStatement,
         friendMessageCreatedSnsPublishPolicyStatement,
         friendMessageUpdatedSnsPublishPolicyStatement,
         groupMessageCreatedSnsPublishPolicyStatement,

@@ -146,6 +146,12 @@ export interface GroupMessageCreatedMessageInput extends BaseMessageInput {
     message: Message;
   }
 }
+export interface MeetingCreatedMessageInput extends BaseMessageInput {
+  event: WebSocketEvent.MeetingCreated;
+  data: {
+    meeting: Meeting;
+  }
+}
 
 export interface GroupMessageUpdatedMessageInput extends BaseMessageInput {
   event: WebSocketEvent.GroupMessageUpdated;
@@ -180,6 +186,8 @@ export type SendMessageInput =
   FriendMessageUpdatedMessageInput |
   GroupMessageCreatedMessageInput |
   GroupMessageUpdatedMessageInput |
-  MeetingMessageCreatedMessageInput;
+  MeetingMessageCreatedMessageInput |
+  FriendMessageCreatedMessageInput |
+  MeetingCreatedMessageInput;
 
 export type SendMessageOutput = void;
