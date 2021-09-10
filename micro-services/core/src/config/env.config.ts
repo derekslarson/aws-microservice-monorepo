@@ -20,6 +20,7 @@ export const envConfig: EnvConfigInterface = {
     userAddedAsFriend: process.env.USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN || "",
     userRemovedAsFriend: process.env.USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN || "",
     teamCreated: process.env.TEAM_CREATED_SNS_TOPIC_ARN || "",
+    meetingCreated: process.env.MEETING_CREATED_SNS_TOPIC_ARN || "",
     groupCreated: process.env.GROUP_CREATED_SNS_TOPIC_ARN || "",
     friendMessageCreated: process.env.FRIEND_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
     friendMessageUpdated: process.env.FRIEND_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
@@ -52,6 +53,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     userAddedAsFriend: string;
     userRemovedAsFriend: string;
     teamCreated: string;
+    meetingCreated: string;
     groupCreated: string;
     friendMessageCreated: string;
     friendMessageUpdated: string;

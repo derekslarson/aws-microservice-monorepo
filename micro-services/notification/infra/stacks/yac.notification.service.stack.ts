@@ -41,6 +41,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
     const userAddedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedAsFriendSnsTopicArn);
     const userRemovedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedAsFriendSnsTopicArn);
     const teamCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
+    const meetingCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
     const groupCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
     const friendMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageCreatedSnsTopicArn);
     const friendMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageUpdatedSnsTopicArn);
@@ -167,6 +168,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       GROUP_MESSAGE_UPDATED_SNS_TOPIC_ARN: groupMessageUpdatedSnsTopicArn,
       MEETING_MESSAGE_CREATED_SNS_TOPIC_ARN: meetingMessageCreatedSnsTopicArn,
       MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN: meetingMessageUpdatedSnsTopicArn,
+      MEETING_CREATED_SNS_TOPIC_ARN: meetingCreatedSnsTopicArn,
       PLATFORM_APPLICATION_ARN: platformApplicationArn,
     };
 
