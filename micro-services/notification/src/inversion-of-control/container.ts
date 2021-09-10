@@ -7,6 +7,7 @@ import { apiGatewayManagementFactory, ApiGatewayManagementFactory } from "../fac
 import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory";
 import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
+import { MeetingCreatedSnsProcessorService } from "../processor-services/meetingCreated.sns.processor.service";
 import { FriendMessageCreatedSnsProcessorService } from "../processor-services/friendMessageCreated.sns.processor.service";
 import { GroupMessageCreatedSnsProcessorService } from "../processor-services/groupMessageCreated.sns.processor.service";
 import { MeetingMessageCreatedSnsProcessorService } from "../processor-services/meetingMessageCreated.sns.processor.service";
@@ -50,6 +51,7 @@ try {
   container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedAsFriendSnsProcessorServiceInterface).to(UserAddedAsFriendSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserRemovedAsFriendSnsProcessorServiceInterface).to(UserRemovedAsFriendSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.TeamCreatedSnsProcessorServiceInterface).to(TeamCreatedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.MeetingCreatedSnsProcessorServiceInterface).to(MeetingCreatedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.GroupCreatedSnsProcessorServiceInterface).to(GroupCreatedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.FriendMessageCreatedSnsProcessorServiceInterface).to(FriendMessageCreatedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.FriendMessageUpdatedSnsProcessorServiceInterface).to(FriendMessageUpdatedSnsProcessorService);
@@ -82,6 +84,7 @@ try {
     container.get(TYPES.UserAddedAsFriendSnsProcessorServiceInterface),
     container.get(TYPES.UserRemovedAsFriendSnsProcessorServiceInterface),
     container.get(TYPES.TeamCreatedSnsProcessorServiceInterface),
+    container.get(TYPES.MeetingCreatedSnsProcessorServiceInterface),
     container.get(TYPES.GroupCreatedSnsProcessorServiceInterface),
     container.get(TYPES.FriendMessageCreatedSnsProcessorServiceInterface),
     container.get(TYPES.FriendMessageUpdatedSnsProcessorServiceInterface),
