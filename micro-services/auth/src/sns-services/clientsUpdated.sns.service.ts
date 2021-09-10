@@ -12,7 +12,7 @@ export class ClientsUpdatedSnsService extends BaseSnsService<ClientsUpdatedSnsMe
     @inject(TYPES.SnsFactory) snsFactory: SnsFactory,
     @inject(TYPES.EnvConfigInterface) envConfig: ClientsUpdatedSnsServiceConfigInterface,
   ) {
-    super(envConfig.snsTopicArns.clientsUpdated as string, loggerService, snsFactory);
+    super(envConfig.snsTopicArns.clientsUpdated, loggerService, snsFactory);
   }
 
   public async sendMessage(): Promise<void> {

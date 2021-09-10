@@ -44,9 +44,7 @@ export class GroupCreatedDynamoProcessorService implements DynamoProcessorServic
 
       const { newImage: { id: groupId } } = record;
 
-      const [ { group } ] = await Promise.all([
-        this.groupMediatorService.getGroup({ groupId })
-      ]);
+      const { group } = await this.groupMediatorService.getGroup({ groupId });
 
       await this.groupCreatedSnsService.sendMessage({ group, groupMemberIds: [ group.createdBy ] });
     } catch (error: unknown) {

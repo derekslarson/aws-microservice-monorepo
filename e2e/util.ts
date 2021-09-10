@@ -153,9 +153,9 @@ async function getAuthorizationCode(email: string, xsrfToken: string, logError?:
       throw new Error("redirect path missing in response");
     }
 
-    const [ , authorizationCode ] = redirectPath.split("=");
+    const authorizationCode = redirectPath.split("code=")[1]?.split("&")[0];
 
-    if (authorizationCode === "code&client_id") {
+    if (!authorizationCode) {
       throw new Error("Error fetching authorization code");
     }
     return { authorizationCode };

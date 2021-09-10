@@ -66,6 +66,7 @@ export class YacUtilServiceStack extends CDK.Stack {
     const meetingCreatedSnsTopic = new SNS.Topic(this, `MeetingCreatedSnsTopic_${id}`, { topicName: `MeetingCreatedSnsTopic_${id}` });
     const groupCreatedSnsTopic = new SNS.Topic(this, `GroupCreatedSnsTopic_${id}`, { topicName: `GroupCreatedSnsTopic_${id}` });
     const friendMessageCreatedSnsTopic = new SNS.Topic(this, `FriendMessageCreatedSnsTopic_${id}`, { topicName: `FriendMessageCreatedSnsTopic_${id}` });
+    const friendMessageUpdatedSnsTopic = new SNS.Topic(this, `FriendMessageUpdatedSnsTopic_${id}`, { topicName: `FriendMessageUpdatedSnsTopic_${id}` });
     const groupMessageCreatedSnsTopic = new SNS.Topic(this, `GroupMessageCreatedSnsTopic_${id}`, { topicName: `GroupMessageCreatedSnsTopic_${id}` });
     const meetingMessageCreatedSnsTopic = new SNS.Topic(this, `MeetingMessageCreatedSnsTopic_${id}`, { topicName: `MeetingMessageCreatedSnsTopic_${id}` });
 
@@ -157,6 +158,11 @@ export class YacUtilServiceStack extends CDK.Stack {
       value: friendMessageCreatedSnsTopic.topicArn,
     });
 
+    new CDK.CfnOutput(this, `FriendMessageUpdatedSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.FriendMessageUpdatedSnsTopicArn,
+      value: friendMessageUpdatedSnsTopic.topicArn,
+    });
+
     new CDK.CfnOutput(this, `GroupMessageCreatedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.GroupMessageCreatedSnsTopicArn,
       value: groupMessageCreatedSnsTopic.topicArn,
@@ -231,6 +237,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new SSM.StringParameter(this, `FriendMessageCreatedSsmParameter_${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/friend-message-created-sns-topic-arn`,
       stringValue: friendMessageCreatedSnsTopic.topicArn,
+    });
+
+    new SSM.StringParameter(this, `FriendMessageUpdatedSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/friend-message-updated-sns-topic-arn`,
+      stringValue: friendMessageUpdatedSnsTopic.topicArn,
     });
 
     new SSM.StringParameter(this, `GroupMessageCreatedSsmParameter_${id}`, {

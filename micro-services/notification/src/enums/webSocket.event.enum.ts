@@ -11,6 +11,7 @@ export enum WebSocketEvent {
   MeetingCreated = "meeting_created",
   GroupCreated = "group_created",
   FriendMessageCreated = "friend_message_created",
+  FriendMessageUpdated = "friend_message_updated",
   GroupMessageCreated = "group_message_created",
   MeetingMessageCreated = "meeting_message_created",
 }
