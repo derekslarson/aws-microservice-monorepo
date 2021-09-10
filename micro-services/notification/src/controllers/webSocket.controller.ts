@@ -29,7 +29,7 @@ export class WebSocketController extends BaseController implements WebSocketCont
 
       const { decodedToken: { username: userId } } = await this.tokenVerificationService.verifyToken({ token });
 
-      await this.webSocketMediatorService.persistListener({ userId, listener: connectionId });
+      await this.webSocketMediatorService.persistListener({ userId, listener: { value: connectionId } });
 
       return { statusCode: 200 };
     } catch (error: unknown) {
@@ -45,7 +45,7 @@ export class WebSocketController extends BaseController implements WebSocketCont
 
       const { requestContext: { connectionId } } = this.validationService.validate({ dto: DisconnectDto, request });
 
-      await this.webSocketMediatorService.deleteListener({ listener: connectionId });
+      await this.webSocketMediatorService.deleteListener({ listener: { value: connectionId } });
 
       return { statusCode: 200 };
     } catch (error: unknown) {

@@ -6,17 +6,18 @@ import * as SNS from "@aws-cdk/aws-sns";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
-import * as ACM from "@aws-cdk/aws-certificatemanager";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as Route53Targets from "@aws-cdk/aws-route53-targets";
-import { Environment, generateExportNames, LogLevel } from "@yac/util";
+import * as CustomResources from "@aws-cdk/custom-resources";
+import { Environment, generateExportNames, LogLevel, RouteProps } from "@yac/util";
+import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import { WebSocketApi } from "../constructs/aws-apigatewayv2/webSocketApi.construct";
 import { LambdaWebSocketIntegration } from "../constructs/aws-apigatewayv2-integrations/lambdaWebSocketIntegration.construct";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
-export class YacNotificationServiceStack extends CDK.Stack {
-  constructor(scope: CDK.Construct, id: string, props: CDK.StackProps) {
+export class YacNotificationServiceStack extends YacHttpServiceStack {
+  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -49,29 +50,13 @@ export class YacNotificationServiceStack extends CDK.Stack {
     const meetingMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageCreatedSnsTopicArn);
     const meetingMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageUpdatedSnsTopicArn);
 
+    const pushNotificationFailedSnsTopic = new SNS.Topic(this, `PushNotificationFailedSnsTopic_${id}`, { topicName: `PushNotificationFailedSnsTopic_${id}` });
+
+    // Imported SSM Parameters
+    const gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/gcm-server-key`);
+
     // Imported User Pool Id from Auth
     const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
-
-    // Manually Set SSM Parameters Related to Route 53
-    const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
-    const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
-    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
-
-    // Domain Name Related Resources
-    const certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn);
-
-    const hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, {
-      zoneName: hostedZoneName,
-      hostedZoneId,
-    });
-
-    const domainName = new ApiGatewayV2.DomainName(this, `DomainName_${id}`, { domainName: `${this.recordName}.${hostedZoneName}`, certificate });
-
-    new Route53.ARecord(this, `ARecord_${id}`, {
-      zone: hostedZone,
-      recordName: this.recordName,
-      target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2DomainProperties(domainName.regionalDomainName, domainName.regionalHostedZoneId)),
-    });
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
@@ -93,12 +78,72 @@ export class YacNotificationServiceStack extends CDK.Stack {
       sortKey: { name: "gsi1sk", type: DynamoDB.AttributeType.STRING },
     });
 
+    // SNS Push Notification Platform Application
+    const platformApplicationPlatform = "GCM";
+    const platformApplicationName = `PlatformApplication_${id}`;
+    const platformApplicationArn = `arn:aws:sns:${this.region}:${this.account}:app/${platformApplicationPlatform}/${platformApplicationName}`;
+
+    new CustomResources.AwsCustomResource(this, `PlatformApplicationCustomResource_${id}`, {
+      resourceType: "Custom::PlatformApplication",
+      installLatestAwsSdk: false,
+      onCreate: {
+        region: this.region,
+        service: "SNS",
+        action: "createPlatformApplication",
+        parameters: {
+          Name: platformApplicationName,
+          Platform: platformApplicationPlatform,
+          Attributes: {
+            PlatformCredential: gcmServerKey,
+            EventDeliveryFailure: pushNotificationFailedSnsTopic.topicArn,
+          },
+        },
+        physicalResourceId: CustomResources.PhysicalResourceId.of(platformApplicationName),
+      },
+      onUpdate: {
+        region: this.region,
+        service: "SNS",
+        action: "setPlatformApplicationAttributes",
+        parameters: {
+          PlatformApplicationArn: platformApplicationArn,
+          Attributes: {
+            PlatformCredential: gcmServerKey,
+            EventDeliveryFailure: pushNotificationFailedSnsTopic.topicArn,
+          },
+        },
+        physicalResourceId: CustomResources.PhysicalResourceId.of(platformApplicationName),
+      },
+      onDelete: {
+        region: this.region,
+        service: "SNS",
+        action: "deletePlatformApplication",
+        parameters: { PlatformApplicationArn: platformApplicationArn },
+        physicalResourceId: CustomResources.PhysicalResourceId.of(platformApplicationName),
+      },
+      policy: CustomResources.AwsCustomResourcePolicy.fromStatements([
+        new IAM.PolicyStatement({
+          actions: [ "*" ],
+          resources: [ "*" ],
+        }),
+      ]),
+    });
+
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
 
     const listenerMappingTableFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "dynamodb:*" ],
       resources: [ listenerMappingTable.tableArn, `${listenerMappingTable.tableArn}/*` ],
+    });
+
+    const createPlatformEndpointPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:CreatePlatformEndpoint" ],
+      resources: [ platformApplicationArn ],
+    });
+
+    const sendPushNotificationPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ platformApplicationArn ],
     });
 
     // Environment Variables
@@ -124,6 +169,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       MEETING_MESSAGE_CREATED_SNS_TOPIC_ARN: meetingMessageCreatedSnsTopicArn,
       MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN: meetingMessageUpdatedSnsTopicArn,
       MEETING_CREATED_SNS_TOPIC_ARN: meetingCreatedSnsTopicArn,
+      PLATFORM_APPLICATION_ARN: platformApplicationArn,
     };
 
     // WebSocket Lambdas
@@ -150,11 +196,19 @@ export class YacNotificationServiceStack extends CDK.Stack {
     });
 
     // WebSocket API
+    const webSocketDomainName = new ApiGatewayV2.DomainName(this, `WebSocketDomainName_${id}`, { domainName: `${this.webSocketRecordName}.${this.zoneName}`, certificate: this.certificate });
+
+    new Route53.ARecord(this, `ARecord_${id}`, {
+      zone: this.hostedZone,
+      recordName: this.webSocketRecordName,
+      target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2DomainProperties(webSocketDomainName.regionalDomainName, webSocketDomainName.regionalHostedZoneId)),
+    });
+
     const webSocketApi = new WebSocketApi(this, `WebSocketApi_${id}`, {
       connectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: connectHandler }) },
       disconnectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: disconnectHandler }) },
       defaultDomainMapping: {
-        domainName,
+        domainName: webSocketDomainName,
         mappingKey: "notification",
       },
     });
@@ -176,7 +230,7 @@ export class YacNotificationServiceStack extends CDK.Stack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement ],
+      initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement, sendPushNotificationPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn)),
@@ -198,33 +252,57 @@ export class YacNotificationServiceStack extends CDK.Stack {
       ],
     });
 
+    // HTTP Lambdas
+    const registerDeviceHandler = new Lambda.Function(this, `RegisterDeviceHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/registerDevice"),
+      handler: "registerDevice.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, createPlatformEndpointPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const routes: RouteProps[] = [
+      {
+        path: "/users/{userId}/devices",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: registerDeviceHandler,
+        authorizationScopes: [ "yac/user.write" ],
+      },
+    ];
+
+    routes.forEach((route) => this.httpApi.addRoute(route));
+
+    // PushNotificationFailedSnsTopic ARN Export (to be imported by test stack)
+    new CDK.CfnOutput(this, `PushNotificationFailedSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.PushNotificationFailedSnsTopicArn,
+      value: pushNotificationFailedSnsTopic.topicArn,
+    });
+
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `ListenerMappingTableNameSsmParameter-${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/listener-mapping-table-name`,
       stringValue: listenerMappingTable.tableName,
     });
+
+    new SSM.StringParameter(this, `PushNotificationFailedSnsTopicArnSsmParameter_-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/push-notification-failed-sns-topic-arn`,
+      stringValue: pushNotificationFailedSnsTopic.topicArn,
+    });
+
+    new SSM.StringParameter(this, `PlatformApplicationArnSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/platform-application-arn`,
+      stringValue: platformApplicationArn,
+    });
   }
 
-  public get recordName(): string {
+  public get webSocketRecordName(): string {
     try {
-      const environment = this.node.tryGetContext("environment") as string;
-      const developer = this.node.tryGetContext("developer") as string;
-
-      if (environment === Environment.Prod) {
-        return "api-v4-ws";
-      }
-
-      if (environment === Environment.Dev) {
-        return "develop-ws";
-      }
-
-      if (environment === Environment.Local) {
-        return `${developer}-ws`;
-      }
-
-      return environment;
+      return `${this.recordName}-ws`;
     } catch (error) {
-      console.log(`${new Date().toISOString()} : Error in YacNotificationService recordName getter:\n`, error);
+      console.log(`${new Date().toISOString()} : Error in webSocketRecordName recordName getter:\n`, error);
 
       throw error;
     }

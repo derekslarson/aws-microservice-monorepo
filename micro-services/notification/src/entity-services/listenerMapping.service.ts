@@ -15,12 +15,13 @@ export class ListenerMappingService implements ListenerMappingServiceInterface {
     try {
       this.loggerService.trace("createListenerMapping called", { params }, this.constructor.name);
 
-      const { userId, type, value } = params;
+      const { userId, type, value, valueTwo } = params;
 
       const listenerMapping: ListenerMappingEntity = {
         userId,
         type,
         value,
+        valueTwo,
       };
 
       await this.listenerMappingRepository.createListenerMapping({ listenerMapping });
@@ -71,13 +72,7 @@ export class ListenerMappingService implements ListenerMappingServiceInterface {
 
       const { userId, type, value } = params;
 
-      const listenerMapping: ListenerMappingEntity = {
-        userId,
-        type,
-        value,
-      };
-
-      await this.listenerMappingRepository.deleteListenerMapping({ listenerMapping });
+      await this.listenerMappingRepository.deleteListenerMapping({ userId, type, value });
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteListenerMapping", { error, params }, this.constructor.name);
 
@@ -99,6 +94,7 @@ export interface CreateListenerMappingInput {
   userId: string;
   type: ListenerType;
   value: string;
+  valueTwo?: string;
 }
 
 export interface CreateListenerMappingOutput {

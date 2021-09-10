@@ -39,6 +39,10 @@ const necessaryParams = [
   "group-message-updated-sns-topic-arn",
   "meeting-message-created-sns-topic-arn",
   "meeting-message-updated-sns-topic-arn",
+  "gcm-sender-id",
+  "push-notification-failed-sns-topic-arn",
+  "notification-testing-sns-event-table-name",
+  "platform-application-arn",
 ];
 
 (async () => {

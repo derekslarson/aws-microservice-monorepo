@@ -22,7 +22,9 @@ describe("BaseIntegrationMediatorService", () => {
   let integrationMediatorService: IntegrationMediatorService;
 
   const mockUserId = "user-mock-id";
-  const mockListener = "mock-listener";
+  const mockListenerValue = "mock-listener-value";
+  const mockListenerValueTwo = "mock-listener-value-two";
+  const mockListener = { value: mockListenerValue, valueTwo: mockListenerValueTwo };
 
   const mockError = new Error("test");
 
@@ -48,7 +50,8 @@ describe("BaseIntegrationMediatorService", () => {
         expect(listenerMappingService.createListenerMapping).toHaveBeenCalledWith({
           userId: mockUserId,
           type: mockNotficationType,
-          value: mockListener,
+          value: mockListener.value,
+          valueTwo: mockListener.valueTwo,
         });
       });
     });
@@ -88,7 +91,7 @@ describe("BaseIntegrationMediatorService", () => {
 
     describe("under normal conditions", () => {
       beforeEach(() => {
-        listenerMappingService.getListenerMappingsByUserIdAndType.and.returnValue(Promise.resolve({ listenerMappings: [ { value: mockListener } ] }));
+        listenerMappingService.getListenerMappingsByUserIdAndType.and.returnValue(Promise.resolve({ listenerMappings: [ { value: mockListenerValue, valueTwo: mockListenerValueTwo } ] }));
       });
 
       it("calls listenerMappingService.getListenerMappingsByUserIdAndType with the correct params", async () => {
@@ -143,7 +146,7 @@ describe("BaseIntegrationMediatorService", () => {
 
     describe("under normal conditions", () => {
       beforeEach(() => {
-        listenerMappingService.getListenerMappingsByTypeAndValue.and.returnValue(Promise.resolve({ listenerMappings: [ { userId: mockUserId } ] }));
+        listenerMappingService.getListenerMappingsByTypeAndValue.and.returnValue(Promise.resolve({ listenerMappings: [ { userId: mockUserId, value: mockListenerValue } ] }));
         listenerMappingService.deleteListenerMapping.and.returnValue(Promise.resolve());
       });
 
@@ -153,7 +156,7 @@ describe("BaseIntegrationMediatorService", () => {
         expect(listenerMappingService.getListenerMappingsByTypeAndValue).toHaveBeenCalledTimes(1);
         expect(listenerMappingService.getListenerMappingsByTypeAndValue).toHaveBeenCalledWith({
           type: mockNotficationType,
-          value: mockListener,
+          value: mockListenerValue,
         });
       });
 
@@ -164,7 +167,7 @@ describe("BaseIntegrationMediatorService", () => {
         expect(listenerMappingService.deleteListenerMapping).toHaveBeenCalledWith({
           userId: mockUserId,
           type: mockNotficationType,
-          value: mockListener,
+          value: mockListenerValue,
         });
       });
     });

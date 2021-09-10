@@ -19,6 +19,8 @@ describe("WebSocketMediatorService", () => {
   const mockEvent = WebSocketEvent.UserAddedToTeam as const;
   const mockConnectionIdOne = "mock-connection-id-one";
   const mockConnectionIdTwo = "mock-connection-id-two";
+  const mockListenerOne = { value: mockConnectionIdOne };
+  const mockListenerTwo = { value: mockConnectionIdTwo };
 
   const mockUser: User = {
     id: mockUserId,
@@ -51,7 +53,7 @@ describe("WebSocketMediatorService", () => {
 
     describe("under normal conditions", () => {
       beforeEach(() => {
-        spyOn(webSocketMediatorService, "getListenersByUserId").and.returnValue({ listeners: [ mockConnectionIdOne, mockConnectionIdTwo ] });
+        spyOn(webSocketMediatorService, "getListenersByUserId").and.returnValue({ listeners: [ mockListenerOne, mockListenerTwo ] });
         webSocketService.sendMessage.and.returnValue(Promise.resolve());
       });
 
@@ -83,7 +85,7 @@ describe("WebSocketMediatorService", () => {
     describe("under error conditions", () => {
       describe("when webSocketService.sendMessage throws an error", () => {
         beforeEach(() => {
-          spyOn(webSocketMediatorService, "getListenersByUserId").and.returnValue({ listeners: [ mockConnectionIdOne, mockConnectionIdTwo ] });
+          spyOn(webSocketMediatorService, "getListenersByUserId").and.returnValue({ listeners: [ mockListenerOne, mockListenerTwo ] });
           webSocketService.sendMessage.and.throwError(mockError);
         });
 

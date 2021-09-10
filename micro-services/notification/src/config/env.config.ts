@@ -26,6 +26,7 @@ export const envConfig: EnvConfigInterface = {
     meetingMessageCreated: process.env.MEETING_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
     meetingMessageUpdated: process.env.MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
   },
+  platformApplicationArn: process.env.PLATFORM_APPLICATION_ARN || "",
   globalSecondaryIndexNames: { one: process.env.GSI_ONE_INDEX_NAME || "" },
 };
 
@@ -53,7 +54,8 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     groupMessageUpdated: string;
     meetingMessageCreated: string;
     meetingMessageUpdated: string;
-  }
+  };
+  platformApplicationArn: string;
   bucketNames: Record<string, string>;
   globalSecondaryIndexNames: {
     one: string;
