@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User, Meeting } from "@yac/util";
+import { PushNotificationEvent } from "../../enums/pushNotification.event.enum";
 import { WebSocketEvent } from "../../enums/webSocket.event.enum";
+import { PushNotificationMediatorService, PushNotificationMediatorServiceInterface } from "../../mediator-services/pushNotification.mediator.service";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../../mediator-services/webSocket.mediator.service";
 import { UserAddedToMeetingSnsProcessorService } from "../userAddedToMeeting.sns.processor.service";
 
 describe("UserAddedToMeetingSnsProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let webSocketMediatorService: Spied<WebSocketMediatorServiceInterface>;
+  let pushNotificationMediatorService: Spied<PushNotificationMediatorServiceInterface>;
   let userAddedToMeetingSnsProcessorService: SnsProcessorServiceInterface;
 
   const mockUserAddedToMeetingSnsTopicArn = "mock-user-added-to-meeting-sns-topic-arn";
@@ -42,8 +45,9 @@ describe("UserAddedToMeetingSnsProcessorService", () => {
   beforeEach(() => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     webSocketMediatorService = TestSupport.spyOnClass(WebSocketMediatorService);
+    pushNotificationMediatorService = TestSupport.spyOnClass(PushNotificationMediatorService);
 
-    userAddedToMeetingSnsProcessorService = new UserAddedToMeetingSnsProcessorService(loggerService, webSocketMediatorService, mockConfig);
+    userAddedToMeetingSnsProcessorService = new UserAddedToMeetingSnsProcessorService(loggerService, webSocketMediatorService, pushNotificationMediatorService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
@@ -75,6 +79,18 @@ describe("UserAddedToMeetingSnsProcessorService", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
         webSocketMediatorService.sendMessage.and.returnValue(Promise.resolve());
+      });
+
+      it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
+        await userAddedToMeetingSnsProcessorService.processRecord(mockRecord);
+
+        expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledTimes(1);
+        expect(pushNotificationMediatorService.sendPushNotification).toHaveBeenCalledWith({
+          userId: mockUserIdOne,
+          event: PushNotificationEvent.UserAddedToMeeting,
+          title: "Added to Meeting",
+          body: `You've been added to the meeting ${mockMeeting.name}`,
+        });
       });
 
       it("calls webSocketMediatorService.sendMessage with the correct parameters", async () => {
