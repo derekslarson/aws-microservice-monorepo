@@ -37,6 +37,7 @@ export class YacCoreTestingStack extends CDK.Stack {
     const groupCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
     const friendMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageCreatedSnsTopicArn);
     const groupMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupMessageCreatedSnsTopicArn);
+    const meetingMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageCreatedSnsTopicArn);
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
@@ -87,6 +88,7 @@ export class YacCoreTestingStack extends CDK.Stack {
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `GroupCreatedSnsTopic_${id}`, groupCreatedSnsTopicArn)),
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `FriendMessageCreatedSnsTopic_${id}`, friendMessageCreatedSnsTopicArn)),
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `GroupMessageCreatedSnsTopic_${id}`, groupMessageCreatedSnsTopicArn)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MeetingMessageCreatedSnsTopic_${id}`, meetingMessageCreatedSnsTopicArn)),
       ],
     });
 

@@ -13,3 +13,4 @@ export * from "./meetingCreated.snsMessage.model";
 export * from "./groupCreated.snsMessage.model";
 export * from "./friendMessageCreated.snsMessage.model";
 export * from "./groupMessageCreated.snsMessage.model";
+export * from "./meetingMessageCreated.snsMessage.model";

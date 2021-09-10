@@ -10,6 +10,7 @@ import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../
 import { MeetingCreatedSnsProcessorService } from "../processor-services/meetingCreated.sns.processor.service";
 import { FriendMessageCreatedSnsProcessorService } from "../processor-services/friendMessageCreated.sns.processor.service";
 import { GroupMessageCreatedSnsProcessorService } from "../processor-services/groupMessageCreated.sns.processor.service";
+import { MeetingMessageCreatedSnsProcessorService } from "../processor-services/meetingMessageCreated.sns.processor.service";
 import { GroupCreatedSnsProcessorService } from "../processor-services/groupCreated.sns.processor.service";
 import { TeamCreatedSnsProcessorService } from "../processor-services/teamCreated.sns.processor.service";
 import { UserAddedAsFriendSnsProcessorService } from "../processor-services/userAddedAsFriend.sns.processor.service";
@@ -53,6 +54,7 @@ try {
   container.bind<SnsProcessorServiceInterface>(TYPES.GroupCreatedSnsProcessorServiceInterface).to(GroupCreatedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.FriendMessageCreatedSnsProcessorServiceInterface).to(FriendMessageCreatedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.GroupMessageCreatedSnsProcessorServiceInterface).to(GroupMessageCreatedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.MeetingMessageCreatedSnsProcessorServiceInterface).to(MeetingMessageCreatedSnsProcessorService);
 
   // Entity Services
   container.bind<ListenerMappingServiceInterface>(TYPES.ListenerMappingServiceInterface).to(ListenerMappingService);
@@ -84,6 +86,7 @@ try {
     container.get(TYPES.GroupCreatedSnsProcessorServiceInterface),
     container.get(TYPES.FriendMessageCreatedSnsProcessorServiceInterface),
     container.get(TYPES.GroupMessageCreatedSnsProcessorServiceInterface),
+    container.get(TYPES.MeetingMessageCreatedSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([]);

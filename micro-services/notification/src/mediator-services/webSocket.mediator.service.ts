@@ -144,6 +144,15 @@ export interface MeetingCreatedMessageInput extends BaseMessageInput {
   }
 }
 
+export interface MeetingMessageCreatedMessageInput extends BaseMessageInput {
+  event: WebSocketEvent.MeetingMessageCreated;
+  data: {
+    to: Meeting;
+    from: User;
+    message: Message;
+  }
+}
+
 export type SendMessageInput =
   SendUserAddedToTeamMessageInput |
   SendUserRemovedFromTeamMessageInput |
@@ -156,6 +165,7 @@ export type SendMessageInput =
   SendUserRemovedAsFriendMessageInput |
   TeamCreatedMessageInput |
   GroupMessageCreatedMessageInput |
+  MeetingMessageCreatedMessageInput |
   FriendMessageCreatedMessageInput |
   MeetingCreatedMessageInput;
 
