@@ -73,6 +73,8 @@ import { FriendMessageUpdatedSnsService, FriendMessageUpdatedSnsServiceInterface
 import { FriendMessageUpdatedDynamoProcessorService } from "../processor-services/friendMessageUpdated.dynamo.processor.service";
 import { GroupMessageUpdatedSnsService, GroupMessageUpdatedSnsServiceInterface } from "../sns-services/groupMessageUpdated.sns.service";
 import { GroupMessageUpdatedDynamoProcessorService } from "../processor-services/groupMessageUpdated.dynamo.processor.service";
+import { MeetingMessageUpdatedSnsService, MeetingMessageUpdatedSnsServiceInterface } from "../sns-services/meetingMessageUpdated.sns.service";
+import { MeetingMessageUpdatedDynamoProcessorService } from "../processor-services/meetingMessageUpdated.dynamo.processor.service";
 
 const container = new Container();
 
@@ -124,6 +126,7 @@ try {
   container.bind<DynamoProcessorServiceInterface>(TYPES.GroupMessageCreatedDynamoProcessorServiceInterface).to(GroupMessageCreatedDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.GroupMessageUpdatedDynamoProcessorServiceInterface).to(GroupMessageUpdatedDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.MeetingMessageCreatedDynamoProcessorServiceInterface).to(MeetingMessageCreatedDynamoProcessorService);
+  container.bind<DynamoProcessorServiceInterface>(TYPES.MeetingMessageUpdatedDynamoProcessorServiceInterface).to(MeetingMessageUpdatedDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.MeetingCreatedDynamoProcessorServiceInterface).to(MeetingCreatedDynamoProcessorService);
 
   // SNS Services
@@ -143,6 +146,7 @@ try {
   container.bind<GroupMessageCreatedSnsServiceInterface>(TYPES.GroupMessageCreatedSnsServiceInterface).to(GroupMessageCreatedSnsService);
   container.bind<GroupMessageUpdatedSnsServiceInterface>(TYPES.GroupMessageUpdatedSnsServiceInterface).to(GroupMessageUpdatedSnsService);
   container.bind<MeetingMessageCreatedSnsServiceInterface>(TYPES.MeetingMessageCreatedSnsServiceInterface).to(MeetingMessageCreatedSnsService);
+  container.bind<MeetingMessageUpdatedSnsServiceInterface>(TYPES.MeetingMessageUpdatedSnsServiceInterface).to(MeetingMessageUpdatedSnsService);
   container.bind<MeetingCreatedSnsServiceInterface>(TYPES.MeetingCreatedSnsServiceInterface).to(MeetingCreatedSnsService);
 
   // Entity Services
@@ -196,6 +200,7 @@ try {
     container.get(TYPES.GroupMessageCreatedDynamoProcessorServiceInterface),
     container.get(TYPES.GroupMessageUpdatedDynamoProcessorServiceInterface),
     container.get(TYPES.MeetingMessageCreatedDynamoProcessorServiceInterface),
+    container.get(TYPES.MeetingMessageUpdatedDynamoProcessorServiceInterface),
     container.get(TYPES.MeetingCreatedDynamoProcessorServiceInterface),
   ]);
 } catch (error: unknown) {

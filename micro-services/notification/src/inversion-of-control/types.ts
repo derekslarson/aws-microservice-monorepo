@@ -26,6 +26,7 @@ const TYPES = {
   GroupMessageCreatedSnsProcessorServiceInterface: Symbol.for("GroupMessageCreatedSnsProcessorServiceInterface"),
   GroupMessageUpdatedSnsProcessorServiceInterface: Symbol.for("GroupMessageUpdatedSnsProcessorServiceInterface"),
   MeetingMessageCreatedSnsProcessorServiceInterface: Symbol.for("MeetingMessageCreatedSnsProcessorServiceInterface"),
+  MeetingMessageUpdatedSnsProcessorServiceInterface: Symbol.for("MeetingMessageUpdatedSnsProcessorServiceInterface"),
 
   // Entity Services
   ListenerMappingServiceInterface: Symbol.for("ListenerMappingServiceInterface"),
