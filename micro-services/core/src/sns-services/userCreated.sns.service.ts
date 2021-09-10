@@ -33,4 +33,4 @@ export interface UserCreatedSnsServiceInterface {
 
 export interface UserCreatedSnsServiceConfigInterface {
   snsTopicArns: Pick<EnvConfigInterface["snsTopicArns"], "userCreated">
-};
+}

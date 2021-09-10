@@ -46,13 +46,14 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const meetingCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
     const groupCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
     const friendMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageCreatedSnsTopicArn);
+    const groupMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupMessageCreatedSnsTopicArn);
 
     // S3 Bucket ARN Imports from Util
     const messageS3BucketArn = CDK.Fn.importValue(ExportNames.MessageS3BucketArn);
 
     // S3 Buckets
     const messageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket_${id}`, messageS3BucketArn);
-    const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket-${id}`, {});
+    const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket-${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
@@ -170,6 +171,11 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       resources: [ friendMessageCreatedSnsTopicArn ],
     });
 
+    const groupMessageCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ groupMessageCreatedSnsTopicArn ],
+    });
+
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
@@ -190,6 +196,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN: userRemovedAsFriendSnsTopicArn,
       GROUP_CREATED_SNS_TOPIC_ARN: groupCreatedSnsTopicArn,
       FRIEND_MESSAGE_CREATED_SNS_TOPIC_ARN: friendMessageCreatedSnsTopicArn,
+      GROUP_MESSAGE_CREATED_SNS_TOPIC_ARN: groupMessageCreatedSnsTopicArn,
       MESSAGE_S3_BUCKET_NAME: messageS3Bucket.bucketName,
       IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
     };
@@ -218,6 +225,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         teamCreatedSnsPublishPolicyStatement,
         meetingCreatedSnsPublishPolicyStatement,
         friendMessageCreatedSnsPublishPolicyStatement,
+        groupMessageCreatedSnsPublishPolicyStatement,
       ],
       timeout: CDK.Duration.seconds(15),
       events: [

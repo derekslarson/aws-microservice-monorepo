@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { GroupMessageCreatedSnsMessage, Role } from "@yac/util";
 import axios from "axios";
 import { readFileSync } from "fs";
 import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
@@ -14,28 +14,43 @@ import { RawConversationUserRelationship } from "../../src/repositories/conversa
 import { MessageId } from "../../src/types/messageId.type";
 import { PendingMessageId } from "../../src/types/pendingMessageId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createGroupConversation, getConversationUserRelationship, getMessage, getPendingMessage } from "../util";
+import {
+  createConversationUserRelationship,
+  createGroupConversation,
+  createRandomUser,
+  CreateRandomUserOutput,
+  deleteSnsEventsByTopicArn,
+  getConversationUserRelationship,
+  getMessage,
+  getPendingMessage,
+  getSnsEventsByTopicArn,
+  getUser,
+} from "../util";
 
 describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const groupMessageCreatedSnsTopicArn = process.env["group-message-created-sns-topic-arn"] as string;
 
   const mimeType = MessageMimeType.AudioMp3;
 
   describe("under normal conditions", () => {
-    const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+    let otherUser: CreateRandomUserOutput["user"];
 
     let group: RawConversation<GroupConversation>;
     let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Group>;
     let conversationUserRelationshipTwo: RawConversationUserRelationship<ConversationType.Group>;
 
     beforeEach(async () => {
-      ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
+      ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
+        createRandomUser(),
+        createGroupConversation({ createdBy: userId, name: generateRandomString(5) }),
+      ]));
 
       ([ { conversationUserRelationship }, { conversationUserRelationship: conversationUserRelationshipTwo } ] = await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin }),
-        createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId: mockUserId, role: Role.User }),
+        createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId: otherUser.id, role: Role.User }),
       ]));
     });
 
@@ -139,7 +154,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
             conversationId: group.id,
             seenAt: {
               [userId]: jasmine.stringMatching(ISO_DATE_REGEX),
-              [mockUserId]: null,
+              [otherUser.id]: null,
             },
             reactions: { },
             from: userId,
@@ -193,7 +208,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
             { conversationUserRelationship: conversationUserRelationshipTwoUpdated },
           ] = await Promise.all([
             backoff(() => getConversationUserRelationship({ userId, conversationId: group.id }), (res) => res.conversationUserRelationship?.updatedAt !== conversationUserRelationship.updatedAt),
-            backoff(() => getConversationUserRelationship({ userId: mockUserId, conversationId: group.id }), (res) => !!res.conversationUserRelationship?.unreadMessages),
+            backoff(() => getConversationUserRelationship({ userId: otherUser.id, conversationId: group.id }), (res) => !!res.conversationUserRelationship?.unreadMessages),
           ]);
 
           expect(conversationUserRelationshipUpdated?.updatedAt).toEqual(jasmine.stringMatching(ISO_DATE_REGEX));
@@ -221,6 +236,82 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
           fail(error);
         }
       });
+
+      it("publishes a valid SNS message", async () => {
+        // clear the sns events table so the test can have a clean slate
+        await deleteSnsEventsByTopicArn({ topicArn: groupMessageCreatedSnsTopicArn });
+
+        const headers = { Authorization: `Bearer ${accessToken}` };
+        const body = { mimeType };
+
+        try {
+          const { data } = await axios.post<{ pendingMessage: PendingMessage; }>(`${baseUrl}/groups/${group.id}/messages`, body, { headers });
+
+          const file = readFileSync(`${process.cwd()}/e2e/test-message.mp3`);
+
+          const uploadHeaders = { "content-type": mimeType };
+          const uploadBody = { data: file };
+
+          await axios.put(data.pendingMessage.uploadUrl, uploadBody, { headers: uploadHeaders });
+
+          await wait(3000);
+
+          const [ { user: fromUser }, { message } ] = await Promise.all([
+            getUser({ userId }),
+            getMessage({ messageId: data.pendingMessage.id }),
+          ]);
+
+          if (!fromUser || !message) {
+            throw new Error("necessary user records not created");
+          }
+
+          // wait till the events have been fired
+          const { snsEvents } = await backoff(
+            () => getSnsEventsByTopicArn<GroupMessageCreatedSnsMessage>({ topicArn: groupMessageCreatedSnsTopicArn }),
+            (response) => response.snsEvents.length === 1,
+          );
+
+          expect(snsEvents.length).toBe(1);
+
+          expect(snsEvents).toEqual([
+            jasmine.objectContaining({
+              message: {
+                groupMemberIds: jasmine.arrayContaining([ userId, otherUser.id ]),
+                to: {
+                  id: group.id,
+                  name: group.name,
+                  createdBy: group.createdBy,
+                  createdAt: group.createdAt,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  id: fromUser.id,
+                  email: fromUser.email,
+                  username: fromUser.username,
+                  phone: fromUser.phone,
+                  realName: fromUser.realName,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                message: {
+                  id: message.id,
+                  to: group.id,
+                  from: message.from,
+                  type: ConversationType.Group,
+                  createdAt: message.createdAt,
+                  seenAt: message.seenAt,
+                  reactions: message.reactions,
+                  replyCount: 0,
+                  mimeType: message.mimeType,
+                  fetchUrl: jasmine.stringMatching(URL_REGEX),
+                  fromImage: jasmine.stringMatching(URL_REGEX),
+                },
+              },
+            }),
+          ]);
+        } catch (error) {
+          fail(error);
+        }
+      }, 45000);
     });
   });
 

@@ -49,7 +49,7 @@ export class YacUtilServiceStack extends CDK.Stack {
 
     // S3 Buckets
     // We need to define this here so that it can be accessed in core as well as the message streaming service
-    const messageS3Bucket = new S3.Bucket(this, `MessageS3Bucket_${id}`, {});
+    const messageS3Bucket = new S3.Bucket(this, `MessageS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
 
     // SNS Topics
     const clientsUpdatedSnsTopic = new SNS.Topic(this, `ClientsUpdatedSnsTopic_${id}`, { topicName: `ClientsUpdatedSnsTopic_${id}` });
@@ -66,6 +66,7 @@ export class YacUtilServiceStack extends CDK.Stack {
     const meetingCreatedSnsTopic = new SNS.Topic(this, `MeetingCreatedSnsTopic_${id}`, { topicName: `MeetingCreatedSnsTopic_${id}` });
     const groupCreatedSnsTopic = new SNS.Topic(this, `GroupCreatedSnsTopic_${id}`, { topicName: `GroupCreatedSnsTopic_${id}` });
     const friendMessageCreatedSnsTopic = new SNS.Topic(this, `FriendMessageCreatedSnsTopic_${id}`, { topicName: `FriendMessageCreatedSnsTopic_${id}` });
+    const groupMessageCreatedSnsTopic = new SNS.Topic(this, `GroupMessageCreatedSnsTopic_${id}`, { topicName: `GroupMessageCreatedSnsTopic_${id}` });
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
@@ -155,6 +156,11 @@ export class YacUtilServiceStack extends CDK.Stack {
       value: friendMessageCreatedSnsTopic.topicArn,
     });
 
+    new CDK.CfnOutput(this, `GroupMessageCreatedSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.GroupMessageCreatedSnsTopicArn,
+      value: groupMessageCreatedSnsTopic.topicArn,
+    });
+
     new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {
       exportName: ExportNames.MessageS3BucketArn,
       value: messageS3Bucket.bucketArn,
@@ -219,6 +225,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new SSM.StringParameter(this, `FriendMessageCreatedSsmParameter_${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/friend-message-created-sns-topic-arn`,
       stringValue: friendMessageCreatedSnsTopic.topicArn,
+    });
+
+    new SSM.StringParameter(this, `GroupMessageCreatedSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/group-message-created-sns-topic-arn`,
+      stringValue: groupMessageCreatedSnsTopic.topicArn,
     });
   }
 
