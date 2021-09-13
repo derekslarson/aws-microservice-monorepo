@@ -61,11 +61,11 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
         let conversationEntityWithoutImageMimeType: Omit<ConversationEntity, "imageMimeType">;
 
-        if (this.isFriendConversationEntity(conversationEntity)) {
-          conversationEntityWithoutImageMimeType = conversationEntity;
-        } else {
+        if (this.isGroupOrMeetingConversationEntity(conversationEntity)) {
           const { imageMimeType, ...restOfConvo } = conversationEntity;
           conversationEntityWithoutImageMimeType = restOfConvo;
+        } else {
+          conversationEntityWithoutImageMimeType = conversationEntity;
         }
 
         return {
@@ -152,6 +152,18 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       return !("imageMimeType" in conversationEntity);
     } catch (error: unknown) {
       this.loggerService.error("Error in isFriendConversationEntity", { error, conversationEntity }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private isGroupOrMeetingConversationEntity(conversationEntity: ConversationEntity): conversationEntity is ConversationEntity<ConversationTypeEnum.Group | ConversationTypeEnum.Meeting> {
+    try {
+      this.loggerService.trace("isGroupOrMeetingConversationEntity called", { conversationEntity }, this.constructor.name);
+
+      return "imageMimeType" in conversationEntity;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in isGroupOrMeetingConversationEntity", { error, conversationEntity }, this.constructor.name);
 
       throw error;
     }

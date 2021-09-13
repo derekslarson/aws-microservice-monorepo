@@ -36,7 +36,7 @@ describe("MeetingMessageUpdatedSnsProcessorService", () => {
     from: mockUserIdOne,
     type: "meeting",
     createdAt: new Date().toISOString(),
-    seenAt: { [mockUserIdOne]: new Date().toISOString(), mockUserIdTwo: null },
+    seenAt: { [mockUserIdOne]: new Date().toISOString(), [mockUserIdTwo]: null },
     reactions: {},
     replyCount: 0,
     mimeType: "audio/mpeg",

@@ -65,7 +65,7 @@ describe("PushNotificationService", () => {
 
             fail("Should have thrown");
           } catch (error) {
-            expect(error.message).toBe("EndpointArn not returned from sns.createPlatformEndpoint");
+            expect((error as Error).message).toBe("EndpointArn not returned from sns.createPlatformEndpoint");
           }
         });
       });

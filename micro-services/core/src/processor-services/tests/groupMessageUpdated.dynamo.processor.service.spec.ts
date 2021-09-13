@@ -64,7 +64,7 @@ describe("GroupMessageUpdatedDynamoProcessorService", () => {
     from: mockUserIdOne,
     type: ConversationType.Group,
     createdAt: new Date().toISOString(),
-    seenAt: { [mockUserIdOne]: new Date().toISOString(), mockUserIdTwo: null },
+    seenAt: { [mockUserIdOne]: new Date().toISOString(), [mockUserIdTwo]: null },
     reactions: {},
     replyCount: 0,
     mimeType: MessageMimeType.AudioMp3,
