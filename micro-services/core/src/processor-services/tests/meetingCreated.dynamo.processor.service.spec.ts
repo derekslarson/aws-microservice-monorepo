@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, DynamoProcessorServiceInterface, DynamoProcessorServiceRecord } from "@yac/util";
-import { MeetingConversation } from "../../entity-services/conversation.service";
+import { ConversationService, ConversationServiceInterface, MeetingConversation } from "../../entity-services/conversation.service";
 import { ConversationType } from "../../enums/conversationType.enum";
 import { EntityType } from "../../enums/entityType.enum";
 import { ImageMimeType } from "../../enums/image.mimeType.enum";
@@ -11,6 +11,7 @@ import { MeetingCreatedDynamoProcessorService } from "../meetingCreated.dynamo.p
 describe("MeetingCreatedDynamoProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let meetingMediatorService: Spied<MeetingMediatorServiceInterface>;
+  let conversationService: Spied<ConversationServiceInterface>;
   let meetingCreatedSnsService: Spied<MeetingCreatedSnsServiceInterface>;
   let meetingCreatedDynamoProcessorService: DynamoProcessorServiceInterface;
 
@@ -47,8 +48,9 @@ describe("MeetingCreatedDynamoProcessorService", () => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     meetingCreatedSnsService = TestSupport.spyOnClass(MeetingCreatedSnsService);
     meetingMediatorService = TestSupport.spyOnClass(MeetingMediatorService);
+    conversationService = TestSupport.spyOnClass(ConversationService);
 
-    meetingCreatedDynamoProcessorService = new MeetingCreatedDynamoProcessorService(loggerService, meetingCreatedSnsService, meetingMediatorService, mockConfig);
+    meetingCreatedDynamoProcessorService = new MeetingCreatedDynamoProcessorService(loggerService, meetingCreatedSnsService, meetingMediatorService, conversationService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {

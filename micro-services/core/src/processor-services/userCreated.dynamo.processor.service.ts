@@ -6,6 +6,7 @@ import { EnvConfigInterface } from "../config/env.config";
 import { RawUser } from "../repositories/user.dynamo.repository";
 import { EntityType } from "../enums/entityType.enum";
 import { UserCreatedSnsServiceInterface } from "../sns-services/userCreated.sns.service";
+import { UserServiceInterface } from "../entity-services/user.service";
 
 @injectable()
 export class UserCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -14,6 +15,7 @@ export class UserCreatedDynamoProcessorService implements DynamoProcessorService
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserCreatedSnsServiceInterface) private userCreatedSnsService: UserCreatedSnsServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -41,7 +43,10 @@ export class UserCreatedDynamoProcessorService implements DynamoProcessorService
 
       const { newImage: user } = record;
 
-      await this.userCreatedSnsService.sendMessage({ id: user.id, email: user.email, phone: user.phone });
+      await Promise.allSettled([
+        this.userCreatedSnsService.sendMessage({ id: user.id, email: user.email, phone: user.phone }),
+        this.userService.indexUserForSearch({ user }),
+      ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

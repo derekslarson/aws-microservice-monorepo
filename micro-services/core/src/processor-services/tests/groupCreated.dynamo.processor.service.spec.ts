@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, DynamoProcessorServiceInterface, Group, DynamoProcessorServiceRecord } from "@yac/util";
+import { ConversationService, ConversationServiceInterface } from "../../entity-services/conversation.service";
 import { EntityType } from "../../enums/entityType.enum";
 import { GroupMediatorService, GroupMediatorServiceInterface } from "../../mediator-services/group.mediator.service";
 import { GroupCreatedSnsService, GroupCreatedSnsServiceInterface } from "../../sns-services/groupCreated.sns.service";
@@ -8,6 +9,7 @@ import { GroupCreatedDynamoProcessorService } from "../groupCreated.dynamo.proce
 describe("GroupCreatedDynamoProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let groupMediatorService: Spied<GroupMediatorServiceInterface>;
+  let conversationService: Spied<ConversationServiceInterface>;
   let groupCreatedSnsService: Spied<GroupCreatedSnsServiceInterface>;
   let groupCreatedDynamoProcessorService: DynamoProcessorServiceInterface;
 
@@ -42,8 +44,9 @@ describe("GroupCreatedDynamoProcessorService", () => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     groupCreatedSnsService = TestSupport.spyOnClass(GroupCreatedSnsService);
     groupMediatorService = TestSupport.spyOnClass(GroupMediatorService);
+    conversationService = TestSupport.spyOnClass(ConversationService);
 
-    groupCreatedDynamoProcessorService = new GroupCreatedDynamoProcessorService(loggerService, groupCreatedSnsService, groupMediatorService, mockConfig);
+    groupCreatedDynamoProcessorService = new GroupCreatedDynamoProcessorService(loggerService, groupCreatedSnsService, groupMediatorService, conversationService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {

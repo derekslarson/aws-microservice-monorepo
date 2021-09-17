@@ -76,6 +76,9 @@ import { MeetingMessageUpdatedSnsService, MeetingMessageUpdatedSnsServiceInterfa
 import { MeetingMessageUpdatedDynamoProcessorService } from "../processor-services/meetingMessageUpdated.dynamo.processor.service";
 import { MessageTranscodedSnsProcessorService } from "../processor-services/messageTranscoded.sns.processor.service";
 import { MessageTranscribedSnsProcessorService } from "../processor-services/messageTranscribed.sns.processor.service";
+import { aws4Factory, Aws4Factory } from "../factories/aws4.factory";
+import { UserGroupMeetingSearchService, UserGroupMeetingSearchServiceInterface } from "../entity-services/userGroupMeeting.search.service";
+import { OpenSearchRepository, SearchRepositoryInterface } from "../repositories/openSearch.repository";
 
 const container = new Container();
 
@@ -164,6 +167,7 @@ try {
   container.bind<TeamUserRelationshipServiceInterface>(TYPES.TeamUserRelationshipServiceInterface).to(TeamUserRelationshipService);
   container.bind<UniquePropertyServiceInterface>(TYPES.UniquePropertyServiceInterface).to(UniquePropertyService);
   container.bind<UserServiceInterface>(TYPES.UserServiceInterface).to(UserService);
+  container.bind<UserGroupMeetingSearchServiceInterface>(TYPES.UserGroupMeetingSearchServiceInterface).to(UserGroupMeetingSearchService);
 
   // Repositories
   container.bind<ConversationRepositoryInterface>(TYPES.ConversationRepositoryInterface).to(ConversationDynamoRepository);
@@ -172,11 +176,13 @@ try {
   container.bind<MessageRepositoryInterface>(TYPES.MessageRepositoryInterface).to(MessageDynamoRepository);
   container.bind<PendingMessageRepositoryInterface>(TYPES.PendingMessageRepositoryInterface).to(PendingMessageDynamoRepository);
   container.bind<TeamRepositoryInterface>(TYPES.TeamRepositoryInterface).to(TeamDynamoRepository);
+  container.bind<SearchRepositoryInterface>(TYPES.SearchRepositoryInterface).to(OpenSearchRepository);
   container.bind<TeamUserRelationshipRepositoryInterface>(TYPES.TeamUserRelationshipRepositoryInterface).to(TeamUserRelationshipDynamoRepository);
   container.bind<UniquePropertyRepositoryInterface>(TYPES.UniquePropertyRepositoryInterface).to(UniquePropertyDynamoRepository);
   container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);
 
   // Factories
+  container.bind<Aws4Factory>(TYPES.Aws4Factory).toFactory(() => aws4Factory);
   container.bind<IdenticonFactory>(TYPES.IdenticonFactory).toFactory(() => identiconFactory);
 
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)

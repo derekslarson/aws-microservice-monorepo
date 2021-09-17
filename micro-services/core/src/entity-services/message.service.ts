@@ -1,18 +1,21 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { MessageRepositoryInterface, Message as MessageEntity } from "../repositories/message.dynamo.repository";
+import { MessageRepositoryInterface, Message as MessageEntity, RawMessage } from "../repositories/message.dynamo.repository";
 import { UserId } from "../types/userId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { MessageId } from "../types/messageId.type";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
 import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
+import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
+import { SearchIndex } from "../enums/searchIndex.enum";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MessageRepositoryInterface) private messageRepository: MessageRepositoryInterface,
+    @inject(TYPES.SearchRepositoryInterface) private messageSearchRepository: MessageSearchRepositoryInterface,
   ) {}
 
   public async createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
@@ -147,6 +150,50 @@ export class MessageService implements MessageServiceInterface {
       throw error;
     }
   }
+
+  public async indexMessageForSearch(params: IndexMessageForSearchInput): Promise<IndexMessageForSearchOutput> {
+    try {
+      this.loggerService.trace("indexMessageForSearch called", { params }, this.constructor.name);
+
+      const { message } = params;
+
+      await this.messageSearchRepository.indexDocument({ index: SearchIndex.Message, document: message });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in indexMessageForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async deindexMessageForSearch(params: DeindexMessageForSearchInput): Promise<DeindexMessageForSearchOutput> {
+    try {
+      this.loggerService.trace("deindexMessageForSearch called", { params }, this.constructor.name);
+
+      const { messageId } = params;
+
+      await this.messageSearchRepository.deindexDocument({ index: SearchIndex.Message, id: messageId });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deindexMessageForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getMessagesBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, conversationIds, limit, exclusiveStartKey } = params;
+
+      const { messages, lastEvaluatedKey } = await this.messageSearchRepository.getMessagesBySearchTerm({ searchTerm, conversationIds, limit, exclusiveStartKey });
+
+      return { messages, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMessagesBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface MessageServiceInterface {
@@ -157,6 +204,9 @@ export interface MessageServiceInterface {
   updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
+  indexMessageForSearch(params: IndexMessageForSearchInput): Promise<IndexMessageForSearchOutput>;
+  deindexMessageForSearch(params: DeindexMessageForSearchInput): Promise<DeindexMessageForSearchOutput>;
+  getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput>;
 }
 
 export type Message = MessageEntity;
@@ -233,3 +283,29 @@ export interface GetRepliesByMessageIdOutput {
   replies: Message[];
   lastEvaluatedKey?: string;
 }
+
+export interface IndexMessageForSearchInput {
+  message: RawMessage;
+}
+
+export type IndexMessageForSearchOutput = void;
+
+export interface DeindexMessageForSearchInput {
+  messageId: MessageId;
+}
+
+export type DeindexMessageForSearchOutput = void;
+
+export interface GetMessagesBySearchTermInput {
+  searchTerm: string;
+  conversationIds?: ConversationId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetMessagesBySearchTermOutput {
+  messages: Message[];
+  lastEvaluatedKey?: string;
+}
+
+type MessageSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getMessagesBySearchTerm">;

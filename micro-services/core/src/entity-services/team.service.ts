@@ -1,11 +1,13 @@
 import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamRepositoryInterface, Team as TeamEntity, TeamUpdates } from "../repositories/team.dynamo.repository";
+import { TeamRepositoryInterface, Team as TeamEntity, TeamUpdates, RawTeam } from "../repositories/team.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { TeamId } from "../types/teamId.type";
 import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
+import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
+import { SearchIndex } from "../enums/searchIndex.enum";
 
 @injectable()
 export class TeamService implements TeamServiceInterface {
@@ -13,6 +15,7 @@ export class TeamService implements TeamServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
     @inject(TYPES.TeamRepositoryInterface) private teamRepository: TeamRepositoryInterface,
+    @inject(TYPES.SearchRepositoryInterface) private teamSearchRepository: TeamSearchRepositoryInterface,
   ) {}
 
   public async createTeam(params: CreateTeamInput): Promise<CreateTeamOutput> {
@@ -95,6 +98,50 @@ export class TeamService implements TeamServiceInterface {
       throw error;
     }
   }
+
+  public async indexTeamForSearch(params: IndexTeamForSearchInput): Promise<IndexTeamForSearchOutput> {
+    try {
+      this.loggerService.trace("indexTeamForSearch called", { params }, this.constructor.name);
+
+      const { team } = params;
+
+      await this.teamSearchRepository.indexDocument({ index: SearchIndex.Team, document: team });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in indexTeamForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async deindexTeamForSearch(params: DeindexTeamForSearchInput): Promise<DeindexTeamForSearchOutput> {
+    try {
+      this.loggerService.trace("deindexTeamForSearch called", { params }, this.constructor.name);
+
+      const { teamId } = params;
+
+      await this.teamSearchRepository.deindexDocument({ index: SearchIndex.Team, id: teamId });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deindexTeamForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getTeamsBySearchTerm(params: GetTeamsBySearchTermInput): Promise<GetTeamsBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getTeamsBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, teamIds, limit, exclusiveStartKey } = params;
+
+      const { teams, lastEvaluatedKey } = await this.teamSearchRepository.getTeamsBySearchTerm({ searchTerm, teamIds, limit, exclusiveStartKey });
+
+      return { teams, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getTeamsBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export type Team = TeamEntity;
@@ -104,6 +151,9 @@ export interface TeamServiceInterface {
   getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
   updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput>;
   getTeams(params: GetTeamsInput): Promise<GetTeamsOutput>;
+  indexTeamForSearch(params: IndexTeamForSearchInput): Promise<IndexTeamForSearchOutput>;
+  deindexTeamForSearch(params: DeindexTeamForSearchInput): Promise<DeindexTeamForSearchOutput>;
+  getTeamsBySearchTerm(params: GetTeamsBySearchTermInput): Promise<GetTeamsBySearchTermOutput>;
 }
 
 export interface CreateTeamInput {
@@ -140,3 +190,29 @@ export interface GetTeamsInput {
 export interface GetTeamsOutput {
   teams: Team[];
 }
+
+export interface IndexTeamForSearchInput {
+  team: RawTeam;
+}
+
+export type IndexTeamForSearchOutput = void;
+
+export interface DeindexTeamForSearchInput {
+  teamId: TeamId;
+}
+
+export type DeindexTeamForSearchOutput = void;
+
+export interface GetTeamsBySearchTermInput {
+  searchTerm: string;
+  teamIds?: TeamId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetTeamsBySearchTermOutput {
+  teams: Team[];
+  lastEvaluatedKey?: string;
+}
+
+type TeamSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getTeamsBySearchTerm">;

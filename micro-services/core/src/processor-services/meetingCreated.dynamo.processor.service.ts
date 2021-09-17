@@ -6,7 +6,7 @@ import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { RawConversation } from "../repositories/conversation.dynamo.repository";
-import { MeetingConversation } from "../entity-services/conversation.service";
+import { ConversationServiceInterface, MeetingConversation } from "../entity-services/conversation.service";
 import { MeetingCreatedSnsServiceInterface } from "../sns-services/meetingCreated.sns.service";
 
 @injectable()
@@ -17,6 +17,7 @@ export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServ
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MeetingCreatedSnsServiceInterface) private meetingCreatedSnsService: MeetingCreatedSnsServiceInterface,
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
+    @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: MeetingCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -46,7 +47,10 @@ export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServ
 
       const { meeting } = await this.meetingMediatorService.getMeeting({ meetingId });
 
-      await this.meetingCreatedSnsService.sendMessage({ meeting, meetingMemberIds: [ meeting.createdBy ] });
+      await Promise.allSettled([
+        this.meetingCreatedSnsService.sendMessage({ meeting, meetingMemberIds: [ meeting.createdBy ] }),
+        this.conversationService.indexMeetingConversationForSearch({ meeting: record.newImage }),
+      ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

@@ -8,6 +8,7 @@ import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as S3 from "@aws-cdk/aws-s3";
 import * as SNS from "@aws-cdk/aws-sns";
+import * as EC2 from "@aws-cdk/aws-ec2";
 import {
   Environment,
   generateExportNames,
@@ -15,6 +16,7 @@ import {
   RouteProps,
 } from "@yac/util";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import * as OpenSearch from "../constructs/aws-opensearch";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacCoreServiceStack extends YacHttpServiceStack {
@@ -96,6 +98,24 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       sortKey: { name: "gsi3sk", type: DynamoDB.AttributeType.STRING },
     });
 
+    // OpenSearch Domain
+    const openSearchDomain = new OpenSearch.Domain(this, `OpenSearchDomain_${id}`, {
+      version: OpenSearch.Version.V1_0,
+      domainName: id.toLowerCase(),
+      capacity: {
+        masterNodeInstanceType: "t3.small.search",
+        masterNodes: 2,
+        dataNodeInstanceType: "t3.small.search",
+        dataNodes: 1,
+      },
+      ebs: {
+        enabled: true,
+        volumeSize: 10,
+        volumeType: EC2.EbsDeviceVolumeType.GENERAL_PURPOSE_SSD,
+      },
+      nodeToNodeEncryption: true,
+    });
+
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
 
@@ -117,6 +137,11 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const imageS3BucketFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "s3:*" ],
       resources: [ imageS3Bucket.bucketArn, `${imageS3Bucket.bucketArn}/*` ],
+    });
+
+    const openSearchFullAccessPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "es:*" ],
+      resources: [ "*" ],
     });
 
     const userCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
@@ -239,6 +264,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
       ENHANCED_MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,
       IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
+      OPEN_SEARCH_DOMAIN_ENDPOINT: openSearchDomain.domainEndpoint,
     };
 
     // Dynamo Stream Handler
@@ -270,6 +296,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         groupMessageUpdatedSnsPublishPolicyStatement,
         meetingMessageCreatedSnsPublishPolicyStatement,
         meetingMessageUpdatedSnsPublishPolicyStatement,
+        openSearchFullAccessPolicyStatement,
       ],
       timeout: CDK.Duration.seconds(15),
       events: [
@@ -472,7 +499,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -761,7 +788,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 

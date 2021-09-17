@@ -7,7 +7,8 @@ import {
   GroupConversation as GroupConversationEntity, 
   MeetingConversation as MeetingConversationEntity,
   ConversationRepositoryInterface, 
-  ConversationUpdates
+  ConversationUpdates,
+  RawConversation
 } from "../repositories/conversation.dynamo.repository";
 import { ConversationType } from "../types/conversationType.type";
 import { ConversationType as ConversationTypeEnum } from "../enums/conversationType.enum";
@@ -19,6 +20,8 @@ import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
+import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
+import { SearchIndex } from "../enums/searchIndex.enum";
 
 @injectable()
 export class ConversationService implements ConversationServiceInterface {
@@ -26,7 +29,9 @@ export class ConversationService implements ConversationServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
     @inject(TYPES.ConversationRepositoryInterface) private conversationRepository: ConversationRepositoryInterface,
+    @inject(TYPES.SearchRepositoryInterface) private conversationSearchRepository: ConversationSearchRepositoryInterface,
   ) {}
+
 
   public async createFriendConversation(params: CreateFriendConversationInput): Promise<CreateFriendConversationOutput> {
     try {
@@ -215,6 +220,94 @@ export class ConversationService implements ConversationServiceInterface {
       throw error;
     }
   }
+
+  public async indexGroupConversationForSearch(params: IndexGroupConversationForSearchInput): Promise<IndexGroupConversationForSearchOutput> {
+    try {
+      this.loggerService.trace("indexGroupConversationForSearch called", { params }, this.constructor.name);
+
+      const { group } = params;
+
+      await this.conversationSearchRepository.indexDocument({ index: SearchIndex.Group, document: group });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in indexGroupConversationForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async deindexGroupConversationForSearch(params: DeindexGroupConversationForSearchInput): Promise<DeindexGroupConversationForSearchOutput> {
+    try {
+      this.loggerService.trace("deindexGroupConversationForSearch called", { params }, this.constructor.name);
+
+      const { groupId } = params;
+
+      await this.conversationSearchRepository.deindexDocument({ index: SearchIndex.Group, id: groupId });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deindexGroupConversationForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getGroupConversationsBySearchTerm(params: GetGroupConversationsBySearchTermInput): Promise<GetGroupConversationsBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getGroupConversationsBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, groupIds, limit, exclusiveStartKey } = params;
+
+      const { groups, lastEvaluatedKey } = await this.conversationSearchRepository.getGroupsBySearchTerm({ searchTerm, groupIds, limit, exclusiveStartKey });
+
+      return { groups, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGroupConversationsBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async indexMeetingConversationForSearch(params: IndexMeetingConversationForSearchInput): Promise<IndexMeetingConversationForSearchOutput> {
+    try {
+      this.loggerService.trace("indexMeetingConversationForSearch called", { params }, this.constructor.name);
+
+      const { meeting } = params;
+
+      await this.conversationSearchRepository.indexDocument({ index: SearchIndex.Meeting, document: meeting });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in indexMeetingConversationForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async deindexMeetingConversationForSearch(params: DeindexMeetingConversationForSearchInput): Promise<DeindexMeetingConversationForSearchOutput> {
+    try {
+      this.loggerService.trace("deindexMeetingConversationForSearch called", { params }, this.constructor.name);
+
+      const { meetingId } = params;
+
+      await this.conversationSearchRepository.deindexDocument({ index: SearchIndex.Meeting, id: meetingId });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deindexMeetingConversationForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getMeetingConversationsBySearchTerm(params: GetMeetingConversationsBySearchTermInput): Promise<GetMeetingConversationsBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getMeetingConversationsBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, meetingIds, limit, exclusiveStartKey } = params;
+
+      const { meetings, lastEvaluatedKey } = await this.conversationSearchRepository.getMeetingsBySearchTerm({ searchTerm, meetingIds, limit, exclusiveStartKey });
+
+      return { meetings, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMeetingConversationsBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface ConversationServiceInterface {
@@ -227,6 +320,12 @@ export interface ConversationServiceInterface {
   deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput>;
   getConversations<T extends ConversationId>(params: GetConversationsInput<T>): Promise<GetConversationsOutput<T>>;
   getConversationsByTeamId<T extends ConversationType>(params: GetConversationsByTeamIdInput<T>): Promise<GetConversationsByTeamIdOutput<T>>;
+  indexGroupConversationForSearch(params: IndexGroupConversationForSearchInput): Promise<IndexGroupConversationForSearchOutput>;
+  deindexGroupConversationForSearch(params: DeindexGroupConversationForSearchInput): Promise<DeindexGroupConversationForSearchOutput>;
+  getGroupConversationsBySearchTerm(params: GetGroupConversationsBySearchTermInput): Promise<GetGroupConversationsBySearchTermOutput>;
+  indexMeetingConversationForSearch(params: IndexMeetingConversationForSearchInput): Promise<IndexMeetingConversationForSearchOutput>;
+  deindexMeetingConversationForSearch(params: DeindexMeetingConversationForSearchInput): Promise<DeindexMeetingConversationForSearchOutput>;
+  getMeetingConversationsBySearchTerm(params: GetMeetingConversationsBySearchTermInput): Promise<GetMeetingConversationsBySearchTermOutput>;
 }
 
 
@@ -321,3 +420,53 @@ export interface DeleteConversationInput {
 }
 
 export type DeleteConversationOutput = void;
+
+export interface IndexGroupConversationForSearchInput {
+  group: RawConversation<GroupConversation>;
+}
+
+export type IndexGroupConversationForSearchOutput = void;
+
+export interface DeindexGroupConversationForSearchInput {
+  groupId: GroupId;
+}
+
+export type DeindexGroupConversationForSearchOutput = void;
+
+export interface GetGroupConversationsBySearchTermInput {
+  searchTerm: string;
+  groupIds?: GroupId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetGroupConversationsBySearchTermOutput {
+  groups: GroupConversation[];
+  lastEvaluatedKey?: string;
+}
+
+export interface IndexMeetingConversationForSearchInput {
+  meeting: RawConversation<MeetingConversation>;
+}
+
+export type IndexMeetingConversationForSearchOutput = void;
+
+export interface DeindexMeetingConversationForSearchInput {
+  meetingId: MeetingId;
+}
+
+export type DeindexMeetingConversationForSearchOutput = void;
+
+export interface GetMeetingConversationsBySearchTermInput {
+  searchTerm: string;
+  meetingIds?: MeetingId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetMeetingConversationsBySearchTermOutput {
+  meetings: MeetingConversation[];
+  lastEvaluatedKey?: string;
+}
+
+type ConversationSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getGroupsBySearchTerm" | "getMeetingsBySearchTerm">;
