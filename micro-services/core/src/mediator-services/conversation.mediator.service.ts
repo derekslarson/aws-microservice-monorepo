@@ -108,7 +108,12 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
         return acc;
       }, {});
 
-      const conversations = relationshipsWithEntityIds.map((relationship, i) => {
+      const recentMessagesMap = recentMessages.reduce((acc: { [key: string]: Message; }, recentMessage) => {
+        acc[recentMessage.to === userId ? recentMessage.from : recentMessage.to] = recentMessage;
+        return acc;
+      }, {});
+
+      const conversations = relationshipsWithEntityIds.map((relationship) => {
         const entity = relationship.type === ConversationTypeEnum.Friend ? friendMap[relationship.entityId] : groupAndMeetingMap[relationship.entityId];
 
         const { signedUrl: image } = this.imageFileService.getSignedUrl({
@@ -126,7 +131,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
           unreadMessages: relationship.unreadMessages?.length || 0,
           image,
           updatedAt: relationship.updatedAt,
-          recentMessage: recentMessages[i],
+          recentMessage: recentMessagesMap[relationship.entityId],
           role: relationship.role,
         } as WithRole<ConversationV2<ConversationFetchTypeToConversationType<T>>>;
       });
@@ -166,9 +171,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
     try {
       this.loggerService.trace("getRecentMessages called", { params }, this.constructor.name);
 
-      const { recentMessageIds: recentMessageIdsWithUndefined } = params;
-
-      const recentMessageIds = recentMessageIdsWithUndefined.filter((messageId): messageId is MessageId => typeof messageId === "string");
+      const { recentMessageIds } = params;
 
       const { messages: recentMessageEntities } = await this.messageService.getMessages({ messageIds: recentMessageIds });
 
@@ -176,7 +179,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
       const { users } = await this.userService.getUsers({ userIds });
 
-      const recentMessageMap = recentMessageEntities.reduce((acc: { [key: string]: Message; }, message, i) => {
+      const recentMessages = recentMessageEntities.map((message, i) => {
         const user = users[i];
 
         const { signedUrl: messageUrl } = this.messageFileService.getSignedUrl({
@@ -196,18 +199,14 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
         const { conversationId, ...restOfMessage } = message;
         const { to, type } = this.getToAndTypeFromConversationIdAndFrom({ conversationId, from: message.from });
 
-        acc[message.id] = {
+        return {
           ...restOfMessage,
           to,
           type,
           fetchUrl: messageUrl,
           fromImage: imageUrl,
         };
-
-        return acc;
-      }, {});
-
-      const recentMessages = recentMessageIdsWithUndefined.map((recentMessageId) => recentMessageId && recentMessageMap[recentMessageId]);
+      });
 
       return { recentMessages };
     } catch (error: unknown) {
@@ -249,36 +248,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       throw error;
     }
   }
-
-  private createMap<T extends { [key: string]: unknown }>(params: CreateMapInput<T>): CreateMapOutput<T> {
-    try {
-      this.loggerService.trace("createMap called", { params }, this.constructor.name);
-
-      const { arr, key } = params;
-
-      const map = arr.reduce((acc: Record<string, T>, obj) => {
-        acc[obj[key] as string] = obj;
-        return acc;
-      }, {});
-
-      return { map };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getToAndTypeFromConversationIdAndFrom", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
 }
-
-interface CreateMapInput<T extends { [key: string]: unknown }> {
-  arr: T[];
-  key: keyof T;
-}
-
-interface CreateMapOutput<T extends { [key: string]: unknown }> {
-  map: Record<string, T>;
-}
-
 export interface ConversationMediatorServiceInterface {
   getConversationsByUserId<T extends ConversationFetchType>(params: GetConversationsByUserIdInput<T>): Promise<GetConversationsByUserIdOutput<T>>;
   isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
@@ -333,11 +303,11 @@ export interface IsConversationMemberOutput {
 }
 
 interface GetRecentMessagesInput {
-  recentMessageIds: Array<MessageId | undefined>;
+  recentMessageIds: MessageId[];
 }
 
 interface GetRecentMessagesOutput {
-  recentMessages: Array<Message | undefined>;
+  recentMessages: Message[];
 }
 
 interface GetToAndTypeFromConversationIdAndFromInput {
