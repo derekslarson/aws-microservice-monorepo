@@ -133,8 +133,8 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
           type: relationship.type,
           unreadMessages: relationship.unreadMessages?.length || 0,
           updatedAt: relationship.updatedAt,
-          recentMessage: recentMessageMap[relationship.entityId],
           role: relationship.role,
+          recentMessage: recentMessageMap[relationship.entityId],
         } as WithRole<Conversation<ConversationFetchTypeToConversationType<T>>>;
       });
 
