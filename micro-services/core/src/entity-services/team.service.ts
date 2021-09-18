@@ -8,15 +8,15 @@ import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
-import { ImageFileServiceInterface } from "./image.file.service";
 import { EntityType } from "../enums/entityType.enum";
+import { ImageFileRepositoryInterface } from "../repositories/image.s3.repository";
 
 @injectable()
 export class TeamService implements TeamServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
+    @inject(TYPES.ImageFileRepositoryInterface) private imageFileRepository: ImageFileRepositoryInterface,
     @inject(TYPES.TeamRepositoryInterface) private teamRepository: TeamRepositoryInterface,
     @inject(TYPES.SearchRepositoryInterface) private teamSearchRepository: TeamSearchRepositoryInterface,
   ) {}
@@ -25,9 +25,11 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("createTeam called", { params }, this.constructor.name);
 
-      const { imageMimeType, name, createdBy } = params;
+      const { name, createdBy } = params;
 
       const teamId: TeamId = `${KeyPrefix.Team}${this.idService.generateId()}`;
+
+      const { image, mimeType: imageMimeType } = this.imageFileRepository.createDefaultImage();
 
       const teamEntity: TeamEntity = {
         id: teamId,
@@ -38,7 +40,12 @@ export class TeamService implements TeamServiceInterface {
 
       await this.teamRepository.createTeam({ team: teamEntity });
 
-      const { entity: team } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
+      await Promise.all([
+        this.imageFileRepository.uploadImageFile({ entityType: EntityType.Team, entityId: teamId, file: image, mimeType: imageMimeType }),
+        this.teamRepository.createTeam({ team: teamEntity }),
+      ]);
+
+      const { entity: team } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
 
       return { team };
     } catch (error: unknown) {
@@ -56,7 +63,7 @@ export class TeamService implements TeamServiceInterface {
 
       const { team: teamEntity } = await this.teamRepository.getTeam({ teamId });
 
-      const { entity: team } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
+      const { entity: team } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
 
       return { team };
     } catch (error: unknown) {
@@ -74,7 +81,7 @@ export class TeamService implements TeamServiceInterface {
 
       const { team: teamEntity } = await this.teamRepository.updateTeam({ teamId, updates });
 
-      const { entity: team } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
+      const { entity: team } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
 
       return { team };
     } catch (error: unknown) {
@@ -93,7 +100,7 @@ export class TeamService implements TeamServiceInterface {
       const { teams } = await this.teamRepository.getTeams({ teamIds });
 
       const teamMap = teams.reduce((acc: { [key: string]: Team; }, teamEntity) => {
-        const { entity: team } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
+        const { entity: team } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
 
         acc[team.id] = team;
 
@@ -105,6 +112,27 @@ export class TeamService implements TeamServiceInterface {
       return { teams: sortedTeams };
     } catch (error: unknown) {
       this.loggerService.error("Error in getTeam", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public getTeamImageUploadUrl(params: GetTeamImageUploadUrlInput): GetTeamImageUploadUrlOutput {
+    try {
+      this.loggerService.trace("getTeamImageUploadUrl called", { params }, this.constructor.name);
+
+      const { teamId, mimeType } = params;
+
+      const { signedUrl: uploadUrl } = this.imageFileRepository.getImageSignedUrl({
+        operation: "upload",
+        entityType: EntityType.Team,
+        entityId: teamId,
+        mimeType,
+      });
+
+      return { uploadUrl };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getTeamImageUploadUrl", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -147,7 +175,7 @@ export class TeamService implements TeamServiceInterface {
       const { teams: teamEntities, lastEvaluatedKey } = await this.teamSearchRepository.getTeamsBySearchTerm({ searchTerm, teamIds, limit, exclusiveStartKey });
 
       const teams = teamEntities.map((teamEntity) => {
-        const { entity: team } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
+        const { entity: team } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
 
         return team;
       }, {});
@@ -169,13 +197,13 @@ export interface TeamServiceInterface {
   getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
   updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput>;
   getTeams(params: GetTeamsInput): Promise<GetTeamsOutput>;
+  getTeamImageUploadUrl(params: GetTeamImageUploadUrlInput): GetTeamImageUploadUrlOutput;
   indexTeamForSearch(params: IndexTeamForSearchInput): Promise<IndexTeamForSearchOutput>;
   deindexTeamForSearch(params: DeindexTeamForSearchInput): Promise<DeindexTeamForSearchOutput>;
   getTeamsBySearchTerm(params: GetTeamsBySearchTermInput): Promise<GetTeamsBySearchTermOutput>;
 }
 
 export interface CreateTeamInput {
-  imageMimeType: ImageMimeType;
   name: string;
   createdBy: UserId;
 }
@@ -231,6 +259,15 @@ export interface GetTeamsBySearchTermInput {
 export interface GetTeamsBySearchTermOutput {
   teams: Team[];
   lastEvaluatedKey?: string;
+}
+
+export interface GetTeamImageUploadUrlInput {
+  teamId: TeamId;
+  mimeType: ImageMimeType;
+}
+
+export interface GetTeamImageUploadUrlOutput {
+  uploadUrl: string;
 }
 
 type TeamSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getTeamsBySearchTerm">;

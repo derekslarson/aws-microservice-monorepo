@@ -10,8 +10,6 @@ import { TeamController, TeamControllerInterface } from "../controllers/team.con
 import { UserController, UserControllerInterface } from "../controllers/user.controller";
 import { ConversationService, ConversationServiceInterface } from "../entity-services/conversation.service";
 import { ConversationUserRelationshipService, ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
-import { ImageFileService, ImageFileServiceInterface } from "../entity-services/image.file.service";
-import { MessageFileService, MessageFileServiceInterface } from "../entity-services/mesage.file.service";
 import { MessageService, MessageServiceInterface } from "../entity-services/message.service";
 import { PendingMessageService, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
 import { TeamService, TeamServiceInterface } from "../entity-services/team.service";
@@ -159,9 +157,7 @@ try {
   // Entity Services
   container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
   container.bind<ConversationUserRelationshipServiceInterface>(TYPES.ConversationUserRelationshipServiceInterface).to(ConversationUserRelationshipService);
-  container.bind<ImageFileServiceInterface>(TYPES.ImageFileServiceInterface).to(ImageFileService);
   container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);
-  container.bind<MessageFileServiceInterface>(TYPES.MessageFileServiceInterface).to(MessageFileService);
   container.bind<PendingMessageServiceInterface>(TYPES.PendingMessageServiceInterface).to(PendingMessageService);
   container.bind<TeamServiceInterface>(TYPES.TeamServiceInterface).to(TeamService);
   container.bind<TeamUserRelationshipServiceInterface>(TYPES.TeamUserRelationshipServiceInterface).to(TeamUserRelationshipService);

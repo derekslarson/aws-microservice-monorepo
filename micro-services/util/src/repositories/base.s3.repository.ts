@@ -19,7 +19,7 @@ export abstract class BaseS3Repository {
     this.s3 = s3Factory();
   }
 
-  public async uploadFile(params: UploadFileInput): Promise<UploadFileOutput> {
+  protected async uploadFile(params: UploadFileInput): Promise<UploadFileOutput> {
     try {
       this.loggerService.trace("uploadFile called", { params }, this.constructor.name);
 
@@ -40,7 +40,7 @@ export abstract class BaseS3Repository {
     }
   }
 
-  public getSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput {
+  protected getSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput {
     try {
       this.loggerService.trace("getSignedUrl called", { params }, this.constructor.name);
 

@@ -7,8 +7,6 @@ import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { GroupId } from "../types/groupId.type";
 import { ConversationType } from "../enums/conversationType.enum";
-import { ImageFileServiceInterface } from "../entity-services/image.file.service";
-import { EntityType } from "../enums/entityType.enum";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 
@@ -18,7 +16,6 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
   ) {}
 
   public async createGroup(params: CreateGroupInput): Promise<CreateGroupOutput> {
@@ -27,19 +24,13 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { name, createdBy, teamId } = params;
 
-      const { image, mimeType } = this.imageFileService.createDefaultImage();
-
       const { conversation: group } = await this.conversationService.createGroupConversation({
-        imageMimeType: mimeType,
         name,
         createdBy,
         teamId,
       });
 
-      await Promise.all([
-        this.imageFileService.uploadFile({ entityType: EntityType.GroupConversation, entityId: group.id, file: image, mimeType }),
-        this.conversationUserRelationshipService.createConversationUserRelationship({ type: ConversationType.Group, userId: createdBy, conversationId: group.id, role: Role.Admin }),
-      ]);
+      await this.conversationUserRelationshipService.createConversationUserRelationship({ type: ConversationType.Group, userId: createdBy, conversationId: group.id, role: Role.Admin });
 
       return { group };
     } catch (error: unknown) {
@@ -71,10 +62,9 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { groupId, mimeType } = params;
 
-      const { signedUrl: uploadUrl } = this.imageFileService.getSignedUrl({
-        operation: "upload",
-        entityType: EntityType.GroupConversation,
-        entityId: groupId,
+      const { uploadUrl } = this.conversationService.getConversationImageUploadUrl({
+        conversationType: ConversationType.Group,
+        conversationId: groupId,
         mimeType,
       });
 

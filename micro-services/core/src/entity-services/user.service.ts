@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
-
 import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface, User as UserEntity, UserUpdates, RawUser } from "../repositories/user.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -9,15 +8,15 @@ import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
-import { ImageFileServiceInterface } from "./image.file.service";
 import { EntityType } from "../enums/entityType.enum";
+import { ImageFileRepositoryInterface } from "../repositories/image.s3.repository";
 
 @injectable()
 export class UserService implements UserServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
+    @inject(TYPES.ImageFileRepositoryInterface) private imageFileRepository: ImageFileRepositoryInterface,
     @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
     @inject(TYPES.SearchRepositoryInterface) private userSearchRepository: UserSearchRepositoryInterface,
   ) {}
@@ -30,11 +29,11 @@ export class UserService implements UserServiceInterface {
 
       const userId: UserId = `${KeyPrefix.User}${this.idService.generateId()}`;
 
-      const { image, mimeType } = this.imageFileService.createDefaultImage();
+      const { image, mimeType: imageMimeType } = this.imageFileRepository.createDefaultImage();
 
       const userEntity: UserEntity = {
         id: userId,
-        imageMimeType: mimeType,
+        imageMimeType,
         email,
         phone,
         username,
@@ -42,11 +41,11 @@ export class UserService implements UserServiceInterface {
       };
 
       await Promise.all([
-        this.imageFileService.uploadFile({ entityType: EntityType.User, entityId: userId, file: image, mimeType }),
+        this.imageFileRepository.uploadImageFile({ entityType: EntityType.User, entityId: userId, file: image, mimeType: imageMimeType }),
         this.userRepository.createUser({ user: userEntity }),
       ]);
 
-      const { entity: user } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+      const { entity: user } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
 
       return { user };
     } catch (error: unknown) {
@@ -64,7 +63,7 @@ export class UserService implements UserServiceInterface {
 
       const { user: userEntity } = await this.userRepository.getUser({ userId });
 
-      const { entity: user } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+      const { entity: user } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
 
       return { user };
     } catch (error: unknown) {
@@ -82,7 +81,7 @@ export class UserService implements UserServiceInterface {
 
       const { user: userEntity } = await this.userRepository.updateUser({ userId, updates });
 
-      const { entity: user } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+      const { entity: user } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
 
       return { user };
     } catch (error: unknown) {
@@ -101,7 +100,7 @@ export class UserService implements UserServiceInterface {
       const { users: userEntities } = await this.userRepository.getUsers({ userIds });
 
       const userMap = userEntities.reduce((acc: { [key: string]: User; }, userEntity) => {
-        const { entity: userWithImage } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+        const { entity: userWithImage } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
 
         acc[userWithImage.id] = userWithImage;
 
@@ -155,7 +154,7 @@ export class UserService implements UserServiceInterface {
       const { users: userEntities, lastEvaluatedKey } = await this.userSearchRepository.getUsersBySearchTerm({ searchTerm, userIds, limit, exclusiveStartKey });
 
       const users = userEntities.map((userEntity) => {
-        const { entity: userWithImage } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+        const { entity: userWithImage } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
 
         return userWithImage;
       }, {});
@@ -174,7 +173,7 @@ export class UserService implements UserServiceInterface {
 
       const { userId, mimeType } = params;
 
-      const { signedUrl: uploadUrl } = this.imageFileService.getSignedUrl({
+      const { signedUrl: uploadUrl } = this.imageFileRepository.getImageSignedUrl({
         operation: "upload",
         entityType: EntityType.User,
         entityId: userId,

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
+import { IdServiceInterface, LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { PendingMessageRepositoryInterface, PendingMessage as PendingMessageEntity, PendingMessageUpdates } from "../repositories/pendingMessage.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -8,7 +8,6 @@ import { UserId } from "../types/userId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { PendingMessageId } from "../types/pendingMessageId.type";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
-import { MessageFileServiceInterface } from "./mesage.file.service";
 import { MessageId } from "../types/messageId.type";
 
 @injectable()
@@ -16,7 +15,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
-    @inject(TYPES.MessageFileServiceInterface) private messageFileService: MessageFileServiceInterface,
+    @inject(TYPES.RawMessageFileRepositoryInterface) private rawMessageFileRepository: MessageFileRepositoryInterface,
     @inject(TYPES.PendingMessageRepositoryInterface) private pendingMessageRepository: PendingMessageRepositoryInterface,
   ) {}
 
@@ -40,7 +39,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
 
       const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
+      const { signedUrl } = this.rawMessageFileRepository.getMessageSignedUrl({
         messageId,
         conversationId,
         mimeType,
@@ -70,7 +69,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
 
       const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
+      const { signedUrl } = this.rawMessageFileRepository.getMessageSignedUrl({
         messageId,
         conversationId: pendingMessageEntity.conversationId,
         mimeType: pendingMessageEntity.mimeType,
@@ -100,7 +99,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
 
       const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
+      const { signedUrl } = this.rawMessageFileRepository.getMessageSignedUrl({
         messageId,
         conversationId: pendingMessageEntity.conversationId,
         mimeType: pendingMessageEntity.mimeType,

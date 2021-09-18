@@ -74,9 +74,7 @@ const TYPES = {
   // Entity Services
   ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
   ConversationUserRelationshipServiceInterface: Symbol.for("ConversationUserRelationshipServiceInterface"),
-  ImageFileServiceInterface: Symbol.for("ImageFileServiceInterface"),
   MessageServiceInterface: Symbol.for("MessageServiceInterface"),
-  MessageFileServiceInterface: Symbol.for("MessageFileServiceInterface"),
   PendingMessageServiceInterface: Symbol.for("PendingMessageServiceInterface"),
   SearchServiceInterface: Symbol.for("SearchServiceInterface"),
   TeamServiceInterface: Symbol.for("TeamServiceInterface"),

@@ -8,8 +8,6 @@ import { UserId } from "../types/userId.type";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { ConversationId } from "../types/conversationId.type";
 import { ConversationType } from "../enums/conversationType.enum";
-import { ImageFileServiceInterface } from "../entity-services/image.file.service";
-import { EntityType } from "../enums/entityType.enum";
 import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 @injectable()
 export class FriendshipMediatorService implements FriendshipMediatorServiceInterface {

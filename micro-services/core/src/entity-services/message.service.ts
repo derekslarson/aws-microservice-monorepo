@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/util";
+import { LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageRepositoryInterface, Message as MessageEntity, RawMessage } from "../repositories/message.dynamo.repository";
 import { UserId } from "../types/userId.type";
@@ -9,13 +9,12 @@ import { MessageMimeType } from "../enums/message.mimeType.enum";
 import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
-import { MessageFileServiceInterface } from "./mesage.file.service";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.MessageFileServiceInterface) private messageFileService: MessageFileServiceInterface,
+    @inject(TYPES.EnhancedMessageFileRepositoryInterface) private enhancedMessageFileRepository: MessageFileRepositoryInterface,
     @inject(TYPES.MessageRepositoryInterface) private messageRepository: MessageRepositoryInterface,
     @inject(TYPES.SearchRepositoryInterface) private messageSearchRepository: MessageSearchRepositoryInterface,
   ) {}
@@ -41,7 +40,7 @@ export class MessageService implements MessageServiceInterface {
 
       await this.messageRepository.createMessage({ message: messageEntity });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
+      const { signedUrl } = this.enhancedMessageFileRepository.getMessageSignedUrl({
         messageId: messageEntity.id,
         conversationId: messageEntity.conversationId,
         mimeType: messageEntity.mimeType,
@@ -69,7 +68,7 @@ export class MessageService implements MessageServiceInterface {
 
       const { message: messageEntity } = await this.messageRepository.getMessage({ messageId });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
+      const { signedUrl } = this.enhancedMessageFileRepository.getMessageSignedUrl({
         messageId: messageEntity.id,
         conversationId: messageEntity.conversationId,
         mimeType: messageEntity.mimeType,
@@ -98,7 +97,7 @@ export class MessageService implements MessageServiceInterface {
       const { messages: messageEntities } = await this.messageRepository.getMessages({ messageIds });
 
       const messageMap = messageEntities.reduce((acc: { [key: string]: Message; }, messageEntity) => {
-        const { signedUrl } = this.messageFileService.getSignedUrl({
+        const { signedUrl } = this.enhancedMessageFileRepository.getMessageSignedUrl({
           messageId: messageEntity.id,
           conversationId: messageEntity.conversationId,
           mimeType: messageEntity.mimeType,
@@ -133,7 +132,7 @@ export class MessageService implements MessageServiceInterface {
 
       const { message: messageEntity } = await this.messageRepository.updateMessageSeenAt({ messageId, userId, seenAtValue });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
+      const { signedUrl } = this.enhancedMessageFileRepository.getMessageSignedUrl({
         messageId: messageEntity.id,
         conversationId: messageEntity.conversationId,
         mimeType: messageEntity.mimeType,
@@ -161,7 +160,7 @@ export class MessageService implements MessageServiceInterface {
 
       const { message: messageEntity } = await this.messageRepository.updateMessageReaction({ messageId, userId, reaction, action });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
+      const { signedUrl } = this.enhancedMessageFileRepository.getMessageSignedUrl({
         messageId: messageEntity.id,
         conversationId: messageEntity.conversationId,
         mimeType: messageEntity.mimeType,
@@ -190,7 +189,7 @@ export class MessageService implements MessageServiceInterface {
       const { messages: messageEntities, lastEvaluatedKey } = await this.messageRepository.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit });
 
       const messages = messageEntities.map((messageEntity) => {
-        const { signedUrl } = this.messageFileService.getSignedUrl({
+        const { signedUrl } = this.enhancedMessageFileRepository.getMessageSignedUrl({
           messageId: messageEntity.id,
           conversationId: messageEntity.conversationId,
           mimeType: messageEntity.mimeType,
@@ -220,7 +219,7 @@ export class MessageService implements MessageServiceInterface {
       const { replies: messageEntities, lastEvaluatedKey } = await this.messageRepository.getRepliesByMessageId({ messageId, exclusiveStartKey, limit });
 
       const replies = messageEntities.map((messageEntity) => {
-        const { signedUrl } = this.messageFileService.getSignedUrl({
+        const { signedUrl } = this.enhancedMessageFileRepository.getMessageSignedUrl({
           messageId: messageEntity.id,
           conversationId: messageEntity.conversationId,
           mimeType: messageEntity.mimeType,
@@ -278,7 +277,7 @@ export class MessageService implements MessageServiceInterface {
       const { messages: messageEntities, lastEvaluatedKey } = await this.messageSearchRepository.getMessagesBySearchTerm({ searchTerm, conversationIds, limit, exclusiveStartKey });
 
       const messages = messageEntities.map((messageEntity) => {
-        const { signedUrl } = this.messageFileService.getSignedUrl({
+        const { signedUrl } = this.enhancedMessageFileRepository.getMessageSignedUrl({
           messageId: messageEntity.id,
           conversationId: messageEntity.conversationId,
           mimeType: messageEntity.mimeType,

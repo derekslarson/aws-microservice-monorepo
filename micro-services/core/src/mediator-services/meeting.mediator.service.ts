@@ -7,8 +7,6 @@ import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { MeetingId } from "../types/meetingId.type";
 import { ConversationType } from "../enums/conversationType.enum";
-import { ImageFileServiceInterface } from "../entity-services/image.file.service";
-import { EntityType } from "../enums/entityType.enum";
 import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 
@@ -18,7 +16,6 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
   ) {}
 
   public async createMeeting(params: CreateMeetingInput): Promise<CreateMeetingOutput> {
@@ -27,20 +24,14 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { name, createdBy, dueDate, teamId } = params;
 
-      const { image, mimeType } = this.imageFileService.createDefaultImage();
-
       const { conversation: meeting } = await this.conversationService.createMeetingConversation({
-        imageMimeType: mimeType,
         name,
         createdBy,
         dueDate,
         teamId,
       });
 
-      await Promise.all([
-        this.imageFileService.uploadFile({ entityType: EntityType.MeetingConversation, entityId: meeting.id, file: image, mimeType }),
-        this.conversationUserRelationshipService.createConversationUserRelationship({ type: ConversationType.Meeting, userId: createdBy, conversationId: meeting.id, role: Role.Admin, dueDate }),
-      ]);
+      await this.conversationUserRelationshipService.createConversationUserRelationship({ type: ConversationType.Meeting, userId: createdBy, conversationId: meeting.id, role: Role.Admin, dueDate });
 
       return { meeting };
     } catch (error: unknown) {
@@ -72,10 +63,9 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { meetingId, mimeType } = params;
 
-      const { signedUrl: uploadUrl } = this.imageFileService.getSignedUrl({
-        operation: "upload",
-        entityType: EntityType.MeetingConversation,
-        entityId: meetingId,
+      const { uploadUrl } = this.conversationService.getConversationImageUploadUrl({
+        conversationType: ConversationType.Meeting,
+        conversationId: meetingId,
         mimeType,
       });
 
