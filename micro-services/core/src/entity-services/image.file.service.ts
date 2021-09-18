@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
@@ -9,10 +10,24 @@ import { EntityType } from "../enums/entityType.enum";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
 import { Identicon, IdenticonFactory } from "../factories/identicon.factory";
+import { EntityTypeToEntity } from "../types/entityTypeToEntity.type";
 
 @injectable()
 export class ImageFileService implements ImageFileServiceInterface {
   private identicon: Identicon;
+
+  private readonly mimeTypeToFileExtensionMap: Record<ImageMimeType, FileExtension> = {
+    [ImageMimeType.Jpeg]: "jpeg",
+    [ImageMimeType.Bmp]: "bmp",
+    [ImageMimeType.Png]: "png",
+  };
+
+  private readonly entityTypeToDirectoryMap: Record<ImageEntityType, FileDirectory> = {
+    [EntityType.User]: "users",
+    [EntityType.Team]: "teams",
+    [EntityType.GroupConversation]: "groups",
+    [EntityType.MeetingConversation]: "meetings",
+  };
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
@@ -56,22 +71,9 @@ export class ImageFileService implements ImageFileServiceInterface {
 
       const { entityType, entityId, file, mimeType } = params;
 
-      const mimeTypeToFileExtensionMap: Record<ImageMimeType, FileExtension> = {
-        [ImageMimeType.Jpeg]: "jpeg",
-        [ImageMimeType.Bmp]: "bmp",
-        [ImageMimeType.Png]: "png",
-      };
+      const fileExtension = this.mimeTypeToFileExtensionMap[mimeType];
 
-      const entityTypeToDirectoryMap: Record<ImageEntityType, FileDirectory> = {
-        [EntityType.User]: "users",
-        [EntityType.Team]: "teams",
-        [EntityType.GroupConversation]: "groups",
-        [EntityType.MeetingConversation]: "meetings",
-      };
-
-      const fileExtension = mimeTypeToFileExtensionMap[mimeType];
-
-      const fileDirectory = entityTypeToDirectoryMap[entityType];
+      const fileDirectory = this.entityTypeToDirectoryMap[entityType];
 
       const key = `${fileDirectory}/${entityId}.${fileExtension}`;
 
@@ -93,22 +95,9 @@ export class ImageFileService implements ImageFileServiceInterface {
 
       const { operation, entityType, entityId, mimeType } = params;
 
-      const mimeTypeToFileExtensionMap: Record<ImageMimeType, FileExtension> = {
-        [ImageMimeType.Jpeg]: "jpeg",
-        [ImageMimeType.Bmp]: "bmp",
-        [ImageMimeType.Png]: "png",
-      };
+      const fileExtension = this.mimeTypeToFileExtensionMap[mimeType];
 
-      const entityTypeToDirectoryMap: Record<ImageEntityType, FileDirectory> = {
-        [EntityType.User]: "users",
-        [EntityType.Team]: "teams",
-        [EntityType.GroupConversation]: "groups",
-        [EntityType.MeetingConversation]: "meetings",
-      };
-
-      const fileExtension = mimeTypeToFileExtensionMap[mimeType];
-
-      const fileDirectory = entityTypeToDirectoryMap[entityType];
+      const fileDirectory = this.entityTypeToDirectoryMap[entityType];
 
       const key = `${fileDirectory}/${entityId}.${fileExtension}`;
 
@@ -125,12 +114,41 @@ export class ImageFileService implements ImageFileServiceInterface {
       throw error;
     }
   }
+
+  public replaceImageMimeTypeForImage<T extends ImageEntityType>(params: ReplaceImageMimeTypeForImageInput<T>): ReplaceImageMimeTypeForImageOutput<T> {
+    try {
+      this.loggerService.trace("replaceImageMimeTypeForImage called", {}, this.constructor.name);
+
+      const { entityType, entity } = params;
+
+      const { signedUrl } = this.getSignedUrl({
+        operation: "get",
+        entityType,
+        entityId: entity.id,
+        mimeType: entity.imageMimeType,
+      });
+
+      const { imageMimeType: _, ...restOfEntity } = entity;
+
+      const entityWithImage = {
+        ...restOfEntity,
+        image: signedUrl,
+      };
+
+      return { entity: entityWithImage };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in replaceImageMimeTypeForImage", { error }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface ImageFileServiceInterface {
   createDefaultImage(): CreateDefaultImageOutput;
   uploadFile(params: UploadFileInput): Promise<UploadFileOutput>;
   getSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput;
+  replaceImageMimeTypeForImage<T extends ImageEntityType>(params: ReplaceImageMimeTypeForImageInput<T>): ReplaceImageMimeTypeForImageOutput<T>;
 }
 
 export type FileDirectory = "users" | "teams" | "groups" | "meetings";
@@ -162,4 +180,13 @@ export interface GetSignedUrlInput {
 
 export interface GetSignedUrlOutput {
   signedUrl: string;
+}
+
+export interface ReplaceImageMimeTypeForImageInput<T extends ImageEntityType> {
+  entityType: T;
+  entity: EntityTypeToEntity<T>;
+}
+
+export interface ReplaceImageMimeTypeForImageOutput<T extends ImageEntityType> {
+  entity: Omit<EntityTypeToEntity<T>, "imageMimeType"> & { image: string; };
 }

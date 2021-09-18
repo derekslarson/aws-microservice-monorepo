@@ -13,10 +13,7 @@ import { PendingMessage as PendingMessageEntity, PendingMessageServiceInterface 
 import { PendingMessageId } from "../types/pendingMessageId.type";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
-import { MessageFileServiceInterface } from "../entity-services/mesage.file.service";
-import { ImageFileServiceInterface } from "../entity-services/image.file.service";
 import { UserServiceInterface } from "../entity-services/user.service";
-import { EntityType } from "../enums/entityType.enum";
 import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 import { ConversationType } from "../enums/conversationType.enum";
 
@@ -26,8 +23,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.PendingMessageServiceInterface) private pendingMessageService: PendingMessageServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
-    @inject(TYPES.MessageFileServiceInterface) private messageFileService: MessageFileServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
@@ -41,28 +36,20 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { conversation } = await this.conversationService.getFriendConversationByUserIds({ userIds: [ to, from ] });
 
-      const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: conversation.id, from, mimeType });
+      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageService.createPendingMessage({ conversationId: conversation.id, from, mimeType });
 
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessage.id });
+      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessageEntity.id });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
-        messageId,
-        conversationId: conversation.id,
-        mimeType,
-        operation: "upload",
-      });
+      const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
-      const { conversationId, ...restOfPendingMessage } = pendingMessage;
-
-      const pendingMessageWithUploadUrl = {
-        ...restOfPendingMessage,
+      const pendingMessage = {
+        ...restOfPendingMessageEntity,
         to,
         type: ConversationType.Friend,
         id: messageId,
-        uploadUrl: signedUrl,
       };
 
-      return { pendingMessage: pendingMessageWithUploadUrl };
+      return { pendingMessage };
     } catch (error: unknown) {
       this.loggerService.error("Error in createFriendMessage", { error, params }, this.constructor.name);
 
@@ -76,28 +63,20 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { groupId, from, mimeType } = params;
 
-      const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: groupId, from, mimeType });
+      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageService.createPendingMessage({ conversationId: groupId, from, mimeType });
 
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessage.id });
+      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessageEntity.id });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
-        messageId,
-        conversationId: groupId,
-        mimeType,
-        operation: "upload",
-      });
+      const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
-      const { conversationId, ...restOfPendingMessage } = pendingMessage;
-
-      const pendingMessageWithUploadUrl = {
-        ...restOfPendingMessage,
+      const pendingMessage = {
+        ...restOfPendingMessageEntity,
         to: groupId,
         type: ConversationType.Group,
         id: messageId,
-        uploadUrl: signedUrl,
       };
 
-      return { pendingMessage: pendingMessageWithUploadUrl };
+      return { pendingMessage };
     } catch (error: unknown) {
       this.loggerService.error("Error in createGroupMessage", { error, params }, this.constructor.name);
 
@@ -111,28 +90,20 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { meetingId, from, mimeType } = params;
 
-      const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: meetingId, from, mimeType });
+      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageService.createPendingMessage({ conversationId: meetingId, from, mimeType });
 
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessage.id });
+      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessageEntity.id });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
-        messageId,
-        conversationId: meetingId,
-        mimeType,
-        operation: "upload",
-      });
+      const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
-      const { conversationId, ...restOfPendingMessage } = pendingMessage;
-
-      const pendingMessageWithUploadUrl = {
-        ...restOfPendingMessage,
+      const pendingMessage = {
+        ...restOfPendingMessageEntity,
         to: meetingId,
         type: ConversationType.Meeting,
         id: messageId,
-        uploadUrl: signedUrl,
       };
 
-      return { pendingMessage: pendingMessageWithUploadUrl };
+      return { pendingMessage };
     } catch (error: unknown) {
       this.loggerService.error("Error in createMeetingMessage", { error, params }, this.constructor.name);
 
@@ -179,20 +150,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { user } = await this.userService.getUser({ userId: messageEntity.from });
 
-      const { signedUrl: fetchUrl } = this.messageFileService.getSignedUrl({
-        messageId,
-        conversationId: messageEntity.conversationId,
-        mimeType: messageEntity.mimeType,
-        operation: "get",
-      });
-
-      const { signedUrl: fromImage } = this.imageFileService.getSignedUrl({
-        entityType: EntityType.User,
-        entityId: user.id,
-        mimeType: user.imageMimeType,
-        operation: "get",
-      });
-
       const { conversationId, ...restOfMessageEntity } = messageEntity;
       const { to, type } = this.getToAndTypeFromConversationIdAndFrom({ conversationId, from: messageEntity.from });
 
@@ -200,8 +157,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         ...restOfMessageEntity,
         to,
         type,
-        fetchUrl,
-        fromImage,
+        fromImage: user.image,
       };
 
       return { message };
@@ -435,20 +391,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
       const messages = await Promise.all(messageEntities.map(async (messageEntity) => {
         const { user } = await this.userService.getUser({ userId: messageEntity.from });
 
-        const { signedUrl: fetchUrl } = this.messageFileService.getSignedUrl({
-          messageId: messageEntity.id,
-          conversationId: messageEntity.conversationId,
-          mimeType: messageEntity.mimeType,
-          operation: "get",
-        });
-
-        const { signedUrl: fromImage } = this.imageFileService.getSignedUrl({
-          entityType: EntityType.User,
-          entityId: user.id,
-          mimeType: user.imageMimeType,
-          operation: "get",
-        });
-
         const { conversationId: pulledConversationId, ...restOfMessageEntity } = messageEntity;
         const { to, type } = this.getToAndTypeFromConversationIdAndFrom({ conversationId, from: messageEntity.from });
 
@@ -456,8 +398,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
           ...restOfMessageEntity,
           to,
           type,
-          fetchUrl,
-          fromImage,
+          fromImage: user.image,
         };
       }));
 
@@ -537,14 +478,12 @@ export interface MessageMediatorServiceInterface {
 type To = UserId | GroupId | MeetingId;
 
 export interface PendingMessage extends Omit<PendingMessageEntity, "id" | "conversationId"> {
-  id: MessageId
-  uploadUrl: string;
+  id: MessageId;
   to: To;
   type: ConversationType;
 }
 
 export interface Message extends Omit<MessageEntity, "conversationId"> {
-  fetchUrl: string;
   fromImage: string;
   to: To;
   type: ConversationType;

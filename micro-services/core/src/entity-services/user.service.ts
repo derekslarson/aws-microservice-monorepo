@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
 
@@ -8,12 +9,15 @@ import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
+import { ImageFileServiceInterface } from "./image.file.service";
+import { EntityType } from "../enums/entityType.enum";
 
 @injectable()
 export class UserService implements UserServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
+    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
     @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
     @inject(TYPES.SearchRepositoryInterface) private userSearchRepository: UserSearchRepositoryInterface,
   ) {}
@@ -22,20 +26,27 @@ export class UserService implements UserServiceInterface {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const { email, phone, username, realName, imageMimeType } = params;
+      const { email, phone, username, realName } = params;
 
       const userId: UserId = `${KeyPrefix.User}${this.idService.generateId()}`;
 
-      const user: UserEntity = {
+      const { image, mimeType } = this.imageFileService.createDefaultImage();
+
+      const userEntity: UserEntity = {
         id: userId,
-        imageMimeType,
+        imageMimeType: mimeType,
         email,
         phone,
         username,
         realName,
       };
 
-      await this.userRepository.createUser({ user });
+      await Promise.all([
+        this.imageFileService.uploadFile({ entityType: EntityType.User, entityId: userId, file: image, mimeType }),
+        this.userRepository.createUser({ user: userEntity }),
+      ]);
+
+      const { entity: user } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
 
       return { user };
     } catch (error: unknown) {
@@ -51,7 +62,9 @@ export class UserService implements UserServiceInterface {
 
       const { userId } = params;
 
-      const { user } = await this.userRepository.getUser({ userId });
+      const { user: userEntity } = await this.userRepository.getUser({ userId });
+
+      const { entity: user } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
 
       return { user };
     } catch (error: unknown) {
@@ -67,7 +80,9 @@ export class UserService implements UserServiceInterface {
 
       const { userId, updates } = params;
 
-      const { user } = await this.userRepository.updateUser({ userId, updates });
+      const { user: userEntity } = await this.userRepository.updateUser({ userId, updates });
+
+      const { entity: user } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
 
       return { user };
     } catch (error: unknown) {
@@ -83,10 +98,12 @@ export class UserService implements UserServiceInterface {
 
       const { userIds } = params;
 
-      const { users } = await this.userRepository.getUsers({ userIds });
+      const { users: userEntities } = await this.userRepository.getUsers({ userIds });
 
-      const userMap = users.reduce((acc: { [key: string]: User; }, user) => {
-        acc[user.id] = user;
+      const userMap = userEntities.reduce((acc: { [key: string]: User; }, userEntity) => {
+        const { entity: userWithImage } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+
+        acc[userWithImage.id] = userWithImage;
 
         return acc;
       }, {});
@@ -135,7 +152,13 @@ export class UserService implements UserServiceInterface {
 
       const { searchTerm, userIds, limit, exclusiveStartKey } = params;
 
-      const { users, lastEvaluatedKey } = await this.userSearchRepository.getUsersBySearchTerm({ searchTerm, userIds, limit, exclusiveStartKey });
+      const { users: userEntities, lastEvaluatedKey } = await this.userSearchRepository.getUsersBySearchTerm({ searchTerm, userIds, limit, exclusiveStartKey });
+
+      const users = userEntities.map((userEntity) => {
+        const { entity: userWithImage } = this.imageFileService.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+
+        return userWithImage;
+      }, {});
 
       return { users, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -144,22 +167,44 @@ export class UserService implements UserServiceInterface {
       throw error;
     }
   }
-}
 
-export type User = UserEntity;
+  public getUserImageUploadUrl(params: GetUserImageUploadUrlInput): GetUserImageUploadUrlOutput {
+    try {
+      this.loggerService.trace("getUserImageUploadUrl called", { params }, this.constructor.name);
+
+      const { userId, mimeType } = params;
+
+      const { signedUrl: uploadUrl } = this.imageFileService.getSignedUrl({
+        operation: "upload",
+        entityType: EntityType.User,
+        entityId: userId,
+        mimeType,
+      });
+
+      return { uploadUrl };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUserImageUploadUrl", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+}
+export interface User extends Omit<UserEntity, "imageMimeType"> {
+  image: string;
+}
 
 export interface UserServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
   updateUser(params: UpdateUserInput): Promise<UpdateUserOutput>;
   getUsers(params: GetUsersInput): Promise<GetUsersOutput>;
+  getUserImageUploadUrl(params: GetUserImageUploadUrlInput): GetUserImageUploadUrlOutput;
   indexUserForSearch(params: IndexUserForSearchInput): Promise<IndexUserForSearchOutput>;
   deindexUserForSearch(params: DeindexUserForSearchInput): Promise<DeindexUserForSearchOutput>;
   getUsersBySearchTerm(params: GetUsersBySearchTermInput): Promise<GetUsersBySearchTermOutput>;
 }
 
 interface BaseCreateUserInput {
-  imageMimeType: ImageMimeType;
   email?: string;
   phone?: string;
   username?: string;
@@ -226,6 +271,15 @@ export interface GetUsersBySearchTermInput {
 export interface GetUsersBySearchTermOutput {
   users: User[];
   lastEvaluatedKey?: string;
+}
+
+export interface GetUserImageUploadUrlInput {
+  userId: UserId;
+  mimeType: ImageMimeType;
+}
+
+export interface GetUserImageUploadUrlOutput {
+  uploadUrl: string;
 }
 
 type UserSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getUsersBySearchTerm">;

@@ -2,7 +2,7 @@ import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { 
-  Conversation as ConversationEntity, 
+  Conversation as ConversationEntity,
   FriendConversation as FriendConversationEntity, 
   GroupConversation as GroupConversationEntity, 
   MeetingConversation as MeetingConversationEntity,
@@ -22,12 +22,15 @@ import { ConversationId } from "../types/conversationId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
+import { ImageFileServiceInterface } from "./image.file.service";
+import { EntityType } from "../enums/entityType.enum";
 
 @injectable()
 export class ConversationService implements ConversationServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
+    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
     @inject(TYPES.ConversationRepositoryInterface) private conversationRepository: ConversationRepositoryInterface,
     @inject(TYPES.SearchRepositoryInterface) private conversationSearchRepository: ConversationSearchRepositoryInterface,
   ) {}
@@ -85,7 +88,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const conversationId = `${KeyPrefix.GroupConversation}${this.idService.generateId()}` as GroupId;
 
-      const conversation: GroupConversation = {
+      const conversationEntity: GroupConversationEntity = {
         imageMimeType,
         id: conversationId,
         name,
@@ -95,7 +98,9 @@ export class ConversationService implements ConversationServiceInterface {
         ...(teamId && { teamId }),
       };
 
-      await this.conversationRepository.createConversation({ conversation });
+      await this.conversationRepository.createConversation({ conversation: conversationEntity });
+
+      const { conversation } = this.handleConversationImage({ conversation: conversationEntity });
 
       return { conversation };
     } catch (error: unknown) {
@@ -113,7 +118,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const conversationId = `${KeyPrefix.MeetingConversation}${this.idService.generateId()}` as MeetingId;
 
-      const conversation: MeetingConversation = {
+      const conversationEntity: MeetingConversationEntity = {
         imageMimeType,
         id: conversationId,
         name,
@@ -124,7 +129,9 @@ export class ConversationService implements ConversationServiceInterface {
         ...(teamId && { teamId }),
       };
 
-      await this.conversationRepository.createConversation({ conversation });
+      await this.conversationRepository.createConversation({ conversation: conversationEntity });
+
+      const { conversation } = this.handleConversationImage({ conversation: conversationEntity });
 
       return { conversation };
     } catch (error: unknown) {
@@ -140,9 +147,11 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { conversationId } = params;
 
-      const { conversation } = await this.conversationRepository.getConversation({ conversationId });
+      const { conversation: conversationEntity } = await this.conversationRepository.getConversation({ conversationId });
 
-      return { conversation };
+      const { conversation } = this.handleConversationImage({ conversation: conversationEntity })
+
+      return { conversation }
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversation", { error, params }, this.constructor.name);
 
@@ -156,7 +165,9 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { conversationId, updates } = params;
 
-      const { conversation } = await this.conversationRepository.updateConversation({ conversationId, updates });
+      const { conversation: conversationEntity } = await this.conversationRepository.updateConversation({ conversationId, updates });
+
+      const { conversation } = this.handleConversationImage({ conversation: conversationEntity });
 
       return { conversation };
     } catch (error: unknown) {
@@ -189,7 +200,9 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { conversations } = await this.conversationRepository.getConversations({ conversationIds });
 
-      const conversationMap = conversations.reduce((acc: { [key: string]: Conversation<ConversationType<T>>; }, conversation) => {
+      const conversationMap = conversations.reduce((acc: { [key: string]: Conversation<ConversationType<T>>; }, conversationEntity) => {
+        const { conversation } = this.handleConversationImage({ conversation: conversationEntity });
+
         acc[conversation.id] = conversation;
 
         return acc;
@@ -211,7 +224,13 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { teamId, type, exclusiveStartKey, limit } = params;
 
-      const { conversations, lastEvaluatedKey } = await this.conversationRepository.getConversationsByTeamId({ teamId, type, exclusiveStartKey, limit });
+      const { conversations: conversationEntities, lastEvaluatedKey } = await this.conversationRepository.getConversationsByTeamId({ teamId, type, exclusiveStartKey, limit });
+
+      const conversations = conversationEntities.map((conversationEntity) => {
+        const { conversation } = this.handleConversationImage({ conversation: conversationEntity })
+
+        return conversation;
+      });
 
       return { conversations, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -255,7 +274,13 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { searchTerm, groupIds, limit, exclusiveStartKey } = params;
 
-      const { groups, lastEvaluatedKey } = await this.conversationSearchRepository.getGroupsBySearchTerm({ searchTerm, groupIds, limit, exclusiveStartKey });
+      const { groups: conversationEntities, lastEvaluatedKey } = await this.conversationSearchRepository.getGroupsBySearchTerm({ searchTerm, groupIds, limit, exclusiveStartKey });
+
+      const groups = conversationEntities.map((conversationEntity) => {
+        const { conversation } = this.handleConversationImage({ conversation: conversationEntity })
+
+        return conversation;
+      });
 
       return { groups, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -299,9 +324,38 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { searchTerm, meetingIds, limit, exclusiveStartKey } = params;
 
-      const { meetings, lastEvaluatedKey } = await this.conversationSearchRepository.getMeetingsBySearchTerm({ searchTerm, meetingIds, limit, exclusiveStartKey });
+      const { meetings: conversationEntities, lastEvaluatedKey } = await this.conversationSearchRepository.getMeetingsBySearchTerm({ searchTerm, meetingIds, limit, exclusiveStartKey });
+
+      const meetings = conversationEntities.map((conversationEntity) => {
+        const { conversation } = this.handleConversationImage({ conversation: conversationEntity })
+
+        return conversation;
+      });
 
       return { meetings, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMeetingConversationsBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private handleConversationImage<T extends ConversationEntity>(params: HandleConversationImageInput<T>): HandleConversationImageOutput<T> {
+    try {
+      this.loggerService.trace("getMeetingConversationsBySearchTerm called", { params }, this.constructor.name);
+
+      const { conversation: conversationEntity } = params;
+
+      if (conversationEntity.type === ConversationTypeEnum.Friend) {
+        return { conversation: conversationEntity as unknown as Conversation<T["type"]> }
+      }
+
+      const { entity: conversation } = this.imageFileService.replaceImageMimeTypeForImage({ 
+        entityType: conversationEntity.type === ConversationTypeEnum.Group ? EntityType.GroupConversation : EntityType.MeetingConversation, 
+        entity: conversationEntity 
+      });
+
+      return { conversation: conversation as Conversation<T["type"]> };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingConversationsBySearchTerm", { error, params }, this.constructor.name);
 
@@ -329,12 +383,21 @@ export interface ConversationServiceInterface {
 }
 
 
-export type Conversation<T extends ConversationType = ConversationType> = ConversationEntity<T>
-
 export type FriendConversation = FriendConversationEntity;
-export type GroupConversation = GroupConversationEntity;
-export type MeetingConversation = MeetingConversationEntity;
+export type GroupConversation = Omit<GroupConversationEntity, "imageMimeType"> & { 
+  image: string;
+};
 
+export type MeetingConversation = Omit<MeetingConversationEntity, "imageMimeType"> & { 
+  image: string;
+};
+
+// export type Conversation<T extends ConversationTypeEnum> =
+//   T extends ConversationTypeEnum.Friend ? FriendConversation :
+//     T extends ConversationTypeEnum.Group ? GroupConversation : MeetingConversation
+
+export type Conversation<T extends ConversationTypeEnum> =
+  T extends ConversationTypeEnum.Friend ? ConversationEntity<T> : (Omit<ConversationEntity<T>, "imageMimeType"> & { image: string; })
 
 export interface CreateFriendConversationInput {
   userIds: [UserId, UserId];
@@ -374,7 +437,7 @@ export interface GetConversationInput<T extends ConversationId> {
 }
 
 export interface GetConversationOutput<T extends ConversationId> {
-  conversation: Conversation<ConversationType<T>>
+  conversation: Conversation<ConversationType<T>>;
 }
 
 export interface UpdateConversationInput<T extends ConversationId> {
@@ -422,7 +485,7 @@ export interface DeleteConversationInput {
 export type DeleteConversationOutput = void;
 
 export interface IndexGroupConversationForSearchInput {
-  group: RawConversation<GroupConversation>;
+  group: RawConversation<GroupConversationEntity>;
 }
 
 export type IndexGroupConversationForSearchOutput = void;
@@ -446,7 +509,7 @@ export interface GetGroupConversationsBySearchTermOutput {
 }
 
 export interface IndexMeetingConversationForSearchInput {
-  meeting: RawConversation<MeetingConversation>;
+  meeting: RawConversation<MeetingConversationEntity>;
 }
 
 export type IndexMeetingConversationForSearchOutput = void;
@@ -467,6 +530,18 @@ export interface GetMeetingConversationsBySearchTermInput {
 export interface GetMeetingConversationsBySearchTermOutput {
   meetings: MeetingConversation[];
   lastEvaluatedKey?: string;
+}
+
+interface HandleConversationImageInput<T extends ConversationEntity> {
+  conversation: T;
+}
+
+type ConversationEntityToConversationType<T extends ConversationEntity> =  
+T extends FriendConversationEntity ? ConversationTypeEnum.Friend :
+T extends GroupConversationEntity ? ConversationTypeEnum.Group : ConversationTypeEnum.Meeting;
+
+interface HandleConversationImageOutput<T extends ConversationEntity> {
+  conversation: Conversation<T["type"]>
 }
 
 type ConversationSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getGroupsBySearchTerm" | "getMeetingsBySearchTerm">;

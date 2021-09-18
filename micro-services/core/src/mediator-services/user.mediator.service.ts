@@ -10,8 +10,6 @@ import { MeetingId } from "../types/meetingId.type";
 import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
 import { IsPropertyUniqueOutput, UniquePropertyServiceInterface } from "../entity-services/uniqueProperty.service";
 import { UniqueProperty } from "../enums/uniqueProperty.enum";
-import { ImageFileServiceInterface } from "../entity-services/image.file.service";
-import { EntityType } from "../enums/entityType.enum";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
@@ -22,7 +20,6 @@ export class UserMediatorService implements UserMediatorServiceInterface {
     @inject(TYPES.TeamUserRelationshipServiceInterface) private teamUserRelationshipService: TeamUserRelationshipServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
     @inject(TYPES.UniquePropertyServiceInterface) private uniquePropertyService: UniquePropertyServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
   ) {}
 
   public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
@@ -53,41 +50,23 @@ export class UserMediatorService implements UserMediatorServiceInterface {
         throw new BadRequestError(`User already exists with username ${username}`);
       }
 
-      const { image, mimeType } = this.imageFileService.createDefaultImage();
-
       // Typescript loses the union type details during the param destructuring, so we need to cast below.
       // We know at this point that email and/or phone is defined.
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       const userServiceCreateUserInput = {
-        imageMimeType: mimeType,
         email,
         phone,
         username,
         realName,
       } as UserServiceCreateUserInput;
 
-      const { user: userEntity } = await this.userService.createUser(userServiceCreateUserInput);
+      const { user } = await this.userService.createUser(userServiceCreateUserInput);
 
       await Promise.all<unknown>([
-        this.imageFileService.uploadFile({ entityType: EntityType.User, entityId: userEntity.id, file: image, mimeType }),
-        email && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Email, value: email, userId: userEntity.id }),
-        phone && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Phone, value: phone, userId: userEntity.id }),
-        username && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Username, value: username, userId: userEntity.id }),
+        email && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Email, value: email, userId: user.id }),
+        phone && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Phone, value: phone, userId: user.id }),
+        username && this.uniquePropertyService.createUniqueProperty({ property: UniqueProperty.Username, value: username, userId: user.id }),
       ]);
-
-      const { signedUrl } = this.imageFileService.getSignedUrl({
-        operation: "get",
-        entityType: EntityType.User,
-        entityId: userEntity.id,
-        mimeType: userEntity.imageMimeType,
-      });
-
-      const { imageMimeType, ...restOfUserEntity } = userEntity;
-
-      const user: User = {
-        ...restOfUserEntity,
-        image: signedUrl,
-      };
 
       return { user };
     } catch (error: unknown) {
@@ -103,21 +82,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const { userId } = params;
 
-      const { user: userEntity } = await this.userService.getUser({ userId });
-
-      const { signedUrl } = this.imageFileService.getSignedUrl({
-        operation: "get",
-        entityType: EntityType.User,
-        entityId: userEntity.id,
-        mimeType: userEntity.imageMimeType,
-      });
-
-      const { imageMimeType, ...restOfUserEntity } = userEntity;
-
-      const user: User = {
-        ...restOfUserEntity,
-        image: signedUrl,
-      };
+      const { user } = await this.userService.getUser({ userId });
 
       return { user };
     } catch (error: unknown) {
@@ -133,12 +98,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const { userId, mimeType } = params;
 
-      const { signedUrl: uploadUrl } = this.imageFileService.getSignedUrl({
-        operation: "upload",
-        entityType: EntityType.User,
-        entityId: userId,
-        mimeType,
-      });
+      const { uploadUrl } = this.userService.getUserImageUploadUrl({ userId, mimeType });
 
       return { uploadUrl };
     } catch (error: unknown) {
@@ -274,18 +234,8 @@ export class UserMediatorService implements UserMediatorServiceInterface {
       const { users: userEntities } = await this.userService.getUsers({ userIds });
 
       const users = userEntities.map((userEntity, i) => {
-        const { signedUrl } = this.imageFileService.getSignedUrl({
-          operation: "get",
-          entityType: EntityType.User,
-          entityId: userEntity.id,
-          mimeType: userEntity.imageMimeType,
-        });
-
-        const { imageMimeType, ...restOfUserEntity } = userEntity;
-
         const user: WithRole<User> = {
-          ...restOfUserEntity,
-          image: signedUrl,
+          ...userEntity,
           role: teamUserRelationships[i].role,
         };
 
@@ -317,18 +267,8 @@ export class UserMediatorService implements UserMediatorServiceInterface {
       const { users: userEntities } = await this.userService.getUsers({ userIds });
 
       const users = userEntities.map((userEntity, i) => {
-        const { signedUrl } = this.imageFileService.getSignedUrl({
-          operation: "get",
-          entityType: EntityType.User,
-          entityId: userEntity.id,
-          mimeType: userEntity.imageMimeType,
-        });
-
-        const { imageMimeType, ...restOfUserEntity } = userEntity;
-
         const user: WithRole<User> = {
-          ...restOfUserEntity,
-          image: signedUrl,
+          ...userEntity,
           role: conversationUserRelationships[i].role,
         };
 
@@ -360,19 +300,8 @@ export class UserMediatorService implements UserMediatorServiceInterface {
       const { users: userEntities } = await this.userService.getUsers({ userIds });
 
       const users = userEntities.map((userEntity, i) => {
-        const { signedUrl } = this.imageFileService.getSignedUrl({
-          operation: "get",
-          entityType: EntityType.User,
-          entityId: userEntity.id,
-          mimeType: userEntity.imageMimeType,
-        });
-
-        const { imageMimeType, ...restOfUserEntity } = userEntity;
-
         const user: WithRole<User> = {
-          ...restOfUserEntity,
-          image: signedUrl,
-          // TODO: does userService.getUsers return the users in the same order as the conversationUserRelationships array ??
+          ...userEntity,
           role: conversationUserRelationships[i].role,
         };
 
@@ -402,10 +331,7 @@ export interface UserMediatorServiceInterface {
   getUsersByMeetingId(params: GetUsersByMeetingIdInput): Promise<GetUsersByMeetingIdOutput>;
 }
 
-export interface User extends Omit<UserEntity, "imageMimeType"> {
-  image: string;
-}
-
+export type User = UserEntity;
 export type TeamUserRelationship = TeamUserRelationshipEntity;
 
 interface BaseCreateUserInput {

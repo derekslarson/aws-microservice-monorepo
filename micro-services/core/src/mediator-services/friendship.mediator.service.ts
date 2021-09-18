@@ -18,7 +18,6 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
   ) {}
 
   public async createFriendship(params: CreateFriendshipInput): Promise<CreateFriendshipOutput> {
@@ -86,24 +85,7 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
 
       const friendIds = conversationUserRelationships.map((relationship) => relationship.conversationId.replace(KeyPrefix.FriendConversation, "").replace(userId, "").replace(/^-|-$/, "") as UserId);
 
-      const { users: userEntities } = await this.userService.getUsers({ userIds: friendIds });
-      
-      const friends = userEntities.map((userEntity) => {
-        
-        const { signedUrl } = this.imageFileService.getSignedUrl({
-          operation: "get",
-          entityType: EntityType.User,
-          entityId: userEntity.id,
-          mimeType: userEntity.imageMimeType,
-        });
-        
-        const { imageMimeType, ...restOfUserEntity } = userEntity
-
-        return {
-          ...restOfUserEntity,
-          image: signedUrl,
-        };
-      })
+      const { users: friends } = await this.userService.getUsers({ userIds: friendIds });
       
       return { friends, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -114,10 +96,7 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
   }
 }
 
-export interface Friend extends Omit<User, "imageMimeType"> {
-  image: string;
-}
-
+export type Friend = User;
 
 export interface FriendshipMediatorServiceInterface {
   createFriendship(params: CreateFriendshipInput): Promise<CreateFriendshipOutput>;

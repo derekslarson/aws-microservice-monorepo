@@ -11,11 +11,8 @@ import { ConversationType as ConversationTypeEnum } from "../enums/conversationT
 import { ConversationId } from "../types/conversationId.type";
 import { Message as MessageEntity, MessageServiceInterface } from "../entity-services/message.service";
 import { MessageId } from "../types/messageId.type";
-import { MessageFileServiceInterface } from "../entity-services/mesage.file.service";
-import { ImageFileServiceInterface } from "../entity-services/image.file.service";
 import { User, UserServiceInterface } from "../entity-services/user.service";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { EntityType } from "../enums/entityType.enum";
 import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
@@ -27,8 +24,6 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
-    @inject(TYPES.MessageFileServiceInterface) private messageFileService: MessageFileServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
     @inject(TYPES.UserGroupMeetingSearchServiceInterface) private userGroupMeetingSearchService: UserGroupMeetingSearchServiceInterface,
@@ -116,20 +111,10 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       const conversations = relationshipsWithEntityIds.map((relationship) => {
         const entity = relationship.type === ConversationTypeEnum.Friend ? friendMap[relationship.entityId] : groupAndMeetingMap[relationship.entityId];
 
-        const { signedUrl: image } = this.imageFileService.getSignedUrl({
-          operation: "get",
-          entityId: entity.id,
-          entityType: relationship.type === ConversationTypeEnum.Friend ? EntityType.User : relationship.type === ConversationTypeEnum.Group ? EntityType.GroupConversation : EntityType.MeetingConversation,
-          mimeType: entity.imageMimeType,
-        });
-
-        const { imageMimeType, ...restOfEntity } = entity;
-
         return {
-          ...restOfEntity,
+          ...entity,
           type: relationship.type,
           unreadMessages: relationship.unreadMessages?.length || 0,
-          image,
           updatedAt: relationship.updatedAt,
           recentMessage: recentMessagesMap[relationship.entityId],
           role: relationship.role,
@@ -182,20 +167,6 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       const recentMessages = recentMessageEntities.map((message, i) => {
         const user = users[i];
 
-        const { signedUrl: messageUrl } = this.messageFileService.getSignedUrl({
-          messageId: message.id,
-          conversationId: message.conversationId,
-          mimeType: message.mimeType,
-          operation: "get",
-        });
-
-        const { signedUrl: imageUrl } = this.imageFileService.getSignedUrl({
-          entityType: EntityType.User,
-          entityId: user.id,
-          mimeType: user.imageMimeType,
-          operation: "get",
-        });
-
         const { conversationId, ...restOfMessage } = message;
         const { to, type } = this.getToAndTypeFromConversationIdAndFrom({ conversationId, from: message.from });
 
@@ -203,8 +174,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
           ...restOfMessage,
           to,
           type,
-          fetchUrl: messageUrl,
-          fromImage: imageUrl,
+          fromImage: user.image,
         };
       });
 
