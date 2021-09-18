@@ -96,23 +96,17 @@ export class MessageService implements MessageServiceInterface {
 
       const { messages: messageEntities } = await this.messageRepository.getMessages({ messageIds });
 
-      const messageMap = messageEntities.reduce((acc: { [key: string]: Message; }, messageEntity) => {
-        const { signedUrl } = this.enhancedMessageFileRepository.getMessageSignedUrl({
+      const messageMap: Record<string, Message> = {};
+      messageEntities.forEach((messageEntity) => {
+        const { signedUrl: fetchUrl } = this.enhancedMessageFileRepository.getMessageSignedUrl({
           messageId: messageEntity.id,
           conversationId: messageEntity.conversationId,
           mimeType: messageEntity.mimeType,
           operation: "get",
         });
 
-        const message = {
-          ...messageEntity,
-          fetchUrl: signedUrl,
-        };
-
-        acc[message.id] = message;
-
-        return acc;
-      }, {});
+        messageMap[messageEntity.id] = { ...messageEntity, fetchUrl };
+      });
 
       const sortedMessages = messageIds.map((messageId) => messageMap[messageId]);
 

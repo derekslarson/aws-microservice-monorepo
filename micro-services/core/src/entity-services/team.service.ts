@@ -99,13 +99,11 @@ export class TeamService implements TeamServiceInterface {
 
       const { teams } = await this.teamRepository.getTeams({ teamIds });
 
-      const teamMap = teams.reduce((acc: { [key: string]: Team; }, teamEntity) => {
+      const teamMap: Record<string, Team> = {};
+      teams.forEach((teamEntity) => {
         const { entity: team } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
-
-        acc[team.id] = team;
-
-        return acc;
-      }, {});
+        teamMap[teamEntity.id] = team;
+      });
 
       const sortedTeams = teamIds.map((teamId) => teamMap[teamId]);
 

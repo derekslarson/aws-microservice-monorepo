@@ -99,13 +99,11 @@ export class UserService implements UserServiceInterface {
 
       const { users: userEntities } = await this.userRepository.getUsers({ userIds });
 
-      const userMap = userEntities.reduce((acc: { [key: string]: User; }, userEntity) => {
+      const userMap: Record<string, User> = {};
+      userEntities.forEach((userEntity) => {
         const { entity: userWithImage } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
-
-        acc[userWithImage.id] = userWithImage;
-
-        return acc;
-      }, {});
+        userMap[userEntity.id] = userWithImage;
+      });
 
       const sortedUsers = userIds.map((userId) => userMap[userId]);
 
