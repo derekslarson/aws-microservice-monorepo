@@ -1,6 +1,12 @@
 import "reflect-metadata";
 import { injectable, unmanaged } from "inversify";
-import { BaseS3Repository, GetSignedUrlOutput, HeadObjectOutput } from "./base.s3.repository";
+import {
+  BaseS3Repository,
+  GetSignedUrlInput,
+  HeadObjectInput,
+  GetSignedUrlOutput,
+  HeadObjectOutput,
+} from "./base.s3.repository";
 import { S3Factory } from "../factories/s3.factory";
 import { LoggerServiceInterface } from "../services/logger.service";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
@@ -26,91 +32,51 @@ export abstract class BaseMessageS3Repository extends BaseS3Repository implement
     super(bucketName, s3Factory, loggerService);
   }
 
-  public getMessageSignedUrl(params: GetMessageSignedUrlInput): GetMessageSignedUrlOutput {
+  public override getSignedUrl(params: MessageGetSignedUrlInput): GetSignedUrlOutput {
     try {
-      this.loggerService.trace("getMessageSignedUrl called", { params }, this.constructor.name);
+      this.loggerService.trace("getSignedUrl called", { params }, this.constructor.name);
+
+      if ("key" in params) {
+        return super.getSignedUrl(params);
+      }
 
       const { messageId, conversationId, operation, mimeType } = params;
 
-      const fileExtension = this.mimeTypeToFileExtensionMap[mimeType];
-
-      const key = `${conversationId}/${messageId}.${fileExtension}`;
+      const { key } = this.createKey({ messageId, conversationId, mimeType });
 
       if (operation === "get") {
-        return super.getSignedUrl({
-          operation: "getObject",
-          key,
-        });
+        return super.getSignedUrl({ operation, key });
       }
 
-      return super.getSignedUrl({
-        operation: "putObject",
-        key,
-        contentType: mimeType,
-      });
+      return super.getSignedUrl({ operation, key, mimeType });
     } catch (error: unknown) {
-      this.loggerService.error("Error in getMessageSignedUrl", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getSignedUrl", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public getMessageSignedUrlByKey(params: GetMessageSignedUrlByKeyInput): GetMessageSignedUrlByKeyOutput {
+  public override headObject(params: MessageHeadObjectInput): Promise<HeadObjectOutput> {
     try {
-      this.loggerService.trace("getMessageSignedUrl called", { params }, this.constructor.name);
+      this.loggerService.trace("headObject called", { params }, this.constructor.name);
 
-      if (params.operation === "get") {
-        return super.getSignedUrl({
-          operation: "getObject",
-          key: params.key,
-        });
+      if ("key" in params) {
+        return super.headObject(params);
       }
-
-      return super.getSignedUrl({
-        operation: "putObject",
-        key: params.key,
-        contentType: params.mimeType,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getMessageSignedUrl", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public messageHeadObject(params: MessageHeadObjectInput): Promise<MessageHeadObjectOutput> {
-    try {
-      this.loggerService.trace("messageHeadObject called", { params }, this.constructor.name);
 
       const { messageId, conversationId, mimeType } = params;
 
-      const fileExtension = this.mimeTypeToFileExtensionMap[mimeType];
-
-      const key = `${conversationId}/${messageId}.${fileExtension}`;
+      const { key } = this.createKey({ messageId, conversationId, mimeType });
 
       return super.headObject({ key });
     } catch (error: unknown) {
-      this.loggerService.error("Error in messageHeadObject", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in headObject", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public messageHeadObjectByKey(params: MessageHeadObjectByKeyInput): Promise<MessageHeadObjectByKeyOutput> {
-    try {
-      this.loggerService.trace("messageHeadObjectByKey called", { params }, this.constructor.name);
-
-      const { key } = params;
-
-      return super.headObject({ key });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in messageHeadObjectByKey", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public createKey(params: CreateKeyInput): CreateKeyOutput {
+  private createKey(params: CreateKeyInput): CreateKeyOutput {
     try {
       this.loggerService.trace("createKey called", { params }, this.constructor.name);
 
@@ -127,96 +93,38 @@ export abstract class BaseMessageS3Repository extends BaseS3Repository implement
       throw error;
     }
   }
-
-  public parseKey(params: ParseKeyInput): ParseKeyOutput {
-    try {
-      this.loggerService.trace("parseKey called", { params }, this.constructor.name);
-
-      const { key } = params;
-
-      const [ conversationId, messageIdWithExtension ] = key.split("/");
-      const [ messageId, extension ] = messageIdWithExtension.split(".");
-
-      return {
-        conversationId: conversationId as FriendConvoId | GroupId | MeetingId,
-        messageId: messageId as MessageId,
-        extension: extension as FileExtension,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in parseKey", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
 }
 
 export interface MessageFileRepositoryInterface {
-  getMessageSignedUrl(params: GetMessageSignedUrlInput): GetMessageSignedUrlOutput;
-  getMessageSignedUrlByKey(params: GetMessageSignedUrlByKeyInput): GetMessageSignedUrlByKeyOutput;
-  messageHeadObject(params: MessageHeadObjectInput): Promise<MessageHeadObjectOutput>;
-  messageHeadObjectByKey(params: MessageHeadObjectByKeyInput): Promise<MessageHeadObjectByKeyOutput>;
-  createKey(params: CreateKeyInput): CreateKeyOutput;
-  parseKey(params: ParseKeyInput): ParseKeyOutput;
+  getSignedUrl(params: MessageGetSignedUrlInput): GetSignedUrlOutput;
+  headObject(params: MessageHeadObjectInput): Promise<HeadObjectOutput>;
 }
 
 export type FileExtension = "mp3" | "mp4" | "webm";
 
-export interface GetMessageSignedUrlInput {
+interface GetSignedUrlByIdAndMimeTypeInput {
   operation: "get" | "upload",
   messageId: MessageId;
   conversationId: FriendConvoId | GroupId | MeetingId;
   mimeType: MessageMimeType;
 }
 
-export type GetMessageSignedUrlOutput = GetSignedUrlOutput;
+export type MessageGetSignedUrlInput = GetSignedUrlInput | GetSignedUrlByIdAndMimeTypeInput;
 
-export type GetMessageSignedUrlByKeyInput = GetMessageSignedUrlByKeyGetInput | GetMessageSignedUrlByKeyUploadInput;
-
-export type GetMessageSignedUrlByKeyOutput = GetSignedUrlOutput;
-
-export interface MessageHeadObjectInput {
+interface HeadObjectByIdAndMimeTypeInput {
   messageId: MessageId;
   conversationId: FriendConvoId | GroupId | MeetingId;
   mimeType: MessageMimeType;
 }
 
-export type MessageHeadObjectOutput = HeadObjectOutput;
+export type MessageHeadObjectInput = HeadObjectInput | HeadObjectByIdAndMimeTypeInput;
 
-export interface MessageHeadObjectByKeyInput {
-  key: string;
-}
-
-export type MessageHeadObjectByKeyOutput = HeadObjectOutput;
-
-export interface CreateKeyInput {
+interface CreateKeyInput {
   messageId: MessageId;
   conversationId: FriendConvoId | GroupId | MeetingId;
   mimeType: MessageMimeType;
 }
 
-export interface CreateKeyOutput {
+interface CreateKeyOutput {
   key: string;
-}
-
-export interface ParseKeyInput {
-  key: string;
-}
-
-export interface ParseKeyOutput {
-  messageId: MessageId;
-  conversationId: FriendConvoId | GroupId | MeetingId;
-  extension: FileExtension;
-}
-
-interface BaseGetMessageSignedUrlByKeyInput {
-  key: string;
-}
-
-interface GetMessageSignedUrlByKeyGetInput extends BaseGetMessageSignedUrlByKeyInput {
-  operation: "get"
-}
-
-interface GetMessageSignedUrlByKeyUploadInput extends BaseGetMessageSignedUrlByKeyInput {
-  operation: "upload";
-  mimeType: MessageMimeType;
 }

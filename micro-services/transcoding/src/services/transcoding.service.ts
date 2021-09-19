@@ -28,16 +28,16 @@ export class TranscodingService implements TranscodingServiceInterface {
 
       const { key } = params;
 
-      const fileDetails = await this.rawMessageFileRepository.messageHeadObjectByKey({ key });
+      const fileDetails = await this.rawMessageFileRepository.headObject({ key });
       const isVideo = fileDetails.ContentType?.toLowerCase().includes("video");
       const keyWithoutExtension = key.slice(0, key.lastIndexOf("."));
       const outputExtension = isVideo ? "mp4" : "mp3";
       const outputKey = `${keyWithoutExtension}.${outputExtension}`;
       const outputMimeType = isVideo ? MessageMimeType.VideoMp4 : MessageMimeType.AudioMp3;
 
-      const { signedUrl: inputUrl } = this.rawMessageFileRepository.getMessageSignedUrlByKey({ operation: "get", key });
+      const { signedUrl: inputUrl } = this.rawMessageFileRepository.getSignedUrl({ operation: "get", key });
 
-      const { signedUrl: outputUrl } = this.enhancedMessageFileRepository.getMessageSignedUrlByKey({ operation: "upload", key: outputKey, mimeType: outputMimeType });
+      const { signedUrl: outputUrl } = this.enhancedMessageFileRepository.getSignedUrl({ operation: "upload", key: outputKey, mimeType: outputMimeType });
 
       const body = {
         input: inputUrl,
@@ -61,7 +61,7 @@ export class TranscodingService implements TranscodingServiceInterface {
 
       const { key } = params;
 
-      const fileDetails = await this.enhancedMessageFileRepository.messageHeadObjectByKey({ key });
+      const fileDetails = await this.enhancedMessageFileRepository.headObject({ key });
       const isVideo = fileDetails.ContentType?.toLowerCase().includes("video");
       const messageId = key.slice(key.lastIndexOf("/") + 1, key.lastIndexOf(".")) as MessageTranscodedSnsMessage["messageId"];
 

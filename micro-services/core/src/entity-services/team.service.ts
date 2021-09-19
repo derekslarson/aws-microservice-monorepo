@@ -41,7 +41,7 @@ export class TeamService implements TeamServiceInterface {
       await this.teamRepository.createTeam({ team: teamEntity });
 
       await Promise.all([
-        this.imageFileRepository.uploadImageFile({ entityType: EntityType.Team, entityId: teamId, file: image, mimeType: imageMimeType }),
+        this.imageFileRepository.uploadFile({ entityType: EntityType.Team, entityId: teamId, file: image, mimeType: imageMimeType }),
         this.teamRepository.createTeam({ team: teamEntity }),
       ]);
 
@@ -121,7 +121,7 @@ export class TeamService implements TeamServiceInterface {
 
       const { teamId, mimeType } = params;
 
-      const { signedUrl: uploadUrl } = this.imageFileRepository.getImageSignedUrl({
+      const { signedUrl: uploadUrl } = this.imageFileRepository.getSignedUrl({
         operation: "upload",
         entityType: EntityType.Team,
         entityId: teamId,

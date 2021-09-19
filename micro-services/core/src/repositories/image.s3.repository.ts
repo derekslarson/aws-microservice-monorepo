@@ -1,5 +1,15 @@
+/* eslint-disable consistent-return */
 import "reflect-metadata";
-import { BaseS3Repository, IdServiceInterface, LoggerServiceInterface, S3Factory } from "@yac/util";
+import {
+  BaseS3Repository,
+  IdServiceInterface,
+  LoggerServiceInterface,
+  S3Factory,
+  UploadFileInput as BaseUploadFileInput,
+  UploadFileOutput as BaseUploadFileOutput,
+  GetSignedUrlInput as BaseGetSignedUrlInput,
+  GetSignedUrlOutput as BaseGetSignedUrlOutput,
+} from "@yac/util";
 import { injectable, inject } from "inversify";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
@@ -69,22 +79,22 @@ export class ImageS3Repository extends BaseS3Repository implements ImageFileRepo
     }
   }
 
-  public async uploadImageFile(params: UploadFileInput): Promise<UploadFileOutput> {
+  public override async uploadFile(params: UploadFileInput): Promise<UploadFileOutput> {
     try {
       this.loggerService.trace("uploadFile called", { params }, this.constructor.name);
 
+      if ("key" in params) {
+        return super.uploadFile(params);
+      }
+
       const { entityType, entityId, file, mimeType } = params;
 
-      const fileExtension = this.mimeTypeToFileExtensionMap[mimeType];
-
-      const fileDirectory = this.entityTypeToDirectoryMap[entityType];
-
-      const key = `${fileDirectory}/${entityId}.${fileExtension}`;
+      const { key } = this.createKey({ entityType, entityId, mimeType });
 
       await this.uploadFile({
         key,
         body: file,
-        contentType: mimeType,
+        mimeType,
       });
     } catch (error: unknown) {
       this.loggerService.error("Error in uploadFile", { error, params }, this.constructor.name);
@@ -93,22 +103,22 @@ export class ImageS3Repository extends BaseS3Repository implements ImageFileRepo
     }
   }
 
-  public getImageSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput {
+  public override getSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput {
     try {
       this.loggerService.trace("getSignedUrl called", { params }, this.constructor.name);
 
+      if ("key" in params) {
+        return super.getSignedUrl(params);
+      }
+
       const { operation, entityType, entityId, mimeType } = params;
 
-      const fileExtension = this.mimeTypeToFileExtensionMap[mimeType];
+      const { key } = this.createKey({ entityType, entityId, mimeType });
 
-      const fileDirectory = this.entityTypeToDirectoryMap[entityType];
-
-      const key = `${fileDirectory}/${entityId}.${fileExtension}`;
-
-      const { signedUrl } = this.getSignedUrl({
-        operation: operation === "get" ? "getObject" : "putObject",
+      const { signedUrl } = super.getSignedUrl({
+        operation,
         key,
-        contentType: mimeType,
+        mimeType,
       });
 
       return { signedUrl };
@@ -125,7 +135,7 @@ export class ImageS3Repository extends BaseS3Repository implements ImageFileRepo
 
       const { entityType, entity } = params;
 
-      const { signedUrl } = this.getImageSignedUrl({
+      const { signedUrl } = this.getSignedUrl({
         operation: "get",
         entityType,
         entityId: entity.id,
@@ -146,12 +156,32 @@ export class ImageS3Repository extends BaseS3Repository implements ImageFileRepo
       throw error;
     }
   }
+
+  private createKey(params: CreateKeyInput): CreateKeyOutput {
+    try {
+      this.loggerService.trace("createKey called", { params }, this.constructor.name);
+
+      const { entityType, entityId, mimeType } = params;
+
+      const fileExtension = this.mimeTypeToFileExtensionMap[mimeType];
+
+      const fileDirectory = this.entityTypeToDirectoryMap[entityType];
+
+      const key = `${fileDirectory}/${entityId}.${fileExtension}`;
+
+      return { key };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in createKey", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface ImageFileRepositoryInterface {
   createDefaultImage(): CreateDefaultImageOutput;
-  uploadImageFile(params: UploadFileInput): Promise<UploadFileOutput>;
-  getImageSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput;
+  uploadFile(params: UploadFileInput): Promise<UploadFileOutput>;
+  getSignedUrl(params: GetSignedUrlInput): GetSignedUrlOutput;
   replaceImageMimeTypeForImage<T extends ImageEntity>(params: ReplaceImageMimeTypeForImageInput<T>): ReplaceImageMimeTypeForImageOutput<T>;
 }
 
@@ -167,25 +197,25 @@ export interface CreateDefaultImageOutput {
   mimeType: ImageMimeType.Png;
 }
 
-export interface UploadFileInput {
+interface UploadFileByIdAndMimeTypeInput {
   entityType: ImageEntityType;
   entityId: ImageEntityId;
   file: Buffer;
   mimeType: ImageMimeType;
 }
 
-export type UploadFileOutput = void;
+export type UploadFileInput = BaseUploadFileInput | UploadFileByIdAndMimeTypeInput;
+export type UploadFileOutput = BaseUploadFileOutput;
 
-export interface GetSignedUrlInput {
+interface GetSignedUrlByIdAndMimeTypeInput {
   operation: "get" | "upload",
   entityType: ImageEntityType;
   entityId: ImageEntityId;
   mimeType: ImageMimeType;
 }
 
-export interface GetSignedUrlOutput {
-  signedUrl: string;
-}
+export type GetSignedUrlInput = BaseGetSignedUrlInput | GetSignedUrlByIdAndMimeTypeInput;
+export type GetSignedUrlOutput = BaseGetSignedUrlOutput;
 
 export interface ImageEntity {
   imageMimeType: ImageMimeType;
@@ -199,4 +229,14 @@ export interface ReplaceImageMimeTypeForImageInput<T extends ImageEntity> {
 
 export interface ReplaceImageMimeTypeForImageOutput<T extends ImageEntity> {
   entity: Omit<T, "imageMimeType"> & { image: string; };
+}
+
+interface CreateKeyInput {
+  entityType: ImageEntityType;
+  entityId: ImageEntityId;
+  mimeType: ImageMimeType;
+}
+
+interface CreateKeyOutput {
+  key: string;
 }

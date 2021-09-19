@@ -102,7 +102,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       await Promise.all([
         this.conversationRepository.createConversation({ conversation: conversationEntity }),
-        this.imageFileRepository.uploadImageFile({ entityType: EntityType.GroupConversation, entityId: conversationId, file: image, mimeType: imageMimeType })
+        this.imageFileRepository.uploadFile({ entityType: EntityType.GroupConversation, entityId: conversationId, file: image, mimeType: imageMimeType })
       ]);
 
       const { conversation } = this.convertConversationEntityToConversation({ conversationEntity });
@@ -138,7 +138,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       await Promise.all([
         this.conversationRepository.createConversation({ conversation: conversationEntity }),
-        this.imageFileRepository.uploadImageFile({ entityType: EntityType.MeetingConversation, entityId: conversationId, file: image, mimeType: imageMimeType })
+        this.imageFileRepository.uploadFile({ entityType: EntityType.MeetingConversation, entityId: conversationId, file: image, mimeType: imageMimeType })
       ]);
 
       const { conversation } = this.convertConversationEntityToConversation({ conversationEntity });
@@ -256,7 +256,7 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { conversationType, conversationId, mimeType } = params;
 
-      const { signedUrl: uploadUrl } = this.imageFileRepository.getImageSignedUrl({
+      const { signedUrl: uploadUrl } = this.imageFileRepository.getSignedUrl({
         operation: "upload",
         entityType: conversationType === ConversationTypeEnum.Group ? EntityType.GroupConversation : EntityType.MeetingConversation,
         entityId: conversationId,

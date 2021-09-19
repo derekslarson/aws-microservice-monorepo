@@ -39,7 +39,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
 
       const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
 
-      const { signedUrl } = this.rawMessageFileRepository.getMessageSignedUrl({
+      const { signedUrl } = this.rawMessageFileRepository.getSignedUrl({
         messageId,
         conversationId,
         mimeType,
@@ -69,7 +69,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
 
       const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
 
-      const { signedUrl } = this.rawMessageFileRepository.getMessageSignedUrl({
+      const { signedUrl } = this.rawMessageFileRepository.getSignedUrl({
         messageId,
         conversationId: pendingMessageEntity.conversationId,
         mimeType: pendingMessageEntity.mimeType,
@@ -99,7 +99,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
 
       const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
 
-      const { signedUrl } = this.rawMessageFileRepository.getMessageSignedUrl({
+      const { signedUrl } = this.rawMessageFileRepository.getSignedUrl({
         messageId,
         conversationId: pendingMessageEntity.conversationId,
         mimeType: pendingMessageEntity.mimeType,

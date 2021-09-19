@@ -23,13 +23,13 @@ export abstract class BaseS3Repository {
     try {
       this.loggerService.trace("uploadFile called", { params }, this.constructor.name);
 
-      const { key, body, contentType } = params;
+      const { key, body, mimeType } = params;
 
       const uploadInput: S3.Types.PutObjectRequest = {
         Bucket: this.bucketName,
         Key: key,
         Body: body,
-        ContentType: contentType,
+        ContentType: mimeType,
       };
 
       await this.s3.upload(uploadInput).promise();
@@ -49,11 +49,13 @@ export abstract class BaseS3Repository {
         Key: params.key,
       };
 
-      if (params.operation === "putObject") {
-        getSignedUrlInput.ContentType = params.contentType;
+      if (params.operation === "upload") {
+        getSignedUrlInput.ContentType = params.mimeType;
       }
 
-      const signedUrl = this.s3.getSignedUrl(params.operation, getSignedUrlInput);
+      const operation = params.operation === "get" ? "getObject" : "putObject";
+
+      const signedUrl = this.s3.getSignedUrl(operation, getSignedUrlInput);
 
       return { signedUrl };
     } catch (error: unknown) {
@@ -107,17 +109,17 @@ export abstract class BaseS3Repository {
 }
 
 interface BaseGetSignedUrlInput {
-  operation: "getObject" | "putObject";
+  operation: "get" | "upload";
   key: string;
 }
 
 interface GetSignedUrlGetObjectInput extends BaseGetSignedUrlInput {
-  operation: "getObject";
+  operation: "get";
 }
 
 interface GetSignedUrlPutObjectInput extends BaseGetSignedUrlInput {
-  operation: "putObject";
-  contentType: string;
+  operation: "upload";
+  mimeType: string;
 }
 
 export type GetSignedUrlInput = GetSignedUrlGetObjectInput | GetSignedUrlPutObjectInput;
@@ -129,7 +131,7 @@ export interface GetSignedUrlOutput {
 export interface UploadFileInput {
   key: string;
   body: S3.Body;
-  contentType: string;
+  mimeType: string;
 }
 
 export type UploadFileOutput = void;

@@ -41,7 +41,7 @@ export class UserService implements UserServiceInterface {
       };
 
       await Promise.all([
-        this.imageFileRepository.uploadImageFile({ entityType: EntityType.User, entityId: userId, file: image, mimeType: imageMimeType }),
+        this.imageFileRepository.uploadFile({ entityType: EntityType.User, entityId: userId, file: image, mimeType: imageMimeType }),
         this.userRepository.createUser({ user: userEntity }),
       ]);
 
@@ -171,7 +171,7 @@ export class UserService implements UserServiceInterface {
 
       const { userId, mimeType } = params;
 
-      const { signedUrl: uploadUrl } = this.imageFileRepository.getImageSignedUrl({
+      const { signedUrl: uploadUrl } = this.imageFileRepository.getSignedUrl({
         operation: "upload",
         entityType: EntityType.User,
         entityId: userId,
