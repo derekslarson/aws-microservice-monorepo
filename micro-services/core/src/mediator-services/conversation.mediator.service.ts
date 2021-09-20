@@ -53,8 +53,14 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       // Since the conversationId of a friend convo is `convo-friend-<userIdA>-<userIdB>,
       // we need to convert that into the other user's id as set it as entityId, so that we can fetch the user record
       let relationshipsWithEntityIds: ConversationUserRelationshipWithEntityId<T>[] = conversationUserRelationships.map((relationship) => {
-        const entityId = relationship.type === ConversationTypeEnum.Friend ? relationship.conversationId.replace(KeyPrefix.FriendConversation, "").replace(userId, "").replace(/^-|-$/, "") as UserId
-          : relationship.conversationId as GroupId | MeetingId;
+        let entityId: UserId | GroupId | MeetingId;
+
+        if (relationship.type === ConversationTypeEnum.Friend) {
+          const { userIds: conversationMemberIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: relationship.conversationId as FriendConvoId });
+          ([ entityId ] = conversationMemberIds.filter((conversationMemberId) => conversationMemberId !== userId));
+        } else {
+          entityId = relationship.conversationId as GroupId | MeetingId;
+        }
 
         return { ...relationship, entityId };
       });
