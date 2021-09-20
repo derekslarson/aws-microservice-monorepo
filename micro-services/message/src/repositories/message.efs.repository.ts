@@ -2,7 +2,7 @@ import "reflect-metadata";
 import * as fs from "fs";
 import * as path from "path";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, Message } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util";
 import { SHA256 } from "crypto-js";
 
 import { EnvConfigInterface } from "../config/env.config";
