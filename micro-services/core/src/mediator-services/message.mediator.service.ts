@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable no-nested-ternary */
 import { inject, injectable } from "inversify";
@@ -416,9 +417,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       // Create a map so we can look up the users by id with O(1) time complexity
       const usersMap: Record<string, User> = {};
-      users.forEach((user) => {
-        usersMap[user.id] = user;
-      });
+      users.forEach((user) => usersMap[user.id] = user);
 
       const messages = messageEntities.map((messageEntity) => {
         const { conversationId: _, ...restOfMessageEntity } = messageEntity;

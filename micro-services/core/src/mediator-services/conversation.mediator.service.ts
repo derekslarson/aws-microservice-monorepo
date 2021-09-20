@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import { inject, injectable } from "inversify";
@@ -69,9 +70,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
         // We need to create a map of the relationshipWithEntityIds array by their entityIds
         // so that we can recalculate them after the search query with O(1) time complexity
         const relationshipWithEntityIdsMap: Record<string, ConversationUserRelationshipWithEntityId<T>> = {};
-        relationshipsWithEntityIds.forEach((relationship) => {
-          relationshipWithEntityIdsMap[relationship.entityId] = relationship;
-        });
+        relationshipsWithEntityIds.forEach((relationship) => relationshipWithEntityIdsMap[relationship.entityId] = relationship);
 
         const entityIds = relationshipsWithEntityIds.map(({ entityId }) => entityId);
 
@@ -117,31 +116,22 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       // We need to create maps of each of the responses by their ids
       // so that we can fetch each one with O(1) time complexity
       // when generating the final conversation objects
-      const friendMap: Record<string, User> = {};
-      friends.forEach((friend) => {
-        friendMap[friend.id] = friend;
-      });
-
-      const groupAndMeetingMap: Record<string, GroupConversation | MeetingConversation> = {};
-      groupsAndMeetings.forEach((groupOrMeeting) => {
-        groupAndMeetingMap[groupOrMeeting.id] = groupOrMeeting;
-      });
+      const entityMap: Record<string, User | GroupConversation | MeetingConversation> = {};
+      [ ...friends, ...groupsAndMeetings ].forEach((entity) => entityMap[entity.id] = entity);
 
       const recentMessageMap: Record<string, Message> = {};
-      recentMessages.forEach((recentMessage) => {
-        recentMessageMap[recentMessage.to.id === userId ? recentMessage.from.id : recentMessage.to.id] = recentMessage;
-      });
+      recentMessages.forEach((recentMessage) => recentMessageMap[recentMessage.to.id === userId ? recentMessage.from.id : recentMessage.to.id] = recentMessage);
 
-      const conversations = relationshipsWithEntityIds.map((relationship) => {
-        const entity = relationship.type === ConversationTypeEnum.Friend ? friendMap[relationship.entityId] : groupAndMeetingMap[relationship.entityId];
+      const conversations = relationshipsWithEntityIds.map(({ type: conversationType, entityId, unreadMessages, updatedAt, role }) => {
+        const entity = entityMap[entityId];
 
         return {
           ...entity,
-          type: relationship.type,
-          unreadMessages: relationship.unreadMessages?.length || 0,
-          updatedAt: relationship.updatedAt,
-          role: relationship.role,
-          recentMessage: recentMessageMap[relationship.entityId],
+          updatedAt,
+          role,
+          type: conversationType,
+          unreadMessages: unreadMessages?.length || 0,
+          recentMessage: recentMessageMap[entityId],
         } as WithRole<Conversation<ConversationFetchTypeToConversationType<T>>>;
       });
 
@@ -208,17 +198,14 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
         this.conversationService.getConversations({ conversationIds: Array.from(groupMeetingIdSet) }),
       ]);
 
-      const toFromEntityMap: Record<string, User | GroupConversation | MeetingConversation> = {};
-
-      [ ...users, ...groupsAndMeetings ].forEach((toEntity) => {
-        toFromEntityMap[toEntity.id] = toEntity;
-      });
+      const entityMap: Record<string, User | GroupConversation | MeetingConversation> = {};
+      [ ...users, ...groupsAndMeetings ].forEach((toEntity) => entityMap[toEntity.id] = toEntity);
 
       const recentMessages = recentMessageEntitiesWithToEntityId.map((message) => {
         const { conversationId, toEntityId, ...restOfMessage } = message;
 
-        const to = toFromEntityMap[toEntityId];
-        const from = toFromEntityMap[message.from] as User;
+        const to = entityMap[toEntityId];
+        const from = entityMap[message.from] as User;
 
         return {
           ...restOfMessage,
