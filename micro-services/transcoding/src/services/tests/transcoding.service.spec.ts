@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import {
-  EnhancedMessageFileRepositoryInterface,
+  MessageFileRepositoryInterface,
   EnhancedMessageS3Repository,
   HttpRequestService,
   HttpRequestServiceInterface,
   LoggerService,
   LoggerServiceInterface,
   MessageMimeType,
-  RawMessageFileRepositoryInterface,
   RawMessageS3Repository,
   Spied,
   TestSupport,
@@ -19,8 +18,8 @@ describe("TranscodingService", () => {
   let loggerService: Spied<LoggerServiceInterface>;
   let httpRequestService: Spied<HttpRequestServiceInterface>;
   let messageTranscodedSnsService: Spied<MessageTranscodedSnsServiceInterface>;
-  let rawMessageFileRepository: Spied<RawMessageFileRepositoryInterface>;
-  let enhancedMessageFileRepository: Spied<EnhancedMessageFileRepositoryInterface>;
+  let rawMessageFileRepository: Spied<MessageFileRepositoryInterface>;
+  let enhancedMessageFileRepository: Spied<MessageFileRepositoryInterface>;
   let transcodingService: TranscodingServiceInterface;
 
   const mockAudoAiApiKey = "mock-audo-ai-api-key";
@@ -80,7 +79,7 @@ describe("TranscodingService", () => {
           await transcodingService.startTranscodingJob(params);
 
           expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledTimes(1);
-          expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({ operation: "getObject", key: mockKey });
+          expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({ operation: "get", key: mockKey });
         });
 
         it("calls enhancedMessageFileRepository.getSignedUrl with the correct params", async () => {
@@ -88,9 +87,9 @@ describe("TranscodingService", () => {
 
           expect(enhancedMessageFileRepository.getSignedUrl).toHaveBeenCalledTimes(1);
           expect(enhancedMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({
-            operation: "putObject",
+            operation: "upload",
             key: `${mockKeyWithoutExtension}.mp4`,
-            contentType: mockEnhancedVideoContentType,
+            mimeType: mockEnhancedVideoContentType,
           });
         });
 
@@ -116,7 +115,7 @@ describe("TranscodingService", () => {
           await transcodingService.startTranscodingJob(params);
 
           expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledTimes(1);
-          expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({ operation: "getObject", key: mockKey });
+          expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({ operation: "get", key: mockKey });
         });
 
         it("calls enhancedMessageFileRepository.getSignedUrl with the correct params", async () => {
@@ -124,9 +123,9 @@ describe("TranscodingService", () => {
 
           expect(enhancedMessageFileRepository.getSignedUrl).toHaveBeenCalledTimes(1);
           expect(enhancedMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({
-            operation: "putObject",
+            operation: "upload",
             key: `${mockKeyWithoutExtension}.mp3`,
-            contentType: mockEnhancedAudioContentType,
+            mimeType: mockEnhancedAudioContentType,
           });
         });
 

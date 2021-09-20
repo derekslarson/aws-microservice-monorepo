@@ -94,8 +94,8 @@ describe("GroupMessageUpdatedSnsProcessorService", () => {
         await groupMessageUpdatedSnsProcessorService.processRecord(mockRecord);
 
         expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageUpdated, data: { to: mockGroup, from: mockUser, message: mockMessage } });
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageUpdated, data: { to: mockGroup, from: mockUser, message: mockMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageUpdated, data: { message: mockMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageUpdated, data: { message: mockMessage } });
       });
     });
 

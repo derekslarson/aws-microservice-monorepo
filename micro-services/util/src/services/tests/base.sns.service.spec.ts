@@ -17,7 +17,7 @@ class TestSnsService extends BaseSnsService<Test> {
     super(topicArn, loggerService, snsFactory);
   }
 
-  public publish(message: Test) {
+  public override publish(message: Test) {
     return super.publish(message);
   }
 }

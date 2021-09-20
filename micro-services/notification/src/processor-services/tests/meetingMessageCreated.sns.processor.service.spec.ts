@@ -115,9 +115,12 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
           ...mockRecord,
           message: {
             ...mockRecord.message,
-            from: {
-              id: mockRecord.message.from.id,
-              username: "mock-username",
+            message: {
+              ...mockRecord.message.message,
+              from: {
+                id: mockRecord.message.from.id,
+                username: "mock-username",
+              },
             },
           },
         };
@@ -129,7 +132,7 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
             userId: mockUserIdTwo,
             event: PushNotificationEvent.MeetingMessageCreated,
             title: "New Message Received",
-            body: `Message from ${mockRecordTwo.message.from.username} in ${mockMeeting.name}`,
+            body: `Message from ${mockRecordTwo.message.message.from.username} in ${mockMeeting.name}`,
           });
         });
       });
@@ -139,9 +142,12 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
           ...mockRecord,
           message: {
             ...mockRecord.message,
-            from: {
-              id: mockRecord.message.from.id,
-              email: "mock-email",
+            message: {
+              ...mockRecord.message.message,
+              from: {
+                id: mockRecord.message.from.id,
+                email: "mock-email",
+              },
             },
           },
         };
@@ -153,7 +159,7 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
             userId: mockUserIdTwo,
             event: PushNotificationEvent.MeetingMessageCreated,
             title: "New Message Received",
-            body: `Message from ${mockRecordTwo.message.from.email} in ${mockMeeting.name}`,
+            body: `Message from ${mockRecordTwo.message.message.from.email} in ${mockMeeting.name}`,
           });
         });
       });
@@ -163,9 +169,12 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
           ...mockRecord,
           message: {
             ...mockRecord.message,
-            from: {
-              id: mockRecord.message.from.id,
-              phone: "mock-phone",
+            message: {
+              ...mockRecord.message.message,
+              from: {
+                id: mockRecord.message.from.id,
+                phone: "mock-phone",
+              },
             },
           },
         };
@@ -177,7 +186,7 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
             userId: mockUserIdTwo,
             event: PushNotificationEvent.MeetingMessageCreated,
             title: "New Message Received",
-            body: `Message from ${mockRecordTwo.message.from.phone} in ${mockMeeting.name}`,
+            body: `Message from ${mockRecordTwo.message.message.from.phone} in ${mockMeeting.name}`,
           });
         });
       });
@@ -186,8 +195,8 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
         await meetingMessageCreatedSnsProcessorService.processRecord(mockRecord);
 
         expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.MeetingMessageCreated, data: { to: mockMeeting, from: mockUser, message: mockMessage } });
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.MeetingMessageCreated, data: { to: mockMeeting, from: mockUser, message: mockMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.MeetingMessageCreated, data: { message: mockMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.MeetingMessageCreated, data: { message: mockMessage } });
       });
     });
 

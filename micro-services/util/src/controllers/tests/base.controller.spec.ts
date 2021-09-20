@@ -11,23 +11,23 @@ import { BadRequestError } from "../../errors/badRequest.error";
 
 // Need to extend the abstract class and expose its protected methods in order to test them
 class TestController extends BaseController {
-  public generateSuccessResponse(body: Body | string, headers?: Record<string, string>, cookies?: string[]) {
+  public override generateSuccessResponse(body: Body | string, headers?: Record<string, string>, cookies?: string[]) {
     return super.generateSuccessResponse(body, headers, cookies);
   }
 
-  public generateCreatedResponse(body: Body, headers?: Record<string, string>, cookies?: string[]) {
+  public override generateCreatedResponse(body: Body, headers?: Record<string, string>, cookies?: string[]) {
     return super.generateCreatedResponse(body, headers, cookies);
   }
 
-  public generateFoundResponse(redirectLocation: string, otherHeaders?: Record<string, string>, cookies?: string[]) {
+  public override generateFoundResponse(redirectLocation: string, otherHeaders?: Record<string, string>, cookies?: string[]) {
     return super.generateFoundResponse(redirectLocation, otherHeaders, cookies);
   }
 
-  public generateSeeOtherResponse(redirectLocation: string, otherHeaders?: Record<string, string>, cookies?: string[]) {
+  public override generateSeeOtherResponse(redirectLocation: string, otherHeaders?: Record<string, string>, cookies?: string[]) {
     return super.generateSeeOtherResponse(redirectLocation, otherHeaders, cookies);
   }
 
-  public generateErrorResponse(error: unknown) {
+  public override generateErrorResponse(error: unknown) {
     return super.generateErrorResponse(error);
   }
 }

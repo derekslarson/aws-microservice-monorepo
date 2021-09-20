@@ -88,8 +88,8 @@ describe("FriendMessageUpdatedSnsProcessorService", () => {
         await friendMessageUpdatedSnsProcessorService.processRecord(mockRecord);
 
         expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockToUser.id, event: WebSocketEvent.FriendMessageUpdated, data: { to: mockToUser, from: mockFromUser, message: mockFriendMessage } });
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockFromUser.id, event: WebSocketEvent.FriendMessageUpdated, data: { to: mockToUser, from: mockFromUser, message: mockFriendMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockToUser.id, event: WebSocketEvent.FriendMessageUpdated, data: { message: mockFriendMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockFromUser.id, event: WebSocketEvent.FriendMessageUpdated, data: { message: mockFriendMessage } });
       });
     });
 

@@ -12,7 +12,6 @@ describe("MeetingMessageUpdatedSnsProcessorService", () => {
   const mockMeetingMessageUpdatedSnsTopicArn = "mock-meeting-message-updated-sns-topic-arn";
   const mockConfig = { snsTopicArns: { meetingMessageUpdated: mockMeetingMessageUpdatedSnsTopicArn } };
   const mockMessageId = "message-id";
-  const mockMeetingId = "convo-meeting-mock-id";
   const mockUserIdOne = "user-mock-id-one";
   const mockUserIdTwo = "user-mock-id-two";
 
@@ -96,8 +95,8 @@ describe("MeetingMessageUpdatedSnsProcessorService", () => {
         await meetingMessageUpdatedSnsProcessorService.processRecord(mockRecord);
 
         expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.MeetingMessageUpdated, data: { to: mockMeeting, from: mockUser, message: mockMessage } });
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.MeetingMessageUpdated, data: { to: mockMeeting, from: mockUser, message: mockMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.MeetingMessageUpdated, data: { message: mockMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.MeetingMessageUpdated, data: { message: mockMessage } });
       });
     });
 
