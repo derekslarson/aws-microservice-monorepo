@@ -19,6 +19,7 @@ import { MessageMimeType } from "../enums/message.mimeType.enum";
 import { User, UserServiceInterface } from "../entity-services/user.service";
 import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 import { ConversationType } from "../enums/conversationType.enum";
+import { FriendConvoId } from "../types/friendConvoId.type";
 
 @injectable()
 export class MessageMediatorService implements MessageMediatorServiceInterface {
@@ -269,7 +270,48 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { searchTerm, exclusiveStartKey, limit } = params;
 
-      const { messages, lastEvaluatedKey } = await this.messageService.getMessagesBySearchTerm({ searchTerm, exclusiveStartKey, limit });
+      const { messages: messageEntities, lastEvaluatedKey } = await this.messageService.getMessagesBySearchTerm({ searchTerm, exclusiveStartKey, limit });
+
+      const userIdSet = new Set<UserId>();
+      const groupMeetingIdSet = new Set<GroupId | MeetingId>();
+
+      const messagesWithEntityId = messageEntities.map((message) => {
+        userIdSet.add(message.from);
+
+        if (message.conversationId.startsWith(KeyPrefix.FriendConversation)) {
+          const { userIds: conversationMemberIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: message.conversationId as FriendConvoId });
+          conversationMemberIds.forEach((userId) => userIdSet.add(userId));
+          const [ toUserId ] = conversationMemberIds.filter((userId) => userId !== message.from);
+
+          return { ...message, toEntityId: toUserId };
+        }
+
+        groupMeetingIdSet.add(message.conversationId as GroupId | MeetingId);
+
+        return { ...message, toEntityId: message.conversationId };
+      });
+
+      const [ { users }, { conversations: groupsAndMeetings } ] = await Promise.all([
+        this.userService.getUsers({ userIds: Array.from(userIdSet) }),
+        this.conversationService.getConversations({ conversationIds: Array.from(groupMeetingIdSet) }),
+      ]);
+
+      const entityMap: Record<string, User | GroupConversation | MeetingConversation> = {};
+      [ ...users, ...groupsAndMeetings ].forEach((toEntity) => entityMap[toEntity.id] = toEntity);
+
+      const messages = messagesWithEntityId.map((message) => {
+        const { conversationId, toEntityId, ...restOfMessage } = message;
+
+        const to = entityMap[toEntityId];
+        const from = entityMap[message.from] as User;
+
+        return {
+          ...restOfMessage,
+          type: "type" in to ? to.type : ConversationType.Friend,
+          to,
+          from,
+        };
+      });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
