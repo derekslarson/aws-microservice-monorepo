@@ -264,13 +264,17 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
-  public async getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput> {
+  public async getMessagesByUserIdAndSearchTerm(params: GetMessagesByUserIdAndSearchTermInput): Promise<GetMessagesByUserIdAndSearchTermOutput> {
     try {
-      this.loggerService.trace("getMessagesBySearchTerm called", { params }, this.constructor.name);
+      this.loggerService.trace("getMessagesByUserIdAndSearchTerm called", { params }, this.constructor.name);
 
-      const { searchTerm, exclusiveStartKey, limit } = params;
+      const { userId, searchTerm, exclusiveStartKey, limit } = params;
 
-      const { messages: messageEntities, lastEvaluatedKey } = await this.messageService.getMessagesBySearchTerm({ searchTerm, exclusiveStartKey, limit });
+      const { conversationUserRelationships } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId });
+
+      const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
+
+      const { messages: messageEntities, lastEvaluatedKey } = await this.messageService.getMessagesBySearchTerm({ conversationIds, searchTerm, exclusiveStartKey, limit });
 
       const userIdSet = new Set<UserId>();
       const groupMeetingIdSet = new Set<GroupId | MeetingId>();
@@ -280,8 +284,8 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
         if (message.conversationId.startsWith(KeyPrefix.FriendConversation)) {
           const { userIds: conversationMemberIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: message.conversationId as FriendConvoId });
-          conversationMemberIds.forEach((userId) => userIdSet.add(userId));
-          const [ toUserId ] = conversationMemberIds.filter((userId) => userId !== message.from);
+          conversationMemberIds.forEach((memberId) => userIdSet.add(memberId));
+          const [ toUserId ] = conversationMemberIds.filter((memberId) => memberId !== message.from);
 
           return { ...message, toEntityId: toUserId };
         }
@@ -315,7 +319,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getMessagesBySearchTerm", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getMessagesByUserIdAndSearchTerm", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -536,7 +540,7 @@ export interface MessageMediatorServiceInterface {
   getMessagesByUserAndFriendIds(params: GetMessagesByUserAndFriendIdsInput): Promise<GetMessagesByUserAndFriendIdsOutput>;
   getMessagesByGroupId(params: GetMessagesByGroupIdInput): Promise<GetMessagesByGroupIdOutput>;
   getMessagesByMeetingId(params: GetMessagesByMeetingIdInput): Promise<GetMessagesByMeetingIdOutput>;
-  getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput>;
+  getMessagesByUserIdAndSearchTerm(params: GetMessagesByUserIdAndSearchTermInput): Promise<GetMessagesByUserIdAndSearchTermOutput>;
   updateMessageByUserId(params: UpdateMessageByUserIdInput): Promise<UpdateMessageByUserIdOutput>;
   updateFriendMessagesByUserId(params: UpdateFriendMessagesByUserIdInput): Promise<UpdateFriendMessagesByUserIdOutput>;
   updateMeetingMessagesByUserId(params: UpdateMeetingMessagesByUserIdInput): Promise<UpdateMeetingMessagesByUserIdOutput>;
@@ -630,13 +634,14 @@ export interface GetMessagesByMeetingIdOutput {
   lastEvaluatedKey?: string;
 }
 
-export interface GetMessagesBySearchTermInput {
+export interface GetMessagesByUserIdAndSearchTermInput {
+  userId: UserId;
   searchTerm: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
 
-export interface GetMessagesBySearchTermOutput {
+export interface GetMessagesByUserIdAndSearchTermOutput {
   messages: Message[];
   lastEvaluatedKey?: string;
 }

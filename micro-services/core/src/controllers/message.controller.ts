@@ -9,6 +9,7 @@ import { CreateMeetingMessageDto } from "../dtos/createMeetingMessage.dto";
 import { GetMessagesByUserAndFriendIdsDto } from "../dtos/getMessagesByUserAndFriendIds.dto";
 import { GetMessagesByByGroupIdDto } from "../dtos/getMessagesByGroupId.dto";
 import { GetMessagesByByMeetingIdDto } from "../dtos/getMessagesByMeetingId.dto";
+import { GetMessagesByUserIdAndSearchTermDto } from "../dtos/getMessagesByUserIdAndSearchTerm.dto";
 import { GetMessageDto } from "../dtos/getMessage.dto";
 import { UpdateMessageByUserIdDto } from "../dtos/updateMessageByUserId.dto";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
@@ -198,6 +199,32 @@ export class MessageController extends BaseController implements MessageControll
     }
   }
 
+  public async getMessagesByUserIdAndSearchTerm(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getMessagesByUserIdAndSearchTerm called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { userId },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
+      } = this.validationService.validate({ dto: GetMessagesByUserIdAndSearchTermDto, request, getUserIdFromJwt: true });
+
+      if (jwtId !== userId) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { messages, lastEvaluatedKey } = await this.messageMediatorService.getMessagesByUserIdAndSearchTerm({ userId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+
+      const response: GetMessagesByUserIdAndSearchTermResponse = { messages, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMessagesByUserIdAndSearchTerm", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
   public async getMessage(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("getMessage called", { request }, this.constructor.name);
@@ -212,9 +239,9 @@ export class MessageController extends BaseController implements MessageControll
       let isConversationMember: boolean;
 
       if (message.type === ConversationType.Friend) {
-        isConversationMember = message.to === jwtId || message.from === jwtId;
+        isConversationMember = message.to.id === jwtId || message.from.id === jwtId;
       } else {
-        ({ isConversationMember } = await this.conversationMediatorService.isConversationMember({ conversationId: message.to as GroupId | MeetingId, userId: jwtId }));
+        ({ isConversationMember } = await this.conversationMediatorService.isConversationMember({ conversationId: message.to.id as GroupId | MeetingId, userId: jwtId }));
       }
 
       if (!isConversationMember) {
@@ -250,9 +277,9 @@ export class MessageController extends BaseController implements MessageControll
       let isConversationMember: boolean;
 
       if (message.type === ConversationType.Friend) {
-        isConversationMember = message.to === jwtId || message.from === jwtId;
+        isConversationMember = message.to.id === jwtId || message.from.id === jwtId;
       } else {
-        ({ isConversationMember } = await this.conversationMediatorService.isConversationMember({ conversationId: message.to as GroupId | MeetingId, userId: jwtId }));
+        ({ isConversationMember } = await this.conversationMediatorService.isConversationMember({ conversationId: message.to.id as GroupId | MeetingId, userId: jwtId }));
       }
 
       if (!isConversationMember) {
@@ -369,6 +396,7 @@ export interface MessageControllerInterface {
   getMessagesByUserAndFriendIds(request: Request): Promise<Response>;
   getMessagesByGroupId(request: Request): Promise<Response>;
   getMessagesByMeetingId(request: Request): Promise<Response>;
+  getMessagesByUserIdAndSearchTerm(request: Request): Promise<Response>;
   getMessage(request: Request): Promise<Response>;
   updateMessageByUserId(request: Request): Promise<Response>;
   updateFriendMessagesByUserId(request: Request): Promise<Response>;
@@ -399,6 +427,11 @@ export interface GetMessagesByGroupIdResponse {
 }
 
 export interface GetMessagesByMeetingIdResponse {
+  messages: Message[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetMessagesByUserIdAndSearchTermResponse {
   messages: Message[];
   lastEvaluatedKey?: string;
 }

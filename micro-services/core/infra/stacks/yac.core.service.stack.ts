@@ -747,6 +747,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const getMessagesByUserIdAndSearchTermHandler = new Lambda.Function(this, `GetMessagesByUserIdAndSearchTerm_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByUserIdAndSearchTerm"),
+      handler: "getMessagesByUserIdAndSearchTerm.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const updateFriendMessagesByUserIdHandler = new Lambda.Function(this, `UpdateFriendMessagesByUserId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/updateFriendMessagesByUserId"),
@@ -1022,6 +1033,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/messages/{messageId}",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessageHandler,
+        authorizationScopes: [ "yac/message.read" ],
+      },
+      {
+        path: "/users/{userId}/messages",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getMessagesByUserIdAndSearchTermHandler,
         authorizationScopes: [ "yac/message.read" ],
       },
       {
