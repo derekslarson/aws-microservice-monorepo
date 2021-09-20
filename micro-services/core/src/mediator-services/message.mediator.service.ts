@@ -263,6 +263,22 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
+  public async getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getMessagesBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, exclusiveStartKey, limit } = params;
+
+      const { messages, lastEvaluatedKey } = await this.messageService.getMessagesBySearchTerm({ searchTerm, exclusiveStartKey, limit });
+
+      return { messages, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMessagesBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async updateMessageByUserId(params: UpdateMessageByUserIdInput): Promise<UpdateMessageByUserIdOutput> {
     try {
       this.loggerService.trace("updateMessageByUserId called", { params }, this.constructor.name);
@@ -478,6 +494,7 @@ export interface MessageMediatorServiceInterface {
   getMessagesByUserAndFriendIds(params: GetMessagesByUserAndFriendIdsInput): Promise<GetMessagesByUserAndFriendIdsOutput>;
   getMessagesByGroupId(params: GetMessagesByGroupIdInput): Promise<GetMessagesByGroupIdOutput>;
   getMessagesByMeetingId(params: GetMessagesByMeetingIdInput): Promise<GetMessagesByMeetingIdOutput>;
+  getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput>;
   updateMessageByUserId(params: UpdateMessageByUserIdInput): Promise<UpdateMessageByUserIdOutput>;
   updateFriendMessagesByUserId(params: UpdateFriendMessagesByUserIdInput): Promise<UpdateFriendMessagesByUserIdOutput>;
   updateMeetingMessagesByUserId(params: UpdateMeetingMessagesByUserIdInput): Promise<UpdateMeetingMessagesByUserIdOutput>;
@@ -567,6 +584,17 @@ export interface GetMessagesByMeetingIdInput {
 }
 
 export interface GetMessagesByMeetingIdOutput {
+  messages: Message[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetMessagesBySearchTermInput {
+  searchTerm: string;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetMessagesBySearchTermOutput {
   messages: Message[];
   lastEvaluatedKey?: string;
 }

@@ -140,7 +140,9 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("indexTeamForSearch called", { params }, this.constructor.name);
 
-      const { team } = params;
+      const { team: rawTeam } = params;
+
+      const { team } = this.teamRepository.convertRawTeamToTeam({ rawTeam });
 
       await this.teamSearchRepository.indexDocument({ index: SearchIndex.Team, document: team });
     } catch (error: unknown) {

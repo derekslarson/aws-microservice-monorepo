@@ -119,7 +119,9 @@ export class UserService implements UserServiceInterface {
     try {
       this.loggerService.trace("indexUserForSearch called", { params }, this.constructor.name);
 
-      const { user } = params;
+      const { user: rawUser } = params;
+
+      const { user } = this.userRepository.convertRawUserToUser({ rawUser });
 
       await this.userSearchRepository.indexDocument({ index: SearchIndex.User, document: user });
     } catch (error: unknown) {

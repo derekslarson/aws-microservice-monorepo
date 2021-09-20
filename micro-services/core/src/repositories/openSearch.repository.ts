@@ -6,10 +6,10 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { TeamId } from "../types/teamId.type";
 import { SearchIndex } from "../enums/searchIndex.enum";
-import { RawTeam, Team } from "./team.dynamo.repository";
-import { RawUser, User } from "./user.dynamo.repository";
-import { GroupConversation, MeetingConversation, RawConversation } from "./conversation.dynamo.repository";
-import { Message, RawMessage } from "./message.dynamo.repository";
+import { Team } from "./team.dynamo.repository";
+import { User } from "./user.dynamo.repository";
+import { GroupConversation, MeetingConversation } from "./conversation.dynamo.repository";
+import { Message } from "./message.dynamo.repository";
 import { UserId } from "../types/userId.type";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
@@ -280,14 +280,14 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       }));
 
       const { schema, datarows, total, size } = queryResponse.data as {
-        schema: { name: keyof RawEntity<QueryResult>; }[];
+        schema: { name: keyof QueryResult; }[];
         datarows: unknown[][];
         total: number;
         size: number;
       };
 
       const results = datarows.map((datarow) => {
-        const rawEntity = datarow.reduce((acc: Partial<RawEntity<QueryResult>>, val, i) => {
+        const entity = datarow.reduce((acc: Partial<QueryResult>, val, i) => {
           const propName = schema[i].name;
 
           if (val !== null) {
@@ -297,9 +297,9 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
           }
 
           return acc;
-        }, {}) as RawEntity<QueryResult>;
+        }, {}) as QueryResult;
 
-        return this.cleanse(rawEntity);
+        return entity;
       });
 
       let lastEvaluatedKey: string | undefined;
@@ -371,20 +371,6 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       return "offset" in key;
     } catch (error: unknown) {
       this.loggerService.error("Error in isDyanmoKey", { error, key }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  private cleanse<T>(item: RawEntity<T>): CleansedEntity<T> {
-    try {
-      this.loggerService.trace("cleanse called", { item }, this.constructor.name);
-
-      const { entityType, pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, gsi3pk, gsi3sk, ...rest } = item;
-
-      return rest as unknown as CleansedEntity<T>;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in cleanse", { error, item }, this.constructor.name);
 
       throw error;
     }
@@ -527,10 +513,10 @@ interface SearchKey {
 }
 
 type IndexToDocument<T extends SearchIndex> =
-  T extends SearchIndex.User ? RawUser :
-    T extends SearchIndex.Group ? RawConversation<GroupConversation> :
-      T extends SearchIndex.Meeting ? RawConversation<MeetingConversation> :
-        T extends SearchIndex.Team ? RawTeam : RawMessage;
+  T extends SearchIndex.User ? User :
+    T extends SearchIndex.Group ? GroupConversation :
+      T extends SearchIndex.Meeting ? MeetingConversation :
+        T extends SearchIndex.Team ? Team : Message;
 
 type IndexToId<T extends SearchIndex> =
   T extends SearchIndex.User ? UserId :

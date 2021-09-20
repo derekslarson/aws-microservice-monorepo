@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, RawEntity } from "@yac/util";
 
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
@@ -92,6 +92,22 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
       throw error;
     }
   }
+
+  public convertRawUserToUser(params: ConvertRawUserToUserInput): ConvertRawUserToUserOutput {
+    try {
+      this.loggerService.trace("convertRawUserToUser called", { params }, this.constructor.name);
+
+      const { rawUser } = params;
+
+      const user = this.cleanse(rawUser);
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in convertRawUserToUser", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface UserRepositoryInterface {
@@ -99,6 +115,7 @@ export interface UserRepositoryInterface {
   getUser(params: GetUserInput): Promise<GetUserOutput>;
   updateUser(params: UpdateUserInput): Promise<UpdateUserOutput>;
   getUsers(params: GetUsersInput): Promise<GetUsersOutput>;
+  convertRawUserToUser(params: ConvertRawUserToUserInput): ConvertRawUserToUserOutput;
 }
 
 type UserRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
@@ -151,4 +168,13 @@ export interface GetUsersInput {
 
 export interface GetUsersOutput {
   users: User[];
+}
+
+export interface ConvertRawUserToUserInput {
+  rawUser: RawUser;
+
+}
+
+export interface ConvertRawUserToUserOutput {
+  user: User;
 }

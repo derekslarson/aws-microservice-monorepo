@@ -274,7 +274,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("indexGroupConversationForSearch called", { params }, this.constructor.name);
 
-      const { group } = params;
+      const { group: rawGroup } = params;
+
+      const { conversation: group } = this.conversationRepository.convertRawConversationToConversation({ rawConversation: rawGroup });
 
       await this.conversationSearchRepository.indexDocument({ index: SearchIndex.Group, document: group });
     } catch (error: unknown) {
@@ -324,7 +326,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("indexMeetingConversationForSearch called", { params }, this.constructor.name);
 
-      const { meeting } = params;
+      const { meeting: rawMeeting } = params;
+
+      const { conversation: meeting } = this.conversationRepository.convertRawConversationToConversation({ rawConversation: rawMeeting });
 
       await this.conversationSearchRepository.indexDocument({ index: SearchIndex.Meeting, document: meeting });
     } catch (error: unknown) {

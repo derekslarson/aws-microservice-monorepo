@@ -238,7 +238,9 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("indexMessageForSearch called", { params }, this.constructor.name);
 
-      const { message } = params;
+      const { message: rawMessage } = params;
+
+      const { message } = this.messageRepository.convertRawMessageToMessage({ rawMessage });
 
       await this.messageSearchRepository.indexDocument({ index: SearchIndex.Message, document: message });
     } catch (error: unknown) {
