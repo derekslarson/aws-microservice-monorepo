@@ -2,9 +2,7 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BadRequestError, LoggerServiceInterface, Message } from "@yac/util";
 
-import { SHA256 } from "crypto-js";
 import { TYPES } from "../inversion-of-control/types";
-import { EnvConfigInterface } from "../config/env.config";
 import { MessageEFSRepositoryInterface } from "../repositories/message.efs.repository";
 import { MessageS3RepositoryInterface } from "../repositories/message.s3.repository";
 
@@ -44,12 +42,29 @@ export class MessageService implements MessageServiceInterface {
       const finalFile = await this.messageEFSRepository.getMessageFile({ name: params.messageId, path: fileDirectoryContent.path });
 
       if (finalFile.meta.checksum !== params.checksum) {
-        // TODO: continue here
-        // if checksum is different throw error
+        throw new BadRequestError("File checksum on server is different than provided by client");
       }
 
-      const dir = await this.messageEFSRepository.makeDirectory({ name: params.messageId });
-      this.messageEFSRepository.addMessageChunk({ path: dir.path, chunkData: params.chunkData });
+      // upload to s3
+      await this.messageS3Repository.uploadFile({
+        body: finalFile.fileData,
+        contentType: "TBD",
+        key: finalFile.name,
+      });
+
+      const deletionOfFile = this.messageEFSRepository.deleteDirectory({ name: params.messageId });
+
+      const s3Url = this.messageS3Repository.getSignedUrl({
+        key: finalFile.name,
+        operation: "getObject",
+      });
+
+      await deletionOfFile;
+
+      return {
+        url: s3Url.signedUrl,
+        messageId: params.messageId,
+      };
     } catch (error: unknown) {
       this.loggerService.error("failed to processChunk", { error, params }, this.constructor.name);
       throw error;
@@ -63,7 +78,7 @@ export interface MessageServiceInterface {
 }
 
 interface ProcessChunkInput {
-  messageId : Message["id"],
+  messageId: Message["id"],
   chunkData: string
 }
 
