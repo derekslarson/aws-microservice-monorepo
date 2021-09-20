@@ -3,7 +3,6 @@ import { LoggerService, Spied, TestSupport, SnsFactory, Message, User, Meeting }
 import SNS from "aws-sdk/clients/sns";
 import { ConversationType } from "../../enums/conversationType.enum";
 import { MessageMimeType } from "../../enums/message.mimeType.enum";
-import { MeetingId } from "../../types/meetingId.type";
 import { UserId } from "../../types/userId.type";
 import { MeetingMessageUpdatedSnsService, MeetingMessageUpdatedSnsServiceInterface } from "../meetingMessageUpdated.sns.service";
 
@@ -23,7 +22,6 @@ describe("MeetingMessageUpdatedSnsService", () => {
   const mockMessageId = "message-id";
   const mockUserIdOne: UserId = "user-mock-id-one";
   const mockUserIdTwo: UserId = "user-mock-id-two";
-  const mockMeetingId: MeetingId = "convo-meeting-mock-id";
 
   const mockUser: User = {
     id: mockUserIdOne,
@@ -31,7 +29,7 @@ describe("MeetingMessageUpdatedSnsService", () => {
   };
 
   const mockMeeting: Meeting = {
-    id: mockMeetingId,
+    id: "convo-meeting-mock-id",
     name: "mock-name",
     image: "mock-image",
     createdBy: "user-mock-id",
@@ -41,8 +39,8 @@ describe("MeetingMessageUpdatedSnsService", () => {
 
   const mockMeetingMessage: Message = {
     id: mockMessageId,
-    to: mockMeetingId,
-    from: mockUserIdOne,
+    to: mockMeeting,
+    from: mockUser,
     type: ConversationType.Meeting,
     createdAt: new Date().toISOString(),
     seenAt: { [mockUserIdOne]: new Date().toISOString() },
@@ -50,7 +48,6 @@ describe("MeetingMessageUpdatedSnsService", () => {
     replyCount: 0,
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockError = new Error("test");
@@ -62,7 +59,7 @@ describe("MeetingMessageUpdatedSnsService", () => {
   });
 
   describe("sendMessage", () => {
-    const mockMessage = { message: mockMeetingMessage, to: mockMeeting, from: mockUser, meetingMemberIds: [ mockUserIdOne, mockUserIdTwo ] };
+    const mockMessage = { message: mockMeetingMessage, meetingMemberIds: [ mockUserIdOne, mockUserIdTwo ] };
 
     describe("under normal conditions", () => {
       beforeEach(() => {

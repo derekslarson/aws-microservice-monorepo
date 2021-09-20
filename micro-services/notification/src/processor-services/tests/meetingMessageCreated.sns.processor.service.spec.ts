@@ -15,7 +15,6 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
   const mockMeetingMessageCreatedSnsTopicArn = "mock-meeting-message-created-sns-topic-arn";
   const mockConfig = { snsTopicArns: { meetingMessageCreated: mockMeetingMessageCreatedSnsTopicArn } };
   const mockMessageId = "message-id";
-  const mockMeetingId = "convo-meeting-mock-id";
   const mockUserIdOne = "user-mock-id-one";
   const mockUserIdTwo = "user-mock-id-two";
 
@@ -26,7 +25,7 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
   };
 
   const mockMeeting: Meeting = {
-    id: mockMeetingId,
+    id: "convo-meeting-mock-id",
     name: "mock-name",
     image: "mock-image",
     createdBy: "user-mock-id",
@@ -36,8 +35,8 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
 
   const mockMessage: Message = {
     id: mockMessageId,
-    to: mockMeetingId,
-    from: mockUserIdOne,
+    to: mockMeeting,
+    from: mockUser,
     type: "meeting",
     createdAt: new Date().toISOString(),
     seenAt: { [mockUserIdOne]: new Date().toISOString(), [mockUserIdTwo]: null },
@@ -45,7 +44,6 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
     replyCount: 0,
     mimeType: "audio/mpeg",
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockRecord = {

@@ -3,7 +3,6 @@ import { LoggerService, Spied, TestSupport, SnsFactory, Message, User } from "@y
 import SNS from "aws-sdk/clients/sns";
 import { ConversationType } from "../../enums/conversationType.enum";
 import { MessageMimeType } from "../../enums/message.mimeType.enum";
-import { UserId } from "../../types/userId.type";
 import { FriendMessageUpdatedSnsService, FriendMessageUpdatedSnsServiceInterface } from "../friendMessageUpdated.sns.service";
 
 interface FriendMessageUpdatedSnsServiceWithAnyMethod extends FriendMessageUpdatedSnsServiceInterface {
@@ -20,31 +19,27 @@ describe("FriendMessageUpdatedSnsService", () => {
   const mockFriendMessageUpdatedSnsTopicArn = "mock-friend-message-updated-sns-topic-arn";
   const mockConfig = { snsTopicArns: { friendMessageUpdated: mockFriendMessageUpdatedSnsTopicArn } };
   const mockMessageId = "message-id";
-  const mockTo: UserId = "user-mock-to";
-  const mockFrom: UserId = "user-mock-from";
-
   const mockToUser: User = {
-    id: mockTo,
+    id: "user-mock-to",
     image: "mock-image",
   };
 
   const mockFromUser: User = {
-    id: mockFrom,
+    id: "user-mock-from",
     image: "mock-image",
   };
 
   const mockFriendMessage: Message = {
     id: mockMessageId,
-    to: mockTo,
-    from: mockFrom,
+    to: mockToUser,
+    from: mockFromUser,
     type: ConversationType.Friend,
     createdAt: new Date().toISOString(),
-    seenAt: { [mockFrom]: new Date().toISOString() },
+    seenAt: { [mockFromUser.id]: new Date().toISOString() },
     reactions: {},
     replyCount: 0,
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockError = new Error("test");
@@ -56,7 +51,7 @@ describe("FriendMessageUpdatedSnsService", () => {
   });
 
   describe("sendMessage", () => {
-    const mockMessage = { message: mockFriendMessage, to: mockToUser, from: mockFromUser };
+    const mockMessage = { message: mockFriendMessage };
 
     describe("under normal conditions", () => {
       beforeEach(() => {

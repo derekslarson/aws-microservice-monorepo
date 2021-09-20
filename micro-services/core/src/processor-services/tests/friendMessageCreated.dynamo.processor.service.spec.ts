@@ -5,7 +5,7 @@ import { EntityType } from "../../enums/entityType.enum";
 import { KeyPrefix } from "../../enums/keyPrefix.enum";
 import { MessageMimeType } from "../../enums/message.mimeType.enum";
 import { MessageMediatorService, MessageMediatorServiceInterface } from "../../mediator-services/message.mediator.service";
-import { UserMediatorService, UserMediatorServiceInterface } from "../../mediator-services/user.mediator.service";
+
 import { FriendMessageCreatedSnsService, FriendMessageCreatedSnsServiceInterface } from "../../sns-services/friendMessageCreated.sns.service";
 import { FriendConvoId } from "../../types/friendConvoId.type";
 import { MessageId } from "../../types/messageId.type";
@@ -14,7 +14,6 @@ import { FriendMessageCreatedDynamoProcessorService } from "../friendMessageCrea
 describe("FriendMessageCreatedDynamoProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let friendMessageCreatedSnsService: Spied<FriendMessageCreatedSnsServiceInterface>;
-  let userMediatorService: Spied<UserMediatorServiceInterface>;
   let messageMediatorService: Spied<MessageMediatorServiceInterface>;
   let friendMessageCreatedDynamoProcessorService: DynamoProcessorServiceInterface;
 
@@ -49,8 +48,8 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
 
   const mockMessage: Message = {
     id: mockMessageId,
-    to: mockFromUserId,
-    from: mockToUserId,
+    to: mockToUser,
+    from: mockFromUser,
     type: ConversationType.Friend,
     createdAt: new Date().toISOString(),
     seenAt: { [mockToUserId]: new Date().toISOString() },
@@ -58,7 +57,6 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
     replyCount: 0,
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockError = new Error("test");
@@ -66,10 +64,9 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
   beforeEach(() => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     friendMessageCreatedSnsService = TestSupport.spyOnClass(FriendMessageCreatedSnsService);
-    userMediatorService = TestSupport.spyOnClass(UserMediatorService);
     messageMediatorService = TestSupport.spyOnClass(MessageMediatorService);
 
-    friendMessageCreatedDynamoProcessorService = new FriendMessageCreatedDynamoProcessorService(loggerService, friendMessageCreatedSnsService, userMediatorService, messageMediatorService, mockConfig);
+    friendMessageCreatedDynamoProcessorService = new FriendMessageCreatedDynamoProcessorService(loggerService, friendMessageCreatedSnsService, messageMediatorService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
@@ -145,7 +142,6 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
   describe("processRecord", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        userMediatorService.getUser.and.returnValues(Promise.resolve({ user: mockToUser }), Promise.resolve({ user: mockFromUser }));
         messageMediatorService.getMessage.and.returnValue(Promise.resolve({ message: mockMessage }));
         friendMessageCreatedSnsService.sendMessage.and.returnValue(Promise.resolve());
       });
@@ -157,26 +153,17 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
         expect(messageMediatorService.getMessage).toHaveBeenCalledWith({ messageId: mockMessageId });
       });
 
-      it("calls userMediatorService.getUser with the correct parameters", async () => {
-        await friendMessageCreatedDynamoProcessorService.processRecord(mockRecord);
-
-        expect(userMediatorService.getUser).toHaveBeenCalledTimes(2);
-        expect(userMediatorService.getUser).toHaveBeenCalledWith({ userId: mockToUserId });
-        expect(userMediatorService.getUser).toHaveBeenCalledWith({ userId: mockFromUserId });
-      });
-
       it("calls friendMessageCreatedSnsService.sendMessage with the correct parameters", async () => {
         await friendMessageCreatedDynamoProcessorService.processRecord(mockRecord);
 
         expect(friendMessageCreatedSnsService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(friendMessageCreatedSnsService.sendMessage).toHaveBeenCalledWith({ to: mockToUser, from: mockFromUser, message: mockMessage });
+        expect(friendMessageCreatedSnsService.sendMessage).toHaveBeenCalledWith({ message: mockMessage });
       });
     });
 
     describe("under error conditions", () => {
       describe("when friendMessageCreatedSnsService.sendMessage throws an error", () => {
         beforeEach(() => {
-          userMediatorService.getUser.and.returnValues(Promise.resolve({ user: mockToUser }), Promise.resolve({ user: mockFromUser }));
           messageMediatorService.getMessage.and.returnValue(Promise.resolve({ message: mockMessage }));
           friendMessageCreatedSnsService.sendMessage.and.throwError(mockError);
         });

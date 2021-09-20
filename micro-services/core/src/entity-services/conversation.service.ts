@@ -35,7 +35,6 @@ export class ConversationService implements ConversationServiceInterface {
     @inject(TYPES.SearchRepositoryInterface) private conversationSearchRepository: ConversationSearchRepositoryInterface,
   ) {}
 
-
   public async createFriendConversation(params: CreateFriendConversationInput): Promise<CreateFriendConversationOutput> {
     try {
       this.loggerService.trace("createFriendConversation called", { params }, this.constructor.name);
@@ -371,6 +370,22 @@ export class ConversationService implements ConversationServiceInterface {
     }
   }
 
+  public getUserIdsFromFriendConversationId(params: GetUserIdsFromFriendConversationIdInput): GetUserIdsFromFriendConversationIdOutput {
+    try {
+      this.loggerService.trace("getUserIdsFromFriendConversationId called", { params }, this.constructor.name);
+
+      const { conversationId } = params;
+
+      const userIds = conversationId.replace(KeyPrefix.FriendConversation, "").split(/-(?=user)/) as [UserId, UserId];
+
+      return { userIds };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUserIdsFromFriendConversationId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   private convertConversationEntityToConversation<T extends ConversationEntity>(params: ConverInput<T>): ConverOutput<T> {
     try {
       this.loggerService.trace("convertConversationEntityToConversation called", { params }, this.constructor.name);
@@ -412,6 +427,7 @@ export interface ConversationServiceInterface {
   indexMeetingConversationForSearch(params: IndexMeetingConversationForSearchInput): Promise<IndexMeetingConversationForSearchOutput>;
   deindexMeetingConversationForSearch(params: DeindexMeetingConversationForSearchInput): Promise<DeindexMeetingConversationForSearchOutput>;
   getMeetingConversationsBySearchTerm(params: GetMeetingConversationsBySearchTermInput): Promise<GetMeetingConversationsBySearchTermOutput>;
+  getUserIdsFromFriendConversationId(params: GetUserIdsFromFriendConversationIdInput): GetUserIdsFromFriendConversationIdOutput;
 }
 
 
@@ -568,6 +584,14 @@ export interface GetConversationImageUploadUrlInput<T extends ConversationTypeEn
 
 export interface GetConversationImageUploadUrlOutput {
   uploadUrl: string;
+}
+
+export interface GetUserIdsFromFriendConversationIdInput {
+  conversationId: FriendConvoId;
+}
+
+export interface GetUserIdsFromFriendConversationIdOutput {
+  userIds: [UserId, UserId];
 }
 
 interface ConverInput<T extends ConversationEntity> {

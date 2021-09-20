@@ -122,29 +122,17 @@ export interface GroupCreatedMessageInput extends BaseMessageInput {
 }
 export interface FriendMessageCreatedMessageInput extends BaseMessageInput {
   event: WebSocketEvent.FriendMessageCreated;
-  data: {
-    to: User;
-    from: User;
-    message: Message;
-  }
+  data: { message: Message; }
 }
 
 export interface FriendMessageUpdatedMessageInput extends BaseMessageInput {
   event: WebSocketEvent.FriendMessageUpdated;
-  data: {
-    to: User;
-    from: User;
-    message: Message;
-  }
+  data: { message: Message; }
 }
 
 export interface GroupMessageCreatedMessageInput extends BaseMessageInput {
   event: WebSocketEvent.GroupMessageCreated;
-  data: {
-    to: Group;
-    from: User;
-    message: Message;
-  }
+  data: { message: Message; }
 }
 export interface MeetingCreatedMessageInput extends BaseMessageInput {
   event: WebSocketEvent.MeetingCreated;
@@ -155,29 +143,17 @@ export interface MeetingCreatedMessageInput extends BaseMessageInput {
 
 export interface GroupMessageUpdatedMessageInput extends BaseMessageInput {
   event: WebSocketEvent.GroupMessageUpdated;
-  data: {
-    to: Group;
-    from: User;
-    message: Message;
-  }
+  data: { message: Message; }
 }
 
 export interface MeetingMessageCreatedMessageInput extends BaseMessageInput {
   event: WebSocketEvent.MeetingMessageCreated;
-  data: {
-    to: Meeting;
-    from: User;
-    message: Message;
-  }
+  data: { message: Message; }
 }
 
 export interface MeetingMessageUpdatedMessageInput extends BaseMessageInput {
   event: WebSocketEvent.MeetingMessageUpdated;
-  data: {
-    to: Meeting;
-    from: User;
-    message: Message;
-  }
+  data: { message: Message; }
 }
 
 export type SendMessageInput =

@@ -34,12 +34,12 @@ export class GroupMessageUpdatedSnsProcessorService implements SnsProcessorServi
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { message: { groupMemberIds, to, from, message } } = record;
+      const { message: { groupMemberIds, message } } = record;
 
       await Promise.all(groupMemberIds.map((userId) => this.webSocketMediatorService.sendMessage({
         userId,
         event: WebSocketEvent.GroupMessageUpdated,
-        data: { to, from, message },
+        data: { message },
       })));
 
       // add support for push notifications

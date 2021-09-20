@@ -5,9 +5,9 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
-import { RawConversation } from "../repositories/conversation.dynamo.repository";
-import { ConversationServiceInterface, MeetingConversation } from "../entity-services/conversation.service";
+import { RawConversation, MeetingConversation } from "../repositories/conversation.dynamo.repository";
 import { MeetingCreatedSnsServiceInterface } from "../sns-services/meetingCreated.sns.service";
+import { ConversationServiceInterface } from "../entity-services/conversation.service";
 
 @injectable()
 export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {

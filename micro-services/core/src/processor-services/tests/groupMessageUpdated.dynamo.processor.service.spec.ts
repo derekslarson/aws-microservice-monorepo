@@ -4,7 +4,6 @@ import { ConversationType } from "../../enums/conversationType.enum";
 import { EntityType } from "../../enums/entityType.enum";
 import { KeyPrefix } from "../../enums/keyPrefix.enum";
 import { MessageMimeType } from "../../enums/message.mimeType.enum";
-import { GroupMediatorService, GroupMediatorServiceInterface } from "../../mediator-services/group.mediator.service";
 import { MessageMediatorService, MessageMediatorServiceInterface } from "../../mediator-services/message.mediator.service";
 import { UserMediatorService, UserMediatorServiceInterface } from "../../mediator-services/user.mediator.service";
 import { GroupMessageUpdatedSnsService, GroupMessageUpdatedSnsServiceInterface } from "../../sns-services/groupMessageUpdated.sns.service";
@@ -17,7 +16,6 @@ describe("GroupMessageUpdatedDynamoProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let groupMessageUpdatedSnsService: Spied<GroupMessageUpdatedSnsServiceInterface>;
   let userMediatorService: Spied<UserMediatorServiceInterface>;
-  let groupMediatorService: Spied<GroupMediatorServiceInterface>;
   let messageMediatorService: Spied<MessageMediatorServiceInterface>;
   let groupMessageUpdatedDynamoProcessorService: DynamoProcessorServiceInterface;
 
@@ -60,8 +58,8 @@ describe("GroupMessageUpdatedDynamoProcessorService", () => {
 
   const mockMessage: Message = {
     id: mockMessageId,
-    to: mockGroupId,
-    from: mockUserIdOne,
+    to: mockGroup,
+    from: mockUserOne,
     type: ConversationType.Group,
     createdAt: new Date().toISOString(),
     seenAt: { [mockUserIdOne]: new Date().toISOString(), [mockUserIdTwo]: null },
@@ -69,7 +67,6 @@ describe("GroupMessageUpdatedDynamoProcessorService", () => {
     replyCount: 0,
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockError = new Error("test");
@@ -78,10 +75,9 @@ describe("GroupMessageUpdatedDynamoProcessorService", () => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     groupMessageUpdatedSnsService = TestSupport.spyOnClass(GroupMessageUpdatedSnsService);
     userMediatorService = TestSupport.spyOnClass(UserMediatorService);
-    groupMediatorService = TestSupport.spyOnClass(GroupMediatorService);
     messageMediatorService = TestSupport.spyOnClass(MessageMediatorService);
 
-    groupMessageUpdatedDynamoProcessorService = new GroupMessageUpdatedDynamoProcessorService(loggerService, groupMessageUpdatedSnsService, userMediatorService, groupMediatorService, messageMediatorService, mockConfig);
+    groupMessageUpdatedDynamoProcessorService = new GroupMessageUpdatedDynamoProcessorService(loggerService, groupMessageUpdatedSnsService, userMediatorService, messageMediatorService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
@@ -159,7 +155,6 @@ describe("GroupMessageUpdatedDynamoProcessorService", () => {
       beforeEach(() => {
         userMediatorService.getUser.and.returnValue(Promise.resolve({ user: mockUserOne }));
         userMediatorService.getUsersByGroupId.and.returnValue(Promise.resolve({ users: [ mockUserOne, mockUserTwo ] }));
-        groupMediatorService.getGroup.and.returnValue(Promise.resolve({ group: mockGroup }));
         messageMediatorService.getMessage.and.returnValue(Promise.resolve({ message: mockMessage }));
         groupMessageUpdatedSnsService.sendMessage.and.returnValue(Promise.resolve());
       });
@@ -171,13 +166,6 @@ describe("GroupMessageUpdatedDynamoProcessorService", () => {
         expect(messageMediatorService.getMessage).toHaveBeenCalledWith({ messageId: mockMessageId });
       });
 
-      it("calls userMediatorService.getUser with the correct parameters", async () => {
-        await groupMessageUpdatedDynamoProcessorService.processRecord(mockRecord);
-
-        expect(userMediatorService.getUser).toHaveBeenCalledTimes(1);
-        expect(userMediatorService.getUser).toHaveBeenCalledWith({ userId: mockUserIdOne });
-      });
-
       it("calls userMediatorService.getUsersByGroupId with the correct parameters", async () => {
         await groupMessageUpdatedDynamoProcessorService.processRecord(mockRecord);
 
@@ -185,18 +173,11 @@ describe("GroupMessageUpdatedDynamoProcessorService", () => {
         expect(userMediatorService.getUsersByGroupId).toHaveBeenCalledWith({ groupId: mockGroupId });
       });
 
-      it("calls groupMediatorService.getGroup with the correct parameters", async () => {
-        await groupMessageUpdatedDynamoProcessorService.processRecord(mockRecord);
-
-        expect(groupMediatorService.getGroup).toHaveBeenCalledTimes(1);
-        expect(groupMediatorService.getGroup).toHaveBeenCalledWith({ groupId: mockGroupId });
-      });
-
       it("calls groupMessageUpdatedSnsService.sendMessage with the correct parameters", async () => {
         await groupMessageUpdatedDynamoProcessorService.processRecord(mockRecord);
 
         expect(groupMessageUpdatedSnsService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(groupMessageUpdatedSnsService.sendMessage).toHaveBeenCalledWith({ to: mockGroup, from: mockUserOne, message: mockMessage, groupMemberIds: [ mockUserIdOne, mockUserIdTwo ] });
+        expect(groupMessageUpdatedSnsService.sendMessage).toHaveBeenCalledWith({ message: mockMessage, groupMemberIds: [ mockUserIdOne, mockUserIdTwo ] });
       });
     });
 
@@ -205,7 +186,6 @@ describe("GroupMessageUpdatedDynamoProcessorService", () => {
         beforeEach(() => {
           userMediatorService.getUser.and.returnValue(Promise.resolve({ user: mockUserOne }));
           userMediatorService.getUsersByGroupId.and.returnValue(Promise.resolve({ users: [ mockUserOne, mockUserTwo ] }));
-          groupMediatorService.getGroup.and.returnValue(Promise.resolve({ group: mockGroup }));
           messageMediatorService.getMessage.and.returnValue(Promise.resolve({ message: mockMessage }));
           groupMessageUpdatedSnsService.sendMessage.and.throwError(mockError);
         });

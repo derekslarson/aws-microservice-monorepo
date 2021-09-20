@@ -54,21 +54,19 @@ describe("Group Message Created SNS Topic", () => {
         it("sends valid web socket events to the correct connectionIds", async () => {
           const message: GroupMessageCreatedSnsMessage = {
             groupMemberIds: [ userOneId, userTwoId ],
-            to: {
-              id: "convo-group-id",
-              name: "mock-name",
-              image: "mock-image",
-              createdBy: "user-mock-id",
-              createdAt: new Date().toISOString(),
-            },
-            from: {
-              id: userTwoId,
-              image: "test-image-two",
-            },
             message: {
               id: "message-id",
-              to: "convo-group-id",
-              from: userTwoId,
+              to: {
+                id: "convo-group-id",
+                name: "mock-name",
+                image: "mock-image",
+                createdBy: "user-mock-id",
+                createdAt: new Date().toISOString(),
+              },
+              from: {
+                id: userTwoId,
+                image: "test-image-two",
+              },
               type: "group",
               createdAt: new Date().toISOString(),
               seenAt: { [userOneId]: new Date().toISOString() },
@@ -76,7 +74,6 @@ describe("Group Message Created SNS Topic", () => {
               replyCount: 0,
               mimeType: "audio/mpeg",
               fetchUrl: "mock-fetch-url",
-              fromImage: "mock-from-image",
             },
           };
 
@@ -96,31 +93,19 @@ describe("Group Message Created SNS Topic", () => {
           expect(userOneAWebSocketListener.messages.length).toBe(1);
           expect(userOneAWebSocketListener.messages[0]).toEqual({
             event: WebSocketEvent.GroupMessageCreated,
-            data: {
-              to: message.to,
-              from: message.from,
-              message: message.message,
-            },
+            data: { message: message.message },
           });
 
           expect(userOneBWebSocketListener.messages.length).toBe(1);
           expect(userOneBWebSocketListener.messages[0]).toEqual({
             event: WebSocketEvent.GroupMessageCreated,
-            data: {
-              to: message.to,
-              from: message.from,
-              message: message.message,
-            },
+            data: { message: message.message },
           });
 
           expect(userTwoWebSocketListener.messages.length).toBe(1);
           expect(userTwoWebSocketListener.messages[0]).toEqual({
             event: WebSocketEvent.GroupMessageCreated,
-            data: {
-              to: message.to,
-              from: message.from,
-              message: message.message,
-            },
+            data: { message: message.message },
           });
 
           expect(userThreeWebSocketListener.messages.length).toBe(0);
@@ -148,21 +133,19 @@ describe("Group Message Created SNS Topic", () => {
         it("sends valid push notification events to the correct device tokens", async () => {
           const message: GroupMessageCreatedSnsMessage = {
             groupMemberIds: [ userOneId, userTwoId ],
-            to: {
-              id: "convo-group-id",
-              name: "mock-name",
-              image: "mock-image",
-              createdBy: "user-mock-id",
-              createdAt: new Date().toISOString(),
-            },
-            from: {
-              id: userTwoId,
-              image: "test-image-two",
-            },
             message: {
               id: "message-id",
-              to: "convo-group-id",
-              from: userTwoId,
+              to: {
+                id: "convo-group-id",
+                name: "mock-name",
+                image: "mock-image",
+                createdBy: "user-mock-id",
+                createdAt: new Date().toISOString(),
+              },
+              from: {
+                id: userTwoId,
+                image: "test-image-two",
+              },
               type: "group",
               createdAt: new Date().toISOString(),
               seenAt: { [userOneId]: new Date().toISOString() },
@@ -170,7 +153,6 @@ describe("Group Message Created SNS Topic", () => {
               replyCount: 0,
               mimeType: "audio/mpeg",
               fetchUrl: "mock-fetch-url",
-              fromImage: "mock-from-image",
             },
           };
           await sns.publish({

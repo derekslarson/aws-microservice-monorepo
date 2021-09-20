@@ -9,7 +9,6 @@ import { UserMediatorServiceInterface } from "../mediator-services/user.mediator
 import { RawMessage } from "../repositories/message.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
-import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { GroupId } from "../types/groupId.type";
 
 @injectable()
@@ -20,7 +19,6 @@ export class GroupMessageCreatedDynamoProcessorService implements DynamoProcesso
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.GroupMessageCreatedSnsServiceInterface) private groupMessageCreatedSnsService: GroupMessageCreatedSnsServiceInterface,
     @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
-    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
@@ -48,18 +46,16 @@ export class GroupMessageCreatedDynamoProcessorService implements DynamoProcesso
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { newImage: { id, conversationId, from } } = record;
+      const { newImage: { id, conversationId } } = record;
 
-      const [ { message }, { group }, { user }, { users: groupMembers } ] = await Promise.all([
+      const [ { message }, { users: groupMembers } ] = await Promise.all([
         this.messageMediatorService.getMessage({ messageId: id }),
-        this.groupMediatorService.getGroup({ groupId: conversationId as GroupId }),
-        this.userMediatorService.getUser({ userId: from }),
         this.userMediatorService.getUsersByGroupId({ groupId: conversationId as GroupId }),
       ]);
 
       const groupMemberIds = groupMembers.map((groupMember) => groupMember.id);
 
-      await this.groupMessageCreatedSnsService.sendMessage({ groupMemberIds, to: group, from: user, message });
+      await this.groupMessageCreatedSnsService.sendMessage({ groupMemberIds, message });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

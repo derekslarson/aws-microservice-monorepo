@@ -15,7 +15,6 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
   const mockGroupMessageCreatedSnsTopicArn = "mock-group-message-created-sns-topic-arn";
   const mockConfig = { snsTopicArns: { groupMessageCreated: mockGroupMessageCreatedSnsTopicArn } };
   const mockMessageId = "message-id";
-  const mockGroupId = "convo-group-mock-id";
   const mockUserIdOne = "user-mock-id-one";
   const mockUserIdTwo = "user-mock-id-two";
 
@@ -26,7 +25,7 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
   };
 
   const mockGroup: Group = {
-    id: mockGroupId,
+    id: "convo-group-mock-id",
     name: "mock-name",
     image: "mock-image",
     createdBy: "user-mock-id",
@@ -35,8 +34,8 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
 
   const mockMessage: Message = {
     id: mockMessageId,
-    to: mockGroupId,
-    from: mockUserIdOne,
+    to: mockGroup,
+    from: mockUser,
     type: "group",
     createdAt: new Date().toISOString(),
     seenAt: { [mockUserIdOne]: new Date().toISOString(), [mockUserIdTwo]: null },
@@ -44,7 +43,6 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
     replyCount: 0,
     mimeType: "audio/mpeg",
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockRecord = {

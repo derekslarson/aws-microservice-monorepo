@@ -37,21 +37,21 @@ export class FriendMessageCreatedSnsProcessorService implements SnsProcessorServ
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { message: { to, from, message } } = record;
+      const { message: { message } } = record;
 
-      const senderName = from.realName || from.username || from.email || from.phone as string;
+      const senderName = message.from.realName || message.from.username || message.from.email || message.from.phone as string;
 
       await Promise.allSettled([
         this.pushNotificationMediatorService.sendPushNotification({
-          userId: to.id,
+          userId: message.to.id,
           event: PushNotificationEvent.FriendMessageCreated,
           title: "New Message Received",
           body: `Message from ${senderName}`,
         }),
-        ...[ to.id, from.id ].map((userId) => this.webSocketMediatorService.sendMessage({
+        ...[ message.to.id, message.from.id ].map((userId) => this.webSocketMediatorService.sendMessage({
           userId,
           event: WebSocketEvent.FriendMessageCreated,
-          data: { to, from, message },
+          data: { message },
         })),
       ]);
 

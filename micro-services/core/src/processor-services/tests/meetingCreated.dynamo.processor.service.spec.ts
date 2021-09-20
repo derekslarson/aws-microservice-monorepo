@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, DynamoProcessorServiceInterface, DynamoProcessorServiceRecord } from "@yac/util";
-import { ConversationService, ConversationServiceInterface, MeetingConversation } from "../../entity-services/conversation.service";
+import { ConversationService, ConversationServiceInterface } from "../../entity-services/conversation.service";
 import { ConversationType } from "../../enums/conversationType.enum";
 import { EntityType } from "../../enums/entityType.enum";
 import { ImageMimeType } from "../../enums/image.mimeType.enum";
 import { MeetingMediatorService, MeetingMediatorServiceInterface } from "../../mediator-services/meeting.mediator.service";
+import { MeetingConversation } from "../../repositories/conversation.dynamo.repository";
 import { MeetingCreatedSnsService, MeetingCreatedSnsServiceInterface } from "../../sns-services/meetingCreated.sns.service";
 import { MeetingCreatedDynamoProcessorService } from "../meetingCreated.dynamo.processor.service";
 

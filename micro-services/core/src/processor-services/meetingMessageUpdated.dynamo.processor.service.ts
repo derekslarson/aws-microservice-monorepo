@@ -9,7 +9,6 @@ import { UserMediatorServiceInterface } from "../mediator-services/user.mediator
 import { RawMessage } from "../repositories/message.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
-import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { MeetingId } from "../types/meetingId.type";
 
 @injectable()
@@ -20,7 +19,6 @@ export class MeetingMessageUpdatedDynamoProcessorService implements DynamoProces
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MeetingMessageUpdatedSnsServiceInterface) private meetingMessageUpdatedSnsService: MeetingMessageUpdatedSnsServiceInterface,
     @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
-    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserUpdatedDynamoProcessorServiceConfigInterface,
   ) {
@@ -48,18 +46,16 @@ export class MeetingMessageUpdatedDynamoProcessorService implements DynamoProces
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { newImage: { id, conversationId, from } } = record;
+      const { newImage: { id, conversationId } } = record;
 
-      const [ { message }, { meeting }, { user }, { users: meetingMembers } ] = await Promise.all([
+      const [ { message }, { users: meetingMembers } ] = await Promise.all([
         this.messageMediatorService.getMessage({ messageId: id }),
-        this.meetingMediatorService.getMeeting({ meetingId: conversationId as MeetingId }),
-        this.userMediatorService.getUser({ userId: from }),
         this.userMediatorService.getUsersByMeetingId({ meetingId: conversationId as MeetingId }),
       ]);
 
       const meetingMemberIds = meetingMembers.map((meetingMember) => meetingMember.id);
 
-      await this.meetingMessageUpdatedSnsService.sendMessage({ meetingMemberIds, to: meeting, from: user, message });
+      await this.meetingMessageUpdatedSnsService.sendMessage({ meetingMemberIds, message });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

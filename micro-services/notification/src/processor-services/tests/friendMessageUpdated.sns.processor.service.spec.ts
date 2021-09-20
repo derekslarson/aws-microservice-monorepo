@@ -12,31 +12,28 @@ describe("FriendMessageUpdatedSnsProcessorService", () => {
   const mockFriendMessageUpdatedSnsTopicArn = "mock-friend-message-created-sns-topic-arn";
   const mockConfig = { snsTopicArns: { friendMessageUpdated: mockFriendMessageUpdatedSnsTopicArn } };
   const mockMessageId = "message-id";
-  const mockToUserId = "user-mock-id-to";
-  const mockFromUserId = "user-mock-id-from";
 
   const mockToUser: User = {
-    id: mockToUserId,
+    id: "user-mock-id-to",
     image: "mock-image",
   };
 
   const mockFromUser: User = {
-    id: mockFromUserId,
+    id: "user-mock-id-from",
     image: "mock-image",
   };
 
   const mockFriendMessage: Message = {
     id: mockMessageId,
-    to: mockToUserId,
-    from: mockFromUserId,
+    to: mockToUser,
+    from: mockFromUser,
     type: "friend",
     createdAt: new Date().toISOString(),
-    seenAt: { [mockFromUserId]: new Date().toISOString() },
+    seenAt: { [mockFromUser.id]: new Date().toISOString() },
     reactions: {},
     replyCount: 0,
     mimeType: "audio/mpeg",
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockRecord = {
@@ -91,8 +88,8 @@ describe("FriendMessageUpdatedSnsProcessorService", () => {
         await friendMessageUpdatedSnsProcessorService.processRecord(mockRecord);
 
         expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockToUserId, event: WebSocketEvent.FriendMessageUpdated, data: { to: mockToUser, from: mockFromUser, message: mockFriendMessage } });
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockFromUserId, event: WebSocketEvent.FriendMessageUpdated, data: { to: mockToUser, from: mockFromUser, message: mockFriendMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockToUser.id, event: WebSocketEvent.FriendMessageUpdated, data: { to: mockToUser, from: mockFromUser, message: mockFriendMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockFromUser.id, event: WebSocketEvent.FriendMessageUpdated, data: { to: mockToUser, from: mockFromUser, message: mockFriendMessage } });
       });
     });
 

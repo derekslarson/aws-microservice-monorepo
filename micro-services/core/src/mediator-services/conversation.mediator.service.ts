@@ -17,6 +17,7 @@ import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
 import { UserGroupMeetingSearchServiceInterface } from "../entity-services/userGroupMeeting.search.service";
+import { FriendConvoId } from "../types/friendConvoId.type";
 
 @injectable()
 export class ConversationMediatorService implements ConversationMediatorServiceInterface {
@@ -122,7 +123,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
       const recentMessageMap: Record<string, Message> = {};
       recentMessages.forEach((recentMessage) => {
-        recentMessageMap[recentMessage.to === userId ? recentMessage.from : recentMessage.to] = recentMessage;
+        recentMessageMap[recentMessage.to.id === userId ? recentMessage.from.id : recentMessage.to.id] = recentMessage;
       });
 
       const conversations = relationshipsWithEntityIds.map((relationship) => {
@@ -177,27 +178,47 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
 
       const { messages: recentMessageEntities } = await this.messageService.getMessages({ messageIds: recentMessageIds });
 
-      const userIds = recentMessageEntities.map((message) => message.from);
+      const userIdSet = new Set<UserId>();
+      const groupMeetingIdSet = new Set<GroupId | MeetingId>();
 
-      const { users } = await this.userService.getUsers({ userIds });
+      const recentMessageEntitiesWithToEntityId = recentMessageEntities.map((message) => {
+        userIdSet.add(message.from);
 
-      const recentMessages = recentMessageEntities.map((message, i) => {
-        const user = users[i];
+        if (message.conversationId.startsWith(KeyPrefix.FriendConversation)) {
+          const { userIds: conversationMemberIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: message.conversationId as FriendConvoId });
+          conversationMemberIds.forEach((userId) => userIdSet.add(userId));
+          const [ toUserId ] = conversationMemberIds.filter((userId) => userId !== message.from);
 
-        const { conversationId, ...restOfMessage } = message;
+          return { ...message, toEntityId: toUserId };
+        }
 
-        const to = conversationId.startsWith(KeyPrefix.FriendConversation) ? conversationId.replace(KeyPrefix.FriendConversation, "").replace(message.from, "").replace(/^-|-$/, "") as UserId
-          : conversationId as GroupId | MeetingId;
+        groupMeetingIdSet.add(message.conversationId as GroupId | MeetingId);
 
-        const type = conversationId.startsWith(KeyPrefix.FriendConversation) ? ConversationTypeEnum.Friend
-          : conversationId.startsWith(KeyPrefix.GroupConversation)
-            ? ConversationTypeEnum.Group : ConversationTypeEnum.Meeting;
+        return { ...message, toEntityId: message.conversationId };
+      });
+
+      const [ { users }, { conversations: groupsAndMeetings } ] = await Promise.all([
+        this.userService.getUsers({ userIds: Array.from(userIdSet) }),
+        this.conversationService.getConversations({ conversationIds: Array.from(groupMeetingIdSet) }),
+      ]);
+
+      const toFromEntityMap: Record<string, User | GroupConversation | MeetingConversation> = {};
+
+      [ ...users, ...groupsAndMeetings ].forEach((toEntity) => {
+        toFromEntityMap[toEntity.id] = toEntity;
+      });
+
+      const recentMessages = recentMessageEntitiesWithToEntityId.map((message) => {
+        const { conversationId, toEntityId, ...restOfMessage } = message;
+
+        const to = toFromEntityMap[toEntityId];
+        const from = toFromEntityMap[message.from] as User;
 
         return {
           ...restOfMessage,
+          type: "type" in to ? to.type : ConversationTypeEnum.Friend,
           to,
-          type,
-          fromImage: user.image,
+          from,
         };
       });
 
@@ -214,9 +235,8 @@ export interface ConversationMediatorServiceInterface {
   isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
 }
 
-export interface Message extends Omit<MessageEntity, "conversationId"> {
-  fetchUrl: string;
-  fromImage: string;
+export interface Message extends Omit<MessageEntity, "conversationId" | "from"> {
+  from: User;
   to: To;
   type: ConversationType;
 }
@@ -252,7 +272,7 @@ export interface IsConversationMemberOutput {
   isConversationMember: boolean;
 }
 
-type To = UserId | GroupId | MeetingId;
+type To = User | GroupConversation | MeetingConversation;
 
 interface GetRecentMessagesInput {
   recentMessageIds: MessageId[];

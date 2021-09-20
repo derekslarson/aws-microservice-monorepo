@@ -6,8 +6,8 @@ import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { GroupCreatedSnsServiceInterface } from "../sns-services/groupCreated.sns.service";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
-import { RawConversation } from "../repositories/conversation.dynamo.repository";
-import { ConversationServiceInterface, GroupConversation } from "../entity-services/conversation.service";
+import { GroupConversation, RawConversation } from "../repositories/conversation.dynamo.repository";
+import { ConversationServiceInterface } from "../entity-services/conversation.service";
 
 @injectable()
 export class GroupCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {

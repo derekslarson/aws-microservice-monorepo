@@ -34,12 +34,12 @@ export class MeetingMessageUpdatedSnsProcessorService implements SnsProcessorSer
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { message: { meetingMemberIds, to, from, message } } = record;
+      const { message: { meetingMemberIds, message } } = record;
 
       await Promise.all(meetingMemberIds.map((userId) => this.webSocketMediatorService.sendMessage({
         userId,
         event: WebSocketEvent.MeetingMessageUpdated,
-        data: { to, from, message },
+        data: { message },
       })));
 
       // add support for push notifications

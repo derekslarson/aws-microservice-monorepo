@@ -84,21 +84,19 @@ describe("Group Message Updated (WebSocket Event)", () => {
     it("sends valid websocket events to the correct connectionIds", async () => {
       const message: GroupMessageUpdatedSnsMessage = {
         groupMemberIds: [ userOneId, userTwoId ],
-        to: {
-          id: "convo-group-id",
-          name: "mock-name",
-          image: "mock-image",
-          createdBy: "user-mock-id",
-          createdAt: new Date().toISOString(),
-        },
-        from: {
-          id: userTwoId,
-          image: "test-image-two",
-        },
         message: {
           id: "message-id",
-          to: "convo-group-id",
-          from: userTwoId,
+          to: {
+            id: "convo-group-id",
+            name: "mock-name",
+            image: "mock-image",
+            createdBy: "user-mock-id",
+            createdAt: new Date().toISOString(),
+          },
+          from: {
+            id: userTwoId,
+            image: "test-image-two",
+          },
           type: "group",
           createdAt: new Date().toISOString(),
           seenAt: { [userOneId]: new Date().toISOString() },
@@ -106,7 +104,6 @@ describe("Group Message Updated (WebSocket Event)", () => {
           replyCount: 0,
           mimeType: "audio/mpeg",
           fetchUrl: "mock-fetch-url",
-          fromImage: "mock-from-image",
         },
       };
 
@@ -126,31 +123,19 @@ describe("Group Message Updated (WebSocket Event)", () => {
       expect(connections.userOneA.messages.length).toBe(1);
       expect(connections.userOneA.messages[0]).toEqual({
         event: WebSocketEvent.GroupMessageUpdated,
-        data: {
-          to: message.to,
-          from: message.from,
-          message: message.message,
-        },
+        data: { message: message.message },
       });
 
       expect(connections.userOneB.messages.length).toBe(1);
       expect(connections.userOneB.messages[0]).toEqual({
         event: WebSocketEvent.GroupMessageUpdated,
-        data: {
-          to: message.to,
-          from: message.from,
-          message: message.message,
-        },
+        data: { message: message.message },
       });
 
       expect(connections.userTwo.messages.length).toBe(1);
       expect(connections.userTwo.messages[0]).toEqual({
         event: WebSocketEvent.GroupMessageUpdated,
-        data: {
-          to: message.to,
-          from: message.from,
-          message: message.message,
-        },
+        data: { message: message.message },
       });
 
       expect(connections.userThree.messages.length).toBe(0);
