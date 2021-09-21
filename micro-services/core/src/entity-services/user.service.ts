@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
+import { FileOperation, IdServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface, User as UserEntity, UserUpdates, RawUser } from "../repositories/user.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -174,7 +174,7 @@ export class UserService implements UserServiceInterface {
       const { userId, mimeType } = params;
 
       const { signedUrl: uploadUrl } = this.imageFileRepository.getSignedUrl({
-        operation: "upload",
+        operation: FileOperation.Upload,
         entityType: EntityType.User,
         entityId: userId,
         mimeType,

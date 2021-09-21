@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
+import { FileOperation, IdServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamRepositoryInterface, Team as TeamEntity, TeamUpdates, RawTeam } from "../repositories/team.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -122,7 +122,7 @@ export class TeamService implements TeamServiceInterface {
       const { teamId, mimeType } = params;
 
       const { signedUrl: uploadUrl } = this.imageFileRepository.getSignedUrl({
-        operation: "upload",
+        operation: FileOperation.Upload,
         entityType: EntityType.Team,
         entityId: teamId,
         mimeType,

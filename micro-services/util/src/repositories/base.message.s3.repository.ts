@@ -14,6 +14,7 @@ import { MessageId } from "../api-contracts/types/messageId.type";
 import { FriendConvoId } from "../api-contracts/types/friendConvoId.type";
 import { GroupId } from "../api-contracts/types/groupId.type";
 import { MeetingId } from "../api-contracts/types/meetingId.type";
+import { FileOperation } from "../enums/fileOperation.enum";
 
 @injectable()
 export abstract class BaseMessageS3Repository extends BaseS3Repository implements MessageFileRepositoryInterface {
@@ -44,7 +45,7 @@ export abstract class BaseMessageS3Repository extends BaseS3Repository implement
 
       const { key } = this.createKey({ messageId, conversationId, mimeType });
 
-      if (operation === "get") {
+      if (operation === FileOperation.Get) {
         return super.getSignedUrl({ operation, key });
       }
 
@@ -103,7 +104,7 @@ export interface MessageFileRepositoryInterface {
 export type FileExtension = "mp3" | "mp4" | "webm";
 
 interface GetSignedUrlByIdAndMimeTypeInput {
-  operation: "get" | "upload",
+  operation: FileOperation,
   messageId: MessageId;
   conversationId: FriendConvoId | GroupId | MeetingId;
   mimeType: MessageMimeType;

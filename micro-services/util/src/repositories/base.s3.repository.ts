@@ -3,6 +3,7 @@ import { injectable, unmanaged } from "inversify";
 import S3 from "aws-sdk/clients/s3";
 import { LoggerServiceInterface } from "../services/logger.service";
 import { S3Factory } from "../factories/s3.factory";
+import { FileOperation } from "../enums/fileOperation.enum";
 
 @injectable()
 export abstract class BaseS3Repository {
@@ -49,11 +50,11 @@ export abstract class BaseS3Repository {
         Key: params.key,
       };
 
-      if (params.operation === "upload") {
+      if (params.operation === FileOperation.Upload) {
         getSignedUrlInput.ContentType = params.mimeType;
       }
 
-      const operation = params.operation === "get" ? "getObject" : "putObject";
+      const operation = params.operation === FileOperation.Get ? "getObject" : "putObject";
 
       const signedUrl = this.s3.getSignedUrl(operation, getSignedUrlInput);
 
@@ -109,16 +110,16 @@ export abstract class BaseS3Repository {
 }
 
 interface BaseGetSignedUrlInput {
-  operation: "get" | "upload";
+  operation: FileOperation;
   key: string;
 }
 
 interface GetSignedUrlGetObjectInput extends BaseGetSignedUrlInput {
-  operation: "get";
+  operation: FileOperation.Get;
 }
 
 interface GetSignedUrlPutObjectInput extends BaseGetSignedUrlInput {
-  operation: "upload";
+  operation: FileOperation.Upload;
   mimeType: string;
 }
 

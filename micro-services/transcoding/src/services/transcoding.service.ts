@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { MessageTranscodedSnsMessage, MessageFileRepositoryInterface, HttpRequestServiceInterface, LoggerServiceInterface, MessageMimeType } from "@yac/util";
+import { MessageTranscodedSnsMessage, MessageFileRepositoryInterface, HttpRequestServiceInterface, LoggerServiceInterface, MessageMimeType, FileOperation } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { MessageTranscodedSnsServiceInterface } from "../sns-services/messageTranscoded.sns.service";
@@ -35,9 +35,9 @@ export class TranscodingService implements TranscodingServiceInterface {
       const outputKey = `${keyWithoutExtension}.${outputExtension}`;
       const outputMimeType = isVideo ? MessageMimeType.VideoMp4 : MessageMimeType.AudioMp3;
 
-      const { signedUrl: inputUrl } = this.rawMessageFileRepository.getSignedUrl({ operation: "get", key });
+      const { signedUrl: inputUrl } = this.rawMessageFileRepository.getSignedUrl({ operation: FileOperation.Get, key });
 
-      const { signedUrl: outputUrl } = this.enhancedMessageFileRepository.getSignedUrl({ operation: "upload", key: outputKey, mimeType: outputMimeType });
+      const { signedUrl: outputUrl } = this.enhancedMessageFileRepository.getSignedUrl({ operation: FileOperation.Upload, key: outputKey, mimeType: outputMimeType });
 
       const body = {
         input: inputUrl,

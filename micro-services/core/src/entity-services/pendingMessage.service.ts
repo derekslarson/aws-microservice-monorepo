@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/util";
+import { FileOperation, IdServiceInterface, LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { PendingMessageRepositoryInterface, PendingMessage as PendingMessageEntity, PendingMessageUpdates } from "../repositories/pendingMessage.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -43,7 +43,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
         messageId,
         conversationId,
         mimeType,
-        operation: "upload",
+        operation: FileOperation.Upload,
       });
 
       const pendingMessage = {
@@ -73,7 +73,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
         messageId,
         conversationId: pendingMessageEntity.conversationId,
         mimeType: pendingMessageEntity.mimeType,
-        operation: "upload",
+        operation: FileOperation.Upload,
       });
 
       const pendingMessage = {
@@ -103,7 +103,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
         messageId,
         conversationId: pendingMessageEntity.conversationId,
         mimeType: pendingMessageEntity.mimeType,
-        operation: "upload",
+        operation: FileOperation.Upload,
       });
 
       const pendingMessage = {

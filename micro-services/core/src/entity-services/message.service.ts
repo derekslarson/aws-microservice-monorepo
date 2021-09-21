@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/util";
+import { FileOperation, LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageRepositoryInterface, Message as MessageEntity, RawMessage } from "../repositories/message.dynamo.repository";
 import { UserId } from "../types/userId.type";
@@ -44,7 +44,7 @@ export class MessageService implements MessageServiceInterface {
         messageId: messageEntity.id,
         conversationId: messageEntity.conversationId,
         mimeType: messageEntity.mimeType,
-        operation: "get",
+        operation: FileOperation.Get,
       });
 
       const message = {
@@ -72,7 +72,7 @@ export class MessageService implements MessageServiceInterface {
         messageId: messageEntity.id,
         conversationId: messageEntity.conversationId,
         mimeType: messageEntity.mimeType,
-        operation: "get",
+        operation: FileOperation.Get,
       });
 
       const message = {
@@ -102,7 +102,7 @@ export class MessageService implements MessageServiceInterface {
           messageId: messageEntity.id,
           conversationId: messageEntity.conversationId,
           mimeType: messageEntity.mimeType,
-          operation: "get",
+          operation: FileOperation.Get,
         });
 
         messageMap[messageEntity.id] = { ...messageEntity, fetchUrl };
@@ -130,7 +130,7 @@ export class MessageService implements MessageServiceInterface {
         messageId: messageEntity.id,
         conversationId: messageEntity.conversationId,
         mimeType: messageEntity.mimeType,
-        operation: "get",
+        operation: FileOperation.Get,
       });
 
       const message = {
@@ -158,7 +158,7 @@ export class MessageService implements MessageServiceInterface {
         messageId: messageEntity.id,
         conversationId: messageEntity.conversationId,
         mimeType: messageEntity.mimeType,
-        operation: "get",
+        operation: FileOperation.Get,
       });
 
       const message = {
@@ -187,7 +187,7 @@ export class MessageService implements MessageServiceInterface {
           messageId: messageEntity.id,
           conversationId: messageEntity.conversationId,
           mimeType: messageEntity.mimeType,
-          operation: "get",
+          operation: FileOperation.Get,
         });
 
         return {
@@ -217,7 +217,7 @@ export class MessageService implements MessageServiceInterface {
           messageId: messageEntity.id,
           conversationId: messageEntity.conversationId,
           mimeType: messageEntity.mimeType,
-          operation: "get",
+          operation: FileOperation.Get,
         });
 
         return {
@@ -277,7 +277,7 @@ export class MessageService implements MessageServiceInterface {
           messageId: messageEntity.id,
           conversationId: messageEntity.conversationId,
           mimeType: messageEntity.mimeType,
-          operation: "get",
+          operation: FileOperation.Get,
         });
 
         return {

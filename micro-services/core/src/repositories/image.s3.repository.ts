@@ -9,6 +9,7 @@ import {
   UploadFileOutput as BaseUploadFileOutput,
   GetSignedUrlInput as BaseGetSignedUrlInput,
   GetSignedUrlOutput as BaseGetSignedUrlOutput,
+  FileOperation,
 } from "@yac/util";
 import { injectable, inject } from "inversify";
 import { EnvConfigInterface } from "../config/env.config";
@@ -136,7 +137,7 @@ export class ImageS3Repository extends BaseS3Repository implements ImageFileRepo
       const { entityType, entity } = params;
 
       const { signedUrl } = this.getSignedUrl({
-        operation: "get",
+        operation: FileOperation.Get,
         entityType,
         entityId: entity.id,
         mimeType: entity.imageMimeType,
@@ -208,7 +209,7 @@ export type UploadFileInput = BaseUploadFileInput | UploadFileByIdAndMimeTypeInp
 export type UploadFileOutput = BaseUploadFileOutput;
 
 interface GetSignedUrlByIdAndMimeTypeInput {
-  operation: "get" | "upload",
+  operation: FileOperation,
   entityType: ImageEntityType;
   entityId: ImageEntityId;
   mimeType: ImageMimeType;

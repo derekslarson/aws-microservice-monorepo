@@ -10,6 +10,7 @@ import {
   RawMessageS3Repository,
   Spied,
   TestSupport,
+  FileOperation,
 } from "@yac/util";
 import { MessageTranscodedSnsService, MessageTranscodedSnsServiceInterface } from "../../sns-services/messageTranscoded.sns.service";
 import { TranscodingService, TranscodingServiceInterface } from "../transcoding.service";
@@ -79,7 +80,7 @@ describe("TranscodingService", () => {
           await transcodingService.startTranscodingJob(params);
 
           expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledTimes(1);
-          expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({ operation: "get", key: mockKey });
+          expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({ operation: FileOperation.Get, key: mockKey });
         });
 
         it("calls enhancedMessageFileRepository.getSignedUrl with the correct params", async () => {
@@ -87,7 +88,7 @@ describe("TranscodingService", () => {
 
           expect(enhancedMessageFileRepository.getSignedUrl).toHaveBeenCalledTimes(1);
           expect(enhancedMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({
-            operation: "upload",
+            operation: FileOperation.Upload,
             key: `${mockKeyWithoutExtension}.mp4`,
             mimeType: mockEnhancedVideoContentType,
           });
@@ -115,7 +116,7 @@ describe("TranscodingService", () => {
           await transcodingService.startTranscodingJob(params);
 
           expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledTimes(1);
-          expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({ operation: "get", key: mockKey });
+          expect(rawMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({ operation: FileOperation.Get, key: mockKey });
         });
 
         it("calls enhancedMessageFileRepository.getSignedUrl with the correct params", async () => {
@@ -123,7 +124,7 @@ describe("TranscodingService", () => {
 
           expect(enhancedMessageFileRepository.getSignedUrl).toHaveBeenCalledTimes(1);
           expect(enhancedMessageFileRepository.getSignedUrl).toHaveBeenCalledWith({
-            operation: "upload",
+            operation: FileOperation.Upload,
             key: `${mockKeyWithoutExtension}.mp3`,
             mimeType: mockEnhancedAudioContentType,
           });
