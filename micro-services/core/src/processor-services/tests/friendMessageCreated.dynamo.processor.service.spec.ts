@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, DynamoProcessorServiceInterface, User, DynamoProcessorServiceRecord, Message } from "@yac/util";
+import { MessageService, MessageServiceInterface } from "../../entity-services/message.service";
 import { ConversationType } from "../../enums/conversationType.enum";
 import { EntityType } from "../../enums/entityType.enum";
 import { KeyPrefix } from "../../enums/keyPrefix.enum";
@@ -15,6 +16,7 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let friendMessageCreatedSnsService: Spied<FriendMessageCreatedSnsServiceInterface>;
   let messageMediatorService: Spied<MessageMediatorServiceInterface>;
+  let messageService: Spied<MessageServiceInterface>;
   let friendMessageCreatedDynamoProcessorService: DynamoProcessorServiceInterface;
 
   const mockCoreTableName = "mock-core-table-name";
@@ -65,8 +67,9 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     friendMessageCreatedSnsService = TestSupport.spyOnClass(FriendMessageCreatedSnsService);
     messageMediatorService = TestSupport.spyOnClass(MessageMediatorService);
+    messageService = TestSupport.spyOnClass(MessageService);
 
-    friendMessageCreatedDynamoProcessorService = new FriendMessageCreatedDynamoProcessorService(loggerService, friendMessageCreatedSnsService, messageMediatorService, mockConfig);
+    friendMessageCreatedDynamoProcessorService = new FriendMessageCreatedDynamoProcessorService(loggerService, friendMessageCreatedSnsService, messageMediatorService, messageService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {

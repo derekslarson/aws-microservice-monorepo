@@ -8,6 +8,7 @@ import { FriendMessageCreatedSnsServiceInterface } from "../sns-services/friendM
 import { RawMessage } from "../repositories/message.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
+import { MessageServiceInterface } from "../entity-services/message.service";
 
 @injectable()
 export class FriendMessageCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -17,6 +18,7 @@ export class FriendMessageCreatedDynamoProcessorService implements DynamoProcess
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.FriendMessageCreatedSnsServiceInterface) private friendMessageCreatedSnsService: FriendMessageCreatedSnsServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
+    @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -47,7 +49,10 @@ export class FriendMessageCreatedDynamoProcessorService implements DynamoProcess
 
       const { message } = await this.messageMediatorService.getMessage({ messageId: id });
 
-      await this.friendMessageCreatedSnsService.sendMessage({ message });
+      await Promise.allSettled([
+        this.friendMessageCreatedSnsService.sendMessage({ message }),
+        this.messageService.indexMessageForSearch({ message: record.newImage }),
+      ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

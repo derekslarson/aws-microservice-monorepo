@@ -10,6 +10,7 @@ import { RawMessage } from "../repositories/message.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
 import { MeetingId } from "../types/meetingId.type";
+import { MessageServiceInterface } from "../entity-services/message.service";
 
 @injectable()
 export class MeetingMessageUpdatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -20,6 +21,7 @@ export class MeetingMessageUpdatedDynamoProcessorService implements DynamoProces
     @inject(TYPES.MeetingMessageUpdatedSnsServiceInterface) private meetingMessageUpdatedSnsService: MeetingMessageUpdatedSnsServiceInterface,
     @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
+    @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserUpdatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -55,7 +57,10 @@ export class MeetingMessageUpdatedDynamoProcessorService implements DynamoProces
 
       const meetingMemberIds = meetingMembers.map((meetingMember) => meetingMember.id);
 
-      await this.meetingMessageUpdatedSnsService.sendMessage({ meetingMemberIds, message });
+      await Promise.allSettled([
+        this.meetingMessageUpdatedSnsService.sendMessage({ meetingMemberIds, message }),
+        this.messageService.indexMessageForSearch({ message: record.newImage }),
+      ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

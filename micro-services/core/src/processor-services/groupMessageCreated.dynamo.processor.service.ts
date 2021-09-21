@@ -10,6 +10,7 @@ import { RawMessage } from "../repositories/message.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
 import { GroupId } from "../types/groupId.type";
+import { MessageServiceInterface } from "../entity-services/message.service";
 
 @injectable()
 export class GroupMessageCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -20,6 +21,7 @@ export class GroupMessageCreatedDynamoProcessorService implements DynamoProcesso
     @inject(TYPES.GroupMessageCreatedSnsServiceInterface) private groupMessageCreatedSnsService: GroupMessageCreatedSnsServiceInterface,
     @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
+    @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -55,7 +57,10 @@ export class GroupMessageCreatedDynamoProcessorService implements DynamoProcesso
 
       const groupMemberIds = groupMembers.map((groupMember) => groupMember.id);
 
-      await this.groupMessageCreatedSnsService.sendMessage({ groupMemberIds, message });
+      await Promise.allSettled([
+        this.groupMessageCreatedSnsService.sendMessage({ groupMemberIds, message }),
+        this.messageService.indexMessageForSearch({ message: record.newImage }),
+      ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

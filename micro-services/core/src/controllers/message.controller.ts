@@ -19,8 +19,8 @@ import { UpdateMeetingMessagesByUserIdDto } from "../dtos/updateMeetingMessagesB
 import { UpdateGroupMessagesByUserIdDto } from "../dtos/updateGroupMessagesByUserId.dto";
 import { UpdateFriendMessagesByUserIdDto } from "../dtos/updateFriendMessagesByUserId.dto";
 import { ConversationType } from "../enums/conversationType.enum";
-import { GroupId } from "../../../util/lib/src/api-contracts/types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
+import { GroupId } from "../types/groupId.type";
 
 @injectable()
 export class MessageController extends BaseController implements MessageControllerInterface {

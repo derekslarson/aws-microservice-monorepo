@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, AxiosFactory, Axios, RawEntity, CleansedEntity, BadRequestError } from "@yac/util";
+import { LoggerServiceInterface, AxiosFactory, Axios, BadRequestError } from "@yac/util";
 import { Aws4, Aws4Factory } from "../factories/aws4.factory";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
@@ -45,10 +45,10 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
         SELECT *
         FROM ${SearchIndex.User}
         WHERE ( 
-          realName LIKE "%${searchTerm}%"
-          OR username LIKE "%${searchTerm}%"
-          OR email LIKE "%${searchTerm}%"
-          OR phone LIKE "%${searchTerm}%"
+          MATCH_PHRASE(realName, '${searchTerm}')
+          OR MATCH_PHRASE(username, '${searchTerm}')
+          OR MATCH_PHRASE(email, '${searchTerm}')
+          OR MATCH_PHRASE(phone, '${searchTerm}')
         )
         ${userIds ? `AND id IN (${userIds.join(", ")})` : ""}
       `;
@@ -75,7 +75,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const queryString = `
         SELECT *
         FROM ${SearchIndex.Group}
-        WHERE name LIKE "%${searchTerm}%"
+        WHERE MATCH_PHRASE(name, '${searchTerm}')
         ${groupIds ? `AND id IN (${groupIds.join(", ")})` : ""}
       `;
 
@@ -101,7 +101,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const queryString = `
         SELECT *
         FROM ${SearchIndex.Meeting}
-        WHERE name LIKE "%${searchTerm}%"
+        WHERE MATCH_PHRASE(name, '${searchTerm}')
         ${meetingIds ? `AND id IN (${meetingIds.join(", ")})` : ""}
       `;
 
@@ -128,11 +128,11 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
         SELECT *
         FROM ${SearchIndex.User}, ${SearchIndex.Group}, ${SearchIndex.Meeting}
         WHERE ( 
-          realName LIKE "%${searchTerm}%"
-          OR username LIKE "%${searchTerm}%"
-          OR email LIKE "%${searchTerm}%"
-          OR phone LIKE "%${searchTerm}%"
-          OR name LIKE "%${searchTerm}%"
+          MATCH_PHRASE(realName, '${searchTerm}')
+          OR MATCH_PHRASE(username, '${searchTerm}')
+          OR MATCH_PHRASE(email, '${searchTerm}')
+          OR MATCH_PHRASE(phone, '${searchTerm}')
+          OR MATCH_PHRASE(name, '${searchTerm}')
         )
         ${entityIds ? `AND id IN (${entityIds.join(", ")})` : ""}
       `;
@@ -159,7 +159,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const queryString = `
         SELECT *
         FROM ${SearchIndex.Message}
-        WHERE transcript LIKE "%${searchTerm}%"
+        WHERE MATCH_PHRASE(transcript, '${searchTerm}')
         ${conversationIds ? `AND conversationId IN (${conversationIds.join(", ")})` : ""}
       `;
 
@@ -185,7 +185,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const queryString = `
         SELECT *
         FROM ${SearchIndex.Team}
-        WHERE transcript LIKE "%${searchTerm}%"
+        WHERE MATCH_PHRASE(name, '${searchTerm}')
         ${teamIds ? `AND id IN (${teamIds.join(", ")})` : ""}
       `;
 
