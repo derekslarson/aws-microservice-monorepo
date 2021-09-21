@@ -7,7 +7,7 @@ import { TYPES } from "../inversion-of-control/types";
 
 @injectable()
 export class MessageS3Repository extends BaseS3Repository implements MessageS3RepositoryInterface {
-  constructor(@inject(TYPES.S3Factory) protected s3Factory: S3Factory, @inject(TYPES.LoggerServiceInterface) protected loggerService: LoggerService, @inject(TYPES.EnvConfigInterface) private envConfig: MessageS3RepositoryConfigInterface) {
+  constructor(@inject(TYPES.S3Factory) protected s3Factory: S3Factory, @inject(TYPES.LoggerServiceInterface) protected loggerService: LoggerService, @inject(TYPES.EnvConfigInterface) envConfig: MessageS3RepositoryConfigInterface) {
     super(envConfig.bucketNames.messages, s3Factory, loggerService);
   }
 }

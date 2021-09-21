@@ -1,7 +1,5 @@
 /* eslint-disable no-new */
 import * as CDK from "@aws-cdk/core";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
-import * as IAM from "@aws-cdk/aws-iam";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as EFS from "@aws-cdk/aws-efs";
@@ -15,6 +13,7 @@ import {
   generateExportNames,
 } from "@yac/util";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { Duration } from "@aws-cdk/core";
 
 export class YacMessageServiceStack extends YacHttpServiceStack {
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
@@ -80,63 +79,67 @@ export class YacMessageServiceStack extends YacHttpServiceStack {
 
     const uploadMessageChunkFileHandler = new Lambda.Function(this, "UploadMessageChunkHandler", {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/uploadMessageChunk"),
-      handler: "uploadMessageChunk.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/chunkUpload"),
+      handler: "chunkUpload.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      timeout: Duration.minutes(2),
+      memorySize: 1024, // 1gb
       vpc,
       // mount the access point to /mnt/msg in the lambda runtime environment
       filesystem: FSAccessPoint,
     });
 
-    const saveMessageFileHandler = new Lambda.Function(this, "SaveMessageFileHandler", {
+    const finishChunkUploadHandler = new Lambda.Function(this, "FinishChunkUploadHandler", {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/saveMessageFile"),
-      handler: "saveMessageFile.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/finishChunkUpload"),
+      handler: "finishChunkUpload.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
+      timeout: Duration.minutes(5),
+      memorySize: 1024 * 4, // 4gb
       vpc,
       // mount the access point to /mnt/msg in the lambda runtime environment
       filesystem: FSAccessPoint,
     });
 
-    const readMessageFileHandler = new Lambda.Function(this, "ReadMessageFileHandler", {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/readMessageFile"),
-      handler: "readMessageFile.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      vpc,
-      // mount the access point to /mnt/msg in the lambda runtime environment
-      filesystem: FSAccessPoint,
-    });
+    // const readMessageFileHandler = new Lambda.Function(this, "ReadMessageFileHandler", {
+    //   runtime: Lambda.Runtime.NODEJS_12_X,
+    //   code: Lambda.Code.fromAsset("dist/handlers/readMessageFile"),
+    //   handler: "readMessageFile.handler",
+    //   layers: [ dependencyLayer ],
+    //   environment: environmentVariables,
+    //   vpc,
+    //   // mount the access point to /mnt/msg in the lambda runtime environment
+    //   filesystem: FSAccessPoint,
+    // });
 
-    const deleteMessageFileHandler = new Lambda.Function(this, "DeleteMessageFileHandler", {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/deleteMessageFile"),
-      handler: "deleteMessageFile.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      vpc,
-      // mount the access point to /mnt/msg in the lambda runtime environment
-      filesystem: FSAccessPoint,
-    });
+    // const deleteMessageFileHandler = new Lambda.Function(this, "DeleteMessageFileHandler", {
+    //   runtime: Lambda.Runtime.NODEJS_12_X,
+    //   code: Lambda.Code.fromAsset("dist/handlers/deleteMessageFile"),
+    //   handler: "deleteMessageFile.handler",
+    //   layers: [ dependencyLayer ],
+    //   environment: environmentVariables,
+    //   vpc,
+    //   // mount the access point to /mnt/msg in the lambda runtime environment
+    //   filesystem: FSAccessPoint,
+    // });
 
-    const getMessageFilesHandler = new Lambda.Function(this, "GetMessageFilesHandler", {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getMessageFiles"),
-      handler: "getMessageFiles.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      vpc,
-      // mount the access point to /mnt/msg in the lambda runtime environment
-      filesystem: FSAccessPoint,
-    });
+    // const getMessageFilesHandler = new Lambda.Function(this, "GetMessageFilesHandler", {
+    //   runtime: Lambda.Runtime.NODEJS_12_X,
+    //   code: Lambda.Code.fromAsset("dist/handlers/getMessageFiles"),
+    //   handler: "getMessageFiles.handler",
+    //   layers: [ dependencyLayer ],
+    //   environment: environmentVariables,
+    //   vpc,
+    //   // mount the access point to /mnt/msg in the lambda runtime environment
+    //   filesystem: FSAccessPoint,
+    // });
 
     // Resource Access
-    bucket.grantReadWrite(readMessageFileHandler);
-    bucket.grantReadWrite(deleteMessageFileHandler);
-    bucket.grantWrite(saveMessageFileHandler);
+    // bucket.grantReadWrite(readMessageFileHandler);
+    // bucket.grantReadWrite(deleteMessageFileHandler);
+    bucket.grantWrite(finishChunkUploadHandler);
 
     // Lambda Routes
     const routes: RouteProps[] = [
@@ -144,14 +147,14 @@ export class YacMessageServiceStack extends YacHttpServiceStack {
         path: "/{messageId}/chunk",
         method: ApiGatewayV2.HttpMethod.PUT,
         handler: uploadMessageChunkFileHandler,
-      }, {
+      }, /* {
         path: "/{messageId}",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: readMessageFileHandler,
-      }, {
+      }, */ {
         path: "/{messageId}/finish",
         method: ApiGatewayV2.HttpMethod.POST,
-        handler: saveMessageFileHandler,
+        handler: finishChunkUploadHandler,
       },
       // {
       //   path: "/messages/{messageId}",

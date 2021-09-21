@@ -11,6 +11,7 @@ import {
   ForbiddenResponse,
   Response,
   CreatedResponse,
+  AcceptedResponse,
   SeeOtherResponse,
   FoundResponse,
 } from "../models/http/response.model";
@@ -26,6 +27,15 @@ export abstract class BaseController {
   protected generateSuccessResponse(body: Body | string, headers: Record<string, string> = {}, cookies: string[] = []): SuccessResponse {
     return {
       statusCode: StatusCode.OK,
+      headers,
+      cookies,
+      body: JSON.stringify(body),
+    };
+  }
+
+  protected generateAcceptedResponse(body: Body | string, headers: Record<string, string> = {}, cookies: string[] = []): AcceptedResponse {
+    return {
+      statusCode: StatusCode.Accepted,
       headers,
       cookies,
       body: JSON.stringify(body),
