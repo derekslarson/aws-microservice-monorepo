@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { MakeRequired, Role } from "@yac/util";
 import axios from "axios";
 import { generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -8,6 +8,7 @@ import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
 import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { RawUser } from "../../src/repositories/user.dynamo.repository";
 import { MessageId } from "../../src/types/messageId.type";
 import { PendingMessageId } from "../../src/types/pendingMessageId.type";
 import { UserId } from "../../src/types/userId.type";
@@ -15,9 +16,10 @@ import {
   createConversationUserRelationship,
   createGroupConversation,
   createRandomUser,
-  CreateRandomUserOutput,
   getMessage,
   getPendingMessage,
+  getUser,
+  GetUserOutput,
 } from "../util";
 
 describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
@@ -28,7 +30,8 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
   const mimeType = MessageMimeType.AudioMp3;
 
   describe("under normal conditions", () => {
-    let otherUser: CreateRandomUserOutput["user"];
+    let fromUser: RawUser;
+    let otherUser: RawUser;
 
     let group: RawConversation<GroupConversation>;
 
@@ -42,6 +45,8 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
         createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin }),
         createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId: otherUser.id, role: Role.User }),
       ]);
+
+      ({ user: fromUser } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
     });
 
     it("returns a valid response", async () => {
@@ -55,8 +60,22 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
         expect(data).toEqual({
           pendingMessage: {
             id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Message}.*`)),
-            to: group.id,
-            from: userId,
+            to: {
+              id: group.id,
+              name: group.name,
+              createdBy: group.createdBy,
+              createdAt: group.createdAt,
+              type: group.type,
+              image: jasmine.stringMatching(URL_REGEX),
+            },
+            from: {
+              realName: fromUser.realName,
+              username: fromUser.username,
+              id: fromUser.id,
+              email: fromUser.email,
+              phone: fromUser.phone,
+              image: jasmine.stringMatching(URL_REGEX),
+            },
             type: ConversationType.Group,
             mimeType,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
