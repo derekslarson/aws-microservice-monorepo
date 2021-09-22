@@ -42,6 +42,7 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
       // const filePath = path.join(dir, `${params.name}_final.${params.format || "tbd"}`);
       // const writeBuffer = fs.file(filePath, { flags: "a" });
       const writeBuffer = [];
+      let bufferLength = 0;
 
       const arrangedFileNames = files.sort((a, b) => {
         const n1 = Number((a as string).replace(".tmp", ""));
@@ -50,14 +51,18 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
         return n1 - n2;
       });
 
+      console.log({ arrangedFileNames });
       for await (const fileName of arrangedFileNames) {
+        console.log({ fileName });
         if (fileName) {
           const fileData = await fs.promises.readFile(path.join(dir, `${fileName as string}`));
-          writeBuffer.push(fileData);
+          const normalizedData = Buffer.from(fileData.toString("base64"), "base64");
+          writeBuffer.push(normalizedData);
+          bufferLength += fileData.length;
         }
       }
-
-      const finalBuffer = Buffer.from(writeBuffer);
+      console.log(bufferLength);
+      const finalBuffer = Buffer.concat(writeBuffer, bufferLength);
 
       return {
         path: params.path,
