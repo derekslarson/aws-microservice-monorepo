@@ -13,7 +13,7 @@ import { MeetingId } from "../../src/types/meetingId.type";
 import { UserId } from "../../src/types/userId.type";
 import { createConversationUserRelationship, createMeetingConversation, createMessage, createRandomUser, getUser, GetUserOutput } from "../util";
 
-fdescribe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () => {
+describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;

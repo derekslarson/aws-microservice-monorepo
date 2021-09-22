@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-console */
-import { MakeRequired, Role } from "@yac/util";
+import { BadRequestError, MakeRequired, Role } from "@yac/util";
 import { randomDigits } from "crypto-secure-random-digit";
 import ksuid from "ksuid";
 import { DynamoDB, S3 } from "aws-sdk";
@@ -153,6 +153,76 @@ export async function createUniqueProperty(params: CreateUniquePropertyInput): P
     return { uniqueProperty };
   } catch (error) {
     console.log("Error in createTeamUserRelationship:\n", error);
+
+    throw error;
+  }
+}
+
+export async function createUser(params: CreateUserInput): Promise<CreateUserOutput> {
+  try {
+    const { email, realName, username, phone } = params;
+
+    const [
+      { isUniqueEmail: isUniqueEmailVal },
+      { isUniqueUsername: isUniqueUsernameVal },
+      { isUniquePhone: isUniquePhoneVal },
+    ] = await Promise.all([
+      isUniqueEmail({ email }),
+      isUniqueUsername({ username }),
+      phone ? isUniquePhone({ phone }) : Promise.resolve({ isUniquePhone: true }),
+    ]);
+
+    if (!isUniqueEmailVal) {
+      throw new BadRequestError("email is not unique");
+    }
+
+    if (!isUniqueUsernameVal) {
+      throw new BadRequestError("username is not unique");
+    }
+
+    if (!isUniquePhoneVal) {
+      throw new BadRequestError("phone is not unique");
+    }
+
+    const { image, mimeType } = createDefaultImage();
+
+    const userId: UserId = `${KeyPrefix.User}${ksuid.randomSync().string}`;
+
+    const user: MakeRequired<RawUser, "email" | "username" | "realName"> = {
+      entityType: EntityType.User,
+      imageMimeType: mimeType,
+      pk: userId,
+      sk: userId,
+      id: userId,
+      email,
+      username,
+      phone,
+      realName,
+    };
+
+    const s3UploadInput: S3.Types.PutObjectRequest = {
+      Bucket: process.env["image-s3-bucket-name"] as string,
+      Key: `users/${userId}.png`,
+      Body: image,
+      ContentType: mimeType,
+    };
+
+    const dynamoPutInput: DocumentClient.PutItemInput = {
+      TableName: process.env["core-table-name"] as string,
+      Item: user,
+    };
+
+    await Promise.all([
+      s3.upload(s3UploadInput).promise(),
+      documentClient.put(dynamoPutInput).promise(),
+      createUniqueProperty({ property: UniqueProperty.Email, value: email, userId }),
+      createUniqueProperty({ property: UniqueProperty.Username, value: username, userId }),
+      phone ? createUniqueProperty({ property: UniqueProperty.Phone, value: phone, userId }) : null,
+    ]);
+
+    return { user };
+  } catch (error) {
+    console.log("Error in createRandomUser:\n", error);
 
     throw error;
   }
@@ -842,6 +912,17 @@ export interface GetUniquePropertyInput {
 
 export interface GetUniquePropertyOutput {
   uniqueProperty?: RawUniqueProperty;
+}
+
+export interface CreateUserInput {
+  email: string;
+  username: string;
+  realName: string;
+  phone?: string;
+}
+
+export interface CreateUserOutput {
+  user: MakeRequired<RawUser, "email" | "username" | "realName">;
 }
 
 export interface CreateRandomUserOutput {
