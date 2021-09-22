@@ -26,14 +26,16 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
-
   const mimeType = MessageMimeType.AudioMp3;
 
   describe("under normal conditions", () => {
-    let fromUser: RawUser;
+    let user: RawUser;
     let otherUser: RawUser;
-
     let meeting: RawConversation<MeetingConversation>;
+
+    beforeAll(async () => {
+      ({ user } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
+    });
 
     beforeEach(async () => {
       ([ { user: otherUser }, { conversation: meeting } ] = await Promise.all([
@@ -47,8 +49,6 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
         createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin }),
         createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId: otherUser.id, role: Role.User }),
       ]);
-
-      ({ user: fromUser } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
     });
 
     it("returns a valid response", async () => {
@@ -72,11 +72,11 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
               image: jasmine.stringMatching(URL_REGEX),
             },
             from: {
-              realName: fromUser.realName,
-              username: fromUser.username,
-              id: fromUser.id,
-              email: fromUser.email,
-              phone: fromUser.phone,
+              realName: user.realName,
+              username: user.username,
+              id: user.id,
+              email: user.email,
+              phone: user.phone,
               image: jasmine.stringMatching(URL_REGEX),
             },
             type: ConversationType.Meeting,

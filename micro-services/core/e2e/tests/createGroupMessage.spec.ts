@@ -30,10 +30,13 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
   const mimeType = MessageMimeType.AudioMp3;
 
   describe("under normal conditions", () => {
-    let fromUser: RawUser;
+    let user: RawUser;
     let otherUser: RawUser;
-
     let group: RawConversation<GroupConversation>;
+
+    beforeAll(async () => {
+      ({ user } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
+    });
 
     beforeEach(async () => {
       ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
@@ -45,8 +48,6 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
         createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin }),
         createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId: otherUser.id, role: Role.User }),
       ]);
-
-      ({ user: fromUser } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
     });
 
     it("returns a valid response", async () => {
@@ -69,11 +70,11 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
               image: jasmine.stringMatching(URL_REGEX),
             },
             from: {
-              realName: fromUser.realName,
-              username: fromUser.username,
-              id: fromUser.id,
-              email: fromUser.email,
-              phone: fromUser.phone,
+              realName: user.realName,
+              username: user.username,
+              id: user.id,
+              email: user.email,
+              phone: user.phone,
               image: jasmine.stringMatching(URL_REGEX),
             },
             type: ConversationType.Group,

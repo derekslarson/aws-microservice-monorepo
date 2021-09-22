@@ -25,25 +25,26 @@ import { RawUser } from "../../src/repositories/user.dynamo.repository";
 describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Message)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
-  let toUser: RawUser;
-  let fromUser: RawUser;
   const accessToken = process.env.accessToken as string;
-
   const mimeType = MessageMimeType.AudioMp3;
 
   describe("under normal conditions", () => {
+    let user: RawUser;
+    let otherUser: RawUser;
     let friendship: RawConversation<FriendConversation>;
 
+    beforeAll(async () => {
+      ({ user } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
+    });
+
     beforeEach(async () => {
-      ({ user: toUser } = await createRandomUser());
-      ({ conversation: friendship } = await createFriendConversation({ userId, friendId: toUser.id }));
+      ({ user: otherUser } = await createRandomUser());
+      ({ conversation: friendship } = await createFriendConversation({ userId, friendId: otherUser.id }));
 
       await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId, role: Role.Admin }),
-        createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId: toUser.id, role: Role.Admin }),
+        createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId: otherUser.id, role: Role.Admin }),
       ]);
-
-      ({ user: fromUser } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
     });
 
     it("returns a valid response", async () => {
@@ -51,26 +52,26 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
       const body = { mimeType };
 
       try {
-        const { status, data } = await axios.post(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
+        const { status, data } = await axios.post(`${baseUrl}/users/${userId}/friends/${otherUser.id}/messages`, body, { headers });
 
         expect(status).toBe(201);
         expect(data).toEqual({
           pendingMessage: {
             id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Message}.*`)),
             to: {
-              realName: toUser.realName,
-              username: toUser.username,
-              id: toUser.id,
-              email: toUser.email,
-              phone: toUser.phone,
+              realName: otherUser.realName,
+              username: otherUser.username,
+              id: otherUser.id,
+              email: otherUser.email,
+              phone: otherUser.phone,
               image: jasmine.stringMatching(URL_REGEX),
             },
             from: {
-              realName: fromUser.realName,
-              username: fromUser.username,
-              id: fromUser.id,
-              email: fromUser.email,
-              phone: fromUser.phone,
+              realName: user.realName,
+              username: user.username,
+              id: user.id,
+              email: user.email,
+              phone: user.phone,
               image: jasmine.stringMatching(URL_REGEX),
             },
             type: ConversationType.Friend,
@@ -89,7 +90,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
       const body = { mimeType };
 
       try {
-        const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
+        const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${otherUser.id}/messages`, body, { headers });
 
         const pendingMessageId = (data.pendingMessage.id as MessageId).replace(KeyPrefix.Message, KeyPrefix.PendingMessage) as PendingMessageId;
 
@@ -115,7 +116,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
       const body = { mimeType };
 
       try {
-        const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
+        const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${otherUser.id}/messages`, body, { headers });
 
         await wait(3000);
 

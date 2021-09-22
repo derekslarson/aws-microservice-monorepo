@@ -13,7 +13,7 @@ import { MeetingId } from "../../src/types/meetingId.type";
 import { UserId } from "../../src/types/userId.type";
 import { createConversationUserRelationship, createMeetingConversation, createMessage, createRandomUser, getUser, GetUserOutput } from "../util";
 
-describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () => {
+fdescribe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
@@ -22,7 +22,10 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
   let otherUser: RawUser;
 
   beforeAll(async () => {
-    ({ user: otherUser } = await createRandomUser());
+    ([ { user }, { user: otherUser } ] = await Promise.all([
+      getUser({ userId }) as Promise<MakeRequired<GetUserOutput, "user">>,
+      createRandomUser(),
+    ]));
   });
 
   describe("under normal conditions", () => {
@@ -47,8 +50,6 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
         // We have to create a reply to prove that it doesnt get returned at root level
         createMessage({ from: otherUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, otherUser.id ], replyTo: message.id, mimeType: MessageMimeType.AudioMp3 }),
       ]));
-
-      ({ user } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
     });
 
     describe("when not passed a 'limit' query param", () => {
