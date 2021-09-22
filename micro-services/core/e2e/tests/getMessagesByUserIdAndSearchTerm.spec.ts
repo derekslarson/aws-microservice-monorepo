@@ -50,7 +50,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
       ]);
 
       // wait for messages to be indexed in OpenSearch
-      await wait(3000);
+      await wait(5000);
     });
 
     describe("when passed a 'searchTerm' query param", () => {

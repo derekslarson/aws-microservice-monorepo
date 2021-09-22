@@ -2,7 +2,7 @@ import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/util";
 
 import { TYPES } from "../inversion-of-control/types";
-import { SearchRepositoryInterface, UserGroupOrMeeting, UserGroupOrMeetingId } from "../repositories/openSearch.repository";
+import { SearchRepositoryInterface, UserGroupOrMeetingOnlyIdRequired, UserGroupOrMeetingId } from "../repositories/openSearch.repository";
 
 @injectable()
 export class UserGroupMeetingSearchService implements UserGroupMeetingSearchServiceInterface {
@@ -45,7 +45,7 @@ export interface GetUsersGroupsAndMeetingsBySearchTermInput {
 }
 
 export interface GetUsersGroupsAndMeetingsBySearchTermOutput {
-  usersGroupsAndMeetings: UserGroupOrMeeting[];
+  usersGroupsAndMeetings: UserGroupOrMeetingOnlyIdRequired[];
   lastEvaluatedKey?: string;
 }
 

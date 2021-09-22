@@ -58,6 +58,7 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
                 createdAt: group.createdAt,
                 teamId: group.teamId,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Group,
               },
               {
                 id: groupTwo.id,
@@ -66,6 +67,7 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
                 createdAt: groupTwo.createdAt,
                 teamId: groupTwo.teamId,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Group,
               },
             ],
           });
@@ -93,6 +95,7 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
                 createdAt: group.createdAt,
                 teamId: group.teamId,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Group,
               },
             ],
             lastEvaluatedKey: jasmine.any(String),
@@ -112,6 +115,7 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
                 createdAt: groupTwo.createdAt,
                 teamId: groupTwo.teamId,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Group,
               },
             ],
           });

@@ -153,11 +153,9 @@ export class UserService implements UserServiceInterface {
 
       const { users: userEntities, lastEvaluatedKey } = await this.userSearchRepository.getUsersBySearchTerm({ searchTerm, userIds, limit, exclusiveStartKey });
 
-      const users = userEntities.map((userEntity) => {
-        const { entity: userWithImage } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+      const searchUserIds = userEntities.map((user) => user.id);
 
-        return userWithImage;
-      }, {});
+      const { users } = await this.getUsers({ userIds: searchUserIds });
 
       return { users, lastEvaluatedKey };
     } catch (error: unknown) {

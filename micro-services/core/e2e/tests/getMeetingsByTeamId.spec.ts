@@ -59,6 +59,7 @@ describe("GET /teams/{teamId}/meetings (Get Meetings by Team Id)", () => {
                 teamId: meeting.teamId,
                 dueDate: meeting.dueDate,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Meeting,
               },
               {
                 id: meetingTwo.id,
@@ -68,6 +69,7 @@ describe("GET /teams/{teamId}/meetings (Get Meetings by Team Id)", () => {
                 teamId: meetingTwo.teamId,
                 dueDate: meetingTwo.dueDate,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Meeting,
               },
             ],
           });
@@ -96,6 +98,7 @@ describe("GET /teams/{teamId}/meetings (Get Meetings by Team Id)", () => {
                 teamId: meeting.teamId,
                 dueDate: meeting.dueDate,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Meeting,
               },
             ],
             lastEvaluatedKey: jasmine.any(String),
@@ -119,6 +122,7 @@ describe("GET /teams/{teamId}/meetings (Get Meetings by Team Id)", () => {
                 teamId: meetingTwo.teamId,
                 dueDate: meetingTwo.dueDate,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Meeting,
               },
             ],
           });

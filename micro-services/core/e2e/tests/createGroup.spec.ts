@@ -45,6 +45,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
             createdBy: userId,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             image: jasmine.stringMatching(URL_REGEX),
+            type: ConversationType.Group,
           },
         });
       } catch (error) {
@@ -148,6 +149,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
               image: jasmine.stringMatching(URL_REGEX),
               name: group.name,
               createdAt: group.createdAt,
+              type: group.type,
               id: group.id,
             },
           },

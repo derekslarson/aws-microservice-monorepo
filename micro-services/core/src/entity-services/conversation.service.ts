@@ -306,13 +306,11 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { searchTerm, groupIds, limit, exclusiveStartKey } = params;
 
-      const { groups: conversationEntities, lastEvaluatedKey } = await this.conversationSearchRepository.getGroupsBySearchTerm({ searchTerm, groupIds, limit, exclusiveStartKey });
+      const { groups: groupEntities, lastEvaluatedKey } = await this.conversationSearchRepository.getGroupsBySearchTerm({ searchTerm, groupIds, limit, exclusiveStartKey });
 
-      const groups = conversationEntities.map((conversationEntity) => {
-        const { conversation } = this.convertConversationEntityToConversation({ conversationEntity })
+      const searchGroupIds = groupEntities.map((group) => group.id);
 
-        return conversation;
-      });
+      const { conversations: groups } = await this.getConversations({ conversationIds: searchGroupIds });
 
       return { groups, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -358,13 +356,11 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { searchTerm, meetingIds, limit, exclusiveStartKey } = params;
 
-      const { meetings: conversationEntities, lastEvaluatedKey } = await this.conversationSearchRepository.getMeetingsBySearchTerm({ searchTerm, meetingIds, limit, exclusiveStartKey });
+      const { meetings: meetingEntities, lastEvaluatedKey } = await this.conversationSearchRepository.getMeetingsBySearchTerm({ searchTerm, meetingIds, limit, exclusiveStartKey });
 
-      const meetings = conversationEntities.map((conversationEntity) => {
-        const { conversation } = this.convertConversationEntityToConversation({ conversationEntity })
+      const searchMeetingIds = meetingEntities.map((meeting) => meeting.id);
 
-        return conversation;
-      });
+      const { conversations: meetings } = await this.getConversations({ conversationIds: searchMeetingIds });
 
       return { meetings, lastEvaluatedKey };
     } catch (error: unknown) {

@@ -53,6 +53,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
                 createdAt: groupTwo.createdAt,
                 role: Role.User,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Group,
               },
               {
                 id: group.id,
@@ -62,6 +63,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
                 teamId: group.teamId,
                 role: Role.Admin,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Group,
               },
             ],
           });
@@ -89,6 +91,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
                 createdAt: groupTwo.createdAt,
                 role: Role.User,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Group,
               },
             ],
             lastEvaluatedKey: jasmine.any(String),
@@ -109,6 +112,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
                 teamId: group.teamId,
                 role: Role.Admin,
                 image: jasmine.stringMatching(URL_REGEX),
+                type: ConversationType.Group,
               },
             ],
           });

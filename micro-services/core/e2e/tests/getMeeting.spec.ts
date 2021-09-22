@@ -42,6 +42,7 @@ describe("GET /meetings/{meetingId} (Get Meeting)", () => {
             createdAt: meeting.createdAt,
             dueDate: meeting.dueDate,
             teamId: meeting.teamId,
+            type: meeting.type,
             image: jasmine.stringMatching(URL_REGEX),
           },
         });

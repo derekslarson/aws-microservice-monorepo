@@ -347,6 +347,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
                 image: jasmine.stringMatching(URL_REGEX),
                 name: group.name,
                 createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+                type: ConversationType.Group,
               },
               user: {
                 email: userByEmail.email,
@@ -364,6 +365,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
                 image: jasmine.stringMatching(URL_REGEX),
                 name: group.name,
                 createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+                type: ConversationType.Group,
               },
               user: {
                 phone: userByPhone.phone,
@@ -381,6 +383,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
                 image: jasmine.stringMatching(URL_REGEX),
                 name: group.name,
                 createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+                type: ConversationType.Group,
               },
               user: {
                 email: otherUser.email,

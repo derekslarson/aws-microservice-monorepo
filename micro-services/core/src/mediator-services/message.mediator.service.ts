@@ -274,11 +274,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
 
-      const { messages: searchMessageEntities, lastEvaluatedKey } = await this.messageService.getMessagesBySearchTerm({ conversationIds, searchTerm, exclusiveStartKey, limit });
-
-      const messageIds = searchMessageEntities.map((message) => message.id);
-
-      const { messages: messageEntities } = await this.messageService.getMessages({ messageIds });
+      const { messages: messageEntities, lastEvaluatedKey } = await this.messageService.getMessagesBySearchTerm({ conversationIds, searchTerm, exclusiveStartKey, limit });
 
       const userIdSet = new Set<UserId>();
       const groupMeetingIdSet = new Set<GroupId | MeetingId>();

@@ -89,6 +89,7 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
               image: jasmine.stringMatching(URL_REGEX),
               name: meeting.name,
               dueDate: meeting.dueDate,
+              type: meeting.type,
               createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             },
             user: {

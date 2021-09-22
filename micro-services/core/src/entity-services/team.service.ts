@@ -38,8 +38,6 @@ export class TeamService implements TeamServiceInterface {
         createdBy,
       };
 
-      await this.teamRepository.createTeam({ team: teamEntity });
-
       await Promise.all([
         this.imageFileRepository.uploadFile({ entityType: EntityType.Team, entityId: teamId, file: image, mimeType: imageMimeType }),
         this.teamRepository.createTeam({ team: teamEntity }),
@@ -174,11 +172,9 @@ export class TeamService implements TeamServiceInterface {
 
       const { teams: teamEntities, lastEvaluatedKey } = await this.teamSearchRepository.getTeamsBySearchTerm({ searchTerm, teamIds, limit, exclusiveStartKey });
 
-      const teams = teamEntities.map((teamEntity) => {
-        const { entity: team } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
+      const searchTeamIds = teamEntities.map((team) => team.id);
 
-        return team;
-      }, {});
+      const { teams } = await this.getTeams({ teamIds: searchTeamIds });
 
       return { teams, lastEvaluatedKey };
     } catch (error: unknown) {

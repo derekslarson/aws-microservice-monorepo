@@ -47,6 +47,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
             createdBy: userId,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             image: jasmine.stringMatching(URL_REGEX),
+            type: ConversationType.Meeting,
           },
         });
       } catch (error) {
@@ -158,7 +159,8 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
               name: meeting.name,
               dueDate: meeting.dueDate,
               teamId: meeting.teamId,
-              createdAt: meeting.createdAt
+              createdAt: meeting.createdAt,
+              type: meeting.type,
             },
           },
         }));

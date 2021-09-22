@@ -272,19 +272,9 @@ export class MessageService implements MessageServiceInterface {
 
       const { messages: messageEntities, lastEvaluatedKey } = await this.messageSearchRepository.getMessagesBySearchTerm({ searchTerm, conversationIds, limit, exclusiveStartKey });
 
-      const messages = messageEntities.map((messageEntity) => {
-        const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
-          messageId: messageEntity.id,
-          conversationId: messageEntity.conversationId,
-          mimeType: messageEntity.mimeType,
-          operation: FileOperation.Get,
-        });
+      const searchMessageIds = messageEntities.map((message) => message.id);
 
-        return {
-          ...messageEntity,
-          fetchUrl: signedUrl,
-        };
-      });
+      const { messages } = await this.getMessages({ messageIds: searchMessageIds });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {

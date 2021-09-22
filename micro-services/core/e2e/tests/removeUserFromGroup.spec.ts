@@ -89,6 +89,7 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
               image: jasmine.stringMatching(URL_REGEX),
               name: group.name,
               createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+              type: ConversationType.Group,
             },
             user: {
               email: otherUser.email,

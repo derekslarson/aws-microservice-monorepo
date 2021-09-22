@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Role } from "@yac/util";
 import axios from "axios";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
+import { generateRandomString, getAccessTokenByEmail, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationFetchType } from "../../src/enums/conversationFetchType.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
@@ -68,6 +68,9 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
       ({ conversationUserRelationship: meetingUserRelationshipTwo } = await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meetingTwo.id, userId: user.id, role: Role.User, dueDate: meetingTwo.dueDate }));
       ({ conversationUserRelationship: groupUserRelationship } = await createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId: user.id, role: Role.User, recentMessageId: message.id, unreadMessageIds: [ message.id ] }));
       ({ conversationUserRelationship: friendshipUserRelationship } = await createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId: user.id, role: Role.Admin }));
+
+      // wait for messages to be indexed in OpenSearch
+      await wait(5000);
     });
 
     describe("when not passed any query params", () => {
@@ -511,8 +514,9 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
             const { status, data } = await axios.get(`${baseUrl}/users/${user.id}/conversations`, { params, headers });
 
             expect(status).toBe(200);
+            expect(data.conversations.length).toEqual(2);
             expect(data).toEqual({
-              conversations: [
+              conversations: jasmine.arrayContaining([
                 {
                   id: otherUser.id,
                   realName: otherUser.realName,
@@ -538,7 +542,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   role: meetingUserRelationship.role,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
-              ],
+              ]),
             });
           } catch (error) {
             fail(error);

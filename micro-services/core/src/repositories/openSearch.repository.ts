@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, AxiosFactory, Axios, BadRequestError } from "@yac/util";
+import { LoggerServiceInterface, AxiosFactory, Axios, BadRequestError, MakeRequired } from "@yac/util";
 import { Aws4, Aws4Factory } from "../factories/aws4.factory";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
@@ -49,6 +49,10 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
           OR MATCH_PHRASE(username, '${searchTerm}')
           OR MATCH_PHRASE(email, '${searchTerm}')
           OR MATCH_PHRASE(phone, '${searchTerm}')
+          OR realName LIKE '%${searchTerm}%'
+          OR username LIKE '%${searchTerm}%'
+          OR email LIKE '%${searchTerm}%'
+          OR phone LIKE '%${searchTerm}%'
         )
         ${userIds ? `AND id IN (${userIds.join(", ")})` : ""}
       `;
@@ -56,7 +60,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
 
       return {
-        users: results as User[],
+        users: results as UserOnlyIdRequired[],
         lastEvaluatedKey,
       };
     } catch (error: unknown) {
@@ -75,14 +79,17 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const queryString = `
         SELECT *
         FROM ${SearchIndex.Group}
-        WHERE MATCH_PHRASE(name, '${searchTerm}')
+        WHERE (
+          MATCH_PHRASE(name, '${searchTerm}')
+          OR name LIKE '%${searchTerm}%'
+        )
         ${groupIds ? `AND id IN (${groupIds.join(", ")})` : ""}
       `;
 
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
 
       return {
-        groups: results as GroupConversation[],
+        groups: results as GroupConversationOnlyIdRequired[],
         lastEvaluatedKey,
       };
     } catch (error: unknown) {
@@ -101,14 +108,17 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const queryString = `
         SELECT *
         FROM ${SearchIndex.Meeting}
-        WHERE MATCH_PHRASE(name, '${searchTerm}')
+        WHERE (
+          MATCH_PHRASE(name, '${searchTerm}')
+          OR name LIKE '%${searchTerm}%'
+        )
         ${meetingIds ? `AND id IN (${meetingIds.join(", ")})` : ""}
       `;
 
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
 
       return {
-        meetings: results as MeetingConversation[],
+        meetings: results as MeetingConversationOnlyIdRequired[],
         lastEvaluatedKey,
       };
     } catch (error: unknown) {
@@ -133,6 +143,11 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
           OR MATCH_PHRASE(email, '${searchTerm}')
           OR MATCH_PHRASE(phone, '${searchTerm}')
           OR MATCH_PHRASE(name, '${searchTerm}')
+          OR realName LIKE '%${searchTerm}%'
+          OR username LIKE '%${searchTerm}%'
+          OR email LIKE '%${searchTerm}%'
+          OR phone LIKE '%${searchTerm}%'
+          OR name LIKE '%${searchTerm}%'
         )
         ${entityIds ? `AND id IN (${entityIds.join(", ")})` : ""}
       `;
@@ -140,7 +155,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
 
       return {
-        usersGroupsAndMeetings: results as UserGroupOrMeeting[],
+        usersGroupsAndMeetings: results as UserGroupOrMeetingOnlyIdRequired[],
         lastEvaluatedKey,
       };
     } catch (error: unknown) {
@@ -159,14 +174,17 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const queryString = `
         SELECT *
         FROM ${SearchIndex.Message}
-        WHERE MATCH_PHRASE(transcript, '${searchTerm}')
+        WHERE (
+          MATCH_PHRASE(transcript, '${searchTerm}') 
+          OR transcript LIKE '%${searchTerm}%'
+        )
         ${conversationIds ? `AND conversationId IN (${conversationIds.join(", ")})` : ""}
       `;
 
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
 
       return {
-        messages: results as Message[],
+        messages: results as MessageOnlyIdRequired[],
         lastEvaluatedKey,
       };
     } catch (error: unknown) {
@@ -185,7 +203,10 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const queryString = `
         SELECT *
         FROM ${SearchIndex.Team}
-        WHERE MATCH_PHRASE(name, '${searchTerm}')
+        WHERE (
+          MATCH_PHRASE(name, '${searchTerm}')
+          OR name LIKE '%${searchTerm}%'
+        )
         ${teamIds ? `AND id IN (${teamIds.join(", ")})` : ""}
       `;
 
@@ -291,16 +312,14 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
           const propName = schema[i].name;
 
           if (val !== null) {
-            /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any */
-            acc[propName] = val as any;
-            /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any */
+            acc[propName] = propName === "id" ? val as QueryResult["id"] : val as keyof Omit<QueryResult, "id">;
           }
 
           return acc;
-        }, {}) as QueryResult;
+        }, { });
 
         return entity;
-      });
+      }) as QueryResult[];
 
       let lastEvaluatedKey: string | undefined;
 
@@ -398,7 +417,7 @@ export interface GetUsersBySearchTermInput {
 }
 
 export interface GetUsersBySearchTermOutput {
-  users: User[];
+  users: UserOnlyIdRequired[];
   lastEvaluatedKey?: string;
 }
 
@@ -410,7 +429,7 @@ export interface GetGroupsBySearchTermInput {
 }
 
 export interface GetGroupsBySearchTermOutput {
-  groups: GroupConversation[];
+  groups: GroupConversationOnlyIdRequired[];
   lastEvaluatedKey?: string;
 }
 
@@ -422,7 +441,7 @@ export interface GetMeetingsBySearchTermInput {
 }
 
 export interface GetMeetingsBySearchTermOutput {
-  meetings: MeetingConversation[];
+  meetings: MeetingConversationOnlyIdRequired[];
   lastEvaluatedKey?: string;
 }
 
@@ -434,7 +453,7 @@ export interface GetUsersGroupsAndMeetingsBySearchTermInput {
 }
 
 export interface GetUsersGroupsAndMeetingsBySearchTermOutput {
-  usersGroupsAndMeetings: UserGroupOrMeeting[];
+  usersGroupsAndMeetings: UserGroupOrMeetingOnlyIdRequired[];
   lastEvaluatedKey?: string;
 }
 
@@ -446,7 +465,7 @@ export interface GetMessagesBySearchTermInput {
 }
 
 export interface GetMessagesBySearchTermOutput {
-  messages: Message[];
+  messages: MessageOnlyIdRequired[];
   lastEvaluatedKey?: string;
 }
 
@@ -488,7 +507,7 @@ export interface QueryOutput {
 }
 
 export type UserGroupOrMeetingId = UserId | GroupId | MeetingId;
-export type UserGroupOrMeeting = User | GroupConversation | MeetingConversation;
+export type UserGroupOrMeetingOnlyIdRequired = UserOnlyIdRequired | GroupConversationOnlyIdRequired | MeetingConversationOnlyIdRequired;
 
 interface EncodeSearchKeyInput {
   key: SearchKey;
@@ -506,7 +525,13 @@ interface DecodeSearchKeyOutput {
   key: SearchKey;
 }
 
-type QueryResult = User | GroupConversation | MeetingConversation | Team | Message;
+type UserOnlyIdRequired = MakeRequired<Partial<User>, "id">;
+type GroupConversationOnlyIdRequired = MakeRequired<Partial<GroupConversation>, "id">;
+type MeetingConversationOnlyIdRequired = MakeRequired<Partial<MeetingConversation>, "id">;
+type TeamOnlyIdRequired = MakeRequired<Partial<Team>, "id">;
+type MessageOnlyIdRequired = MakeRequired<Partial<Message>, "id">;
+
+type QueryResult = UserOnlyIdRequired | GroupConversationOnlyIdRequired | MeetingConversationOnlyIdRequired | TeamOnlyIdRequired | MessageOnlyIdRequired;
 
 interface SearchKey {
   offset: number;
