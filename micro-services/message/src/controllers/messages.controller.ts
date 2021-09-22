@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { inject, injectable } from "inversify";
-import { BaseController, Request, Response, LoggerServiceInterface, ValidationServiceV2Interface, Message } from "@yac/util";
+import { BaseController, Request, Response, LoggerServiceInterface, ValidationServiceV2Interface, Message, MessageMimeType } from "@yac/util";
 
 import { TYPES } from "../inversion-of-control/types";
 import { MessageServiceInterface } from "../services/message.service";
@@ -69,12 +69,13 @@ export class MessagesController extends BaseController implements MessagesContro
       const {
         pathParameters: { messageId },
         body: { checksum, totalChunks },
-        // queryStringParameters: { format },
+        queryStringParameters: { format },
       } = this.validationService.validate({ dto: MessageFinishUploadDto, request });
 
       const file = await this.messageService.saveMessage({
         checksum,
         messageId: messageId as Message["id"],
+        contentType: format as MessageMimeType,
         totalChunks,
       });
 

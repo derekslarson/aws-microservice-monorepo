@@ -41,7 +41,7 @@ export class YacMessageServiceStack extends YacHttpServiceStack {
     const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
 
     // S3 Bucket ARN Imports from Util
-    const messageS3BucketArn = CDK.Fn.importValue(ExportNames.MessageS3BucketArn);
+    const messageS3BucketArn = CDK.Fn.importValue(ExportNames.RawMessageS3BucketArn);
     const bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket_${id}`, messageS3BucketArn);
     const mountedPath = "/mnt/messages";
 
@@ -139,13 +139,13 @@ export class YacMessageServiceStack extends YacHttpServiceStack {
     // Resource Access
     // bucket.grantReadWrite(readMessageFileHandler);
     // bucket.grantReadWrite(deleteMessageFileHandler);
-    bucket.grantWrite(finishChunkUploadHandler);
+    bucket.grantReadWrite(finishChunkUploadHandler);
 
     // Lambda Routes
     const routes: RouteProps[] = [
       {
         path: "/{messageId}/chunk",
-        method: ApiGatewayV2.HttpMethod.PUT,
+        method: ApiGatewayV2.HttpMethod.POST,
         handler: uploadMessageChunkFileHandler,
       }, /* {
         path: "/{messageId}",

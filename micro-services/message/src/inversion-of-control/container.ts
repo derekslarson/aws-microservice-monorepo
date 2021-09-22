@@ -5,11 +5,14 @@ import { MessageEFSRepository, MessageEFSRepositoryInterface } from "../reposito
 import { MessageS3Repository, MessageS3RepositoryInterface } from "../repositories/message.s3.repository";
 import { MessageService, MessageServiceInterface } from "../services/message.service";
 import { MessagesController, MessagesControllerInterface } from "../controllers/messages.controller";
+import { envConfig, EnvConfigInterface } from "../config/env.config";
 
 const container = new Container();
 
 try {
   container.load(baseContainer);
+
+  container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
 
   container.bind<MessageEFSRepositoryInterface>(TYPES.MessageEFSRepository).to(MessageEFSRepository);
   container.bind<MessageS3RepositoryInterface>(TYPES.MessageS3Repository).to(MessageS3Repository);

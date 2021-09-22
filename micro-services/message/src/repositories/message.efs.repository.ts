@@ -4,6 +4,7 @@ import * as path from "path";
 import { injectable, inject } from "inversify";
 import { LoggerServiceInterface } from "@yac/util";
 import { SHA256 } from "crypto-js";
+import rmfr from "rmfr";
 
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
@@ -38,7 +39,9 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
 
       const dir = path.resolve(__dirname, params.path);
       const files = await fs.promises.readdir(dir, "utf-8");
-      const finalBuffer = fs.createWriteStream(path.join(dir, `${params.name}_final.tbd`), { flags: "a" });
+      // const filePath = path.join(dir, `${params.name}_final.${params.format || "tbd"}`);
+      // const writeBuffer = fs.file(filePath, { flags: "a" });
+      const writeBuffer = [];
 
       const arrangedFileNames = files.sort((a, b) => {
         const n1 = Number((a as string).replace(".tmp", ""));
@@ -50,9 +53,11 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
       for await (const fileName of arrangedFileNames) {
         if (fileName) {
           const fileData = await fs.promises.readFile(path.join(dir, `${fileName as string}`));
-          finalBuffer.write(fileData);
+          writeBuffer.push(fileData);
         }
       }
+
+      const finalBuffer = Buffer.from(writeBuffer);
 
       return {
         path: params.path,
@@ -60,7 +65,9 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
         fileData: finalBuffer,
         meta: {
           chunks: files.length,
-          checksum: SHA256(finalBuffer.toString()).toString(),
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          checksum: SHA256(finalBuffer).toString(),
         },
       };
     } catch (error: unknown) {
@@ -128,7 +135,7 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
     try {
       this.loggerService.trace("called deleteDirectory", { params }, this.constructor.name);
 
-      await fs.promises.rmdir(path.resolve(__dirname, this.envConfig.fileSystemPath, params.name));
+      await rmfr(path.resolve(__dirname, this.envConfig.fileSystemPath, params.name));
     } catch (error: unknown) {
       this.loggerService.error("failed to deleteDirectory", { error, params }, this.constructor.name);
       throw error;
@@ -165,13 +172,14 @@ interface AddMessageChunkInput {
 
 interface GetMediaMessageFileInput {
   path: string,
-  name: string
+  name: string,
+  format: string
 }
 
 interface GetMediaMessageFileOutput {
   name: string,
   path: string,
-  fileData: fs.WriteStream,
+  fileData: Buffer,
   meta: {
     chunks: number,
     checksum: string
