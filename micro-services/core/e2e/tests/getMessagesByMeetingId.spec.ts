@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { MakeRequired, Role } from "@yac/util";
 import axios from "axios";
 import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -8,16 +8,18 @@ import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
 import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
+import { RawUser } from "../../src/repositories/user.dynamo.repository";
 import { MeetingId } from "../../src/types/meetingId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createMeetingConversation, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
+import { createConversationUserRelationship, createMeetingConversation, createMessage, createRandomUser, getUser, GetUserOutput } from "../util";
 
 describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  let otherUser: CreateRandomUserOutput["user"];
+  let user: RawUser;
+  let otherUser: RawUser;
 
   beforeAll(async () => {
     ({ user: otherUser } = await createRandomUser());
@@ -45,6 +47,8 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
         // We have to create a reply to prove that it doesnt get returned at root level
         createMessage({ from: otherUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, otherUser.id ], replyTo: message.id, mimeType: MessageMimeType.AudioMp3 }),
       ]));
+
+      ({ user } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
     });
 
     describe("when not passed a 'limit' query param", () => {
@@ -59,8 +63,23 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
             messages: [
               {
                 id: messageTwo.id,
-                to: messageTwo.conversationId,
-                from: messageTwo.from,
+                to: {
+                  id: meeting.id,
+                  name: meeting.name,
+                  createdBy: meeting.createdBy,
+                  createdAt: meeting.createdAt,
+                  type: meeting.type,
+                  dueDate: meeting.dueDate,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  realName: user.realName,
+                  username: user.username,
+                  id: user.id,
+                  email: user.email,
+                  phone: user.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Meeting,
                 createdAt: messageTwo.createdAt,
                 seenAt: messageTwo.seenAt,
@@ -68,12 +87,27 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
+                transcript: messageTwo.transcript,
               },
               {
                 id: message.id,
-                to: message.conversationId,
-                from: message.from,
+                to: {
+                  id: meeting.id,
+                  name: meeting.name,
+                  createdBy: meeting.createdBy,
+                  createdAt: meeting.createdAt,
+                  type: meeting.type,
+                  dueDate: meeting.dueDate,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  realName: otherUser.realName,
+                  username: otherUser.username,
+                  id: otherUser.id,
+                  email: otherUser.email,
+                  phone: otherUser.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Meeting,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
@@ -81,7 +115,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 mimeType: message.mimeType,
                 replyCount: message.replyCount,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
+                transcript: message.transcript,
               },
             ],
           });
@@ -104,8 +138,23 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
             messages: [
               {
                 id: messageTwo.id,
-                to: messageTwo.conversationId,
-                from: messageTwo.from,
+                to: {
+                  id: meeting.id,
+                  name: meeting.name,
+                  createdBy: meeting.createdBy,
+                  createdAt: meeting.createdAt,
+                  type: meeting.type,
+                  dueDate: meeting.dueDate,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  realName: user.realName,
+                  username: user.username,
+                  id: user.id,
+                  email: user.email,
+                  phone: user.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Meeting,
                 createdAt: messageTwo.createdAt,
                 seenAt: messageTwo.seenAt,
@@ -113,7 +162,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
+                transcript: messageTwo.transcript,
               },
             ],
             lastEvaluatedKey: jasmine.any(String),
@@ -128,8 +177,23 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
             messages: [
               {
                 id: message.id,
-                to: message.conversationId,
-                from: message.from,
+                to: {
+                  id: meeting.id,
+                  name: meeting.name,
+                  createdBy: meeting.createdBy,
+                  createdAt: meeting.createdAt,
+                  type: meeting.type,
+                  dueDate: meeting.dueDate,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  realName: otherUser.realName,
+                  username: otherUser.username,
+                  id: otherUser.id,
+                  email: otherUser.email,
+                  phone: otherUser.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Meeting,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
@@ -137,7 +201,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 replyCount: message.replyCount,
                 mimeType: message.mimeType,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
+                transcript: message.transcript,
               },
             ],
           });
