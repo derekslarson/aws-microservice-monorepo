@@ -12,7 +12,7 @@ import { FriendConversation, GroupConversation, MeetingConversation, RawConversa
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage, createUser, createRandomUser, CreateRandomUserOutput } from "../util";
+import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage, createUser, createRandomUser, CreateRandomUserOutput, generateRandomPhone } from "../util";
 
 describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -21,7 +21,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
     const searchParamNameRealName = "one";
     const searchParamUserName = "two";
     const searchParamEmail = "three";
-    const searchParamPhone = "+12345678901";
+    const searchParamPhone = generateRandomPhone();
 
     let user: CreateRandomUserOutput["user"];
     let otherUser: CreateRandomUserOutput["user"];
@@ -46,9 +46,9 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
       ([ { user }, { user: otherUser } ] = await Promise.all([
         createRandomUser(),
         createUser({
-          realName: `${generateRandomString(5)} ${searchParamNameRealName}`,
-          email: `${generateRandomString(5)} ${searchParamEmail}@test.com`,
-          username: `${generateRandomString(5)} ${searchParamUserName}`,
+          realName: `${generateRandomString(10)} ${searchParamNameRealName}`,
+          email: `${generateRandomString(10)}${searchParamEmail}@test.com`,
+          username: `${generateRandomString(10)}-${searchParamUserName}`,
           phone: searchParamPhone,
         }),
       ]));
@@ -501,7 +501,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
       });
     });
 
-    fdescribe("when passed a 'searchTerm' query param", () => {
+    describe("when passed a 'searchTerm' query param", () => {
       describe("when passed a term that is in a user's realName and meeting's name", () => {
         it("returns a valid response", async () => {
           const params = { searchTerm: searchParamNameRealName };
