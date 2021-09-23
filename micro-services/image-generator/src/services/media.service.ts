@@ -84,7 +84,7 @@ export class MediaService implements MediaServiceInterface {
     return `${accessor}-${messageId}`;
   }
 
-  private transformToDashName(name: string): string {
+  private transformToCapitalize(name: string): string {
     if (/\s/.test(name)) {
       return name;
     }
@@ -108,7 +108,7 @@ export class MediaService implements MediaServiceInterface {
           source: yacMessage.fileName,
           templateParameters: {
             username: `@${senderName}`,
-            channel: isGroup ? this.transformToDashName(`${yacMessage.profileNameTo}`) : undefined,
+            channel: isGroup ? this.transformToCapitalize(`${yacMessage.profileNameTo}`) : undefined,
             subject: yacMessage.subject && yacMessage.subject.length >= 32 ? `${yacMessage.subject.slice(0, 32)}...` : yacMessage.subject || undefined,
           },
         };
@@ -125,7 +125,7 @@ export class MediaService implements MediaServiceInterface {
         const options: Task<"IMAGE">["options"] = {
           templateParameters: {
             username: `@${senderName}`,
-            channel: isGroup ? this.transformToDashName(`${yacMessage.profileNameTo}`) : undefined,
+            channel: isGroup ? this.transformToCapitalize(`${yacMessage.profileNameTo}`) : undefined,
             subject: yacMessage.subject && yacMessage.subject.length >= 32 ? `${yacMessage.subject.slice(0, 32)}...` : yacMessage.subject || undefined,
             user_image: yacMessage.isForwarded && actualSenderInfo ? actualSenderInfo.image : yacMessage.profileImageFrom,
           },
