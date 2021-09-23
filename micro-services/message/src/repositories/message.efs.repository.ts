@@ -19,14 +19,12 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
   ) {
   }
 
-  public addMessageChunk(params: AddMessageChunkInput): void {
+  public async addMessageChunk(params: AddMessageChunkInput): Promise<void> {
     try {
       this.loggerService.trace("called addMessageChunk", { params }, this.constructor.name);
       const dataBuffer = Buffer.from(params.chunkData, "base64");
       const dir = this.chunkFilePath(params.path, params.chunkNumber);
-      const fileStream = fs.createWriteStream(dir);
-
-      fileStream.write(dataBuffer);
+      await fs.promises.writeFile(dir, dataBuffer);
     } catch (error: unknown) {
       this.loggerService.error("failed to addMessageChunk", { error, params }, this.constructor.name);
       throw error;
@@ -42,7 +40,6 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
       // const filePath = path.join(dir, `${params.name}_final.${params.format || "tbd"}`);
       // const writeBuffer = fs.file(filePath, { flags: "a" });
       const writeBuffer = [];
-      let bufferLength = 0;
 
       const arrangedFileNames = files.sort((a, b) => {
         const n1 = Number((a as string).replace(".tmp", ""));
@@ -51,18 +48,15 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
         return n1 - n2;
       });
 
-      console.log({ arrangedFileNames });
       for await (const fileName of arrangedFileNames) {
-        console.log({ fileName });
         if (fileName) {
           const fileData = await fs.promises.readFile(path.join(dir, `${fileName as string}`));
           const normalizedData = Buffer.from(fileData.toString("base64"), "base64");
           writeBuffer.push(normalizedData);
-          bufferLength += fileData.length;
         }
       }
-      console.log(bufferLength);
-      const finalBuffer = Buffer.concat(writeBuffer, bufferLength);
+
+      const finalBuffer = Buffer.concat(writeBuffer);
 
       return {
         path: params.path,
@@ -163,7 +157,7 @@ export interface MessageEFSRepositoryInterface {
   deleteDirectory(params: DeleteDirectoryInput): Promise<void>,
   readDirectory(params: ReadDirectoryInput): Promise<ReadDirectoryOutput>,
   makeDirectory(params: MakeDirectoryInput): Promise<MakeDirectoryOutput>,
-  addMessageChunk(params: AddMessageChunkInput): void
+  addMessageChunk(params: AddMessageChunkInput): Promise<void>
   getMessageFile(params: GetMediaMessageFileInput): Promise<GetMediaMessageFileOutput>
 }
 

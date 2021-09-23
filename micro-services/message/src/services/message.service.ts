@@ -19,7 +19,7 @@ export class MessageService implements MessageServiceInterface {
       this.loggerService.trace("called processChunk ", { params }, this.constructor.name);
 
       const dir = await this.messageEFSRepository.makeDirectory({ name: params.messageId });
-      this.messageEFSRepository.addMessageChunk({ path: dir.path, chunkData: params.chunkData, chunkNumber: params.chunkNumber });
+      await this.messageEFSRepository.addMessageChunk({ path: dir.path, chunkData: params.chunkData, chunkNumber: params.chunkNumber });
     } catch (error: unknown) {
       this.loggerService.error("failed to processChunk", { error, params }, this.constructor.name);
       throw error;
