@@ -84,21 +84,6 @@ export class MediaService implements MediaServiceInterface {
     return `${accessor}-${messageId}`;
   }
 
-  private transformToCapitalize(name: string): string {
-    if (/\s/.test(name)) {
-      return name;
-    }
-
-    if (!/-/.test(name)) {
-      return name;
-    }
-
-    return name.split(/-/).map((word) => {
-      const [ first, ...final ] = word;
-      return [ first.toUpperCase(), ...final ].join("");
-    }).join(" ");
-  }
-
   private async generateTask<T extends TaskTypes>(type: T, yacMessage: YacMessage, isGroup: boolean): Promise<Task<TaskTypes>> {
     switch (type) {
       case "GIF2VIDEO": {
@@ -108,7 +93,7 @@ export class MediaService implements MediaServiceInterface {
           source: yacMessage.fileName,
           templateParameters: {
             username: `@${senderName}`,
-            channel: isGroup ? this.transformToCapitalize(`${yacMessage.profileNameTo}`) : undefined,
+            channel: isGroup ? `${yacMessage.profileNameTo}` : undefined,
             subject: yacMessage.subject && yacMessage.subject.length >= 32 ? `${yacMessage.subject.slice(0, 32)}...` : yacMessage.subject || undefined,
           },
         };
@@ -125,7 +110,7 @@ export class MediaService implements MediaServiceInterface {
         const options: Task<"IMAGE">["options"] = {
           templateParameters: {
             username: `@${senderName}`,
-            channel: isGroup ? this.transformToCapitalize(`${yacMessage.profileNameTo}`) : undefined,
+            channel: isGroup ? `${yacMessage.profileNameTo}` : undefined,
             subject: yacMessage.subject && yacMessage.subject.length >= 32 ? `${yacMessage.subject.slice(0, 32)}...` : yacMessage.subject || undefined,
             user_image: yacMessage.isForwarded && actualSenderInfo ? actualSenderInfo.image : yacMessage.profileImageFrom,
           },
