@@ -1,7 +1,7 @@
 import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util";
 
 export const envConfig: EnvConfigInterface = {
-  secret: process.env.SECRET || "",
+  authSecretId: process.env.AUTH_SECRET_ID || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   apiDomain: process.env.API_DOMAIN || "",
   bucketNames: {},
@@ -21,6 +21,7 @@ export const envConfig: EnvConfigInterface = {
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
+  authSecretId: string;
   apiDomain: string;
   mailSender: string;
   tableNames: {

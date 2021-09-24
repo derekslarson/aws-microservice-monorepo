@@ -1,7 +1,6 @@
 import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util";
 
 export const envConfig: EnvConfigInterface = {
-  secret: process.env.SECRET || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   tableNames: { IMAGES: process.env.IMAGES_DYNAMO_TABLE_NAME || "" },
   bucketNames: {},

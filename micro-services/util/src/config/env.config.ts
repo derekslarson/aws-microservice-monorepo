@@ -1,7 +1,6 @@
 import { LogLevel } from "../enums/logLevel.enum";
 
 export const envConfig: EnvConfigInterface = {
-  secret: process.env.SECRET || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   tableNames: {},
   bucketNames: { message: process.env.MESSAGE_S3_BUCKET_NAME || "" },
@@ -12,7 +11,6 @@ export const envConfig: EnvConfigInterface = {
 };
 
 export interface EnvConfigInterface {
-  secret: string;
   logLevel: LogLevel;
   tableNames: Record<string, string>;
   bucketNames: Record<string, string>;

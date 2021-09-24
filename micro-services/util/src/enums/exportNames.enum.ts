@@ -34,6 +34,7 @@ const ExportNames = {
   MessageS3BucketArn: "messageS3BucketArn",
   RawMessageS3BucketArn: "rawMessageS3BucketArn",
   EnhancedMessageS3BucketArn: "enhancedMessageS3BucketArn",
+  MessageTokenSecretArn: "messageTokenSecretArn",
 };
 
 export function generateExportNames(id: string): Readonly<typeof ExportNames> {

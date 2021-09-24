@@ -28,6 +28,7 @@ const TYPES = {
   KsuidFactory: Symbol.for("KsuidFactory"),
   LogWriterFactory: Symbol.for("LogWriterFactory"),
   S3Factory: Symbol.for("S3Factory"),
+  SecretsManagerFactory: Symbol.for("SecretsManagerFactory"),
   SnsFactory: Symbol.for("SnsFactory"),
   UnmarshallFactory: Symbol.for("UnmarshallFactory"),
   UuidV4Factory: Symbol.for("UuidV4Factory"),

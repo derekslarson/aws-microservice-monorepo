@@ -49,7 +49,7 @@ export class AuthorizationService implements AuthorizationServiceInterface {
   }
 }
 
-export type AuthorizationServiceConfigInterface = Pick<EnvConfigInterface, "userPool" | "apiDomain" | "secret">;
+export type AuthorizationServiceConfigInterface = Pick<EnvConfigInterface, "userPool" | "apiDomain">;
 
 export interface AuthorizationServiceInterface {
   authorize(params: AuthorizeInput): Promise<AuthorizeOutput>;

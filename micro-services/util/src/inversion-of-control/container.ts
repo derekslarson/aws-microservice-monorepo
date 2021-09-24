@@ -16,6 +16,7 @@ import { classValidatorFactory, ClassValidatorFactory } from "../factories/class
 import { documentClientFactory, DocumentClientFactory } from "../factories/documentClient.factory";
 import { errorSerializerFactory, ErrorSerializerFactory } from "../factories/errorSerializer.factory";
 import { logWriterFactory, LogWriterFactory } from "../factories/logWriter.factory";
+import { secretsManagerFactory, SecretsManagerFactory } from "../factories/secretsManager.factory";
 import { ksuidFactory, KsuidFactory } from "../factories/ksuid.factory";
 import { s3Factory, S3Factory } from "../factories/s3.factory";
 import { snsFactory, SnsFactory } from "../factories/sns.factory";
@@ -51,6 +52,7 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
     bind<KsuidFactory>(TYPES.KsuidFactory).toFactory(() => ksuidFactory);
     bind<S3Factory>(TYPES.S3Factory).toFactory(() => s3Factory);
+    bind<SecretsManagerFactory>(TYPES.SecretsManagerFactory).toFactory(() => secretsManagerFactory);
     bind<SnsFactory>(TYPES.SnsFactory).toFactory(() => snsFactory);
     bind<UnmarshallFactory>(TYPES.UnmarshallFactory).toFactory(() => unmarshallFactory);
     bind<UuidV4Factory>(TYPES.UuidV4Factory).toFactory(() => uuidV4Factory);
