@@ -36,6 +36,7 @@ export const envConfig: EnvConfigInterface = {
     three: process.env.GSI_THREE_INDEX_NAME || "",
   },
   openSearchDomainEndpoint: process.env.OPEN_SEARCH_DOMAIN_ENDPOINT || "",
+  messageUploadTokenSecretId: process.env.MESSAGE_UPLOAD_TOKEN_SECRET_ID || "",
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
@@ -75,4 +76,5 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     three: string;
   };
   openSearchDomainEndpoint: string;
+  messageUploadTokenSecretId: string;
 }

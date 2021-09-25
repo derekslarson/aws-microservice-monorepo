@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-floating-promises */
-import { CognitoIdentityServiceProvider, DynamoDB, S3, SNS, SSM, TranscribeService } from "aws-sdk";
+import { CognitoIdentityServiceProvider, DynamoDB, S3, SNS, SSM, TranscribeService, SecretsManager } from "aws-sdk";
 import crypto from "crypto";
 import axios from "axios";
 import ksuid from "ksuid";
@@ -11,6 +11,7 @@ export const sns = new SNS({ region: "us-east-1" });
 export const cognito = new CognitoIdentityServiceProvider({ region: "us-east-1" });
 export const documentClient = new DynamoDB.DocumentClient({ region: "us-east-1" });
 export const transcribe = new TranscribeService({ region: "us-east-1" });
+export const secretsManager = new SecretsManager({ region: "us-east-1" });
 
 export async function backoff<T>(func: (...args: unknown[]) => Promise<T>, successFunc: (res: T) => boolean, maxBackoff = 4000, currentBackoff = 500): Promise<T> {
   try {
@@ -46,7 +47,7 @@ export async function getSsmParameters(environment: string, paramNames: string[]
       const prefix = "/yac-api-v4";
       let env = environment;
 
-      if ((param === "secret" || param === "gcm-sender-id") && ![ "dev", "stage" ].includes(environment)) {
+      if (param === "gcm-sender-id" && ![ "dev", "stage" ].includes(environment)) {
         env = "dev";
       }
 
@@ -126,7 +127,13 @@ async function getXsrfToken(): Promise<{ xsrfToken: string }> {
 
 async function getAuthorizationCode(emailOrId: string, xsrfToken: string, logError?: boolean): Promise<{ authorizationCode: string; }> {
   try {
-    const data = `_csrf=${xsrfToken}&username=${emailOrId}&password=YAC-${process.env.secret as string}`;
+    const { SecretString: authSecret } = await secretsManager.getSecretValue({ SecretId: process.env["auth-secret-id"] as string }).promise();
+
+    if (!authSecret) {
+      throw new Error("Error fetching auth secret");
+    }
+
+    const data = `_csrf=${xsrfToken}&username=${emailOrId}&password=${authSecret}`;
 
     const queryParameters = {
       response_type: "code",
@@ -238,6 +245,12 @@ function createUserPoolClientSecretHash(username: string): string {
 
 export async function createRandomCognitoUser(): Promise<{ id: `user-${string}`, email: string }> {
   try {
+    const { SecretString: authSecret } = await secretsManager.getSecretValue({ SecretId: process.env["auth-secret-id"] as string }).promise();
+
+    if (!authSecret) {
+      throw new Error("Error fetching auth secret");
+    }
+
     const id: `user-${string}` = `user-${ksuid.randomSync().string}`;
     const email = `${generateRandomString(5)}@${generateRandomString(5)}.com`;
 
@@ -247,7 +260,7 @@ export async function createRandomCognitoUser(): Promise<{ id: `user-${string}`,
       ClientId: process.env["yac-client-id"] as string,
       SecretHash: secretHash,
       Username: id,
-      Password: `YAC-${process.env.secret as string}`,
+      Password: authSecret,
       UserAttributes: [
         {
           Name: "email",

@@ -17,6 +17,7 @@ import { documentClientFactory, DocumentClientFactory } from "../factories/docum
 import { errorSerializerFactory, ErrorSerializerFactory } from "../factories/errorSerializer.factory";
 import { logWriterFactory, LogWriterFactory } from "../factories/logWriter.factory";
 import { secretsManagerFactory, SecretsManagerFactory } from "../factories/secretsManager.factory";
+import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { ksuidFactory, KsuidFactory } from "../factories/ksuid.factory";
 import { s3Factory, S3Factory } from "../factories/s3.factory";
 import { snsFactory, SnsFactory } from "../factories/sns.factory";
@@ -27,6 +28,7 @@ import { DynamoStreamController, DynamoStreamControllerInterface } from "../cont
 import { SmsService, SmsServiceInterface } from "../services/sms.service";
 import { EnhancedMessageS3Repository } from "../repositories/enhancedMessage.s3.repository";
 import { MessageFileRepositoryInterface } from "../repositories/base.message.s3.repository";
+import { MessageUploadTokenService, MessageUploadTokenServiceInterface } from "../services/messageUploadToken.service";
 
 const coreContainerModule = new ContainerModule((bind) => {
   try {
@@ -37,6 +39,7 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<HttpRequestServiceInterface>(TYPES.HttpRequestServiceInterface).to(HttpRequestService);
     bind<IdServiceInterface>(TYPES.IdServiceInterface).to(IdService);
     bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);
+    bind<MessageUploadTokenServiceInterface>(TYPES.MessageUploadTokenServiceInterface).to(MessageUploadTokenService);
     bind<SmsServiceInterface>(TYPES.SmsServiceInterface).to(SmsService);
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
     bind<ValidationServiceV2Interface>(TYPES.ValidationServiceV2Interface).to(ValidationServiceV2);
@@ -50,6 +53,7 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<DocumentClientFactory>(TYPES.DocumentClientFactory).toFactory(() => documentClientFactory);
     bind<ErrorSerializerFactory>(TYPES.ErrorSerializerFactory).toFactory(() => errorSerializerFactory);
     bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
+    bind<JwtFactory>(TYPES.JwtFactory).toFactory(() => jwtFactory);
     bind<KsuidFactory>(TYPES.KsuidFactory).toFactory(() => ksuidFactory);
     bind<S3Factory>(TYPES.S3Factory).toFactory(() => s3Factory);
     bind<SecretsManagerFactory>(TYPES.SecretsManagerFactory).toFactory(() => secretsManagerFactory);

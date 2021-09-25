@@ -79,7 +79,7 @@ export class YacUtilServiceStack extends CDK.Stack {
     const messageTranscribedSnsTopic = new SNS.Topic(this, `MessageTranscribedSnsTopic_${id}`, { topicName: `MessageTranscribedSnsTopic_${id}` });
 
     // Secret for signing token for use in message flow (core and message services)
-    const messageTokenSecret = new SecretsManager.Secret(this, `MessageTokenSecret_${id}`);
+    const messageUploadTokenSecret = new SecretsManager.Secret(this, `MessageUploadTokenSecret_${id}`);
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
@@ -219,9 +219,9 @@ export class YacUtilServiceStack extends CDK.Stack {
       value: enhancedMessageS3Bucket.bucketArn,
     });
 
-    new CDK.CfnOutput(this, `MessageTokenSecretArn_${id}`, {
-      exportName: ExportNames.MessageTokenSecretArn,
-      value: messageTokenSecret.secretArn,
+    new CDK.CfnOutput(this, `MessageUploadTokenSecretArn_${id}`, {
+      exportName: ExportNames.MessageUploadTokenSecretArn,
+      value: messageUploadTokenSecret.secretArn,
     });
 
     // SSM Parameters (to be imported in e2e tests)

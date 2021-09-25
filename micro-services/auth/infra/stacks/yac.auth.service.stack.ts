@@ -453,6 +453,11 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       stringValue: yacUserPoolClientRedirectUri,
     });
 
+    new SSM.StringParameter(this, `AuthSecretIdSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/auth-secret-id`,
+      stringValue: authSecret.secretArn,
+    });
+
     new CDK.CfnOutput(this, `UserPoolIdExport_${id}`, {
       exportName: ExportNames.UserPoolId,
       value: userPool.userPoolId,

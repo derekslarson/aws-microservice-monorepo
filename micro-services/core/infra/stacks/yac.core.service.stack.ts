@@ -9,6 +9,7 @@ import * as SSM from "@aws-cdk/aws-ssm";
 import * as S3 from "@aws-cdk/aws-s3";
 import * as SNS from "@aws-cdk/aws-sns";
 import * as EC2 from "@aws-cdk/aws-ec2";
+import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
 import {
   Environment,
   generateExportNames,
@@ -56,6 +57,9 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const messageTranscodedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
     const messageTranscribedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn);
 
+    // Secret imports from Util
+    const messageUploadTokenSecretArn = CDK.Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
+
     // S3 Bucket ARN Imports from Util
     const rawMessageS3BucketArn = CDK.Fn.importValue(ExportNames.RawMessageS3BucketArn);
     const enhancedMessageS3BucketArn = CDK.Fn.importValue(ExportNames.EnhancedMessageS3BucketArn);
@@ -64,6 +68,9 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `RawMessageS3Bucket_${id}`, rawMessageS3BucketArn);
     const enhancedMessageS3Bucket = S3.Bucket.fromBucketArn(this, `EnhancedMessageS3Bucket_${id}`, enhancedMessageS3BucketArn);
     const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket-${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
+
+    // Secrets
+    const messageUploadTokenSecret = SecretsManager.Secret.fromSecretCompleteArn(this, `MessageUploadTokenSecret_${id}`, messageUploadTokenSecretArn);
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
@@ -234,6 +241,11 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       resources: [ meetingMessageUpdatedSnsTopicArn ],
     });
 
+    const getMessageUploadTokenSecretPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "secretsmanager:GetSecretValue" ],
+      resources: [ messageUploadTokenSecret.secretArn ],
+    });
+
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
@@ -265,6 +277,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       ENHANCED_MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,
       IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
       OPEN_SEARCH_DOMAIN_ENDPOINT: openSearchDomain.domainEndpoint,
+      MESSAGE_UPLOAD_TOKEN_SECRET_ID: messageUploadTokenSecret.secretArn,
     };
 
     // Dynamo Stream Handler
@@ -666,7 +679,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -677,7 +690,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -688,7 +701,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
