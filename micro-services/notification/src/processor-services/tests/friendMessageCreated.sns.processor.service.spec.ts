@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User, Message } from "@yac/util";
+import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User, Message, MessageMimeType } from "@yac/util";
 import { PushNotificationEvent } from "../../enums/pushNotification.event.enum";
 import { WebSocketEvent } from "../../enums/webSocket.event.enum";
 import { PushNotificationMediatorService, PushNotificationMediatorServiceInterface } from "../../mediator-services/pushNotification.mediator.service";
@@ -36,7 +36,7 @@ describe("FriendMessageCreatedSnsProcessorService", () => {
     seenAt: { [mockFromUser.id]: new Date().toISOString() },
     reactions: {},
     replyCount: 0,
-    mimeType: "audio/mpeg",
+    mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
   };
 

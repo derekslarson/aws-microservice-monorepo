@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User, Message, Meeting } from "@yac/util";
+import { LoggerService, Spied, TestSupport, SnsProcessorServiceInterface, User, Message, Meeting, MessageMimeType } from "@yac/util";
 import { WebSocketEvent } from "../../enums/webSocket.event.enum";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../../mediator-services/webSocket.mediator.service";
 import { MeetingMessageUpdatedSnsProcessorService } from "../meetingMessageUpdated.sns.processor.service";
@@ -38,7 +38,7 @@ describe("MeetingMessageUpdatedSnsProcessorService", () => {
     seenAt: { [mockUserIdOne]: new Date().toISOString(), [mockUserIdTwo]: null },
     reactions: {},
     replyCount: 0,
-    mimeType: "audio/mpeg",
+    mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
   };
 

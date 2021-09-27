@@ -42,7 +42,7 @@ export class WebSocketApi extends ApiGatewayV2.WebSocketApi {
     this.endpoint = props.defaultDomainMapping ? `${props.defaultDomainMapping.domainName.name}/${props.defaultDomainMapping.mappingKey}` : stage.url;
   }
 
-  public _addIntegration(scope: CDK.Construct, config: WebSocketRouteIntegrationConfig): ApiGatewayV2.WebSocketIntegration {
+  public override _addIntegration(scope: CDK.Construct, config: WebSocketRouteIntegrationConfig): ApiGatewayV2.WebSocketIntegration {
     const { configHash, integration: existingIntegration } = this._integrationCache.getIntegration(scope, config);
 
     if (existingIntegration) {
