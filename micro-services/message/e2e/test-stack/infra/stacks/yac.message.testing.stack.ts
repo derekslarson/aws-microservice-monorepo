@@ -33,8 +33,8 @@ export class YacMessageTesting extends YacHttpServiceStack {
     const FSAccessPointId = CDK.Fn.importValue(ExportNames.ChunkedUploadsFSAccessPointId);
     const FSMountedPath = CDK.Fn.importValue(ExportNames.ChunkedUploadsFSMountedPath);
     
-    const VPCId = SSM.StringParameter.valueFromLookup(this, "ChunkedUploadsVPCId");
-    const VPCSecurityGroupId = SSM.StringParameter.valueFromLookup(this, "ChunkedUploadsVPCSecurityGroupId");
+    const VPCId = SSM.StringParameter.valueFromLookup(this, SSMParameterNames.ChunkedUploadsVPCId);
+    const VPCSecurityGroupId = SSM.StringParameter.valueFromLookup(this, SSMParameterNames.ChunkedUploadsVPCSecurityGroupId);
 
     const vpc = EC2.Vpc.fromLookup(this, `MessageTestVPC${id}`, {
       vpcId: VPCId

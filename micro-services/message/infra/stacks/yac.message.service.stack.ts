@@ -145,7 +145,7 @@ export class YacMessageService extends YacHttpServiceStack {
       value: vpc.availabilityZones.join(","),
     });
 
-    new SSM.StringParameter(this, "ChunkedUploadsVPCSecurityGroupId", { stringValue: vpc.vpcDefaultSecurityGroup, parameterName: "ChunkedUploadsVPCSecurityGroupId" });
-    new SSM.StringParameter(this, "ChunkedUploadsVPCId", { stringValue: vpc.vpcId, parameterName: "ChunkedUploadsVPCId" });
+    new SSM.StringParameter(this, "ChunkedUploadsVPCSecurityGroupId", { stringValue: vpc.vpcDefaultSecurityGroup, parameterName: SSMParameterNames.ChunkedUploadsVPCSecurityGroupId });
+    new SSM.StringParameter(this, "ChunkedUploadsVPCId", { stringValue: vpc.vpcId, parameterName: SSMParameterNames.ChunkedUploadsVPCId });
   }
 }
