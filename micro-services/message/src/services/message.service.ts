@@ -21,7 +21,7 @@ export class MessageService implements MessageServiceInterface {
       const dir = await this.messageEFSRepository.makeDirectory({ name: params.messageId });
       await this.messageEFSRepository.addMessageChunk({ path: dir.path, chunkData: params.chunkData, chunkNumber: params.chunkNumber });
     } catch (error: unknown) {
-      this.loggerService.error("failed to processChunk", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in processChunk", { error, params }, this.constructor.name);
       throw error;
     }
   }
@@ -70,7 +70,7 @@ export class MessageService implements MessageServiceInterface {
         messageId: params.messageId,
       };
     } catch (error: unknown) {
-      this.loggerService.error("failed to saveMessage", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in saveMessage", { error, params }, this.constructor.name);
       throw error;
     }
   }

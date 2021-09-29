@@ -21,19 +21,19 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
 
   public async addMessageChunk(params: AddMessageChunkInput): Promise<void> {
     try {
-      this.loggerService.trace("called addMessageChunk", { params }, this.constructor.name);
+      this.loggerService.trace("addMessageChunk called", { params }, this.constructor.name);
       const dataBuffer = Buffer.from(params.chunkData, "base64");
       const dir = this.chunkFilePath(params.path, params.chunkNumber);
       await fs.promises.writeFile(dir, dataBuffer);
     } catch (error: unknown) {
-      this.loggerService.error("failed to addMessageChunk", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in addMessageChunk", { error, params }, this.constructor.name);
       throw error;
     }
   }
 
   public async getMessageFile(params: GetMediaMessageFileInput): Promise<GetMediaMessageFileOutput> {
     try {
-      this.loggerService.trace("called getMessageFile", { params }, this.constructor.name);
+      this.loggerService.trace("getMessageFile called", { params }, this.constructor.name);
 
       const dir = path.resolve(__dirname, params.path);
       const files = await fs.promises.readdir(dir, "utf-8");
@@ -70,14 +70,14 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
         },
       };
     } catch (error: unknown) {
-      this.loggerService.error("failed to getMessageFile", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getMessageFile", { error, params }, this.constructor.name);
       throw error;
     }
   }
 
   public async readDirectory(params: ReadDirectoryInput): Promise<ReadDirectoryOutput> {
     try {
-      this.loggerService.trace("called readDirectory", { params }, this.constructor.name);
+      this.loggerService.trace("readDirectory called", { params }, this.constructor.name);
       const dir = path.resolve(__dirname, this.envConfig.fileSystemPath, params.name);
 
       const dirItems = await fs.promises.readdir(dir);
@@ -95,14 +95,14 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
         children: dirItems,
       };
     } catch (error: unknown) {
-      this.loggerService.error("failed to readDirectory", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in readDirectory", { error, params }, this.constructor.name);
       throw error;
     }
   }
 
   public async makeDirectory(params: MakeDirectoryInput): Promise<MakeDirectoryOutput> {
     try {
-      this.loggerService.trace("called makeDirectory", { params }, this.constructor.name);
+      this.loggerService.trace("makeDirectory called", { params }, this.constructor.name);
       const dir = path.resolve(__dirname, this.envConfig.fileSystemPath, params.name);
 
       // check existence
@@ -119,7 +119,7 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
           try {
             await fs.promises.mkdir(dir);
           } catch (error2: unknown) {
-            this.loggerService.info("error in makeDirectory: failed to create `dir`, gracefully continue", { error, params }, this.constructor.name);
+            this.loggerService.info("error in makeDirectory: Error in create `dir`, gracefully continue", { error, params }, this.constructor.name);
           }
         }
       }
@@ -136,22 +136,22 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
 
   public async deleteDirectory(params: DeleteDirectoryInput): Promise<void> {
     try {
-      this.loggerService.trace("called deleteDirectory", { params }, this.constructor.name);
+      this.loggerService.trace("deleteDirectory called", { params }, this.constructor.name);
 
       await rmfr(path.resolve(__dirname, this.envConfig.fileSystemPath, params.name));
     } catch (error: unknown) {
-      this.loggerService.error("failed to deleteDirectory", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in deleteDirectory", { error, params }, this.constructor.name);
       throw error;
     }
   }
 
   private chunkFilePath(_path: string, n: number): string {
     try {
-      this.loggerService.trace("called filePath", { path: _path }, this.constructor.name);
+      this.loggerService.trace("filePath called", { path: _path }, this.constructor.name);
 
       return path.resolve(__dirname, _path, `${n}.tmp`);
     } catch (error: unknown) {
-      this.loggerService.error("failed to filePath", { error, path: _path }, this.constructor.name);
+      this.loggerService.error("Error in filePath", { error, path: _path }, this.constructor.name);
       throw error;
     }
   }

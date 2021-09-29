@@ -18,7 +18,7 @@ export class MessagesController extends BaseController implements MessagesContro
   }
 
   public async chunkUpload(request: Request): Promise<Response> {
-    this.loggerService.trace("called chunkUpload ", { request }, this.constructor.name);
+    this.loggerService.trace("chunkUpload called", { request }, this.constructor.name);
 
     try {
       const {
@@ -43,7 +43,7 @@ export class MessagesController extends BaseController implements MessagesContro
         };
         return this.generateSuccessResponse(response);
       } catch (error: unknown) {
-        this.loggerService.error("error in chunkUpload: failed to append chunk to this file", { error, request: { messageId, chunkNumber, data } }, this.constructor.name);
+        this.loggerService.error("error in chunkUpload: Error in append chunk to this file", { error, request: { messageId, chunkNumber, data } }, this.constructor.name);
         const errorResponse: ChunkUploadResponse = {
           success: false,
           data: {
@@ -63,7 +63,7 @@ export class MessagesController extends BaseController implements MessagesContro
   }
 
   public async finishUpload(request: Request): Promise<Response> {
-    this.loggerService.trace("called finishUpload ", { request }, this.constructor.name);
+    this.loggerService.trace("finishUpload called", { request }, this.constructor.name);
 
     try {
       const {
@@ -83,7 +83,7 @@ export class MessagesController extends BaseController implements MessagesContro
 
       return this.generateSuccessResponse(response);
     } catch (error: unknown) {
-      this.loggerService.error("failed to finishUpload", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in finishUpload", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
