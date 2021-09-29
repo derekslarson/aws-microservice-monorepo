@@ -1,7 +1,7 @@
 import "source-map-support/register";
 import * as CDK from "@aws-cdk/core";
 import { Environment } from "@yac/util";
-import { YacNotificationTestingStack } from "./stacks/yac.notification.testing.stack";
+import { YacMessageTesting } from "./stacks/yac.message.testing.stack";
 
 const app = new CDK.App();
 
@@ -17,4 +17,7 @@ if (!environment) {
 const stackPrefix = environment === Environment.Local ? developer : environment;
 
 // eslint-disable-next-line no-new
-new YacNotificationTestingStack(app, `${stackPrefix}-YacNotificationTesting`, {});
+new YacMessageTesting(app, `${stackPrefix}-YacMessageTesting`, { serviceName: "message-testing", env:{
+  region: "us-east-1",
+  account: "644653163171"
+} });

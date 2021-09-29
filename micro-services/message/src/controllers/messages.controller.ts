@@ -18,7 +18,7 @@ export class MessagesController extends BaseController implements MessagesContro
   }
 
   public async chunkUpload(request: Request): Promise<Response> {
-    this.loggerService.trace("called processChunk ", { request }, this.constructor.name);
+    this.loggerService.trace("called chunkUpload ", { request }, this.constructor.name);
 
     try {
       const {
@@ -43,7 +43,7 @@ export class MessagesController extends BaseController implements MessagesContro
         };
         return this.generateSuccessResponse(response);
       } catch (error: unknown) {
-        this.loggerService.error("failed to append chunk to this file", { error, request: { messageId, chunkNumber, data } }, this.constructor.name);
+        this.loggerService.error("error in chunkUpload: failed to append chunk to this file", { error, request: { messageId, chunkNumber, data } }, this.constructor.name);
         const errorResponse: ChunkUploadResponse = {
           success: false,
           data: {
@@ -56,7 +56,7 @@ export class MessagesController extends BaseController implements MessagesContro
         return this.generateAcceptedResponse(errorResponse);
       }
     } catch (error: unknown) {
-      this.loggerService.error("failed to chunkUpload", { error, request }, this.constructor.name);
+      this.loggerService.error("error in chunkUpload", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }

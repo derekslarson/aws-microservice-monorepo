@@ -116,7 +116,11 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
         }
       } catch (error: unknown) {
         if ((error as Record<string, string>).code === "ENOENT") {
-          await fs.promises.mkdir(dir);
+          try {
+            await fs.promises.mkdir(dir);
+          } catch (error2: unknown) {
+            this.loggerService.info("error in makeDirectory: failed to create `dir`, gracefully continue", { error, params }, this.constructor.name);
+          }
         }
       }
 
@@ -125,7 +129,7 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
         path: dir,
       };
     } catch (error: unknown) {
-      this.loggerService.error("failed to makeDirectory", { error, params }, this.constructor.name);
+      this.loggerService.error("error in makeDirectory", { error, params }, this.constructor.name);
       throw error;
     }
   }

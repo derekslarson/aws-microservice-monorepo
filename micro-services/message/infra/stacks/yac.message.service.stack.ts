@@ -15,7 +15,7 @@ import {
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Duration } from "@aws-cdk/core";
 
-export class YacMessageServiceStack extends YacHttpServiceStack {
+export class YacMessageService extends YacHttpServiceStack {
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
@@ -103,42 +103,6 @@ export class YacMessageServiceStack extends YacHttpServiceStack {
       filesystem: FSAccessPoint,
     });
 
-    // const readMessageFileHandler = new Lambda.Function(this, "ReadMessageFileHandler", {
-    //   runtime: Lambda.Runtime.NODEJS_12_X,
-    //   code: Lambda.Code.fromAsset("dist/handlers/readMessageFile"),
-    //   handler: "readMessageFile.handler",
-    //   layers: [ dependencyLayer ],
-    //   environment: environmentVariables,
-    //   vpc,
-    //   // mount the access point to /mnt/msg in the lambda runtime environment
-    //   filesystem: FSAccessPoint,
-    // });
-
-    // const deleteMessageFileHandler = new Lambda.Function(this, "DeleteMessageFileHandler", {
-    //   runtime: Lambda.Runtime.NODEJS_12_X,
-    //   code: Lambda.Code.fromAsset("dist/handlers/deleteMessageFile"),
-    //   handler: "deleteMessageFile.handler",
-    //   layers: [ dependencyLayer ],
-    //   environment: environmentVariables,
-    //   vpc,
-    //   // mount the access point to /mnt/msg in the lambda runtime environment
-    //   filesystem: FSAccessPoint,
-    // });
-
-    // const getMessageFilesHandler = new Lambda.Function(this, "GetMessageFilesHandler", {
-    //   runtime: Lambda.Runtime.NODEJS_12_X,
-    //   code: Lambda.Code.fromAsset("dist/handlers/getMessageFiles"),
-    //   handler: "getMessageFiles.handler",
-    //   layers: [ dependencyLayer ],
-    //   environment: environmentVariables,
-    //   vpc,
-    //   // mount the access point to /mnt/msg in the lambda runtime environment
-    //   filesystem: FSAccessPoint,
-    // });
-
-    // Resource Access
-    // bucket.grantReadWrite(readMessageFileHandler);
-    // bucket.grantReadWrite(deleteMessageFileHandler);
     bucket.grantReadWrite(finishChunkUploadHandler);
 
     // Lambda Routes
@@ -147,27 +111,41 @@ export class YacMessageServiceStack extends YacHttpServiceStack {
         path: "/{messageId}/chunk",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: uploadMessageChunkFileHandler,
-      }, /* {
-        path: "/{messageId}",
-        method: ApiGatewayV2.HttpMethod.GET,
-        handler: readMessageFileHandler,
-      }, */ {
+      }, {
         path: "/{messageId}/finish",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: finishChunkUploadHandler,
       },
-      // {
-      //   path: "/messages/{messageId}",
-      //   method: ApiGatewayV2.HttpMethod.DELETE,
-      //   handler: deleteMessageFileHandler,
-      // },
-      // {
-      //   path: "/messages",
-      //   method: ApiGatewayV2.HttpMethod.GET,
-      //   handler: getMessageFilesHandler,
-      // },
     ];
 
     routes.forEach((route) => httpApi.addRoute(route));
+
+    new CDK.CfnOutput(this, `ChunkedUploadsFSId_Export${id}`, {
+      exportName: ExportNames.ChunkedUploadsFSId,
+      value: fileSystem.fileSystemId,
+    });
+
+    new CDK.CfnOutput(this, `ChunkedUploadsFSAccessPointId_Export${id}`, {
+      exportName: ExportNames.ChunkedUploadsFSAccessPointId,
+      value: accessPoint.accessPointId,
+    });
+
+    new CDK.CfnOutput(this, `ChunkedUploadsFSAccessPath_Export${id}`, {
+      exportName: ExportNames.ChunkedUploadsFSMountedPath,
+      value: mountedPath,
+    });
+
+    new CDK.CfnOutput(this, `ChunkedUploadsVPCId_Export${id}`, {
+      exportName: ExportNames.ChunkedUploadsVPCId,
+      value: vpc.vpcId,
+    });
+
+    new CDK.CfnOutput(this, `ChunkedUploadsVPCAvailabilityZone_Export${id}`, {
+      exportName: ExportNames.ChunkedUploadsVPCAvailabilityZone,
+      value: vpc.availabilityZones.join(","),
+    });
+
+    new SSM.StringParameter(this, "ChunkedUploadsVPCSecurityGroupId", { stringValue: vpc.vpcDefaultSecurityGroup, parameterName: "ChunkedUploadsVPCSecurityGroupId" });
+    new SSM.StringParameter(this, "ChunkedUploadsVPCId", { stringValue: vpc.vpcId, parameterName: "ChunkedUploadsVPCId" });
   }
 }
