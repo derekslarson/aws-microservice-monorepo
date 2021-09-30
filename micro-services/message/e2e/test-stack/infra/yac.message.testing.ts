@@ -17,7 +17,7 @@ if (!environment) {
 const stackPrefix = environment === Environment.Local ? developer : environment;
 
 // eslint-disable-next-line no-new
-new YacMessageTesting(app, `${stackPrefix}-YacMessageTestings`, { serviceName: "message-testing", env:{
+new YacMessageTesting(app, `${stackPrefix}-YacMessageTesting`, { serviceName: "message-testing", env:{
   region: process.env.CDK_DEFAULT_REGION,
   account: process.env.CDK_DEFAULT_ACCOUNT
 } });
