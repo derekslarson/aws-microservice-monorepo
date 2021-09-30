@@ -40,21 +40,23 @@ export class YacMessageTesting extends YacHttpServiceStack {
       vpcId: VPCId
     })
 
+    const securityGroup = EC2.SecurityGroup.fromLookup(this, `SecurityGroup${id}`, VPCSecurityGroupId);
+
+    
     const fileSystem = EFS.FileSystem.fromFileSystemAttributes(this, `EFSFileSystem${id}`, {
       fileSystemId: FSFileSystemId,
-      securityGroup: EC2.SecurityGroup.fromLookup(this, `SecurityGroup${id}`, VPCSecurityGroupId)
+      securityGroup: securityGroup
     });
-
-
+    
     const fsAccessPoint =  EFS.AccessPoint.fromAccessPointAttributes(this, `EfsAccessPoint${id}`, {
       accessPointId: FSAccessPointId,
       fileSystem
     });
     const lambdaFS = Lambda.FileSystem.fromEfsAccessPoint(fsAccessPoint, FSMountedPath);
-
+    
     // Environment Variables
     const environmentVariables: Record<string, string> = { FS_PATH: FSMountedPath };
-
+    
     // SNS Event Lambda Handler
     const checkEFSLambda = new Lambda.Function(this, `CheckEFS${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
@@ -67,7 +69,7 @@ export class YacMessageTesting extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
       filesystem: lambdaFS
     });
-
+    
     this.httpApi.addRoute({
       path: "/{fileName}/{chunkNumber}",
       handler: checkEFSLambda,

@@ -56,6 +56,7 @@ export class YacMessageService extends YacHttpServiceStack {
 
     // vpc
     const vpc = new EC2.Vpc(this, "VPC");
+    // TODO: create a security group where all ingress NFS comes from the Subnet where all the lambdas that want to consume EFS will be deployed
     const fileSystem = new EFS.FileSystem(this, "Efs", { vpc, removalPolicy: CDK.RemovalPolicy.DESTROY });
 
     // create a new access point from the filesystem

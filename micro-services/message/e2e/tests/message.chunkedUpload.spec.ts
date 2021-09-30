@@ -5,7 +5,6 @@ import axios from "axios";
 import CryptoJS from "crypto-js";
 import { Message } from "@yac/util";
 import { checkFileOnS3, getMessageFile, separateBufferIntoChunks } from "../utils";
-import { backoff } from "../../../../e2e/util";
 
 // import { createRandomCognitoUser, getAccessTokenByEmail } from "../../../../e2e/util";
 const mockMessageId: Message["id"] = "message-mock-123";
@@ -25,34 +24,32 @@ describe("Chunked Message upload", () => {
 
     describe("under normal conditions", () => {
       it("uploads a chunk correctly", async () => {
-        await Promise.all(chunkedFile.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${`${messageId}_chunks-test`}/chunk`, {
-            chunkNumber: index,
-            data: data.toString("base64"),
-          });
-          expect(req.status).toBe(200);
+        const auxMessageId = `${messageId}_chunks-test`;
+        const chunkNumber = 0;
+        const chunk = chunkedFile[chunkNumber];
+        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+          chunkNumber,
+          data: chunk.toString("base64"),
+        });
+        expect(req.status).toBe(200);
 
-          const checkOnServer = await axios.get(`${process.env["check-efs-endpoint"] as string}/${`${messageId}_chunks-test`}/${index}`);
+        const checkOnServer = await axios.get(`${process.env["check-efs-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
 
-          expect(checkOnServer.status).toBe(200);
-          expect(checkOnServer.data.buffer).toEqual(data.toString("base64"));
-          expect(checkOnServer.data.size).toEqual(data.byteLength);
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          expect(checkOnServer.data.checksum).toEqual(CryptoJS.SHA256(data).toString());
-        }));
+        expect(checkOnServer.status).toBe(200);
+        expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
+        expect(checkOnServer.data.size).toEqual(chunk.byteLength);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        expect(checkOnServer.data.checksum).toEqual(CryptoJS.SHA256(chunk).toString());
       });
 
       it("finishes the file upload", async () => {
         const auxMessageId = `${messageId}_finish-test`;
         await Promise.all(chunkedFile.map(async (data, index) => {
-          const req = await backoff(
-            () => axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-              chunkNumber: index,
-              data: data.toString("base64"),
-            }),
-            (res) => res.status === 200,
-          );
+          const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+            chunkNumber: index,
+            data: data.toString("base64"),
+          });
 
           return req;
         }));
@@ -77,87 +74,91 @@ describe("Chunked Message upload", () => {
       it("fails when totalChunks is less than chunks in server", async () => {
         const chunksToUpload = chunkedFile.slice(0, 50);
         const auxMessageId = `${messageId}_failed-chunks--lesser`;
-        // upload
-        await Promise.all(chunksToUpload.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-            chunkNumber: index,
-            data: data.toString("base64"),
+        try {
+          // upload
+          await Promise.all(chunksToUpload.map(async (data, index) => {
+            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+              chunkNumber: index,
+              data: data.toString("base64"),
+            });
+
+            return req;
+          }));
+
+          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
+            totalChunks: chunksToUpload.length + 10,
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
           });
 
-          return req;
-        }));
-
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunksToUpload.length + 10,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256(chunksToUpload).toString(),
-        }, {
-          validateStatus(status: number) {
-            return status >= 200 && status < 600;
-          },
-        });
-
-        expect(req.status).toBe(400);
-        expect(req.data.message).toContain("File on server is incomplete, try uploading again");
+          fail("should have not continued");
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            expect(error.response?.status).toBe(400);
+            expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
+          }
+        }
       });
 
       it("fails when totalChunks is larger than chunks in server", async () => {
         const chunksToUpload = chunkedFile.slice(0, 50);
         const auxMessageId = `${messageId}_failed-chunks--larger`;
+        try {
+          // upload
+          await Promise.all(chunksToUpload.map(async (data, index) => {
+            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+              chunkNumber: index,
+              data: data.toString("base64"),
+            });
 
-        // upload
-        await Promise.all(chunksToUpload.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-            chunkNumber: index,
-            data: data.toString("base64"),
+            return req;
+          }));
+
+          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
+            totalChunks: chunksToUpload.length - 10,
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
           });
 
-          return req;
-        }));
-
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunksToUpload.length - 10,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256(chunksToUpload).toString(),
-        }, {
-          validateStatus(status: number) {
-            return status >= 200 && status < 600;
-          },
-        });
-
-        expect(req.status).toBe(400);
-        expect(req.data.message).toContain("File on server is larger, try uploading again");
+          fail("should have not continued");
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            expect(error.response?.status).toBe(400);
+            expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
+          }
+        }
       });
 
       it("fails when the checksum is different than the one expected on server", async () => {
         const chunksToUpload = chunkedFile.slice(0, 50);
         const auxMessageId = `${messageId}_failed-checksum`;
+        try {
+          // upload
+          await Promise.all(chunksToUpload.map(async (data, index) => {
+            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+              chunkNumber: index,
+              data: data.toString("base64"),
+            });
 
-        // upload
-        await Promise.all(chunksToUpload.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-            chunkNumber: index,
-            data: data.toString("base64"),
+            return req;
+          }));
+
+          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
+            totalChunks: chunksToUpload.length,
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            checksum: CryptoJS.SHA256("fake-checksum-that-is-not-right").toString(),
           });
 
-          return req;
-        }));
-
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunksToUpload.length,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256("fake-checksum-that-is-not-right").toString(),
-        }, {
-          validateStatus(status: number) {
-            return status >= 200 && status < 600;
-          },
-        });
-
-        expect(req.status).toBe(400);
-        expect(req.data.message).toContain("File checksum on server is different than provided by client");
+          fail("should have not continued");
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            expect(error.response?.status).toBe(400);
+            expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
+          }
+        }
       });
     });
   });
@@ -177,22 +178,23 @@ describe("Chunked Message upload", () => {
 
     describe("under normal conditions", () => {
       it("uploads a chunk correctly", async () => {
-        await Promise.all(chunkedFile.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${`${messageId}_chunks-test`}/chunk`, {
-            chunkNumber: index,
-            data: data.toString("base64"),
-          });
-          expect(req.status).toBe(200);
+        const auxMessageId = `${messageId}_chunks-test`;
+        const chunkNumber = 0;
+        const chunk = chunkedFile[chunkNumber];
+        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+          chunkNumber,
+          data: chunk.toString("base64"),
+        });
+        expect(req.status).toBe(200);
 
-          const checkOnServer = await axios.get(`${process.env["check-efs-endpoint"] as string}/${`${messageId}_chunks-test`}/${index}`);
+        const checkOnServer = await axios.get(`${process.env["check-efs-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
 
-          expect(checkOnServer.status).toBe(200);
-          expect(checkOnServer.data.buffer).toEqual(data.toString("base64"));
-          expect(checkOnServer.data.size).toEqual(data.byteLength);
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          expect(checkOnServer.data.checksum).toEqual(CryptoJS.SHA256(data).toString());
-        }));
+        expect(checkOnServer.status).toBe(200);
+        expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
+        expect(checkOnServer.data.size).toEqual(chunk.byteLength);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        expect(checkOnServer.data.checksum).toEqual(CryptoJS.SHA256(chunk).toString());
       });
 
       it("finishes the file upload", async () => {
@@ -226,87 +228,91 @@ describe("Chunked Message upload", () => {
       it("fails when totalChunks is less than chunks in server", async () => {
         const chunksToUpload = chunkedFile.slice(0, 50);
         const auxMessageId = `${messageId}_failed-chunks--lesser`;
-        // upload
-        await Promise.all(chunksToUpload.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-            chunkNumber: index,
-            data: data.toString("base64"),
+        try {
+          // upload
+          await Promise.all(chunksToUpload.map(async (data, index) => {
+            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+              chunkNumber: index,
+              data: data.toString("base64"),
+            });
+
+            return req;
+          }));
+
+          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
+            totalChunks: chunksToUpload.length + 10,
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
           });
 
-          return req;
-        }));
-
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunksToUpload.length + 10,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256(chunksToUpload).toString(),
-        }, {
-          validateStatus(status: number) {
-            return status >= 200 && status < 600;
-          },
-        });
-
-        expect(req.status).toBe(400);
-        expect(req.data.message).toContain("File on server is incomplete, try uploading again");
+          fail("should have not continued");
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            expect(error.response?.status).toBe(400);
+            expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
+          }
+        }
       });
 
       it("fails when totalChunks is larger than chunks in server", async () => {
         const chunksToUpload = chunkedFile.slice(0, 50);
         const auxMessageId = `${messageId}_failed-chunks--larger`;
+        try {
+          // upload
+          await Promise.all(chunksToUpload.map(async (data, index) => {
+            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+              chunkNumber: index,
+              data: data.toString("base64"),
+            });
 
-        // upload
-        await Promise.all(chunksToUpload.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-            chunkNumber: index,
-            data: data.toString("base64"),
+            return req;
+          }));
+
+          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
+            totalChunks: chunksToUpload.length - 10,
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
           });
 
-          return req;
-        }));
-
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunksToUpload.length - 10,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256(chunksToUpload).toString(),
-        }, {
-          validateStatus(status: number) {
-            return status >= 200 && status < 600;
-          },
-        });
-
-        expect(req.status).toBe(400);
-        expect(req.data.message).toContain("File on server is larger, try uploading again");
+          fail("should have not continued");
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            expect(error.response?.status).toBe(400);
+            expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
+          }
+        }
       });
 
       it("fails when the checksum is different than the one expected on server", async () => {
         const chunksToUpload = chunkedFile.slice(0, 50);
         const auxMessageId = `${messageId}_failed-checksum`;
+        try {
+          // upload
+          await Promise.all(chunksToUpload.map(async (data, index) => {
+            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+              chunkNumber: index,
+              data: data.toString("base64"),
+            });
 
-        // upload
-        await Promise.all(chunksToUpload.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-            chunkNumber: index,
-            data: data.toString("base64"),
+            return req;
+          }));
+
+          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
+            totalChunks: chunksToUpload.length,
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            checksum: CryptoJS.SHA256("fake-checksum-that-is-not-right").toString(),
           });
 
-          return req;
-        }));
-
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunksToUpload.length,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256("fake-checksum-that-is-not-right").toString(),
-        }, {
-          validateStatus(status: number) {
-            return status >= 200 && status < 600;
-          },
-        });
-
-        expect(req.status).toBe(400);
-        expect(req.data.message).toContain("File checksum on server is different than provided by client");
+          fail("should have not continued");
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            expect(error.response?.status).toBe(400);
+            expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
+          }
+        }
       });
     });
   });
@@ -326,22 +332,23 @@ describe("Chunked Message upload", () => {
 
     describe("under normal conditions", () => {
       it("uploads a chunk correctly", async () => {
-        await Promise.all(chunkedFile.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${`${messageId}_chunks-test`}/chunk`, {
-            chunkNumber: index,
-            data: data.toString("base64"),
-          });
-          expect(req.status).toBe(200);
+        const auxMessageId = `${messageId}_chunks-test`;
+        const chunkNumber = 0;
+        const chunk = chunkedFile[chunkNumber];
+        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+          chunkNumber,
+          data: chunk.toString("base64"),
+        });
+        expect(req.status).toBe(200);
 
-          const checkOnServer = await axios.get(`${process.env["check-efs-endpoint"] as string}/${`${messageId}_chunks-test`}/${index}`);
+        const checkOnServer = await axios.get(`${process.env["check-efs-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
 
-          expect(checkOnServer.status).toBe(200);
-          expect(checkOnServer.data.buffer).toEqual(data.toString("base64"));
-          expect(checkOnServer.data.size).toEqual(data.byteLength);
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          expect(checkOnServer.data.checksum).toEqual(CryptoJS.SHA256(data).toString());
-        }));
+        expect(checkOnServer.status).toBe(200);
+        expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
+        expect(checkOnServer.data.size).toEqual(chunk.byteLength);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        expect(checkOnServer.data.checksum).toEqual(CryptoJS.SHA256(chunk).toString());
       });
 
       it("finishes the file upload", async () => {
@@ -371,90 +378,91 @@ describe("Chunked Message upload", () => {
       it("fails when totalChunks is less than chunks in server", async () => {
         const chunksToUpload = chunkedFile.slice(0, 50);
         const auxMessageId = `${messageId}_failed-chunks--lesser`;
-        // upload
-        await Promise.all(chunksToUpload.map(async (data, index) => {
-          const req = await backoff(
-            () => axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+        try {
+          // upload
+          await Promise.all(chunksToUpload.map(async (data, index) => {
+            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
               chunkNumber: index,
               data: data.toString("base64"),
-            }),
-            (res) => res.status === 200,
-          );
+            });
 
-          return req;
-        }));
+            return req;
+          }));
 
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunksToUpload.length + 10,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256(chunksToUpload).toString(),
-        }, {
-          validateStatus(status: number) {
-            return status >= 200 && status < 600;
-          },
-        });
+          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
+            totalChunks: chunksToUpload.length + 10,
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
+          });
 
-        expect(req.status).toBe(400);
-        expect(req.data.message).toContain("File on server is incomplete, try uploading again");
+          fail("should have not continued");
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            expect(error.response?.status).toBe(400);
+            expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
+          }
+        }
       });
 
       it("fails when totalChunks is larger than chunks in server", async () => {
         const chunksToUpload = chunkedFile.slice(0, 50);
         const auxMessageId = `${messageId}_failed-chunks--larger`;
+        try {
+          // upload
+          await Promise.all(chunksToUpload.map(async (data, index) => {
+            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+              chunkNumber: index,
+              data: data.toString("base64"),
+            });
 
-        // upload
-        await Promise.all(chunksToUpload.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-            chunkNumber: index,
-            data: data.toString("base64"),
+            return req;
+          }));
+
+          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
+            totalChunks: chunksToUpload.length - 10,
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
           });
 
-          return req;
-        }));
-
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunksToUpload.length - 10,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256(chunksToUpload).toString(),
-        }, {
-          validateStatus(status: number) {
-            return status >= 200 && status < 600;
-          },
-        });
-
-        expect(req.status).toBe(400);
-        expect(req.data.message).toContain("File on server is larger, try uploading again");
+          fail("should have not continued");
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            expect(error.response?.status).toBe(400);
+            expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
+          }
+        }
       });
 
       it("fails when the checksum is different than the one expected on server", async () => {
         const chunksToUpload = chunkedFile.slice(0, 50);
         const auxMessageId = `${messageId}_failed-checksum`;
+        try {
+          // upload
+          await Promise.all(chunksToUpload.map(async (data, index) => {
+            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+              chunkNumber: index,
+              data: data.toString("base64"),
+            });
 
-        // upload
-        await Promise.all(chunksToUpload.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-            chunkNumber: index,
-            data: data.toString("base64"),
+            return req;
+          }));
+
+          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
+            totalChunks: chunksToUpload.length,
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            checksum: CryptoJS.SHA256("fake-checksum-that-is-not-right").toString(),
           });
 
-          return req;
-        }));
-
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunksToUpload.length,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256("fake-checksum-that-is-not-right").toString(),
-        }, {
-          validateStatus(status: number) {
-            return status >= 200 && status < 600;
-          },
-        });
-
-        expect(req.status).toBe(400);
-        expect(req.data.message).toContain("File checksum on server is different than provided by client");
+          fail("should have not continued");
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            expect(error.response?.status).toBe(400);
+            expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
+          }
+        }
       });
     });
   });

@@ -41,7 +41,7 @@ export class MessagesController extends BaseController implements MessagesContro
             chunkData: data,
           },
         };
-        return this.generateSuccessResponse(response);
+        return this.generateCreatedResponse(response);
       } catch (error: unknown) {
         this.loggerService.error("error in chunkUpload: Error in append chunk to this file", { error, request: { messageId, chunkNumber, data } }, this.constructor.name);
         const errorResponse: ChunkUploadResponse = {
@@ -53,7 +53,7 @@ export class MessagesController extends BaseController implements MessagesContro
           },
         };
 
-        return this.generateAcceptedResponse(errorResponse);
+        return this.generateSuccessResponse(errorResponse);
       }
     } catch (error: unknown) {
       this.loggerService.error("error in chunkUpload", { error, request }, this.constructor.name);
