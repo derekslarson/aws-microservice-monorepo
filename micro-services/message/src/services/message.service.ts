@@ -16,7 +16,7 @@ export class MessageService implements MessageServiceInterface {
 
   public async processChunk(params: ProcessChunkInput): Promise<void> {
     try {
-      this.loggerService.trace("called processChunk ", { params }, this.constructor.name);
+      this.loggerService.trace("processChunk called", { params }, this.constructor.name);
 
       const dir = await this.messageEFSRepository.makeDirectory({ name: params.messageId });
       await this.messageEFSRepository.addMessageChunk({ path: dir.path, chunkData: params.chunkData, chunkNumber: params.chunkNumber });
@@ -28,7 +28,7 @@ export class MessageService implements MessageServiceInterface {
 
   public async saveMessage(params: SaveMessageInput): Promise<SaveMessageOutput> {
     try {
-      this.loggerService.trace("called saveMessage ", { params }, this.constructor.name);
+      this.loggerService.trace("saveMessage called", { params }, this.constructor.name);
       const fileDirectoryContent = await this.messageEFSRepository.readDirectory({ name: params.messageId });
 
       if (fileDirectoryContent?.children && (fileDirectoryContent.children.length < params.totalChunks)) {
