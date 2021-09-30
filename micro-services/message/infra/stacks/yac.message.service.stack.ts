@@ -55,8 +55,22 @@ export class YacMessageService extends YacHttpServiceStack {
     };
 
     // vpc
+<<<<<<< HEAD
     const vpc = new EC2.Vpc(this, "VPC");
     // TODO: create a security group where all ingress NFS comes from the Subnet where all the lambdas that want to consume EFS will be deployed
+=======
+    const vpc = new EC2.Vpc(this, `Vpc_${id}`, {
+      subnetConfiguration: [ { name: "main", subnetType: EC2.SubnetType.ISOLATED } ],
+      gatewayEndpoints: { [`S3GatewayEndpoint_${id}`]: { service: { name: `com.amazonaws.${this.region}.s3` } } },
+    });
+
+    new S3.CfnAccessPoint(this, `VpcMessageBucketAccessPoint_${id}`, {
+      bucket: bucket.bucketName,
+      name: `access-point-${id.toLowerCase().replace("_", "-")}`,
+      vpcConfiguration: { vpcId: vpc.vpcId },
+    });
+
+>>>>>>> a6b9382a0e8841f5de0502e985eca52175b4ac77
     const fileSystem = new EFS.FileSystem(this, "Efs", { vpc, removalPolicy: CDK.RemovalPolicy.DESTROY });
 
     // create a new access point from the filesystem
