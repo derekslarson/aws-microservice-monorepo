@@ -5,6 +5,7 @@ import axios from "axios";
 import CryptoJS from "crypto-js";
 import { Message } from "@yac/util";
 import { checkFileOnS3, getMessageFile, separateBufferIntoChunks } from "../utils";
+import { backoff } from "../../../../e2e/util";
 
 // import { createRandomCognitoUser, getAccessTokenByEmail } from "../../../../e2e/util";
 const mockMessageId: Message["id"] = "message-mock-123";
@@ -40,7 +41,7 @@ describe("Chunked Message upload", () => {
         });
         expect(req.status).toBe(201);
 
-        const checkOnServer = await axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
+        const checkOnServer = await backoff(() => axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`), (res) => res.status === 200 || res.status === 404);
 
         expect(checkOnServer.status).toBe(200);
         expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
@@ -101,9 +102,12 @@ describe("Chunked Message upload", () => {
 
           fail("should have not continued");
         } catch (error: unknown) {
-          if (axios.isAxiosError(error)) {
+          if (axios.isAxiosError(error) && error.response) {
             expect(error.response?.status).toBe(400);
             expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
+          } else {
+            console.log({ error });
+            fail("error is not the expected one");
           }
         }
       });
@@ -131,9 +135,12 @@ describe("Chunked Message upload", () => {
 
           fail("should have not continued");
         } catch (error: unknown) {
-          if (axios.isAxiosError(error)) {
+          if (axios.isAxiosError(error) && error.response) {
             expect(error.response?.status).toBe(400);
             expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
+          } else {
+            console.log({ error });
+            fail("error is not the expected one");
           }
         }
       });
@@ -161,9 +168,12 @@ describe("Chunked Message upload", () => {
 
           fail("should have not continued");
         } catch (error: unknown) {
-          if (axios.isAxiosError(error)) {
+          if (axios.isAxiosError(error) && error.response) {
             expect(error.response?.status).toBe(400);
             expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
+          } else {
+            console.log({ error });
+            fail("error is not the expected one");
           }
         }
       });
@@ -201,7 +211,7 @@ describe("Chunked Message upload", () => {
         });
         expect(req.status).toBe(201);
 
-        const checkOnServer = await axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
+        const checkOnServer = await backoff(() => axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`), (res) => res.status === 200 || res.status === 404);
 
         expect(checkOnServer.status).toBe(200);
         expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
@@ -262,9 +272,12 @@ describe("Chunked Message upload", () => {
 
           fail("should have not continued");
         } catch (error: unknown) {
-          if (axios.isAxiosError(error)) {
+          if (axios.isAxiosError(error) && error.response) {
             expect(error.response?.status).toBe(400);
             expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
+          } else {
+            console.log({ error });
+            fail("error is not the expected one");
           }
         }
       });
@@ -292,9 +305,12 @@ describe("Chunked Message upload", () => {
 
           fail("should have not continued");
         } catch (error: unknown) {
-          if (axios.isAxiosError(error)) {
+          if (axios.isAxiosError(error) && error.response) {
             expect(error.response?.status).toBe(400);
             expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
+          } else {
+            console.log({ error });
+            fail("error is not the expected one");
           }
         }
       });
@@ -322,9 +338,12 @@ describe("Chunked Message upload", () => {
 
           fail("should have not continued");
         } catch (error: unknown) {
-          if (axios.isAxiosError(error)) {
+          if (axios.isAxiosError(error) && error.response) {
             expect(error.response?.status).toBe(400);
             expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
+          } else {
+            console.log({ error });
+            fail("error is not the expected one");
           }
         }
       });
@@ -362,7 +381,7 @@ describe("Chunked Message upload", () => {
         });
         expect(req.status).toBe(201);
 
-        const checkOnServer = await axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
+        const checkOnServer = await backoff(() => axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`), (res) => res.status === 200 || res.status === 404);
 
         expect(checkOnServer.status).toBe(200);
         expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
@@ -419,9 +438,12 @@ describe("Chunked Message upload", () => {
 
           fail("should have not continued");
         } catch (error: unknown) {
-          if (axios.isAxiosError(error)) {
+          if (axios.isAxiosError(error) && error.response) {
             expect(error.response?.status).toBe(400);
             expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
+          } else {
+            console.log({ error });
+            fail("error is not the expected one");
           }
         }
       });
@@ -449,9 +471,12 @@ describe("Chunked Message upload", () => {
 
           fail("should have not continued");
         } catch (error: unknown) {
-          if (axios.isAxiosError(error)) {
+          if (axios.isAxiosError(error) && error.response) {
             expect(error.response?.status).toBe(400);
             expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
+          } else {
+            console.log({ error });
+            fail("error is not the expected one");
           }
         }
       });
@@ -479,9 +504,12 @@ describe("Chunked Message upload", () => {
 
           fail("should have not continued");
         } catch (error: unknown) {
-          if (axios.isAxiosError(error)) {
+          if (axios.isAxiosError(error) && error.response) {
             expect(error.response?.status).toBe(400);
             expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
+          } else {
+            console.log({ error });
+            fail("error is not the expected one");
           }
         }
       });
