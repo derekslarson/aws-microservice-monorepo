@@ -55,7 +55,17 @@ export class YacMessageService extends YacHttpServiceStack {
     };
 
     // vpc
-    const vpc = new EC2.Vpc(this, "VPC");
+    const vpc = new EC2.Vpc(this, `Vpc_${id}`, {
+      subnetConfiguration: [ { name: "main", subnetType: EC2.SubnetType.ISOLATED } ],
+      gatewayEndpoints: { [`S3GatewayEndpoint_${id}`]: { service: { name: `com.amazonaws.${this.region}.s3` } } },
+    });
+
+    new S3.CfnAccessPoint(this, `VpcMessageBucketAccessPoint_${id}`, {
+      bucket: bucket.bucketName,
+      name: `access-point-${id.toLowerCase().replace("_", "-")}`,
+      vpcConfiguration: { vpcId: vpc.vpcId },
+    });
+
     const fileSystem = new EFS.FileSystem(this, "Efs", { vpc, removalPolicy: CDK.RemovalPolicy.DESTROY });
 
     // create a new access point from the filesystem
