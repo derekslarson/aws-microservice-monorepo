@@ -2,6 +2,7 @@
   "name": "@yac/message-testing",
   "version": "0.1.0",
   "scripts": {
+    "predeploy:local": "source ../../../../.env",
     "build:local": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.dev.js && yarn build:layer",
     "build:dev": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.dev.js && yarn build:layer",
     "build:stage": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.release.js && yarn build:layer",
@@ -42,6 +43,7 @@
   "dependencies": {
     "@types/crypto-js": "^4.0.2",
     "aws-sdk": "^2.783.0",
-    "crypto-js": "^4.1.1"
+    "crypto-js": "^4.1.1",
+    "rmfr": "^2.0.0"
   }
 }

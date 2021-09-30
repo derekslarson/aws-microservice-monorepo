@@ -1,4 +1,5 @@
 export const SSMParameterNames = {
-  ChunkedUploadsVPCSecurityGroupId: "chunkedUploadsVPCSecurityGroupId",
+  ChunkedUploadsLambdaSecurityGroupId: "chunkedUploadsLambdaSecurityGroupId",
+  ChunkedUploadsFileSystemSecurityGroupId: "chunkedUploadsFileSystemSecurityGroupId",
   ChunkedUploadsVPCId: "chunkedUploadsVPCId",
 };

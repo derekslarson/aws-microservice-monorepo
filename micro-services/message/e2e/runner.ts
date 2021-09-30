@@ -16,7 +16,7 @@ if (!environment) {
 
 const requiredParams = [
   "raw-message-s3-bucket-name",
-  "check-efs-endpoint",
+  "message-testing-utils-endpoint",
 ];
 
 (async () => {

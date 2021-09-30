@@ -67,10 +67,22 @@ export class YacMessageService extends YacHttpServiceStack {
       vpcConfiguration: { vpcId: vpc.vpcId },
     });
 
-    const fileSystem = new EFS.FileSystem(this, "Efs", { vpc, removalPolicy: CDK.RemovalPolicy.DESTROY });
+    const lambdaSecurityGroup = new EC2.SecurityGroup(this, `LambdaSecurityGroup_${id}`, {
+      vpc,
+      allowAllOutbound: true,
+      description: `Security Rule to deploy all lambdas that wanna have access to MessageEFS_${id} instance`,
+    });
+
+    const fileSystemSecurityGroup = new EC2.SecurityGroup(this, `EFSSecurityGroup_${id}`, {
+      vpc,
+      allowAllOutbound: true,
+    });
+    fileSystemSecurityGroup.addIngressRule(lambdaSecurityGroup, EC2.Port.tcp(2049), "for any member of LambdaSecurityGroup");
+
+    const fileSystem = new EFS.FileSystem(this, `MessageEFS_${id}`, { vpc, removalPolicy: CDK.RemovalPolicy.DESTROY, securityGroup: fileSystemSecurityGroup });
 
     // create a new access point from the filesystem
-    const accessPoint = fileSystem.addAccessPoint("AccessPoint", {
+    const accessPoint = fileSystem.addAccessPoint(`AccessPoint_${id}`, {
       // set /export/lambda as the root of the access point
       path: "/export/lambda",
       // as /export/lambda does not exist in a new efs filesystem, the efs will create the directory with the following createAcl
@@ -88,7 +100,7 @@ export class YacMessageService extends YacHttpServiceStack {
 
     const FSAccessPoint = Lambda.FileSystem.fromEfsAccessPoint(accessPoint, mountedPath);
 
-    const uploadMessageChunkFileHandler = new Lambda.Function(this, "UploadMessageChunkHandler", {
+    const uploadMessageChunkFileHandler = new Lambda.Function(this, `UploadMessageChunkHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/chunkUpload"),
       handler: "chunkUpload.handler",
@@ -101,7 +113,7 @@ export class YacMessageService extends YacHttpServiceStack {
       filesystem: FSAccessPoint,
     });
 
-    const finishChunkUploadHandler = new Lambda.Function(this, "FinishChunkUploadHandler", {
+    const finishChunkUploadHandler = new Lambda.Function(this, `FinishChunkUploadHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/finishChunkUpload"),
       handler: "finishChunkUpload.handler",
@@ -131,32 +143,33 @@ export class YacMessageService extends YacHttpServiceStack {
 
     routes.forEach((route) => httpApi.addRoute(route));
 
-    new CDK.CfnOutput(this, `ChunkedUploadsFSId_Export${id}`, {
+    new CDK.CfnOutput(this, `ChunkedUploadsFSIdExport_${id}`, {
       exportName: ExportNames.ChunkedUploadsFSId,
       value: fileSystem.fileSystemId,
     });
 
-    new CDK.CfnOutput(this, `ChunkedUploadsFSAccessPointId_Export${id}`, {
+    new CDK.CfnOutput(this, `ChunkedUploadsFSAccessPointIdExport_${id}`, {
       exportName: ExportNames.ChunkedUploadsFSAccessPointId,
       value: accessPoint.accessPointId,
     });
 
-    new CDK.CfnOutput(this, `ChunkedUploadsFSAccessPath_Export${id}`, {
+    new CDK.CfnOutput(this, `ChunkedUploadsFSAccessPathExport_${id}`, {
       exportName: ExportNames.ChunkedUploadsFSMountedPath,
       value: mountedPath,
     });
 
-    new CDK.CfnOutput(this, `ChunkedUploadsVPCId_Export${id}`, {
+    new CDK.CfnOutput(this, `ChunkedUploadsVPCIdExport_${id}`, {
       exportName: ExportNames.ChunkedUploadsVPCId,
       value: vpc.vpcId,
     });
 
-    new CDK.CfnOutput(this, `ChunkedUploadsVPCAvailabilityZone_Export${id}`, {
+    new CDK.CfnOutput(this, `ChunkedUploadsVPCAvailabilityZoneExport_${id}`, {
       exportName: ExportNames.ChunkedUploadsVPCAvailabilityZone,
       value: vpc.availabilityZones.join(","),
     });
 
-    new SSM.StringParameter(this, "ChunkedUploadsVPCSecurityGroupId", { stringValue: vpc.vpcDefaultSecurityGroup, parameterName: SSMParameterNames.ChunkedUploadsVPCSecurityGroupId });
-    new SSM.StringParameter(this, "ChunkedUploadsVPCId", { stringValue: vpc.vpcId, parameterName: SSMParameterNames.ChunkedUploadsVPCId });
+    new SSM.StringParameter(this, `ChunkedUploadsLambdaSecurityGroupId_${id}`, { stringValue: lambdaSecurityGroup.securityGroupId, parameterName: SSMParameterNames.ChunkedUploadsLambdaSecurityGroupId });
+    new SSM.StringParameter(this, `ChunkedUploadsFileSystemSecurityGroupId_${id}`, { stringValue: fileSystemSecurityGroup.securityGroupId, parameterName: SSMParameterNames.ChunkedUploadsFileSystemSecurityGroupId });
+    new SSM.StringParameter(this, `ChunkedUploadsVPCId_${id}`, { stringValue: vpc.vpcId, parameterName: SSMParameterNames.ChunkedUploadsVPCId });
   }
 }

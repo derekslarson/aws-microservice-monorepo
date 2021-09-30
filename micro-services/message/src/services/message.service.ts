@@ -44,7 +44,7 @@ export class MessageService implements MessageServiceInterface {
       const finalFile = await this.messageEFSRepository.getMessageFile({ name: params.messageId, path: fileDirectoryContent.path, format });
 
       if (finalFile.meta.checksum !== params.checksum) {
-        this.loggerService.error("checksums", { client: params.checksum, server: finalFile.meta.checksum }, this.constructor.name);
+        this.loggerService.error("Error in saveMessage: checksums are different", { client: params.checksum, server: finalFile.meta.checksum }, this.constructor.name);
         await this.messageEFSRepository.deleteDirectory({ name: params.messageId });
         throw new BadRequestError("File checksum on server is different than provided by client");
       }

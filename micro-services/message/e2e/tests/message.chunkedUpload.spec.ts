@@ -22,6 +22,13 @@ describe("Chunked Message upload", () => {
       chunkedFile = separateBufferIntoChunks(file, 5000);
     });
 
+    afterAll(async () => {
+      await Promise.allSettled([
+        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_chunks-test`),
+        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_finish-test`),
+      ]);
+    });
+
     describe("under normal conditions", () => {
       it("uploads a chunk correctly", async () => {
         const auxMessageId = `${messageId}_chunks-test`;
@@ -31,9 +38,9 @@ describe("Chunked Message upload", () => {
           chunkNumber,
           data: chunk.toString("base64"),
         });
-        expect(req.status).toBe(200);
+        expect(req.status).toBe(201);
 
-        const checkOnServer = await axios.get(`${process.env["check-efs-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
+        const checkOnServer = await axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
 
         expect(checkOnServer.status).toBe(200);
         expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
@@ -176,6 +183,13 @@ describe("Chunked Message upload", () => {
       chunkedFile = separateBufferIntoChunks(file, 5000);
     });
 
+    afterAll(async () => {
+      await Promise.allSettled([
+        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_chunks-test`),
+        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_finish-test`),
+      ]);
+    });
+
     describe("under normal conditions", () => {
       it("uploads a chunk correctly", async () => {
         const auxMessageId = `${messageId}_chunks-test`;
@@ -185,9 +199,9 @@ describe("Chunked Message upload", () => {
           chunkNumber,
           data: chunk.toString("base64"),
         });
-        expect(req.status).toBe(200);
+        expect(req.status).toBe(201);
 
-        const checkOnServer = await axios.get(`${process.env["check-efs-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
+        const checkOnServer = await axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
 
         expect(checkOnServer.status).toBe(200);
         expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
@@ -330,6 +344,13 @@ describe("Chunked Message upload", () => {
       chunkedFile = separateBufferIntoChunks(file, 5000);
     });
 
+    afterAll(async () => {
+      await Promise.allSettled([
+        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_chunks-test`),
+        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_finish-test`),
+      ]);
+    });
+
     describe("under normal conditions", () => {
       it("uploads a chunk correctly", async () => {
         const auxMessageId = `${messageId}_chunks-test`;
@@ -339,9 +360,9 @@ describe("Chunked Message upload", () => {
           chunkNumber,
           data: chunk.toString("base64"),
         });
-        expect(req.status).toBe(200);
+        expect(req.status).toBe(201);
 
-        const checkOnServer = await axios.get(`${process.env["check-efs-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
+        const checkOnServer = await axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`);
 
         expect(checkOnServer.status).toBe(200);
         expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
