@@ -4,8 +4,8 @@ import { BaseController, Request, Response, LoggerServiceInterface, ValidationSe
 
 import { TYPES } from "../inversion-of-control/types";
 import { MessageServiceInterface } from "../services/message.service";
-import { MessageChunkUploadDto } from "../models/message.chunkUpload.dto";
-import { MessageFinishUploadDto } from "../models/message.finishUpload.dto";
+import { MessageChunkUploadDto } from "../dtos/message.chunkUpload.dto";
+import { MessageFinishUploadDto } from "../dtos/message.finishUpload.dto";
 
 @injectable()
 export class MessagesController extends BaseController implements MessagesControllerInterface {
