@@ -11,14 +11,14 @@ const MESSAGE_FILE_PATHS = {
   MP4: path.resolve(currentPath, "assets", "message.mp4"),
 };
 
-export async function checkFileOnS3(name: string): Promise<S3.GetObjectOutput> {
+export function checkFileOnS3(name: string): Promise<S3.GetObjectOutput> {
   return s3.getObject({
     Bucket: process.env["raw-message-s3-bucket-name"] as string,
     Key: name,
   }).promise();
 }
 
-export async function getMessageFile(format: "MP4" | "WEBM" | "MP3"): Promise<Buffer> {
+export function getMessageFile(format: "MP4" | "WEBM" | "MP3"): Promise<Buffer> {
   return fs.promises.readFile(MESSAGE_FILE_PATHS[format]);
 }
 
