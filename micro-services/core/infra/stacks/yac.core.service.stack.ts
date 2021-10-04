@@ -23,11 +23,15 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as string;
+    const environment = this.node.tryGetContext("environment") as Environment | undefined;
     const developer = this.node.tryGetContext("developer") as string;
 
     if (!environment) {
       throw new Error("'environment' context param required.");
+    }
+
+    if (!Object.values(Environment).includes(environment)) {
+      throw new Error("'environment' context param malformed.");
     }
 
     const stackPrefix = environment === Environment.Local ? developer : environment;
@@ -98,14 +102,21 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       sortKey: { name: "gsi3sk", type: DynamoDB.AttributeType.STRING },
     });
 
+    const openSearchInstanceTypeMap: Record<Environment, string> = {
+      [Environment.Local]: "t3.small.search",
+      [Environment.Dev]: "t3.medium.search",
+      [Environment.Stage]: "t3.medium.search",
+      [Environment.Prod]: "m6g.2xlarge.search",
+    };
+
     // OpenSearch Domain
     const openSearchDomain = new OpenSearch.Domain(this, `OpenSearchDomain_${id}`, {
       version: OpenSearch.Version.V1_0,
       domainName: id.toLowerCase(),
       capacity: {
-        masterNodeInstanceType: "t3.small.search",
+        masterNodeInstanceType: openSearchInstanceTypeMap[environment],
         masterNodes: 2,
-        dataNodeInstanceType: "t3.small.search",
+        dataNodeInstanceType: openSearchInstanceTypeMap[environment],
         dataNodes: 1,
       },
       ebs: {
