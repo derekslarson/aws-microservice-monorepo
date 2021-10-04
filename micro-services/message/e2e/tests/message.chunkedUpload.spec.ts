@@ -31,7 +31,7 @@ describe("Chunked Message upload", () => {
     });
 
     describe("under normal conditions", () => {
-      fit("uploads a chunk correctly", async () => {
+      it("uploads a chunk correctly", async () => {
         const auxMessageId = `${messageId}_chunks-test`;
         const chunkNumber = 0;
         const chunk = chunkedFile[chunkNumber];
