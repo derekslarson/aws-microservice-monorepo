@@ -22,5 +22,7 @@
 **/compiled_e2e_tests
 
 .DS_Store
+**/.DS_Store
 
 .env
+**/.env

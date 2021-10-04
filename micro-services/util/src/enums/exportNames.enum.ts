@@ -34,6 +34,12 @@ const ExportNames = {
   MessageS3BucketArn: "messageS3BucketArn",
   RawMessageS3BucketArn: "rawMessageS3BucketArn",
   EnhancedMessageS3BucketArn: "enhancedMessageS3BucketArn",
+  ChunkedUploadsFSId: "chunkedUploadsFSId",
+  ChunkedUploadsFSAccessPointId: "chunkedUploadsFsAccesPointId",
+  ChunkedUploadsFSMountedPath: "chunkedUploadsFSMountedPath",
+  ChunkedUploadsVPCId: "chunkedUploadsVPCId",
+  ChunkedUploadsVPCAvailabilityZone: "chunkedUploadsVPCAvailabilityZones",
+  ChunkedUploadsVPCSecurityGroupSSM: "chunkedUploadsVPCSecurityGroupSSM",
 };
 
 export function generateExportNames(id: string): Readonly<typeof ExportNames> {

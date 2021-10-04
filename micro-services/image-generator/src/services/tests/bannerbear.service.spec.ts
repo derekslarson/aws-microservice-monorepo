@@ -34,7 +34,7 @@ const mockImageTask: () => Task<"IMAGE"> = () => ({
     templateParameters: {
       username: "@atest",
       user_image: "image.com",
-      channel: "#channel-name",
+      channel: "channel-name",
       subject: "Test subject",
     },
   },
@@ -46,7 +46,7 @@ const mockGif2VideoTask: () => Task<"GIF2VIDEO"> = () => ({
     source: mockImageSourceUrl,
     templateParameters: {
       username: "@atest",
-      channel: "#channel-name",
+      channel: "channel-name",
       subject: "Test subject",
     },
   },
@@ -57,7 +57,7 @@ const mockImageModifications = [ {
   text: "@atest",
 }, {
   name: "channel",
-  text: "#channel-name",
+  text: "channel-name",
 }, {
   name: "subject",
   text: "Test subject",
@@ -71,7 +71,7 @@ const mockGif2VideoModifications = [ {
   text: "@atest",
 }, {
   name: "channel",
-  text: "#channel-name",
+  text: "channel-name",
 }, {
   name: "subject",
   text: "Test subject",

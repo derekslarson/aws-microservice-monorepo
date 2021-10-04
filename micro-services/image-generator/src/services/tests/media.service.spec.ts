@@ -22,7 +22,7 @@ const mockTaskFactory = (message: Record<string, string | number | null | Record
     templateParameters: {
       username: message.isForwarded ? `@${message.actualMessageSenderName as string}` : `@${message.usernameFrom as string}`,
       ...(message.type === "AUDIO" ? { user_image: message.profileImageFrom } : {}),
-      channel: message.isGroup ? `#${message.profileNameTo as string}` as `#${string}` : undefined,
+      channel: message.isGroup ? `${message.profileNameTo as string}` : undefined,
       subject: (message.subject as string).length > 32 ? `${(message.subject as string).slice(0, 32)}...` : message.subject || undefined,
     },
   },
