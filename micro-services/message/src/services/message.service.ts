@@ -35,11 +35,14 @@ export class MessageService implements MessageServiceInterface {
         this.loggerService.trace("fileDirectoryContent", { fileDirectoryContent, count: fileDirectoryContent.children.length }, this.constructor.name);
         await this.messageEFSRepository.deleteDirectory({ name: params.messageId });
         throw new BadRequestError("File on server is incomplete, try uploading again");
-      } else if (fileDirectoryContent?.children && (fileDirectoryContent.children.length > params.totalChunks)) {
+      }
+
+      if (fileDirectoryContent?.children && (fileDirectoryContent.children.length > params.totalChunks)) {
         this.loggerService.trace("fileDirectoryContent", { fileDirectoryContent, count: fileDirectoryContent.children.length }, this.constructor.name);
         await this.messageEFSRepository.deleteDirectory({ name: params.messageId });
         throw new BadRequestError("File on server is larger, try uploading again");
       }
+
       const format = params.contentType.split("/")[1];
       const finalFile = await this.messageEFSRepository.getMessageFile({ name: params.messageId, path: fileDirectoryContent.path, format });
 
