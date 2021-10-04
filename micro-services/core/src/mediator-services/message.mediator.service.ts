@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable no-nested-ternary */
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, MessageUploadTokenServiceInterface } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
 import { MessageServiceInterface, Message as MessageEntity } from "../entity-services/message.service";
@@ -30,7 +30,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
-    @inject(TYPES.MessageUploadTokenServiceInterface) private messageUploadTokenService: MessageUploadTokenServiceInterface,
   ) {}
 
   public async createFriendMessage(params: CreateFriendMessageInput): Promise<CreateFriendMessageOutput> {
@@ -47,18 +46,13 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
-      const [ { users: [ toUser, fromUser ] }, { token: chunkedUploadToken } ] = await Promise.all([
-        this.userService.getUsers({ userIds: [ to, from ] }),
-        this.messageUploadTokenService.generateToken({ messageId, mimeType }),
-      ]);
-
+      const { users: [ toUser, fromUser ] } = await this.userService.getUsers({ userIds: [ to, from ] });
       const pendingMessage = {
         ...restOfPendingMessageEntity,
         to: toUser,
         from: fromUser,
         type: ConversationType.Friend,
         id: messageId,
-        chunkedUploadToken,
       };
 
       return { pendingMessage };
@@ -81,10 +75,9 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
-      const [ { conversation: toGroup }, { user: fromUser }, { token: chunkedUploadToken } ] = await Promise.all([
+      const [ { conversation: toGroup }, { user: fromUser } ] = await Promise.all([
         this.conversationService.getConversation({ conversationId: groupId }),
         this.userService.getUser({ userId: from }),
-        this.messageUploadTokenService.generateToken({ messageId, mimeType }),
       ]);
 
       const pendingMessage = {
@@ -93,7 +86,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         from: fromUser,
         type: ConversationType.Group,
         id: messageId,
-        chunkedUploadToken,
       };
 
       return { pendingMessage };
@@ -116,10 +108,9 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
-      const [ { conversation: toMeeting }, { user: fromUser }, { token: chunkedUploadToken } ] = await Promise.all([
+      const [ { conversation: toMeeting }, { user: fromUser } ] = await Promise.all([
         this.conversationService.getConversation({ conversationId: meetingId }),
         this.userService.getUser({ userId: from }),
-        this.messageUploadTokenService.generateToken({ messageId, mimeType }),
       ]);
 
       const pendingMessage = {
@@ -128,7 +119,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         from: fromUser,
         type: ConversationType.Meeting,
         id: messageId,
-        chunkedUploadToken,
       };
 
       return { pendingMessage };
@@ -563,7 +553,6 @@ export interface PendingMessage extends Omit<PendingMessageEntity, "id" | "conve
   from: User;
   to: To;
   type: ConversationType;
-  chunkedUploadToken: string;
 }
 
 export interface Message extends Omit<MessageEntity, "conversationId" | "from"> {
