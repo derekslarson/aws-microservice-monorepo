@@ -4,7 +4,7 @@ import * as EC2 from "@aws-cdk/aws-ec2";
 import * as EFS from "@aws-cdk/aws-efs";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as Lambda from "@aws-cdk/aws-lambda";
-import { Environment, generateExportNames, SSMParameterNames } from "@yac/util";
+import { Environment, generateExportNames } from "@yac/util";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { HttpMethod } from "@aws-cdk/aws-apigatewayv2";
 
@@ -33,16 +33,14 @@ export class YacMessageTesting extends YacHttpServiceStack {
     const FSAccessPointId = CDK.Fn.importValue(ExportNames.ChunkedUploadsFSAccessPointId);
     const FSMountedPath = CDK.Fn.importValue(ExportNames.ChunkedUploadsFSMountedPath);
     
-    const VPCId = SSM.StringParameter.valueFromLookup(this, SSMParameterNames.ChunkedUploadsVPCId);
-    const FileSystemSecurityGroup = SSM.StringParameter.valueFromLookup(this, SSMParameterNames.ChunkedUploadsFileSystemSecurityGroupId);
-    const LambdaSecurityGroup = SSM.StringParameter.valueFromLookup(this, SSMParameterNames.ChunkedUploadsLambdaSecurityGroupId);
+    const vpcId = SSM.StringParameter.valueFromLookup(this, `/yac-api-v4/${stackPrefix}/chunked-uploads-vpc-id`);
+    const fileSystemSecurityGroupId = SSM.StringParameter.valueFromLookup(this, `/yac-api-v4/${stackPrefix}/chunked-uploads-fs-security-group-id`);
+    const lambdaSecurityGroupId = SSM.StringParameter.valueFromLookup(this, `/yac-api-v4/${stackPrefix}/chunked-uploads-lambda-security-group-id`);
 
-    const vpc = EC2.Vpc.fromLookup(this, `MessageTestVPC_${id}`, {
-      vpcId: VPCId
-    })
+    const vpc = EC2.Vpc.fromLookup(this, `MessageTestVPC_${id}`, { vpcId })
 
-    const securityGroup = EC2.SecurityGroup.fromLookup(this, `FileSystemSecurityGroup_${id}`, FileSystemSecurityGroup);
-    const lambdaSecurityGroup = EC2.SecurityGroup.fromLookup(this, `LambdaSecurityGroup_${id}`, LambdaSecurityGroup);
+    const securityGroup = EC2.SecurityGroup.fromLookup(this, `FileSystemSecurityGroup_${id}`, fileSystemSecurityGroupId);
+    const lambdaSecurityGroup = EC2.SecurityGroup.fromLookup(this, `LambdaSecurityGroup_${id}`, lambdaSecurityGroupId);
     
     const fileSystem = EFS.FileSystem.fromFileSystemAttributes(this, `EFSFileSystem_${id}`, {
       fileSystemId: FSFileSystemId,

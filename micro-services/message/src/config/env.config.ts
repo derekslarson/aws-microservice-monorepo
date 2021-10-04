@@ -3,7 +3,7 @@ import { EnvConfigInterface as BaseEnvConfigInterface, LogLevel } from "@yac/uti
 export const envConfig: EnvConfigInterface = {
   logLevel: process.env.LOG_LEVEL as unknown as LogLevel,
   secret: process.env.SECRET as string,
-  bucketNames: { messages: process.env.MESSAGES_S3_BUCKET as string },
+  bucketNames: { rawMessage: process.env.RAW_MESSAGE_S3_BUCKET_NAME as string },
   fileSystemPath: process.env.EFS_MOUNTED_PATH as string,
 };
 

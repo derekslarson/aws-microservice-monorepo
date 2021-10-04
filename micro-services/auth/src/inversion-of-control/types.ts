@@ -18,7 +18,6 @@ const TYPES = {
   ClientsUpdatedSnsServiceInterface: Symbol.for("ClientsUpdatedSnsServiceInterface"),
 
   CognitoFactory: Symbol.for("CognitoFactory"),
-  CryptoFactory: Symbol.for("CryptoFactory"),
   SesFactory: Symbol.for("SesFactory"),
 };
 

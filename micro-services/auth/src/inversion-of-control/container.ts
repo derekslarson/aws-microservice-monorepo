@@ -9,7 +9,6 @@ import { AuthenticationService, AuthenticationServiceInterface } from "../servic
 import { MailService, MailServiceInterface } from "../services/mail.service";
 
 import { cognitoFactory, CognitoFactory } from "../factories/cognito.factory";
-import { cryptoFactory, CryptoFactory } from "../factories/crypto.factory";
 import { sesFactory, SesFactory } from "../factories/ses.factory";
 import { ClientService, ClientServiceInterface } from "../services/client.service";
 import { ClientController, ClientControllerInterface } from "../controllers/client.controller";
@@ -39,7 +38,6 @@ try {
   container.bind<SnsProcessorServiceInterface>(TYPES.UserCreatedProcessorServiceInterface).to(UserCreatedProcessorService);
 
   container.bind<CognitoFactory>(TYPES.CognitoFactory).toFactory(() => cognitoFactory);
-  container.bind<CryptoFactory>(TYPES.CryptoFactory).toFactory(() => cryptoFactory);
   container.bind<SesFactory>(TYPES.SesFactory).toFactory(() => sesFactory);
 
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([

@@ -1,17 +1,15 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BadRequestError, LoggerServiceInterface, Message, MessageMimeType } from "@yac/util";
-
+import { BadRequestError, LoggerServiceInterface, Message, MessageMimeType, MessageFileRepositoryInterface, FileOperation } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageEFSRepositoryInterface } from "../repositories/message.efs.repository";
-import { MessageS3RepositoryInterface } from "../repositories/message.s3.repository";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MessageEFSRepository) private messageEFSRepository: MessageEFSRepositoryInterface,
-    @inject(TYPES.MessageS3Repository) private messageS3Repository: MessageS3RepositoryInterface,
+    @inject(TYPES.RawMessageFileRepositoryInterface) private rawMessageFileRepository: MessageFileRepositoryInterface,
   ) { }
 
   public async processChunk(params: ProcessChunkInput): Promise<void> {
@@ -53,17 +51,17 @@ export class MessageService implements MessageServiceInterface {
       }
 
       // upload to s3
-      await this.messageS3Repository.uploadFile({
+      await this.rawMessageFileRepository.uploadFile({
         body: finalFile.fileData,
-        contentType: params.contentType,
+        mimeType: params.contentType,
         key: finalFile.name,
       });
 
       const deletionOfFile = this.messageEFSRepository.deleteDirectory({ name: params.messageId });
 
-      const s3Url = this.messageS3Repository.getSignedUrl({
+      const s3Url = this.rawMessageFileRepository.getSignedUrl({
         key: finalFile.name,
-        operation: "getObject",
+        operation: FileOperation.Get,
       });
 
       await deletionOfFile;

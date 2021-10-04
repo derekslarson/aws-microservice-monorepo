@@ -74,10 +74,8 @@
     "@yac/util": "0.1.0",
     "aws-sdk": "^2.783.0",
     "axios": "^0.21.1",
-    "crypto-js": "^4.1.1",
     "inversify": "^5.0.1",
     "reflect-metadata": "^0.1.13",
-    "rmfr": "^2.0.0",
     "runtypes": "6.3.1"
   }
 }

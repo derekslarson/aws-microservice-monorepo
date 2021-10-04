@@ -8,7 +8,6 @@ const TYPES = {
   MessagesService: Symbol.for("MessagesService"),
 
   MessageEFSRepository: Symbol.for("MessageEFSRepository"),
-  MessageS3Repository: Symbol.for("MessageS3Repository"),
 };
 
 export { TYPES };

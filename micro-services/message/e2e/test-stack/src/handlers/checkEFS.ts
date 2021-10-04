@@ -1,7 +1,7 @@
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
 import * as fs from "fs";
 import * as path from "path";
-import CryptoJS from "crypto-js";
+import crypto from "crypto";
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> => {
   try {
@@ -20,8 +20,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       statusCode: 200,
       body: JSON.stringify({
         buffer: data.toString("base64"),
-        //@ts-ignore
-        checksum: CryptoJS.SHA256(data).toString(),
+        checksum: crypto.createHash("sha256").update(data).digest("base64"),
         size: data.byteLength
       })
     }

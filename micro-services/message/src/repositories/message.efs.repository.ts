@@ -1,11 +1,6 @@
 import "reflect-metadata";
-import * as fs from "fs";
-import * as path from "path";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface } from "@yac/util";
-import { SHA256 } from "crypto-js";
-import rmfr from "rmfr";
-
+import { Crypto, CryptoFactory, Fs, FsFactory, LoggerServiceInterface, Path, PathFactory } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { DirectoryIsFilledError } from "../errors/DirectoryIsFilled";
@@ -13,18 +8,35 @@ import { DirectoryExistError } from "../errors/DirectoryExists";
 
 @injectable()
 export class MessageEFSRepository implements MessageEFSRepositoryInterface {
+  private crypto: Crypto;
+
+  private fs: Fs;
+
+  private path: Path;
+
   constructor(
     @inject(TYPES.EnvConfigInterface) private envConfig: MessageEFSRepositoryConfigInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
+    @inject(TYPES.FsFactory) fsFactory: FsFactory,
+    @inject(TYPES.PathFactory) pathFactory: PathFactory,
   ) {
+    this.crypto = cryptoFactory();
+    this.fs = fsFactory();
+    this.path = pathFactory();
   }
 
   public async addMessageChunk(params: AddMessageChunkInput): Promise<void> {
     try {
       this.loggerService.trace("addMessageChunk called", { params }, this.constructor.name);
-      const dataBuffer = Buffer.from(params.chunkData, "base64");
-      const dir = this.chunkFilePath(params.path, params.chunkNumber);
-      await fs.promises.writeFile(dir, dataBuffer);
+
+      const { path, chunkData, chunkNumber } = params;
+
+      const dataBuffer = Buffer.from(chunkData, "base64");
+
+      const dir = this.path.resolve(__dirname, path, `${chunkNumber}.tmp`);
+
+      await this.fs.promises.writeFile(dir, dataBuffer);
     } catch (error: unknown) {
       this.loggerService.error("Error in addMessageChunk", { error, params }, this.constructor.name);
       throw error;
@@ -35,22 +47,24 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
     try {
       this.loggerService.trace("getMessageFile called", { params }, this.constructor.name);
 
-      const dir = path.resolve(__dirname, params.path);
-      const files = await fs.promises.readdir(dir, "utf-8");
-      // const filePath = path.join(dir, `${params.name}_final.${params.format || "tbd"}`);
-      // const writeBuffer = fs.file(filePath, { flags: "a" });
+      const { path, name } = params;
+
+      const dir = this.path.resolve(__dirname, path);
+
+      const fileNames = await this.fs.promises.readdir(dir, "utf-8");
+
       const writeBuffer = [];
 
-      const arrangedFileNames = files.sort((a, b) => {
-        const n1 = Number((a as string).replace(".tmp", ""));
-        const n2 = Number((b as string).replace(".tmp", ""));
+      const arrangedFileNames = fileNames.sort((a: string, b: string) => {
+        const n1 = Number(a.replace(".tmp", ""));
+        const n2 = Number(b.replace(".tmp", ""));
 
         return n1 - n2;
       });
 
       for await (const fileName of arrangedFileNames) {
         if (fileName) {
-          const fileData = await fs.promises.readFile(path.join(dir, `${fileName as string}`));
+          const fileData = await this.fs.promises.readFile(this.path.join(dir, fileName));
           const normalizedData = Buffer.from(fileData.toString("base64"), "base64");
           writeBuffer.push(normalizedData);
         }
@@ -59,14 +73,12 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
       const finalBuffer = Buffer.concat(writeBuffer);
 
       return {
-        path: params.path,
-        name: params.name,
+        path,
+        name,
         fileData: finalBuffer,
         meta: {
-          chunks: files.length,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: SHA256(finalBuffer).toString(),
+          chunks: fileNames.length,
+          checksum: this.crypto.createHash("sha256").update(finalBuffer).digest("base64"),
         },
       };
     } catch (error: unknown) {
@@ -78,19 +90,22 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
   public async readDirectory(params: ReadDirectoryInput): Promise<ReadDirectoryOutput> {
     try {
       this.loggerService.trace("readDirectory called", { params }, this.constructor.name);
-      const dir = path.resolve(__dirname, this.envConfig.fileSystemPath, params.name);
 
-      const dirItems = await fs.promises.readdir(dir);
+      const { name } = params;
+
+      const dir = this.path.resolve(__dirname, this.envConfig.fileSystemPath, name);
+
+      const dirItems = await this.fs.promises.readdir(dir);
 
       if (!dirItems || (dirItems && dirItems.length <= 0)) {
         return {
-          name: params.name,
+          name,
           path: dir,
         };
       }
 
       return {
-        name: params.name,
+        name,
         path: dir,
         children: dirItems,
       };
@@ -103,11 +118,14 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
   public async makeDirectory(params: MakeDirectoryInput): Promise<MakeDirectoryOutput> {
     try {
       this.loggerService.trace("makeDirectory called", { params }, this.constructor.name);
-      const dir = path.resolve(__dirname, this.envConfig.fileSystemPath, params.name);
+
+      const { name } = params;
+
+      const dir = this.path.resolve(__dirname, this.envConfig.fileSystemPath, name);
 
       // check existence
       try {
-        const dirItems = await fs.promises.readdir(dir);
+        const dirItems = await this.fs.promises.readdir(dir);
 
         if (dirItems && dirItems.length > 0) {
           throw new DirectoryIsFilledError();
@@ -117,15 +135,15 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
       } catch (error: unknown) {
         if ((error as Record<string, string>).code === "ENOENT") {
           try {
-            await fs.promises.mkdir(dir);
+            await this.fs.promises.mkdir(dir);
           } catch (error2: unknown) {
-            this.loggerService.info("error in makeDirectory: Error in create `dir`, gracefully continue", { error, params }, this.constructor.name);
+            this.loggerService.info("error in makeDirectory: Error in mkdir, gracefully continue", { error, params }, this.constructor.name);
           }
         }
       }
 
       return {
-        name: params.name,
+        name,
         path: dir,
       };
     } catch (error: unknown) {
@@ -138,20 +156,13 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
     try {
       this.loggerService.trace("deleteDirectory called", { params }, this.constructor.name);
 
-      await rmfr(path.resolve(__dirname, this.envConfig.fileSystemPath, params.name));
+      const { name } = params;
+
+      const dir = this.path.resolve(__dirname, this.envConfig.fileSystemPath, name);
+
+      await this.fs.rmfr(dir);
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteDirectory", { error, params }, this.constructor.name);
-      throw error;
-    }
-  }
-
-  private chunkFilePath(_path: string, n: number): string {
-    try {
-      this.loggerService.trace("filePath called", { path: _path }, this.constructor.name);
-
-      return path.resolve(__dirname, _path, `${n}.tmp`);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in filePath", { error, path: _path }, this.constructor.name);
       throw error;
     }
   }

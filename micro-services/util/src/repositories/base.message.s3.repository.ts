@@ -6,6 +6,8 @@ import {
   HeadObjectInput,
   GetSignedUrlOutput,
   HeadObjectOutput,
+  UploadFileInput,
+  UploadFileOutput,
 } from "./base.s3.repository";
 import { S3Factory } from "../factories/s3.factory";
 import { LoggerServiceInterface } from "../services/logger.service";
@@ -31,6 +33,18 @@ export abstract class BaseMessageS3Repository extends BaseS3Repository implement
     @unmanaged() loggerService: LoggerServiceInterface,
   ) {
     super(bucketName, s3Factory, loggerService);
+  }
+
+  public override uploadFile(params: UploadFileInput): Promise<UploadFileOutput> {
+    try {
+      this.loggerService.trace("uploadFile called", { params }, this.constructor.name);
+
+      return super.uploadFile(params);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in uploadFile", { error, params }, this.constructor.name);
+
+      throw error;
+    }
   }
 
   public override getSignedUrl(params: MessageGetSignedUrlInput): GetSignedUrlOutput {
@@ -97,6 +111,7 @@ export abstract class BaseMessageS3Repository extends BaseS3Repository implement
 }
 
 export interface MessageFileRepositoryInterface {
+  uploadFile(params: UploadFileInput): Promise<UploadFileOutput>;
   getSignedUrl(params: MessageGetSignedUrlInput): GetSignedUrlOutput;
   headObject(params: MessageHeadObjectInput): Promise<HeadObjectOutput>;
 }
