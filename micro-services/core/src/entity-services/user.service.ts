@@ -1,29 +1,37 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
-
+import { FileOperation, IdServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { UserRepositoryInterface, User as UserEntity, UserUpdates } from "../repositories/user.dynamo.repository";
+import { UserRepositoryInterface, User as UserEntity, UserUpdates, RawUser } from "../repositories/user.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
+import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
+import { SearchIndex } from "../enums/searchIndex.enum";
+import { EntityType } from "../enums/entityType.enum";
+import { ImageFileRepositoryInterface } from "../repositories/image.s3.repository";
 
 @injectable()
 export class UserService implements UserServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
+    @inject(TYPES.ImageFileRepositoryInterface) private imageFileRepository: ImageFileRepositoryInterface,
     @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
+    @inject(TYPES.SearchRepositoryInterface) private userSearchRepository: UserSearchRepositoryInterface,
   ) {}
 
   public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const { email, phone, username, realName, imageMimeType } = params;
+      const { email, phone, username, realName } = params;
 
       const userId: UserId = `${KeyPrefix.User}${this.idService.generateId()}`;
 
-      const user: UserEntity = {
+      const { image, mimeType: imageMimeType } = this.imageFileRepository.createDefaultImage();
+
+      const userEntity: UserEntity = {
         id: userId,
         imageMimeType,
         email,
@@ -32,7 +40,12 @@ export class UserService implements UserServiceInterface {
         realName,
       };
 
-      await this.userRepository.createUser({ user });
+      await Promise.all([
+        this.imageFileRepository.uploadFile({ entityType: EntityType.User, entityId: userId, file: image, mimeType: imageMimeType }),
+        this.userRepository.createUser({ user: userEntity }),
+      ]);
+
+      const { entity: user } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
 
       return { user };
     } catch (error: unknown) {
@@ -48,7 +61,9 @@ export class UserService implements UserServiceInterface {
 
       const { userId } = params;
 
-      const { user } = await this.userRepository.getUser({ userId });
+      const { user: userEntity } = await this.userRepository.getUser({ userId });
+
+      const { entity: user } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
 
       return { user };
     } catch (error: unknown) {
@@ -64,7 +79,9 @@ export class UserService implements UserServiceInterface {
 
       const { userId, updates } = params;
 
-      const { user } = await this.userRepository.updateUser({ userId, updates });
+      const { user: userEntity } = await this.userRepository.updateUser({ userId, updates });
+
+      const { entity: user } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
 
       return { user };
     } catch (error: unknown) {
@@ -80,13 +97,13 @@ export class UserService implements UserServiceInterface {
 
       const { userIds } = params;
 
-      const { users } = await this.userRepository.getUsers({ userIds });
+      const { users: userEntities } = await this.userRepository.getUsers({ userIds });
 
-      const userMap = users.reduce((acc: { [key: string]: User; }, user) => {
-        acc[user.id] = user;
-
-        return acc;
-      }, {});
+      const userMap: Record<string, User> = {};
+      userEntities.forEach((userEntity) => {
+        const { entity: userWithImage } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+        userMap[userEntity.id] = userWithImage;
+      });
 
       const sortedUsers = userIds.map((userId) => userMap[userId]);
 
@@ -97,19 +114,94 @@ export class UserService implements UserServiceInterface {
       throw error;
     }
   }
-}
 
-export type User = UserEntity;
+  public async indexUserForSearch(params: IndexUserForSearchInput): Promise<IndexUserForSearchOutput> {
+    try {
+      this.loggerService.trace("indexUserForSearch called", { params }, this.constructor.name);
+
+      const { user: rawUser } = params;
+
+      const { user } = this.userRepository.convertRawUserToUser({ rawUser });
+
+      await this.userSearchRepository.indexDocument({ index: SearchIndex.User, document: user });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in indexUserForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async deindexUserForSearch(params: DeindexUserForSearchInput): Promise<DeindexUserForSearchOutput> {
+    try {
+      this.loggerService.trace("deindexUserForSearch called", { params }, this.constructor.name);
+
+      const { userId } = params;
+
+      await this.userSearchRepository.deindexDocument({ index: SearchIndex.User, id: userId });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deindexUserForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getUsersBySearchTerm(params: GetUsersBySearchTermInput): Promise<GetUsersBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getUsersBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, userIds, limit, exclusiveStartKey } = params;
+
+      const { users: userEntities, lastEvaluatedKey } = await this.userSearchRepository.getUsersBySearchTerm({ searchTerm, userIds, limit, exclusiveStartKey });
+
+      const searchUserIds = userEntities.map((user) => user.id);
+
+      const { users } = await this.getUsers({ userIds: searchUserIds });
+
+      return { users, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public getUserImageUploadUrl(params: GetUserImageUploadUrlInput): GetUserImageUploadUrlOutput {
+    try {
+      this.loggerService.trace("getUserImageUploadUrl called", { params }, this.constructor.name);
+
+      const { userId, mimeType } = params;
+
+      const { signedUrl: uploadUrl } = this.imageFileRepository.getSignedUrl({
+        operation: FileOperation.Upload,
+        entityType: EntityType.User,
+        entityId: userId,
+        mimeType,
+      });
+
+      return { uploadUrl };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUserImageUploadUrl", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+}
+export interface User extends Omit<UserEntity, "imageMimeType"> {
+  image: string;
+}
 
 export interface UserServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
   updateUser(params: UpdateUserInput): Promise<UpdateUserOutput>;
   getUsers(params: GetUsersInput): Promise<GetUsersOutput>;
+  getUserImageUploadUrl(params: GetUserImageUploadUrlInput): GetUserImageUploadUrlOutput;
+  indexUserForSearch(params: IndexUserForSearchInput): Promise<IndexUserForSearchOutput>;
+  deindexUserForSearch(params: DeindexUserForSearchInput): Promise<DeindexUserForSearchOutput>;
+  getUsersBySearchTerm(params: GetUsersBySearchTermInput): Promise<GetUsersBySearchTermOutput>;
 }
 
 interface BaseCreateUserInput {
-  imageMimeType: ImageMimeType;
   email?: string;
   phone?: string;
   username?: string;
@@ -153,3 +245,38 @@ export interface GetUsersInput {
 export interface GetUsersOutput {
   users: User[];
 }
+
+export interface IndexUserForSearchInput {
+  user: RawUser;
+}
+
+export type IndexUserForSearchOutput = void;
+
+export interface DeindexUserForSearchInput {
+  userId: UserId;
+}
+
+export type DeindexUserForSearchOutput = void;
+
+export interface GetUsersBySearchTermInput {
+  searchTerm: string;
+  userIds?: UserId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetUsersBySearchTermOutput {
+  users: User[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetUserImageUploadUrlInput {
+  userId: UserId;
+  mimeType: ImageMimeType;
+}
+
+export interface GetUserImageUploadUrlOutput {
+  uploadUrl: string;
+}
+
+type UserSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getUsersBySearchTerm">;

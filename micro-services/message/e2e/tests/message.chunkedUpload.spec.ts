@@ -2,13 +2,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import CryptoJS from "crypto-js";
+import crypto from "crypto";
 import { Message } from "@yac/util";
 import { checkFileOnS3, getMessageFile, separateBufferIntoChunks } from "../utils";
 import { backoff } from "../../../../e2e/util";
 
-// import { createRandomCognitoUser, getAccessTokenByEmail } from "../../../../e2e/util";
 const mockMessageId: Message["id"] = "message-mock-123";
+
 describe("Chunked Message upload", () => {
   describe("MP3", () => {
     const messageId = `${mockMessageId}_${Date.now()}`;
@@ -46,9 +46,7 @@ describe("Chunked Message upload", () => {
         expect(checkOnServer.status).toBe(200);
         expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
         expect(checkOnServer.data.size).toEqual(chunk.byteLength);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        expect(checkOnServer.data.checksum).toEqual(CryptoJS.SHA256(chunk).toString());
+        expect(checkOnServer.data.checksum).toEqual(crypto.createHash("sha256").update(chunk).digest("base64"));
       });
 
       it("finishes the file upload", async () => {
@@ -64,17 +62,14 @@ describe("Chunked Message upload", () => {
 
         await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
           totalChunks: chunkedFile.length,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256(chunkedFile).toString(),
+          checksum: crypto.createHash("sha256").update(file).digest("base64"),
         });
 
         const fileOnS3 = await checkFileOnS3(auxMessageId);
 
-        expect(fileOnS3.ContentLength).toEqual(Buffer.concat(chunkedFile).byteLength);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        expect(CryptoJS.SHA256(fileOnS3.Body).toString()).toEqual(CryptoJS.SHA256(chunkedFile).toString());
+        expect(fileOnS3.ContentLength).toEqual(file.byteLength);
+
+        expect(crypto.createHash("sha256").update(fileOnS3.Body as Buffer).digest("base64")).toEqual(crypto.createHash("sha256").update(file).digest("base64"));
       });
     });
 
@@ -95,9 +90,7 @@ describe("Chunked Message upload", () => {
 
           await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
             totalChunks: chunksToUpload.length + 10,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
+            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
           });
 
           fail("should have not continued");
@@ -128,9 +121,7 @@ describe("Chunked Message upload", () => {
 
           await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
             totalChunks: chunksToUpload.length - 10,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
+            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
           });
 
           fail("should have not continued");
@@ -161,9 +152,7 @@ describe("Chunked Message upload", () => {
 
           await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
             totalChunks: chunksToUpload.length,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            checksum: CryptoJS.SHA256("fake-checksum-that-is-not-right").toString(),
+            checksum: crypto.createHash("sha256").update("fake-checksum-that-is-not-right").digest("base64"),
           });
 
           fail("should have not continued");
@@ -216,9 +205,7 @@ describe("Chunked Message upload", () => {
         expect(checkOnServer.status).toBe(200);
         expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
         expect(checkOnServer.data.size).toEqual(chunk.byteLength);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        expect(checkOnServer.data.checksum).toEqual(CryptoJS.SHA256(chunk).toString());
+        expect(checkOnServer.data.checksum).toEqual(crypto.createHash("sha256").update(chunk).digest("base64"));
       });
 
       it("finishes the file upload", async () => {
@@ -234,17 +221,13 @@ describe("Chunked Message upload", () => {
 
         await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
           totalChunks: chunkedFile.length,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256(chunkedFile).toString(),
+          checksum: crypto.createHash("sha256").update(file).digest("base64"),
         });
 
         const fileOnS3 = await checkFileOnS3(auxMessageId);
 
-        expect(fileOnS3.ContentLength).toEqual(Buffer.concat(chunkedFile).byteLength);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        expect(CryptoJS.SHA256(fileOnS3.Body).toString()).toEqual(CryptoJS.SHA256(chunkedFile).toString());
+        expect(fileOnS3.ContentLength).toEqual(file.byteLength);
+        expect(crypto.createHash("sha256").update(fileOnS3.Body as Buffer).digest("base64")).toEqual(crypto.createHash("sha256").update(file).digest("base64"));
       });
     });
 
@@ -265,9 +248,7 @@ describe("Chunked Message upload", () => {
 
           await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
             totalChunks: chunksToUpload.length + 10,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
+            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
           });
 
           fail("should have not continued");
@@ -298,9 +279,7 @@ describe("Chunked Message upload", () => {
 
           await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
             totalChunks: chunksToUpload.length - 10,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
+            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
           });
 
           fail("should have not continued");
@@ -331,9 +310,7 @@ describe("Chunked Message upload", () => {
 
           await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
             totalChunks: chunksToUpload.length,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            checksum: CryptoJS.SHA256("fake-checksum-that-is-not-right").toString(),
+            checksum: crypto.createHash("sha256").update("fake-checksum-that-is-not-right").digest("base64"),
           });
 
           fail("should have not continued");
@@ -386,9 +363,7 @@ describe("Chunked Message upload", () => {
         expect(checkOnServer.status).toBe(200);
         expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
         expect(checkOnServer.data.size).toEqual(chunk.byteLength);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        expect(checkOnServer.data.checksum).toEqual(CryptoJS.SHA256(chunk).toString());
+        expect(checkOnServer.data.checksum).toEqual(crypto.createHash("sha256").update(chunk).digest("base64"));
       });
 
       it("finishes the file upload", async () => {
@@ -400,17 +375,13 @@ describe("Chunked Message upload", () => {
 
         await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
           totalChunks: chunkedFile.length,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          checksum: CryptoJS.SHA256(chunkedFile).toString(),
+          checksum: crypto.createHash("sha256").update(file).digest("base64"),
         });
 
         const fileOnS3 = await checkFileOnS3(auxMessageId);
 
         expect(fileOnS3.ContentLength).toEqual(Buffer.concat(chunkedFile).byteLength);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        expect(CryptoJS.SHA256(fileOnS3.Body).toString()).toEqual(CryptoJS.SHA256(chunkedFile).toString());
+        expect(crypto.createHash("sha256").update(fileOnS3.Body as Buffer).digest("base64")).toEqual(crypto.createHash("sha256").update(file).digest("base64"));
       });
     });
 
@@ -431,9 +402,7 @@ describe("Chunked Message upload", () => {
 
           await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
             totalChunks: chunksToUpload.length + 10,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
+            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
           });
 
           fail("should have not continued");
@@ -464,9 +433,7 @@ describe("Chunked Message upload", () => {
 
           await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
             totalChunks: chunksToUpload.length - 10,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            checksum: CryptoJS.SHA256(chunksToUpload).toString(),
+            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
           });
 
           fail("should have not continued");
@@ -497,9 +464,7 @@ describe("Chunked Message upload", () => {
 
           await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
             totalChunks: chunksToUpload.length,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            checksum: CryptoJS.SHA256("fake-checksum-that-is-not-right").toString(),
+            checksum: crypto.createHash("sha256").update("fake-checksum-that-is-not-right").digest("base64"),
           });
 
           fail("should have not continued");

@@ -193,30 +193,27 @@ describe("Message Transcribed SNS Topic", () => {
             );
 
             expect(snsEvents.length).toBe(1);
-
             expect(snsEvents).toEqual([
               jasmine.objectContaining({
                 message: {
-                  to: {
-                    id: toUser.id,
-                    email: toUser.email,
-                    username: toUser.username,
-                    phone: toUser.phone,
-                    realName: toUser.realName,
-                    image: jasmine.stringMatching(URL_REGEX),
-                  },
-                  from: {
-                    id: fromUser.id,
-                    email: fromUser.email,
-                    username: fromUser.username,
-                    phone: fromUser.phone,
-                    realName: fromUser.realName,
-                    image: jasmine.stringMatching(URL_REGEX),
-                  },
                   message: {
                     id: message.id,
-                    to: toUser.id,
-                    from: message.from,
+                    to: {
+                      id: toUser.id,
+                      email: toUser.email,
+                      username: toUser.username,
+                      phone: toUser.phone,
+                      realName: toUser.realName,
+                      image: jasmine.stringMatching(URL_REGEX),
+                    },
+                    from: {
+                      id: fromUser.id,
+                      email: fromUser.email,
+                      username: fromUser.username,
+                      phone: fromUser.phone,
+                      realName: fromUser.realName,
+                      image: jasmine.stringMatching(URL_REGEX),
+                    },
                     type: ConversationType.Friend,
                     createdAt: message.createdAt,
                     seenAt: message.seenAt,
@@ -225,7 +222,6 @@ describe("Message Transcribed SNS Topic", () => {
                     mimeType: message.mimeType,
                     transcript: mockTranscript,
                     fetchUrl: jasmine.stringMatching(URL_REGEX),
-                    fromImage: jasmine.stringMatching(URL_REGEX),
                   },
                 },
               }),
@@ -401,25 +397,24 @@ describe("Message Transcribed SNS Topic", () => {
               jasmine.objectContaining({
                 message: {
                   groupMemberIds: jasmine.arrayContaining([ userId, otherUser.id ]),
-                  to: {
-                    id: group.id,
-                    name: group.name,
-                    createdBy: group.createdBy,
-                    createdAt: group.createdAt,
-                    image: jasmine.stringMatching(URL_REGEX),
-                  },
-                  from: {
-                    id: fromUser.id,
-                    email: fromUser.email,
-                    username: fromUser.username,
-                    phone: fromUser.phone,
-                    realName: fromUser.realName,
-                    image: jasmine.stringMatching(URL_REGEX),
-                  },
                   message: {
                     id: message.id,
-                    to: group.id,
-                    from: message.from,
+                    to: {
+                      id: group.id,
+                      name: group.name,
+                      createdBy: group.createdBy,
+                      createdAt: group.createdAt,
+                      type: group.type,
+                      image: jasmine.stringMatching(URL_REGEX),
+                    },
+                    from: {
+                      id: fromUser.id,
+                      email: fromUser.email,
+                      username: fromUser.username,
+                      phone: fromUser.phone,
+                      realName: fromUser.realName,
+                      image: jasmine.stringMatching(URL_REGEX),
+                    },
                     type: ConversationType.Group,
                     createdAt: message.createdAt,
                     seenAt: message.seenAt,
@@ -428,7 +423,6 @@ describe("Message Transcribed SNS Topic", () => {
                     mimeType: message.mimeType,
                     transcript: mockTranscript,
                     fetchUrl: jasmine.stringMatching(URL_REGEX),
-                    fromImage: jasmine.stringMatching(URL_REGEX),
                   },
                 },
               }),
@@ -604,26 +598,25 @@ describe("Message Transcribed SNS Topic", () => {
               jasmine.objectContaining({
                 message: {
                   meetingMemberIds: jasmine.arrayContaining([ userId, otherUser.id ]),
-                  to: {
-                    id: meeting.id,
-                    name: meeting.name,
-                    createdBy: meeting.createdBy,
-                    createdAt: meeting.createdAt,
-                    dueDate: meeting.dueDate,
-                    image: jasmine.stringMatching(URL_REGEX),
-                  },
-                  from: {
-                    id: fromUser.id,
-                    email: fromUser.email,
-                    username: fromUser.username,
-                    phone: fromUser.phone,
-                    realName: fromUser.realName,
-                    image: jasmine.stringMatching(URL_REGEX),
-                  },
                   message: {
                     id: message.id,
-                    to: meeting.id,
-                    from: message.from,
+                    to: {
+                      id: meeting.id,
+                      name: meeting.name,
+                      createdBy: meeting.createdBy,
+                      createdAt: meeting.createdAt,
+                      dueDate: meeting.dueDate,
+                      image: jasmine.stringMatching(URL_REGEX),
+                      type: meeting.type,
+                    },
+                    from: {
+                      id: fromUser.id,
+                      email: fromUser.email,
+                      username: fromUser.username,
+                      phone: fromUser.phone,
+                      realName: fromUser.realName,
+                      image: jasmine.stringMatching(URL_REGEX),
+                    },
                     type: ConversationType.Meeting,
                     createdAt: message.createdAt,
                     seenAt: message.seenAt,
@@ -632,7 +625,6 @@ describe("Message Transcribed SNS Topic", () => {
                     mimeType: message.mimeType,
                     transcript: mockTranscript,
                     fetchUrl: jasmine.stringMatching(URL_REGEX),
-                    fromImage: jasmine.stringMatching(URL_REGEX),
                   },
                 },
               }),

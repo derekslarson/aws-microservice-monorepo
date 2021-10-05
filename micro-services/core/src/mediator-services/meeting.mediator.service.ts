@@ -7,8 +7,6 @@ import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { MeetingId } from "../types/meetingId.type";
 import { ConversationType } from "../enums/conversationType.enum";
-import { ImageFileServiceInterface } from "../entity-services/image.file.service";
-import { EntityType } from "../enums/entityType.enum";
 import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 
@@ -18,7 +16,6 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
   ) {}
 
   public async createMeeting(params: CreateMeetingInput): Promise<CreateMeetingOutput> {
@@ -27,34 +24,14 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { name, createdBy, dueDate, teamId } = params;
 
-      const { image, mimeType } = this.imageFileService.createDefaultImage();
-
-      const { conversation: meetingEntity } = await this.conversationService.createMeetingConversation({
-        imageMimeType: mimeType,
+      const { conversation: meeting } = await this.conversationService.createMeetingConversation({
         name,
         createdBy,
         dueDate,
         teamId,
       });
 
-      await Promise.all([
-        this.imageFileService.uploadFile({ entityType: EntityType.MeetingConversation, entityId: meetingEntity.id, file: image, mimeType }),
-        this.conversationUserRelationshipService.createConversationUserRelationship({ type: ConversationType.Meeting, userId: createdBy, conversationId: meetingEntity.id, role: Role.Admin, dueDate }),
-      ]);
-
-      const { signedUrl } = this.imageFileService.getSignedUrl({
-        operation: "get",
-        entityType: EntityType.MeetingConversation,
-        entityId: meetingEntity.id,
-        mimeType: meetingEntity.imageMimeType,
-      });
-
-      const { type, imageMimeType, ...restOfMeetingEntity } = meetingEntity;
-
-      const meeting: Meeting = {
-        ...restOfMeetingEntity,
-        image: signedUrl,
-      };
+      await this.conversationUserRelationshipService.createConversationUserRelationship({ type: ConversationType.Meeting, userId: createdBy, conversationId: meeting.id, role: Role.Admin, dueDate });
 
       return { meeting };
     } catch (error: unknown) {
@@ -70,21 +47,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { meetingId } = params;
 
-      const { conversation: meetingEntity } = await this.conversationService.getConversation({ conversationId: meetingId });
-
-      const { signedUrl } = this.imageFileService.getSignedUrl({
-        operation: "get",
-        entityType: EntityType.MeetingConversation,
-        entityId: meetingEntity.id,
-        mimeType: meetingEntity.imageMimeType,
-      });
-
-      const { type, imageMimeType, ...restOfMeetingEntity } = meetingEntity;
-
-      const meeting: Meeting = {
-        ...restOfMeetingEntity,
-        image: signedUrl,
-      };
+      const { conversation: meeting } = await this.conversationService.getConversation({ conversationId: meetingId });
 
       return { meeting };
     } catch (error: unknown) {
@@ -100,10 +63,9 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { meetingId, mimeType } = params;
 
-      const { signedUrl: uploadUrl } = this.imageFileService.getSignedUrl({
-        operation: "upload",
-        entityType: EntityType.MeetingConversation,
-        entityId: meetingId,
+      const { uploadUrl } = this.conversationService.getConversationImageUploadUrl({
+        conversationType: ConversationType.Meeting,
+        conversationId: meetingId,
         mimeType,
       });
 
@@ -202,26 +164,14 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const meetingIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
 
-      const { conversations: meetingEntities } = await this.conversationService.getConversations({ conversationIds: meetingIds });
+      const { conversations: meetings } = await this.conversationService.getConversations({ conversationIds: meetingIds });
 
-      const meetings = meetingEntities.map((meetingEntity, i) => {
-        const { signedUrl } = this.imageFileService.getSignedUrl({
-          operation: "get",
-          entityType: EntityType.MeetingConversation,
-          entityId: meetingEntity.id,
-          mimeType: meetingEntity.imageMimeType,
-        });
+      const meetingsWithRoles = meetings.map((meeting, i) => ({
+        ...meeting,
+        role: conversationUserRelationships[i].role,
+      }));
 
-        const { type, imageMimeType, ...restOfMeetingEntity } = meetingEntity;
-
-        return {
-          ...restOfMeetingEntity,
-          image: signedUrl,
-          role: conversationUserRelationships[i].role,
-        };
-      });
-
-      return { meetings, lastEvaluatedKey };
+      return { meetings: meetingsWithRoles, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingsByUserId", { error, params }, this.constructor.name);
 
@@ -235,27 +185,11 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { teamId, exclusiveStartKey, limit } = params;
 
-      const { conversations: meetingEntities, lastEvaluatedKey } = await this.conversationService.getConversationsByTeamId({
+      const { conversations: meetings, lastEvaluatedKey } = await this.conversationService.getConversationsByTeamId({
         teamId,
         type: ConversationType.Meeting,
         exclusiveStartKey,
         limit,
-      });
-
-      const meetings = meetingEntities.map((meetingEntity) => {
-        const { signedUrl } = this.imageFileService.getSignedUrl({
-          operation: "get",
-          entityType: EntityType.MeetingConversation,
-          entityId: meetingEntity.id,
-          mimeType: meetingEntity.imageMimeType,
-        });
-
-        const { type, imageMimeType, ...restOfMeetingEntity } = meetingEntity;
-
-        return {
-          ...restOfMeetingEntity,
-          image: signedUrl,
-        };
       });
 
       return { meetings, lastEvaluatedKey };

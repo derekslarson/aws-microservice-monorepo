@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { MakeRequired, Role } from "@yac/util";
 import axios from "axios";
 import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -8,18 +8,23 @@ import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
 import { FriendConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
+import { RawUser } from "../../src/repositories/user.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createFriendConversation, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
+import { createConversationUserRelationship, createFriendConversation, createMessage, createRandomUser, getUser, GetUserOutput } from "../util";
 
 describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User and Friend Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
-  let otherUser: CreateRandomUserOutput["user"];
+  let user: RawUser;
+  let otherUser: RawUser;
 
   beforeAll(async () => {
-    ({ user: otherUser } = await createRandomUser());
+    ([ { user }, { user: otherUser } ] = await Promise.all([
+      getUser({ userId }) as Promise<MakeRequired<GetUserOutput, "user">>,
+      createRandomUser(),
+    ]));
   });
 
   describe("under normal conditions", () => {
@@ -58,8 +63,22 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
             messages: [
               {
                 id: messageTwo.id,
-                to: otherUser.id,
-                from: userId,
+                to: {
+                  realName: otherUser.realName,
+                  username: otherUser.username,
+                  id: otherUser.id,
+                  email: otherUser.email,
+                  phone: otherUser.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  realName: user.realName,
+                  username: user.username,
+                  id: user.id,
+                  email: user.email,
+                  phone: user.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Friend,
                 createdAt: messageTwo.createdAt,
                 seenAt: messageTwo.seenAt,
@@ -67,12 +86,26 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
+                transcript: messageTwo.transcript,
               },
               {
                 id: message.id,
-                to: userId,
-                from: otherUser.id,
+                to: {
+                  realName: user.realName,
+                  username: user.username,
+                  id: user.id,
+                  email: user.email,
+                  phone: user.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  realName: otherUser.realName,
+                  username: otherUser.username,
+                  id: otherUser.id,
+                  email: otherUser.email,
+                  phone: otherUser.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Friend,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
@@ -80,7 +113,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 mimeType: message.mimeType,
                 replyCount: message.replyCount,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
+                transcript: message.transcript,
               },
             ],
           });
@@ -103,8 +136,22 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
             messages: [
               {
                 id: messageTwo.id,
-                to: otherUser.id,
-                from: userId,
+                to: {
+                  realName: otherUser.realName,
+                  username: otherUser.username,
+                  id: otherUser.id,
+                  email: otherUser.email,
+                  phone: otherUser.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  realName: user.realName,
+                  username: user.username,
+                  id: user.id,
+                  email: user.email,
+                  phone: user.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Friend,
                 createdAt: messageTwo.createdAt,
                 seenAt: messageTwo.seenAt,
@@ -112,7 +159,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
+                transcript: messageTwo.transcript,
               },
             ],
             lastEvaluatedKey: jasmine.any(String),
@@ -127,8 +174,22 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
             messages: [
               {
                 id: message.id,
-                to: userId,
-                from: otherUser.id,
+                to: {
+                  realName: user.realName,
+                  username: user.username,
+                  id: user.id,
+                  email: user.email,
+                  phone: user.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  realName: otherUser.realName,
+                  username: otherUser.username,
+                  id: otherUser.id,
+                  email: otherUser.email,
+                  phone: otherUser.phone,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Friend,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
@@ -136,7 +197,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 mimeType: message.mimeType,
                 replyCount: message.replyCount,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
+                transcript: message.transcript,
               },
             ],
           });

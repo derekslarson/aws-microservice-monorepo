@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, GroupMessageCreatedSnsMessage } from "@yac/util";
+import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, GroupMessageCreatedSnsMessage, Group } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
@@ -37,23 +37,23 @@ export class GroupMessageCreatedSnsProcessorService implements SnsProcessorServi
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { message: { groupMemberIds, to, from, message } } = record;
+      const { message: { groupMemberIds, message } } = record;
 
-      const senderName = from.realName || from.username || from.email || from.phone as string;
+      const senderName = message.from.realName || message.from.username || message.from.email || message.from.phone as string;
 
-      const memberIdsOtherThanSender = groupMemberIds.filter((groupMemberId) => groupMemberId !== from.id);
+      const memberIdsOtherThanSender = groupMemberIds.filter((groupMemberId) => groupMemberId !== message.from.id);
 
       await Promise.allSettled([
         ...memberIdsOtherThanSender.map((memberId) => this.pushNotificationMediatorService.sendPushNotification({
           userId: memberId,
           event: PushNotificationEvent.GroupMessageCreated,
           title: "New Message Received",
-          body: `Message from ${senderName} in ${to.name}`,
+          body: `Message from ${senderName} in ${(message.to as Group).name}`,
         })),
         ...groupMemberIds.map((userId) => this.webSocketMediatorService.sendMessage({
           userId,
           event: WebSocketEvent.GroupMessageCreated,
-          data: { to, from, message },
+          data: { message },
         })),
       ]);
 

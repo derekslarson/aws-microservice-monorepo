@@ -183,6 +183,22 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
       throw error;
     }
   }
+
+  public convertRawConversationToConversation<T extends RawConversation<Conversation>>(params: ConvertRawConversationToConversationInput<T>): ConvertRawConversationToConversationOutput<T> {
+    try {
+      this.loggerService.trace("cleanseReactionsSet called", { params }, this.constructor.name);
+
+      const { rawConversation } = params;
+
+      const conversation = this.cleanse(rawConversation);
+
+      return { conversation: conversation as ConversationTypeToConversation<T["type"]> };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in cleanseReactionsSet", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface ConversationRepositoryInterface {
@@ -192,6 +208,7 @@ export interface ConversationRepositoryInterface {
   getConversations<T extends ConversationId>(params: GetConversationsInput<T>): Promise<GetConversationsOutput<T>>;
   deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput>;
   getConversationsByTeamId<T extends ConversationType>(params: GetConversationsByTeamIdInput<T>): Promise<GetConversationsByTeamIdOutput<T>>;
+  convertRawConversationToConversation<T extends RawConversation<Conversation>>(params: ConvertRawConversationToConversationInput<T>): ConvertRawConversationToConversationOutput<T>;
 }
 
 type ConversationRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
@@ -285,4 +302,17 @@ export interface GetConversationsByTeamIdInput<T extends ConversationType> {
 export interface GetConversationsByTeamIdOutput<T extends ConversationType> {
   conversations: Conversation<T>[];
   lastEvaluatedKey?: string;
+}
+
+type ConversationTypeToConversation<T extends ConversationType> =
+  T extends ConversationTypeEnum.Friend ? FriendConversation :
+    T extends ConversationTypeEnum.Group ? GroupConversation : MeetingConversation;
+
+export interface ConvertRawConversationToConversationInput<T extends RawConversation<Conversation>> {
+  rawConversation: T;
+
+}
+
+export interface ConvertRawConversationToConversationOutput<T extends RawConversation<Conversation>> {
+  conversation: ConversationTypeToConversation<T["type"]>;
 }

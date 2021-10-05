@@ -1,3 +1,6 @@
+/* eslint-disable no-return-assign */
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable no-nested-ternary */
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
@@ -8,17 +11,15 @@ import { UserId } from "../types/userId.type";
 import { MessageId } from "../types/messageId.type";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
-import { ConversationServiceInterface } from "../entity-services/conversation.service";
+import { ConversationServiceInterface, GroupConversation, MeetingConversation } from "../entity-services/conversation.service";
 import { PendingMessage as PendingMessageEntity, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
 import { PendingMessageId } from "../types/pendingMessageId.type";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
-import { MessageFileServiceInterface } from "../entity-services/mesage.file.service";
-import { ImageFileServiceInterface } from "../entity-services/image.file.service";
-import { UserServiceInterface } from "../entity-services/user.service";
-import { EntityType } from "../enums/entityType.enum";
+import { User, UserServiceInterface } from "../entity-services/user.service";
 import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 import { ConversationType } from "../enums/conversationType.enum";
+import { FriendConvoId } from "../types/friendConvoId.type";
 
 @injectable()
 export class MessageMediatorService implements MessageMediatorServiceInterface {
@@ -26,8 +27,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.PendingMessageServiceInterface) private pendingMessageService: PendingMessageServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
-    @inject(TYPES.MessageFileServiceInterface) private messageFileService: MessageFileServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
@@ -41,28 +40,23 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { conversation } = await this.conversationService.getFriendConversationByUserIds({ userIds: [ to, from ] });
 
-      const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: conversation.id, from, mimeType });
+      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageService.createPendingMessage({ conversationId: conversation.id, from, mimeType });
 
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessage.id });
+      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessageEntity.id });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
-        messageId,
-        conversationId: conversation.id,
-        mimeType,
-        operation: "upload",
-      });
+      const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
-      const { conversationId, ...restOfPendingMessage } = pendingMessage;
+      const { users: [ toUser, fromUser ] } = await this.userService.getUsers({ userIds: [ to, from ] });
 
-      const pendingMessageWithUploadUrl = {
-        ...restOfPendingMessage,
-        to,
+      const pendingMessage = {
+        ...restOfPendingMessageEntity,
+        to: toUser,
+        from: fromUser,
         type: ConversationType.Friend,
         id: messageId,
-        uploadUrl: signedUrl,
       };
 
-      return { pendingMessage: pendingMessageWithUploadUrl };
+      return { pendingMessage };
     } catch (error: unknown) {
       this.loggerService.error("Error in createFriendMessage", { error, params }, this.constructor.name);
 
@@ -76,28 +70,26 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { groupId, from, mimeType } = params;
 
-      const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: groupId, from, mimeType });
+      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageService.createPendingMessage({ conversationId: groupId, from, mimeType });
 
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessage.id });
+      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessageEntity.id });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
-        messageId,
-        conversationId: groupId,
-        mimeType,
-        operation: "upload",
-      });
+      const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
-      const { conversationId, ...restOfPendingMessage } = pendingMessage;
+      const [ { conversation: toGroup }, { user: fromUser } ] = await Promise.all([
+        this.conversationService.getConversation({ conversationId: groupId }),
+        this.userService.getUser({ userId: from }),
+      ]);
 
-      const pendingMessageWithUploadUrl = {
-        ...restOfPendingMessage,
-        to: groupId,
+      const pendingMessage = {
+        ...restOfPendingMessageEntity,
+        to: toGroup,
+        from: fromUser,
         type: ConversationType.Group,
         id: messageId,
-        uploadUrl: signedUrl,
       };
 
-      return { pendingMessage: pendingMessageWithUploadUrl };
+      return { pendingMessage };
     } catch (error: unknown) {
       this.loggerService.error("Error in createGroupMessage", { error, params }, this.constructor.name);
 
@@ -111,28 +103,26 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { meetingId, from, mimeType } = params;
 
-      const { pendingMessage } = await this.pendingMessageService.createPendingMessage({ conversationId: meetingId, from, mimeType });
+      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageService.createPendingMessage({ conversationId: meetingId, from, mimeType });
 
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessage.id });
+      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessageEntity.id });
 
-      const { signedUrl } = this.messageFileService.getSignedUrl({
-        messageId,
-        conversationId: meetingId,
-        mimeType,
-        operation: "upload",
-      });
+      const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
-      const { conversationId, ...restOfPendingMessage } = pendingMessage;
+      const [ { conversation: toMeeting }, { user: fromUser } ] = await Promise.all([
+        this.conversationService.getConversation({ conversationId: meetingId }),
+        this.userService.getUser({ userId: from }),
+      ]);
 
-      const pendingMessageWithUploadUrl = {
-        ...restOfPendingMessage,
-        to: meetingId,
+      const pendingMessage = {
+        ...restOfPendingMessageEntity,
+        to: toMeeting,
+        from: fromUser,
         type: ConversationType.Meeting,
         id: messageId,
-        uploadUrl: signedUrl,
       };
 
-      return { pendingMessage: pendingMessageWithUploadUrl };
+      return { pendingMessage };
     } catch (error: unknown) {
       this.loggerService.error("Error in createMeetingMessage", { error, params }, this.constructor.name);
 
@@ -146,20 +136,32 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { pendingMessageId, transcript } = params;
 
-      const { pendingMessage } = await this.pendingMessageService.getPendingMessage({ pendingMessageId });
+      const { pendingMessage: { conversationId, from: fromId, replyTo, mimeType } } = await this.pendingMessageService.getPendingMessage({ pendingMessageId });
 
       const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
 
-      const { message } = await this.createMessage({
-        messageId,
-        conversationId: pendingMessage.conversationId,
-        from: pendingMessage.from,
-        mimeType: pendingMessage.mimeType,
-        replyTo: pendingMessage.replyTo,
-        transcript,
+      const { conversationUserRelationships } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByConversationId({ conversationId });
+
+      const timestamp = new Date().toISOString();
+
+      const seenAt: Record<string, string | null> = {};
+      conversationUserRelationships.forEach((relationship) => {
+        seenAt[relationship.userId] = relationship.userId === fromId ? timestamp : null;
       });
 
+      const { message: messageEntity } = await this.messageService.createMessage({ messageId, conversationId, from: fromId, replyTo, mimeType, transcript, seenAt });
+
+      await Promise.all(conversationUserRelationships.map((relationship) => this.conversationUserRelationshipService.addMessageToConversationUserRelationship({
+        conversationId,
+        userId: relationship.userId,
+        messageId: messageEntity.id,
+        sender: relationship.userId === fromId,
+        updateUpdatedAt: true,
+      })));
+
       await this.pendingMessageService.deletePendingMessage({ pendingMessageId });
+
+      const { message } = await this.getMessage({ messageId });
 
       return { message };
     } catch (error: unknown) {
@@ -177,31 +179,31 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { message: messageEntity } = await this.messageService.getMessage({ messageId });
 
-      const { user } = await this.userService.getUser({ userId: messageEntity.from });
+      const { conversation } = await this.conversationService.getConversation({ conversationId: messageEntity.conversationId });
 
-      const { signedUrl: fetchUrl } = this.messageFileService.getSignedUrl({
-        messageId,
-        conversationId: messageEntity.conversationId,
-        mimeType: messageEntity.mimeType,
-        operation: "get",
-      });
+      let to: To;
+      let from: User;
 
-      const { signedUrl: fromImage } = this.imageFileService.getSignedUrl({
-        entityType: EntityType.User,
-        entityId: user.id,
-        mimeType: user.imageMimeType,
-        operation: "get",
-      });
+      if (conversation.type === ConversationType.Friend) {
+        const { userIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: conversation.id });
+        const { users } = await this.userService.getUsers({ userIds });
+
+        to = users.find((user) => user.id !== messageEntity.from) as User;
+        from = users.find((user) => user.id === messageEntity.from) as User;
+      } else {
+        const { user } = await this.userService.getUser({ userId: messageEntity.from });
+
+        to = conversation;
+        from = user;
+      }
 
       const { conversationId, ...restOfMessageEntity } = messageEntity;
-      const { to, type } = this.getToAndTypeFromConversationIdAndFrom({ conversationId, from: messageEntity.from });
 
       const message = {
         ...restOfMessageEntity,
         to,
-        type,
-        fetchUrl,
-        fromImage,
+        from,
+        type: conversation.type,
       };
 
       return { message };
@@ -257,6 +259,67 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByMeetingId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getMessagesByUserIdAndSearchTerm(params: GetMessagesByUserIdAndSearchTermInput): Promise<GetMessagesByUserIdAndSearchTermOutput> {
+    try {
+      this.loggerService.trace("getMessagesByUserIdAndSearchTerm called", { params }, this.constructor.name);
+
+      const { userId, searchTerm, exclusiveStartKey, limit } = params;
+
+      const { conversationUserRelationships } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId });
+
+      const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
+
+      const { messages: messageEntities, lastEvaluatedKey } = await this.messageService.getMessagesBySearchTerm({ conversationIds, searchTerm, exclusiveStartKey, limit });
+
+      const userIdSet = new Set<UserId>();
+      const groupMeetingIdSet = new Set<GroupId | MeetingId>();
+
+      const messagesWithEntityId = messageEntities.map((message) => {
+        userIdSet.add(message.from);
+
+        if (message.conversationId.startsWith(KeyPrefix.FriendConversation)) {
+          const { userIds: conversationMemberIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: message.conversationId as FriendConvoId });
+          conversationMemberIds.forEach((memberId) => userIdSet.add(memberId));
+          const [ toUserId ] = conversationMemberIds.filter((memberId) => memberId !== message.from);
+
+          return { ...message, toEntityId: toUserId };
+        }
+
+        groupMeetingIdSet.add(message.conversationId as GroupId | MeetingId);
+
+        return { ...message, toEntityId: message.conversationId };
+      });
+
+      const [ { users }, { conversations: groupsAndMeetings } ] = await Promise.all([
+        this.userService.getUsers({ userIds: Array.from(userIdSet) }),
+        this.conversationService.getConversations({ conversationIds: Array.from(groupMeetingIdSet) }),
+      ]);
+
+      const entityMap: Record<string, User | GroupConversation | MeetingConversation> = {};
+      [ ...users, ...groupsAndMeetings ].forEach((toEntity) => entityMap[toEntity.id] = toEntity);
+
+      const messages = messagesWithEntityId.map((message) => {
+        const { conversationId, toEntityId, ...restOfMessage } = message;
+
+        const to = entityMap[toEntityId];
+        const from = entityMap[message.from] as User;
+
+        return {
+          ...restOfMessage,
+          type: "type" in to ? to.type : ConversationType.Friend,
+          to,
+          from,
+        };
+      });
+
+      return { messages, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMessagesByUserIdAndSearchTerm", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -390,76 +453,58 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
-  private async createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
-    try {
-      this.loggerService.trace("createMessage called", { params }, this.constructor.name);
-
-      const { messageId, conversationId, from, replyTo, transcript, mimeType } = params;
-
-      const timestamp = new Date().toISOString();
-
-      const { conversationUserRelationships } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByConversationId({ conversationId });
-
-      const seenAt = conversationUserRelationships.reduce((acc: { [key: string]: string | null; }, relationship) => {
-        acc[relationship.userId] = relationship.userId === from ? timestamp : null;
-
-        return acc;
-      }, {});
-
-      const { message } = await this.messageService.createMessage({ messageId, conversationId, from, replyTo, mimeType, transcript, seenAt });
-
-      await Promise.all(conversationUserRelationships.map((relationship) => this.conversationUserRelationshipService.addMessageToConversationUserRelationship({
-        conversationId,
-        userId: relationship.userId,
-        messageId: message.id,
-        sender: relationship.userId === from,
-        updateUpdatedAt: true,
-      })));
-
-      return { message };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in createMessage", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
   private async getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput> {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
 
       const { conversationId, exclusiveStartKey, limit } = params;
 
-      const { messages: messageEntities, lastEvaluatedKey } = await this.messageService.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit });
+      const [ { messages: messageEntities, lastEvaluatedKey }, { conversation } ] = await Promise.all([
+        this.messageService.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit }),
+        this.conversationService.getConversation({ conversationId }),
+      ]);
 
-      const messages = await Promise.all(messageEntities.map(async (messageEntity) => {
-        const { user } = await this.userService.getUser({ userId: messageEntity.from });
+      // create a set of all the sending users' ids so that we can fetch them
+      const userIdsSet = new Set(messageEntities.map((messageEntity) => messageEntity.from));
 
-        const { signedUrl: fetchUrl } = this.messageFileService.getSignedUrl({
-          messageId: messageEntity.id,
-          conversationId: messageEntity.conversationId,
-          mimeType: messageEntity.mimeType,
-          operation: "get",
-        });
+      // if the convo is a friend conversation, we need to make sure to include each of the member's ids in the set,
+      // as each message will be to one of them
+      if (conversation.type === ConversationType.Friend) {
+        const { userIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: conversation.id });
 
-        const { signedUrl: fromImage } = this.imageFileService.getSignedUrl({
-          entityType: EntityType.User,
-          entityId: user.id,
-          mimeType: user.imageMimeType,
-          operation: "get",
-        });
+        userIds.forEach((userId) => userIdsSet.add(userId));
+      }
 
-        const { conversationId: pulledConversationId, ...restOfMessageEntity } = messageEntity;
-        const { to, type } = this.getToAndTypeFromConversationIdAndFrom({ conversationId, from: messageEntity.from });
+      const { users } = await this.userService.getUsers({ userIds: Array.from(userIdsSet) });
+
+      // Create a map so we can look up the users by id with O(1) time complexity
+      const usersMap: Record<string, User> = {};
+      users.forEach((user) => usersMap[user.id] = user);
+
+      const messages = messageEntities.map((messageEntity) => {
+        const { conversationId: _, ...restOfMessageEntity } = messageEntity;
+
+        const baseMessage = {
+          ...restOfMessageEntity,
+          type: conversation.type,
+          from: usersMap[messageEntity.from],
+        };
+
+        if (conversation.type === ConversationType.Friend) {
+          const { userIds: conversationMemberIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: conversation.id });
+          const [ toUserId ] = conversationMemberIds.filter((userId) => userId !== messageEntity.from);
+
+          return {
+            ...baseMessage,
+            to: usersMap[toUserId],
+          };
+        }
 
         return {
-          ...restOfMessageEntity,
-          to,
-          type,
-          fetchUrl,
-          fromImage,
+          ...baseMessage,
+          to: conversation,
         };
-      }));
+      });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -484,39 +529,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
       throw error;
     }
   }
-
-  private getToAndTypeFromConversationIdAndFrom(params: GetToAndTypeFromConversationIdAndFromInput): GetToAndTypeFromConversationIdAndFromOutput {
-    try {
-      this.loggerService.trace("getToAndTypeFromConversationIdAndFrom called", { params }, this.constructor.name);
-
-      const { from, conversationId } = params;
-
-      if (conversationId.startsWith(KeyPrefix.GroupConversation)) {
-        return {
-          to: conversationId as GroupId,
-          type: ConversationType.Group,
-        };
-      }
-
-      if (conversationId.startsWith(KeyPrefix.MeetingConversation)) {
-        return {
-          to: conversationId as MeetingId,
-          type: ConversationType.Meeting,
-        };
-      }
-
-      const toUserId = conversationId.replace(KeyPrefix.FriendConversation, "").replace(from, "").replace(/^-|-$/, "") as UserId;
-
-      return {
-        to: toUserId,
-        type: ConversationType.Friend,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getToAndTypeFromConversationIdAndFrom", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
 }
 
 export interface MessageMediatorServiceInterface {
@@ -528,24 +540,24 @@ export interface MessageMediatorServiceInterface {
   getMessagesByUserAndFriendIds(params: GetMessagesByUserAndFriendIdsInput): Promise<GetMessagesByUserAndFriendIdsOutput>;
   getMessagesByGroupId(params: GetMessagesByGroupIdInput): Promise<GetMessagesByGroupIdOutput>;
   getMessagesByMeetingId(params: GetMessagesByMeetingIdInput): Promise<GetMessagesByMeetingIdOutput>;
+  getMessagesByUserIdAndSearchTerm(params: GetMessagesByUserIdAndSearchTermInput): Promise<GetMessagesByUserIdAndSearchTermOutput>;
   updateMessageByUserId(params: UpdateMessageByUserIdInput): Promise<UpdateMessageByUserIdOutput>;
   updateFriendMessagesByUserId(params: UpdateFriendMessagesByUserIdInput): Promise<UpdateFriendMessagesByUserIdOutput>;
   updateMeetingMessagesByUserId(params: UpdateMeetingMessagesByUserIdInput): Promise<UpdateMeetingMessagesByUserIdOutput>;
   updateGroupMessagesByUserId(params: UpdateGroupMessagesByUserIdInput): Promise<UpdateGroupMessagesByUserIdOutput>;
 }
 
-type To = UserId | GroupId | MeetingId;
+type To = User | GroupConversation | MeetingConversation;
 
-export interface PendingMessage extends Omit<PendingMessageEntity, "id" | "conversationId"> {
-  id: MessageId
-  uploadUrl: string;
+export interface PendingMessage extends Omit<PendingMessageEntity, "id" | "conversationId" | "from"> {
+  id: MessageId;
+  from: User;
   to: To;
   type: ConversationType;
 }
 
-export interface Message extends Omit<MessageEntity, "conversationId"> {
-  fetchUrl: string;
-  fromImage: string;
+export interface Message extends Omit<MessageEntity, "conversationId" | "from"> {
+  from: User;
   to: To;
   type: ConversationType;
 }
@@ -622,6 +634,18 @@ export interface GetMessagesByMeetingIdOutput {
   lastEvaluatedKey?: string;
 }
 
+export interface GetMessagesByUserIdAndSearchTermInput {
+  userId: UserId;
+  searchTerm: string;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetMessagesByUserIdAndSearchTermOutput {
+  messages: Message[];
+  lastEvaluatedKey?: string;
+}
+
 interface ReactionChange {
   reaction: string;
   action: UpdateMessageReactionAction;
@@ -675,7 +699,7 @@ export interface ConvertPendingToRegularMessageInput {
 }
 
 export interface ConvertPendingToRegularMessageOutput {
-  message: MessageEntity;
+  message: Message;
 }
 
 interface UpdateConversationMessagesByUserIdInput {
@@ -687,19 +711,6 @@ interface UpdateConversationMessagesByUserIdInput {
 }
 
 type UpdateConversationMessagesByUserIdOutput = void;
-
-interface CreateMessageInput {
-  messageId: MessageId;
-  conversationId: ConversationId;
-  from: UserId;
-  mimeType: MessageMimeType;
-  transcript: string;
-  replyTo?: MessageId;
-}
-
-interface CreateMessageOutput {
-  message: MessageEntity;
-}
 
 interface GetMessagesByConversationIdInput {
   conversationId: ConversationId;
@@ -720,27 +731,10 @@ interface UpdateMessageSeenAtInput {
 
 type UpdateMessageSeenAtOutput = void;
 
-// interface MarkConversationReadInput {
-//   userId: UserId;
-//   conversationId: ConversationId;
-// }
-
-// type MarkConversationReadOutput = void;
-
 interface ConvertPendingToRegularMessageIdInput {
   pendingMessageId: PendingMessageId;
 }
 
 interface ConvertPendingToRegularMessageIdOutput {
   messageId: MessageId;
-}
-
-interface GetToAndTypeFromConversationIdAndFromInput {
-  from: UserId;
-  conversationId: ConversationId;
-}
-
-interface GetToAndTypeFromConversationIdAndFromOutput {
-  to: To;
-  type: ConversationType;
 }

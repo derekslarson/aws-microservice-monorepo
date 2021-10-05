@@ -8,6 +8,7 @@ export const GetConversationsByUserIdDto = Record({
   queryStringParameters: Record({
     exclusiveStartKey: Optional(String),
     type: Optional(ConversationType),
+    searchTerm: Optional(String),
     unread: Optional(Union(Literal("true"), Literal("false"))),
     limit: Optional(Limit),
   }),

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { MakeRequired, Role } from "@yac/util";
 import { generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
@@ -14,30 +14,36 @@ import {
   createConversationUserRelationship,
   createFriendConversation,
   createRandomUser,
-  CreateRandomUserOutput,
   getMessage,
   getPendingMessage,
+  getUser,
+  GetUserOutput,
 } from "../util";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
+import { RawUser } from "../../src/repositories/user.dynamo.repository";
 
 describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Message)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
-  let toUser: CreateRandomUserOutput["user"];
   const accessToken = process.env.accessToken as string;
-
   const mimeType = MessageMimeType.AudioMp3;
 
   describe("under normal conditions", () => {
+    let user: RawUser;
+    let otherUser: RawUser;
     let friendship: RawConversation<FriendConversation>;
 
+    beforeAll(async () => {
+      ({ user } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
+    });
+
     beforeEach(async () => {
-      ({ user: toUser } = await createRandomUser());
-      ({ conversation: friendship } = await createFriendConversation({ userId, friendId: toUser.id }));
+      ({ user: otherUser } = await createRandomUser());
+      ({ conversation: friendship } = await createFriendConversation({ userId, friendId: otherUser.id }));
 
       await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId, role: Role.Admin }),
-        createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId: toUser.id, role: Role.Admin }),
+        createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId: otherUser.id, role: Role.Admin }),
       ]);
     });
 
@@ -46,14 +52,28 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
       const body = { mimeType };
 
       try {
-        const { status, data } = await axios.post(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
+        const { status, data } = await axios.post(`${baseUrl}/users/${userId}/friends/${otherUser.id}/messages`, body, { headers });
 
         expect(status).toBe(201);
         expect(data).toEqual({
           pendingMessage: {
             id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Message}.*`)),
-            to: toUser.id,
-            from: userId,
+            to: {
+              realName: otherUser.realName,
+              username: otherUser.username,
+              id: otherUser.id,
+              email: otherUser.email,
+              phone: otherUser.phone,
+              image: jasmine.stringMatching(URL_REGEX),
+            },
+            from: {
+              realName: user.realName,
+              username: user.username,
+              id: user.id,
+              email: user.email,
+              phone: user.phone,
+              image: jasmine.stringMatching(URL_REGEX),
+            },
             type: ConversationType.Friend,
             mimeType,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
@@ -70,7 +90,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
       const body = { mimeType };
 
       try {
-        const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
+        const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${otherUser.id}/messages`, body, { headers });
 
         const pendingMessageId = (data.pendingMessage.id as MessageId).replace(KeyPrefix.Message, KeyPrefix.PendingMessage) as PendingMessageId;
 
@@ -96,7 +116,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
       const body = { mimeType };
 
       try {
-        const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${toUser.id}/messages`, body, { headers });
+        const { data } = await axios.post(`${baseUrl}/users/${userId}/friends/${otherUser.id}/messages`, body, { headers });
 
         await wait(3000);
 
@@ -111,6 +131,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
 
   describe("under error conditions", () => {
     const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+    const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
@@ -133,7 +154,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/users/${toUser.id}/friends/${mockUserId}/messages`, body, { headers });
+          await axios.post(`${baseUrl}/users/${mockUserId}/friends/${mockUserIdTwo}/messages`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {

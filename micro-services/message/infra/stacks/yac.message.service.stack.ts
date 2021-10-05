@@ -11,7 +11,6 @@ import {
   LogLevel,
   RouteProps,
   generateExportNames,
-  SSMParameterNames,
 } from "@yac/util";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Duration } from "@aws-cdk/core";
@@ -43,7 +42,7 @@ export class YacMessageService extends YacHttpServiceStack {
 
     // S3 Bucket ARN Imports from Util
     const messageS3BucketArn = CDK.Fn.importValue(ExportNames.RawMessageS3BucketArn);
-    const bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket_${id}`, messageS3BucketArn);
+    const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket_${id}`, messageS3BucketArn);
     const mountedPath = "/mnt/messages";
 
     // Environment Variables
@@ -51,7 +50,7 @@ export class YacMessageService extends YacHttpServiceStack {
       ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       SECRET: secret,
-      MESSAGES_S3_BUCKET: bucket.bucketName,
+      RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
       EFS_MOUNTED_PATH: mountedPath,
     };
 
@@ -62,7 +61,7 @@ export class YacMessageService extends YacHttpServiceStack {
     });
 
     new S3.CfnAccessPoint(this, `VpcMessageBucketAccessPoint_${id}`, {
-      bucket: bucket.bucketName,
+      bucket: rawMessageS3Bucket.bucketName,
       name: `access-point-${id.toLowerCase().replace("_", "-")}`,
       vpcConfiguration: { vpcId: vpc.vpcId },
     });
@@ -126,7 +125,7 @@ export class YacMessageService extends YacHttpServiceStack {
       filesystem: FSAccessPoint,
     });
 
-    bucket.grantReadWrite(finishChunkUploadHandler);
+    rawMessageS3Bucket.grantReadWrite(finishChunkUploadHandler);
 
     // Lambda Routes
     const routes: RouteProps[] = [
@@ -168,8 +167,19 @@ export class YacMessageService extends YacHttpServiceStack {
       value: vpc.availabilityZones.join(","),
     });
 
-    new SSM.StringParameter(this, `ChunkedUploadsLambdaSecurityGroupId_${id}`, { stringValue: lambdaSecurityGroup.securityGroupId, parameterName: SSMParameterNames.ChunkedUploadsLambdaSecurityGroupId });
-    new SSM.StringParameter(this, `ChunkedUploadsFileSystemSecurityGroupId_${id}`, { stringValue: fileSystemSecurityGroup.securityGroupId, parameterName: SSMParameterNames.ChunkedUploadsFileSystemSecurityGroupId });
-    new SSM.StringParameter(this, `ChunkedUploadsVPCId_${id}`, { stringValue: vpc.vpcId, parameterName: SSMParameterNames.ChunkedUploadsVPCId });
+    new SSM.StringParameter(this, `ChunkedUploadsLambdaSecurityGroupId_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/chunked-uploads-lambda-security-group-id`,
+      stringValue: lambdaSecurityGroup.securityGroupId,
+    });
+
+    new SSM.StringParameter(this, `ChunkedUploadsFileSystemSecurityGroupId_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/chunked-uploads-fs-security-group-id`,
+      stringValue: fileSystemSecurityGroup.securityGroupId,
+    });
+
+    new SSM.StringParameter(this, `ChunkedUploadsVPCId_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/chunked-uploads-vpc-id`,
+      stringValue: vpc.vpcId,
+    });
   }
 }

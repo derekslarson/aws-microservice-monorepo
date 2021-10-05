@@ -41,6 +41,7 @@ describe("GET /groups/{groupId} (Get Group)", () => {
             createdAt: group.createdAt,
             teamId: group.teamId,
             image: jasmine.stringMatching(URL_REGEX),
+            type: ConversationType.Group,
           },
         });
       } catch (error) {

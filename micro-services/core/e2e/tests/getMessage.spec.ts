@@ -7,30 +7,31 @@ import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
-import { GroupId } from "../../src/types/groupId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
+import { createConversationUserRelationship, createGroupConversation, CreateGroupConversationOutput, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
 
 describe("GET /messages/{messageId} (Get Message)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
+  let group: CreateGroupConversationOutput["conversation"];
   let otherUser: CreateRandomUserOutput["user"];
 
   beforeAll(async () => {
-    ({ user: otherUser } = await createRandomUser());
+    ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
+      createRandomUser(),
+      createGroupConversation({ createdBy: userId, name: generateRandomString(5) }),
+    ]));
   });
 
   describe("under normal conditions", () => {
-    const mockConversationId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
-
     let message: RawMessage;
 
     beforeAll(async () => {
       ([ { message } ] = await Promise.all([
-        createMessage({ from: otherUser.id, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-        createConversationUserRelationship({ type: ConversationType.Group, conversationId: mockConversationId, userId, role: Role.User }),
+        createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+        createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.User }),
       ]));
     });
 
@@ -44,16 +45,30 @@ describe("GET /messages/{messageId} (Get Message)", () => {
         expect(data).toEqual({
           message: {
             id: message.id,
-            to: mockConversationId,
-            from: message.from,
+            to: {
+              id: group.id,
+              name: group.name,
+              createdBy: group.createdBy,
+              createdAt: group.createdAt,
+              type: group.type,
+              image: jasmine.stringMatching(URL_REGEX),
+            },
+            from: {
+              id: otherUser.id,
+              email: otherUser.email,
+              username: otherUser.username,
+              phone: otherUser.phone,
+              realName: otherUser.realName,
+              image: jasmine.stringMatching(URL_REGEX),
+            },
             type: ConversationType.Group,
             createdAt: message.createdAt,
             seenAt: message.seenAt,
             reactions: message.reactions,
             replyCount: message.replyCount,
             mimeType: message.mimeType,
+            transcript: message.transcript,
             fetchUrl: jasmine.stringMatching(URL_REGEX),
-            fromImage: jasmine.stringMatching(URL_REGEX),
           },
         });
       } catch (error) {
@@ -81,13 +96,13 @@ describe("GET /messages/{messageId} (Get Message)", () => {
     });
 
     describe("when an id of a message in a conversation that the user is not a member of is passed in", () => {
-      const mockConversationId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+      let groupTwo: CreateGroupConversationOutput["conversation"];
       let message: RawMessage;
 
       beforeAll(async () => {
-        ([ { message } ] = await Promise.all([
-          createMessage({ from: otherUser.id, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-        ]));
+        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
+
+        ({ message } = await createMessage({ from: otherUser.id, conversationId: groupTwo.id, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
       });
 
       it("throws a 403 error", async () => {

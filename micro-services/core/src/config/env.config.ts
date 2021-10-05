@@ -36,6 +36,7 @@ export const envConfig: EnvConfigInterface = {
     two: process.env.GSI_TWO_INDEX_NAME || "",
     three: process.env.GSI_THREE_INDEX_NAME || "",
   },
+  openSearchDomainEndpoint: process.env.OPEN_SEARCH_DOMAIN_ENDPOINT || "",
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
@@ -73,5 +74,6 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     one: string;
     two: string;
     three: string;
-  }
+  };
+  openSearchDomainEndpoint: string;
 }

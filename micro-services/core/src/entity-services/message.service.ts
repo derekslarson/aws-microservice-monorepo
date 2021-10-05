@@ -1,18 +1,22 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/util";
+import { FileOperation, LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { MessageRepositoryInterface, Message as MessageEntity } from "../repositories/message.dynamo.repository";
+import { MessageRepositoryInterface, Message as MessageEntity, RawMessage } from "../repositories/message.dynamo.repository";
 import { UserId } from "../types/userId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { MessageId } from "../types/messageId.type";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
 import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
+import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
+import { SearchIndex } from "../enums/searchIndex.enum";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.EnhancedMessageFileRepositoryInterface) private enhancedMessageFileRepository: MessageFileRepositoryInterface,
     @inject(TYPES.MessageRepositoryInterface) private messageRepository: MessageRepositoryInterface,
+    @inject(TYPES.SearchRepositoryInterface) private messageSearchRepository: MessageSearchRepositoryInterface,
   ) {}
 
   public async createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
@@ -21,7 +25,7 @@ export class MessageService implements MessageServiceInterface {
 
       const { messageId, conversationId, from, mimeType, seenAt, transcript, replyTo } = params;
 
-      const message: MessageEntity = {
+      const messageEntity: MessageEntity = {
         id: messageId,
         conversationId,
         from,
@@ -34,7 +38,19 @@ export class MessageService implements MessageServiceInterface {
         reactions: {},
       };
 
-      await this.messageRepository.createMessage({ message });
+      await this.messageRepository.createMessage({ message: messageEntity });
+
+      const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
+        messageId: messageEntity.id,
+        conversationId: messageEntity.conversationId,
+        mimeType: messageEntity.mimeType,
+        operation: FileOperation.Get,
+      });
+
+      const message = {
+        ...messageEntity,
+        fetchUrl: signedUrl,
+      };
 
       return { message };
     } catch (error: unknown) {
@@ -50,7 +66,19 @@ export class MessageService implements MessageServiceInterface {
 
       const { messageId } = params;
 
-      const { message } = await this.messageRepository.getMessage({ messageId });
+      const { message: messageEntity } = await this.messageRepository.getMessage({ messageId });
+
+      const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
+        messageId: messageEntity.id,
+        conversationId: messageEntity.conversationId,
+        mimeType: messageEntity.mimeType,
+        operation: FileOperation.Get,
+      });
+
+      const message = {
+        ...messageEntity,
+        fetchUrl: signedUrl,
+      };
 
       return { message };
     } catch (error: unknown) {
@@ -66,13 +94,19 @@ export class MessageService implements MessageServiceInterface {
 
       const { messageIds } = params;
 
-      const { messages } = await this.messageRepository.getMessages({ messageIds });
+      const { messages: messageEntities } = await this.messageRepository.getMessages({ messageIds });
 
-      const messageMap = messages.reduce((acc: { [key: string]: Message; }, message) => {
-        acc[message.id] = message;
+      const messageMap: Record<string, Message> = {};
+      messageEntities.forEach((messageEntity) => {
+        const { signedUrl: fetchUrl } = this.enhancedMessageFileRepository.getSignedUrl({
+          messageId: messageEntity.id,
+          conversationId: messageEntity.conversationId,
+          mimeType: messageEntity.mimeType,
+          operation: FileOperation.Get,
+        });
 
-        return acc;
-      }, {});
+        messageMap[messageEntity.id] = { ...messageEntity, fetchUrl };
+      });
 
       const sortedMessages = messageIds.map((messageId) => messageMap[messageId]);
 
@@ -90,7 +124,19 @@ export class MessageService implements MessageServiceInterface {
 
       const { messageId, userId, seenAtValue } = params;
 
-      const { message } = await this.messageRepository.updateMessageSeenAt({ messageId, userId, seenAtValue });
+      const { message: messageEntity } = await this.messageRepository.updateMessageSeenAt({ messageId, userId, seenAtValue });
+
+      const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
+        messageId: messageEntity.id,
+        conversationId: messageEntity.conversationId,
+        mimeType: messageEntity.mimeType,
+        operation: FileOperation.Get,
+      });
+
+      const message = {
+        ...messageEntity,
+        fetchUrl: signedUrl,
+      };
 
       return { message };
     } catch (error: unknown) {
@@ -106,7 +152,19 @@ export class MessageService implements MessageServiceInterface {
 
       const { messageId, userId, reaction, action } = params;
 
-      const { message } = await this.messageRepository.updateMessageReaction({ messageId, userId, reaction, action });
+      const { message: messageEntity } = await this.messageRepository.updateMessageReaction({ messageId, userId, reaction, action });
+
+      const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
+        messageId: messageEntity.id,
+        conversationId: messageEntity.conversationId,
+        mimeType: messageEntity.mimeType,
+        operation: FileOperation.Get,
+      });
+
+      const message = {
+        ...messageEntity,
+        fetchUrl: signedUrl,
+      };
 
       return { message };
     } catch (error: unknown) {
@@ -122,7 +180,21 @@ export class MessageService implements MessageServiceInterface {
 
       const { conversationId, exclusiveStartKey, limit } = params;
 
-      const { messages, lastEvaluatedKey } = await this.messageRepository.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit });
+      const { messages: messageEntities, lastEvaluatedKey } = await this.messageRepository.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit });
+
+      const messages = messageEntities.map((messageEntity) => {
+        const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
+          messageId: messageEntity.id,
+          conversationId: messageEntity.conversationId,
+          mimeType: messageEntity.mimeType,
+          operation: FileOperation.Get,
+        });
+
+        return {
+          ...messageEntity,
+          fetchUrl: signedUrl,
+        };
+      });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -138,11 +210,75 @@ export class MessageService implements MessageServiceInterface {
 
       const { messageId, exclusiveStartKey, limit } = params;
 
-      const { replies, lastEvaluatedKey } = await this.messageRepository.getRepliesByMessageId({ messageId, exclusiveStartKey, limit });
+      const { replies: messageEntities, lastEvaluatedKey } = await this.messageRepository.getRepliesByMessageId({ messageId, exclusiveStartKey, limit });
+
+      const replies = messageEntities.map((messageEntity) => {
+        const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
+          messageId: messageEntity.id,
+          conversationId: messageEntity.conversationId,
+          mimeType: messageEntity.mimeType,
+          operation: FileOperation.Get,
+        });
+
+        return {
+          ...messageEntity,
+          fetchUrl: signedUrl,
+        };
+      });
 
       return { replies, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getRepliesByMessageId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async indexMessageForSearch(params: IndexMessageForSearchInput): Promise<IndexMessageForSearchOutput> {
+    try {
+      this.loggerService.trace("indexMessageForSearch called", { params }, this.constructor.name);
+
+      const { message: rawMessage } = params;
+
+      const { message } = this.messageRepository.convertRawMessageToMessage({ rawMessage });
+
+      await this.messageSearchRepository.indexDocument({ index: SearchIndex.Message, document: message });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in indexMessageForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async deindexMessageForSearch(params: DeindexMessageForSearchInput): Promise<DeindexMessageForSearchOutput> {
+    try {
+      this.loggerService.trace("deindexMessageForSearch called", { params }, this.constructor.name);
+
+      const { messageId } = params;
+
+      await this.messageSearchRepository.deindexDocument({ index: SearchIndex.Message, id: messageId });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deindexMessageForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getMessagesBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, conversationIds, limit, exclusiveStartKey } = params;
+
+      const { messages: messageEntities, lastEvaluatedKey } = await this.messageSearchRepository.getMessagesBySearchTerm({ searchTerm, conversationIds, limit, exclusiveStartKey });
+
+      const searchMessageIds = messageEntities.map((message) => message.id);
+
+      const { messages } = await this.getMessages({ messageIds: searchMessageIds });
+
+      return { messages, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMessagesBySearchTerm", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -157,9 +293,14 @@ export interface MessageServiceInterface {
   updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
+  indexMessageForSearch(params: IndexMessageForSearchInput): Promise<IndexMessageForSearchOutput>;
+  deindexMessageForSearch(params: DeindexMessageForSearchInput): Promise<DeindexMessageForSearchOutput>;
+  getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput>;
 }
 
-export type Message = MessageEntity;
+export interface Message extends MessageEntity {
+  fetchUrl: string;
+}
 
 export interface CreateMessageInput {
   messageId: MessageId;
@@ -233,3 +374,29 @@ export interface GetRepliesByMessageIdOutput {
   replies: Message[];
   lastEvaluatedKey?: string;
 }
+
+export interface IndexMessageForSearchInput {
+  message: RawMessage;
+}
+
+export type IndexMessageForSearchOutput = void;
+
+export interface DeindexMessageForSearchInput {
+  messageId: MessageId;
+}
+
+export type DeindexMessageForSearchOutput = void;
+
+export interface GetMessagesBySearchTermInput {
+  searchTerm: string;
+  conversationIds?: ConversationId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetMessagesBySearchTermOutput {
+  messages: Message[];
+  lastEvaluatedKey?: string;
+}
+
+type MessageSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getMessagesBySearchTerm">;

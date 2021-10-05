@@ -1,12 +1,13 @@
-import { GroupId } from "../types/groupId.type";
-import { MeetingId } from "../types/meetingId.type";
 import { MessageId } from "../types/messageId.type";
 import { UserId } from "../types/userId.type";
+import { Group } from "./group.model";
+import { Meeting } from "./meeting.model";
+import { User } from "./user.model";
 
 export interface Message {
   id: MessageId;
-  to: UserId | GroupId | MeetingId;
-  from: UserId;
+  to: User | Group | Meeting;
+  from: User;
   type: "friend" | "group" | "meeting";
   createdAt: string;
   seenAt: Record<UserId, string | null>;
@@ -14,7 +15,6 @@ export interface Message {
   replyCount: number;
   mimeType: "audio/mpeg" | "audio/mp4" | "video/mp4" | "video/webm";
   fetchUrl: string;
-  fromImage: string;
   transcript?: string;
   replyTo?: MessageId;
 }

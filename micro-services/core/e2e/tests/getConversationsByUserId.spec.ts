@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Role } from "@yac/util";
 import axios from "axios";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
+import { generateRandomString, getAccessTokenByEmail, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationFetchType } from "../../src/enums/conversationFetchType.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
@@ -12,12 +12,17 @@ import { FriendConversation, GroupConversation, MeetingConversation, RawConversa
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
+import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage, createUser, createRandomUser, CreateRandomUserOutput, generateRandomPhone } from "../util";
 
 describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   describe("under normal conditions", () => {
+    const searchParamNameRealName = "one";
+    const searchParamUserName = "two";
+    const searchParamEmail = "three";
+    const searchParamPhone = generateRandomPhone();
+
     let user: CreateRandomUserOutput["user"];
     let otherUser: CreateRandomUserOutput["user"];
     let accessToken: string;
@@ -40,12 +45,17 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
       // We have to fetch a new base user and access token here to prevent bleed over from other tests
       ([ { user }, { user: otherUser } ] = await Promise.all([
         createRandomUser(),
-        createRandomUser(),
+        createUser({
+          realName: `${generateRandomString(10)} ${searchParamNameRealName}`,
+          email: `${generateRandomString(10)}${searchParamEmail}@test.com`,
+          username: `${generateRandomString(10)}-${searchParamUserName}`,
+          phone: searchParamPhone,
+        }),
       ]));
 
       ([ { accessToken }, { conversation: meeting }, { conversation: meetingTwo }, { conversation: group }, { conversation: friendship } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createMeetingConversation({ createdBy: user.id, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
+        createMeetingConversation({ createdBy: user.id, name: `${generateRandomString(5)} ${searchParamNameRealName}`, dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
         createMeetingConversation({ createdBy: otherUser.id, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
         createGroupConversation({ createdBy: otherUser.id, name: generateRandomString(5) }),
         createFriendConversation({ userId: user.id, friendId: otherUser.id }),
@@ -58,6 +68,9 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
       ({ conversationUserRelationship: meetingUserRelationshipTwo } = await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meetingTwo.id, userId: user.id, role: Role.User, dueDate: meetingTwo.dueDate }));
       ({ conversationUserRelationship: groupUserRelationship } = await createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId: user.id, role: Role.User, recentMessageId: message.id, unreadMessageIds: [ message.id ] }));
       ({ conversationUserRelationship: friendshipUserRelationship } = await createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId: user.id, role: Role.Admin }));
+
+      // wait for messages to be indexed in OpenSearch
+      await wait(5000);
     });
 
     describe("when not passed any query params", () => {
@@ -71,9 +84,11 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
           expect(data).toEqual({
             conversations: [
               {
-                createdBy: friendship.createdBy,
-                createdAt: friendship.createdAt,
-                id: friendship.id,
+                id: otherUser.id,
+                realName: otherUser.realName,
+                username: otherUser.username,
+                email: otherUser.email,
+                phone: otherUser.phone,
                 type: friendship.type,
                 updatedAt: friendshipUserRelationship.updatedAt,
                 unreadMessages: 0,
@@ -93,12 +108,26 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
-                  to: message.conversationId,
-                  from: otherUser.id,
+                  to: {
+                    id: group.id,
+                    name: group.name,
+                    createdBy: group.createdBy,
+                    createdAt: group.createdAt,
+                    type: group.type,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  from: {
+                    realName: otherUser.realName,
+                    username: otherUser.username,
+                    id: otherUser.id,
+                    email: otherUser.email,
+                    phone: otherUser.phone,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
                   type: ConversationType.Group,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
-                  fromImage: jasmine.stringMatching(URL_REGEX),
+                  transcript: message.transcript,
                   id: message.id,
                   mimeType: message.mimeType,
                   fetchUrl: jasmine.stringMatching(URL_REGEX),
@@ -149,9 +178,11 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
           expect(data).toEqual({
             conversations: [
               {
-                createdBy: friendship.createdBy,
-                createdAt: friendship.createdAt,
-                id: friendship.id,
+                id: otherUser.id,
+                realName: otherUser.realName,
+                username: otherUser.username,
+                email: otherUser.email,
+                phone: otherUser.phone,
                 type: friendship.type,
                 updatedAt: friendshipUserRelationship.updatedAt,
                 unreadMessages: 0,
@@ -173,13 +204,27 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   replyCount: message.replyCount,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
-                  to: message.conversationId,
-                  from: otherUser.id,
+                  to: {
+                    id: group.id,
+                    name: group.name,
+                    createdBy: group.createdBy,
+                    createdAt: group.createdAt,
+                    type: group.type,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  from: {
+                    realName: otherUser.realName,
+                    username: otherUser.username,
+                    id: otherUser.id,
+                    email: otherUser.email,
+                    phone: otherUser.phone,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
                   type: ConversationType.Group,
                   id: message.id,
                   mimeType: message.mimeType,
                   fetchUrl: jasmine.stringMatching(URL_REGEX),
-                  fromImage: jasmine.stringMatching(URL_REGEX),
+                  transcript: message.transcript,
                 },
               },
             ],
@@ -238,9 +283,11 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
           expect(data).toEqual({
             conversations: [
               {
-                createdBy: friendship.createdBy,
-                createdAt: friendship.createdAt,
-                id: friendship.id,
+                id: otherUser.id,
+                realName: otherUser.realName,
+                username: otherUser.username,
+                email: otherUser.email,
+                phone: otherUser.phone,
                 type: friendship.type,
                 updatedAt: friendshipUserRelationship.updatedAt,
                 unreadMessages: 0,
@@ -281,13 +328,27 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   replyCount: message.replyCount,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
-                  to: message.conversationId,
-                  from: otherUser.id,
+                  to: {
+                    id: group.id,
+                    name: group.name,
+                    createdBy: group.createdBy,
+                    createdAt: group.createdAt,
+                    type: group.type,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  from: {
+                    realName: otherUser.realName,
+                    username: otherUser.username,
+                    id: otherUser.id,
+                    email: otherUser.email,
+                    phone: otherUser.phone,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
                   type: ConversationType.Group,
                   id: message.id,
                   mimeType: message.mimeType,
                   fetchUrl: jasmine.stringMatching(URL_REGEX),
-                  fromImage: jasmine.stringMatching(URL_REGEX),
+                  transcript: message.transcript,
                 },
               },
             ],
@@ -412,13 +473,27 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   replyCount: message.replyCount,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
-                  to: message.conversationId,
-                  from: otherUser.id,
+                  to: {
+                    id: group.id,
+                    name: group.name,
+                    createdBy: group.createdBy,
+                    createdAt: group.createdAt,
+                    type: group.type,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
+                  from: {
+                    realName: otherUser.realName,
+                    username: otherUser.username,
+                    id: otherUser.id,
+                    email: otherUser.email,
+                    phone: otherUser.phone,
+                    image: jasmine.stringMatching(URL_REGEX),
+                  },
                   type: ConversationType.Group,
                   id: message.id,
                   mimeType: message.mimeType,
                   fetchUrl: jasmine.stringMatching(URL_REGEX),
-                  fromImage: jasmine.stringMatching(URL_REGEX),
+                  transcript: message.transcript,
                 },
               },
             ],
@@ -426,6 +501,146 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
         } catch (error) {
           fail(error);
         }
+      });
+    });
+
+    describe("when passed a 'searchTerm' query param", () => {
+      describe("when passed a term that is in a user's realName and meeting's name", () => {
+        it("returns a valid response", async () => {
+          const params = { searchTerm: searchParamNameRealName };
+          const headers = { Authorization: `Bearer ${accessToken}` };
+
+          try {
+            const { status, data } = await axios.get(`${baseUrl}/users/${user.id}/conversations`, { params, headers });
+
+            expect(status).toBe(200);
+            expect(data.conversations.length).toEqual(2);
+            expect(data).toEqual({
+              conversations: jasmine.arrayContaining([
+                {
+                  id: otherUser.id,
+                  realName: otherUser.realName,
+                  username: otherUser.username,
+                  email: otherUser.email,
+                  phone: otherUser.phone,
+                  type: friendship.type,
+                  updatedAt: friendshipUserRelationship.updatedAt,
+                  unreadMessages: 0,
+                  role: friendshipUserRelationship.role,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                {
+                  dueDate: meeting.dueDate,
+                  createdAt: meeting.createdAt,
+                  id: meeting.id,
+                  createdBy: meeting.createdBy,
+                  teamId: meeting.teamId,
+                  name: meeting.name,
+                  type: meeting.type,
+                  updatedAt: meetingUserRelationship.updatedAt,
+                  unreadMessages: 0,
+                  role: meetingUserRelationship.role,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+              ]),
+            });
+          } catch (error) {
+            fail(error);
+          }
+        });
+      });
+
+      describe("when passed a term that is in a user's email", () => {
+        it("returns a valid response", async () => {
+          const params = { searchTerm: searchParamEmail };
+          const headers = { Authorization: `Bearer ${accessToken}` };
+
+          try {
+            const { status, data } = await axios.get(`${baseUrl}/users/${user.id}/conversations`, { params, headers });
+
+            expect(status).toBe(200);
+            expect(data).toEqual({
+              conversations: [
+                {
+                  id: otherUser.id,
+                  realName: otherUser.realName,
+                  username: otherUser.username,
+                  email: otherUser.email,
+                  phone: otherUser.phone,
+                  type: friendship.type,
+                  updatedAt: friendshipUserRelationship.updatedAt,
+                  unreadMessages: 0,
+                  role: friendshipUserRelationship.role,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+              ],
+            });
+          } catch (error) {
+            fail(error);
+          }
+        });
+      });
+
+      describe("when passed a term that is in a user's username", () => {
+        it("returns a valid response", async () => {
+          const params = { searchTerm: searchParamUserName };
+          const headers = { Authorization: `Bearer ${accessToken}` };
+
+          try {
+            const { status, data } = await axios.get(`${baseUrl}/users/${user.id}/conversations`, { params, headers });
+
+            expect(status).toBe(200);
+            expect(data).toEqual({
+              conversations: [
+                {
+                  id: otherUser.id,
+                  realName: otherUser.realName,
+                  username: otherUser.username,
+                  email: otherUser.email,
+                  phone: otherUser.phone,
+                  type: friendship.type,
+                  updatedAt: friendshipUserRelationship.updatedAt,
+                  unreadMessages: 0,
+                  role: friendshipUserRelationship.role,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+              ],
+            });
+          } catch (error) {
+            fail(error);
+          }
+        });
+      });
+
+      describe("when passed a term that is in a user's phone", () => {
+        it("returns a valid response", async () => {
+          const params = { searchTerm: searchParamPhone };
+          const headers = { Authorization: `Bearer ${accessToken}` };
+
+          try {
+            const { status, data } = await axios.get(`${baseUrl}/users/${user.id}/conversations`, { params, headers });
+
+            expect(status).toBe(200);
+            expect(data).toEqual({
+              conversations: [
+                {
+                  id: otherUser.id,
+                  realName: otherUser.realName,
+                  username: otherUser.username,
+                  email: otherUser.email,
+                  phone: otherUser.phone,
+                  type: friendship.type,
+                  updatedAt: friendshipUserRelationship.updatedAt,
+                  unreadMessages: 0,
+                  role: friendshipUserRelationship.role,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+              ],
+            });
+          } catch (error) {
+            fail(error);
+          }
+        });
       });
     });
   });

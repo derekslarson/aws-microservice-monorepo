@@ -6,14 +6,14 @@ import { SnsEventController, SnsEventControllerInterface } from "../controllers/
 import { IdService, IdServiceInterface } from "../services/id.service";
 import { HttpRequestService, HttpRequestServiceInterface } from "../services/http.request.service";
 import { LoggerService, LoggerServiceInterface } from "../services/logger.service";
-// import { UserSignedUpSnsService, UserSignedUpSnsServiceInterface } from "../services/userSignedUp.sns.service";
 import { ValidationService, ValidationServiceInterface } from "../services/validation.service";
 import { ValidationServiceV2, ValidationServiceV2Interface } from "../services/validation.service.v2";
-import { RawMessageS3Repository, RawMessageFileRepositoryInterface } from "../repositories/rawMessage.s3.repository";
+import { RawMessageS3Repository } from "../repositories/rawMessage.s3.repository";
 
 import { axiosFactory, AxiosFactory } from "../factories/axios.factory";
 import { classTransformerFactory, ClassTransformerFactory } from "../factories/classTransformer.factory";
 import { classValidatorFactory, ClassValidatorFactory } from "../factories/classValidator.factory";
+import { cryptoFactory, CryptoFactory } from "../factories/crypto.factory";
 import { documentClientFactory, DocumentClientFactory } from "../factories/documentClient.factory";
 import { errorSerializerFactory, ErrorSerializerFactory } from "../factories/errorSerializer.factory";
 import { logWriterFactory, LogWriterFactory } from "../factories/logWriter.factory";
@@ -25,7 +25,10 @@ import { uuidV4Factory, UuidV4Factory } from "../factories/uuidV4.factory";
 import { S3EventController, S3EventControllerInterface } from "../controllers/s3Event.controller";
 import { DynamoStreamController, DynamoStreamControllerInterface } from "../controllers/dynamoStream.controller";
 import { SmsService, SmsServiceInterface } from "../services/sms.service";
-import { EnhancedMessageFileRepositoryInterface, EnhancedMessageS3Repository } from "../repositories/enhancedMessage.s3.repository";
+import { EnhancedMessageS3Repository } from "../repositories/enhancedMessage.s3.repository";
+import { MessageFileRepositoryInterface } from "../repositories/base.message.s3.repository";
+import { fsFactory, FsFactory } from "../factories/fs.factory";
+import { pathFactory, PathFactory } from "../factories/path.factory";
 
 const coreContainerModule = new ContainerModule((bind) => {
   try {
@@ -37,19 +40,21 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<IdServiceInterface>(TYPES.IdServiceInterface).to(IdService);
     bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);
     bind<SmsServiceInterface>(TYPES.SmsServiceInterface).to(SmsService);
-    // bind<UserSignedUpSnsServiceInterface>(TYPES.UserSignedUpSnsServiceInterface).to(UserSignedUpSnsService);
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
     bind<ValidationServiceV2Interface>(TYPES.ValidationServiceV2Interface).to(ValidationServiceV2);
 
-    bind<EnhancedMessageFileRepositoryInterface>(TYPES.EnhancedMessageFileRepositoryInterface).to(EnhancedMessageS3Repository);
-    bind<RawMessageFileRepositoryInterface>(TYPES.RawMessageFileRepositoryInterface).to(RawMessageS3Repository);
+    bind<MessageFileRepositoryInterface>(TYPES.EnhancedMessageFileRepositoryInterface).to(EnhancedMessageS3Repository);
+    bind<MessageFileRepositoryInterface>(TYPES.RawMessageFileRepositoryInterface).to(RawMessageS3Repository);
 
     bind<AxiosFactory>(TYPES.AxiosFactory).toFactory(() => axiosFactory);
     bind<ClassTransformerFactory>(TYPES.ClassTransformerFactory).toFactory(() => classTransformerFactory);
     bind<ClassValidatorFactory>(TYPES.ClassValidatorFactory).toFactory(() => classValidatorFactory);
+    bind<CryptoFactory>(TYPES.CryptoFactory).toFactory(() => cryptoFactory);
     bind<DocumentClientFactory>(TYPES.DocumentClientFactory).toFactory(() => documentClientFactory);
     bind<ErrorSerializerFactory>(TYPES.ErrorSerializerFactory).toFactory(() => errorSerializerFactory);
+    bind<FsFactory>(TYPES.FsFactory).toFactory(() => fsFactory);
     bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
+    bind<PathFactory>(TYPES.PathFactory).toFactory(() => pathFactory);
     bind<KsuidFactory>(TYPES.KsuidFactory).toFactory(() => ksuidFactory);
     bind<S3Factory>(TYPES.S3Factory).toFactory(() => s3Factory);
     bind<SnsFactory>(TYPES.SnsFactory).toFactory(() => snsFactory);

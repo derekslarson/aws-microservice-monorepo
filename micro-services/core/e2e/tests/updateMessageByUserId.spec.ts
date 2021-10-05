@@ -8,33 +8,34 @@ import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
-import { GroupId } from "../../src/types/groupId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createRandomUser, createConversationUserRelationship, createMessage, CreateRandomUserOutput, getConversationUserRelationship, getMessage } from "../util";
+import { createRandomUser, createConversationUserRelationship, createMessage, CreateRandomUserOutput, getConversationUserRelationship, getMessage, CreateGroupConversationOutput, createGroupConversation } from "../util";
 
 describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
+  let group: CreateGroupConversationOutput["conversation"];
   let otherUser: CreateRandomUserOutput["user"];
 
   beforeAll(async () => {
-    ({ user: otherUser } = await createRandomUser());
+    ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
+      createRandomUser(),
+      createGroupConversation({ createdBy: userId, name: generateRandomString(5) }),
+    ]));
   });
 
   describe("under normal conditions", () => {
-    const mockConversationId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
-
     let message: RawMessage;
     let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Group>;
 
     beforeEach(async () => {
-      ({ message } = await createMessage({ from: otherUser.id, conversationId: mockConversationId, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
+      ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
 
       ({ conversationUserRelationship } = await createConversationUserRelationship({
         type: ConversationType.Group,
-        conversationId: mockConversationId,
+        conversationId: group.id,
         userId,
         role: Role.User,
         unreadMessageIds: [ message.id ],
@@ -46,11 +47,11 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
         const seen = true;
 
         beforeEach(async () => {
-          ({ message } = await createMessage({ from: otherUser.id, conversationId: mockConversationId, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
+          ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({
             type: ConversationType.Group,
-            conversationId: mockConversationId,
+            conversationId: group.id,
             userId,
             role: Role.User,
             unreadMessageIds: [ message.id ],
@@ -68,8 +69,22 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
             expect(data).toEqual({
               message: {
                 id: message.id,
-                from: message.from,
-                to: mockConversationId,
+                to: {
+                  id: group.id,
+                  name: group.name,
+                  createdBy: group.createdBy,
+                  createdAt: group.createdAt,
+                  type: group.type,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  id: otherUser.id,
+                  email: otherUser.email,
+                  username: otherUser.username,
+                  phone: otherUser.phone,
+                  realName: otherUser.realName,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Group,
                 createdAt: message.createdAt,
                 seenAt: {
@@ -79,12 +94,11 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                 reactions: {},
                 replyCount: message.replyCount,
                 mimeType: message.mimeType,
+                transcript: message.transcript,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
               },
             });
           } catch (error) {
-            console.log(JSON.stringify(error.response.data, null, 2));
             fail(error);
           }
         });
@@ -117,7 +131,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
           try {
             await axios.patch(`${baseUrl}/users/${userId}/messages/${message.id}`, body, { headers });
 
-            const { conversationUserRelationship: conversationUserRelationshipEntity } = await getConversationUserRelationship({ userId, conversationId: mockConversationId });
+            const { conversationUserRelationship: conversationUserRelationshipEntity } = await getConversationUserRelationship({ userId, conversationId: group.id });
 
             const { unreadMessages, ...updatedConversationUserRelationship } = conversationUserRelationship;
 
@@ -132,11 +146,11 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
         const seen = false;
 
         beforeEach(async () => {
-          ({ message } = await createMessage({ from: otherUser.id, conversationId: mockConversationId, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, markSeenByAll: true }));
+          ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, markSeenByAll: true }));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({
             type: ConversationType.Group,
-            conversationId: mockConversationId,
+            conversationId: group.id,
             userId,
             role: Role.User,
           }));
@@ -153,8 +167,22 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
             expect(data).toEqual({
               message: {
                 id: message.id,
-                to: mockConversationId,
-                from: message.from,
+                to: {
+                  id: group.id,
+                  name: group.name,
+                  createdBy: group.createdBy,
+                  createdAt: group.createdAt,
+                  type: group.type,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  id: otherUser.id,
+                  email: otherUser.email,
+                  username: otherUser.username,
+                  phone: otherUser.phone,
+                  realName: otherUser.realName,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Group,
                 createdAt: message.createdAt,
                 seenAt: {
@@ -164,8 +192,8 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                 reactions: {},
                 replyCount: message.replyCount,
                 mimeType: message.mimeType,
+                transcript: message.transcript,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
               },
             });
           } catch (error) {
@@ -201,7 +229,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
           try {
             await axios.patch(`${baseUrl}/users/${userId}/messages/${message.id}`, body, { headers });
 
-            const { conversationUserRelationship: conversationUserRelationshipEntity } = await getConversationUserRelationship({ userId, conversationId: mockConversationId });
+            const { conversationUserRelationship: conversationUserRelationshipEntity } = await getConversationUserRelationship({ userId, conversationId: group.id });
 
             expect(conversationUserRelationshipEntity).toEqual({
               ...conversationUserRelationship,
@@ -219,11 +247,11 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
 
       describe("when 'reactions[0].action: \"add\"'", () => {
         beforeEach(async () => {
-          ({ message } = await createMessage({ from: otherUser.id, conversationId: mockConversationId, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
+          ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({
             type: ConversationType.Group,
-            conversationId: mockConversationId,
+            conversationId: group.id,
             userId,
             role: Role.User,
             unreadMessageIds: [ message.id ],
@@ -241,8 +269,22 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
             expect(data).toEqual({
               message: {
                 id: message.id,
-                to: mockConversationId,
-                from: message.from,
+                to: {
+                  id: group.id,
+                  name: group.name,
+                  createdBy: group.createdBy,
+                  createdAt: group.createdAt,
+                  type: group.type,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  id: otherUser.id,
+                  email: otherUser.email,
+                  username: otherUser.username,
+                  phone: otherUser.phone,
+                  realName: otherUser.realName,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Group,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
@@ -252,8 +294,8 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                 },
                 replyCount: message.replyCount,
                 mimeType: message.mimeType,
+                transcript: message.transcript,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
               },
             });
           } catch (error) {
@@ -287,7 +329,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
         beforeEach(async () => {
           ({ message } = await createMessage({
             from: otherUser.id,
-            conversationId: mockConversationId,
+            conversationId: group.id,
             conversationMemberIds: [ otherUser.id, userId ],
             replyCount: 0,
             mimeType: MessageMimeType.AudioMp3,
@@ -296,7 +338,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({
             type: ConversationType.Group,
-            conversationId: mockConversationId,
+            conversationId: group.id,
             userId,
             role: Role.User,
             unreadMessageIds: [ message.id ],
@@ -314,16 +356,30 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
             expect(data).toEqual({
               message: {
                 id: message.id,
-                to: mockConversationId,
-                from: message.from,
+                to: {
+                  id: group.id,
+                  name: group.name,
+                  createdBy: group.createdBy,
+                  createdAt: group.createdAt,
+                  type: group.type,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
+                from: {
+                  id: otherUser.id,
+                  email: otherUser.email,
+                  username: otherUser.username,
+                  phone: otherUser.phone,
+                  realName: otherUser.realName,
+                  image: jasmine.stringMatching(URL_REGEX),
+                },
                 type: ConversationType.Group,
                 createdAt: message.createdAt,
                 seenAt: message.seenAt,
                 reactions: {},
                 replyCount: message.replyCount,
                 mimeType: message.mimeType,
+                transcript: message.transcript,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
-                fromImage: jasmine.stringMatching(URL_REGEX),
               },
             });
           } catch (error) {
@@ -372,12 +428,14 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
     });
 
     describe("when an id of a message that the user is not a member of the conversation is passed in", () => {
-      const mockConversationId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+      let groupTwo: CreateGroupConversationOutput["conversation"];
       let message: RawMessage;
 
       beforeAll(async () => {
+        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
+
         ([ { message } ] = await Promise.all([
-          createMessage({ from: otherUser.id, conversationId: mockConversationId, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+          createMessage({ from: otherUser.id, conversationId: groupTwo.id, conversationMemberIds: [ otherUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
         ]));
       });
 

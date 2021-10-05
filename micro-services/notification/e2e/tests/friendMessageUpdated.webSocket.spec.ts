@@ -41,8 +41,8 @@ describe("Friend Message Updated (WebSocket Event)", () => {
       createRandomCognitoUser(),
     ]);
 
-    userOneId = idOne as UserId;
-    userTwoId = idTwo as UserId;
+    userOneId = idOne;
+    userTwoId = idTwo;
 
     // Get JWT tokens for each user
     const [ { accessToken: accessTokenOne }, { accessToken: accessTokenTwo }, { accessToken: accessTokenThree } ] = await Promise.all([
@@ -83,18 +83,16 @@ describe("Friend Message Updated (WebSocket Event)", () => {
   describe("under normal conditions", () => {
     it("sends valid websocket events to the correct connectionIds", async () => {
       const message: FriendMessageUpdatedSnsMessage = {
-        to: {
-          id: userOneId,
-          image: "test-image-one",
-        },
-        from: {
-          id: userTwoId,
-          image: "test-image-two",
-        },
         message: {
           id: "message-id",
-          to: userOneId,
-          from: userTwoId,
+          to: {
+            id: userOneId,
+            image: "test-image-one",
+          },
+          from: {
+            id: userTwoId,
+            image: "test-image-two",
+          },
           type: "friend",
           createdAt: new Date().toISOString(),
           seenAt: { [userOneId]: new Date().toISOString() },
@@ -102,7 +100,6 @@ describe("Friend Message Updated (WebSocket Event)", () => {
           replyCount: 0,
           mimeType: "audio/mpeg",
           fetchUrl: "mock-fetch-url",
-          fromImage: "mock-from-image",
         },
       };
 
@@ -122,31 +119,19 @@ describe("Friend Message Updated (WebSocket Event)", () => {
       expect(connections.userOneA.messages.length).toBe(1);
       expect(connections.userOneA.messages[0]).toEqual({
         event: WebSocketEvent.FriendMessageUpdated,
-        data: {
-          to: message.to,
-          from: message.from,
-          message: message.message,
-        },
+        data: { message: message.message },
       });
 
       expect(connections.userOneB.messages.length).toBe(1);
       expect(connections.userOneB.messages[0]).toEqual({
         event: WebSocketEvent.FriendMessageUpdated,
-        data: {
-          to: message.to,
-          from: message.from,
-          message: message.message,
-        },
+        data: { message: message.message },
       });
 
       expect(connections.userTwo.messages.length).toBe(1);
       expect(connections.userTwo.messages[0]).toEqual({
         event: WebSocketEvent.FriendMessageUpdated,
-        data: {
-          to: message.to,
-          from: message.from,
-          message: message.message,
-        },
+        data: { message: message.message },
       });
 
       expect(connections.userThree.messages.length).toBe(0);

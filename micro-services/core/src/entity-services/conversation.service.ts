@@ -1,13 +1,14 @@
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
+import { FileOperation, IdServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { 
-  Conversation as ConversationEntity, 
+  Conversation as ConversationEntity,
   FriendConversation as FriendConversationEntity, 
   GroupConversation as GroupConversationEntity, 
   MeetingConversation as MeetingConversationEntity,
   ConversationRepositoryInterface, 
-  ConversationUpdates
+  ConversationUpdates,
+  RawConversation
 } from "../repositories/conversation.dynamo.repository";
 import { ConversationType } from "../types/conversationType.type";
 import { ConversationType as ConversationTypeEnum } from "../enums/conversationType.enum";
@@ -19,13 +20,19 @@ import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { ConversationId } from "../types/conversationId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
+import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
+import { SearchIndex } from "../enums/searchIndex.enum";
+import { EntityType } from "../enums/entityType.enum";
+import { ImageFileRepositoryInterface } from "../repositories/image.s3.repository";
 
 @injectable()
 export class ConversationService implements ConversationServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
+    @inject(TYPES.ImageFileRepositoryInterface) private imageFileRepository: ImageFileRepositoryInterface,
     @inject(TYPES.ConversationRepositoryInterface) private conversationRepository: ConversationRepositoryInterface,
+    @inject(TYPES.SearchRepositoryInterface) private conversationSearchRepository: ConversationSearchRepositoryInterface,
   ) {}
 
   public async createFriendConversation(params: CreateFriendConversationInput): Promise<CreateFriendConversationOutput> {
@@ -76,11 +83,13 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createGroupConversation called", { params }, this.constructor.name);
 
-      const { imageMimeType, name, createdBy, teamId } = params;
+      const { name, createdBy, teamId } = params;
 
       const conversationId = `${KeyPrefix.GroupConversation}${this.idService.generateId()}` as GroupId;
-
-      const conversation: GroupConversation = {
+      
+      const { image, mimeType: imageMimeType } = this.imageFileRepository.createDefaultImage();
+      
+      const conversationEntity: GroupConversationEntity = {
         imageMimeType,
         id: conversationId,
         name,
@@ -90,7 +99,12 @@ export class ConversationService implements ConversationServiceInterface {
         ...(teamId && { teamId }),
       };
 
-      await this.conversationRepository.createConversation({ conversation });
+      await Promise.all([
+        this.conversationRepository.createConversation({ conversation: conversationEntity }),
+        this.imageFileRepository.uploadFile({ entityType: EntityType.GroupConversation, entityId: conversationId, file: image, mimeType: imageMimeType })
+      ]);
+
+      const { conversation } = this.convertConversationEntityToConversation({ conversationEntity });
 
       return { conversation };
     } catch (error: unknown) {
@@ -104,11 +118,13 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createMeetingConversation called", { params }, this.constructor.name);
 
-      const { imageMimeType, name, createdBy, teamId, dueDate } = params;
+      const {  name, createdBy, teamId, dueDate } = params;
 
       const conversationId = `${KeyPrefix.MeetingConversation}${this.idService.generateId()}` as MeetingId;
-
-      const conversation: MeetingConversation = {
+      
+      const { image, mimeType: imageMimeType } = this.imageFileRepository.createDefaultImage();
+      
+      const conversationEntity: MeetingConversationEntity = {
         imageMimeType,
         id: conversationId,
         name,
@@ -119,7 +135,12 @@ export class ConversationService implements ConversationServiceInterface {
         ...(teamId && { teamId }),
       };
 
-      await this.conversationRepository.createConversation({ conversation });
+      await Promise.all([
+        this.conversationRepository.createConversation({ conversation: conversationEntity }),
+        this.imageFileRepository.uploadFile({ entityType: EntityType.MeetingConversation, entityId: conversationId, file: image, mimeType: imageMimeType })
+      ]);
+
+      const { conversation } = this.convertConversationEntityToConversation({ conversationEntity });
 
       return { conversation };
     } catch (error: unknown) {
@@ -135,9 +156,11 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { conversationId } = params;
 
-      const { conversation } = await this.conversationRepository.getConversation({ conversationId });
+      const { conversation: conversationEntity } = await this.conversationRepository.getConversation({ conversationId });
 
-      return { conversation };
+      const { conversation } = this.convertConversationEntityToConversation({ conversationEntity })
+
+      return { conversation }
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversation", { error, params }, this.constructor.name);
 
@@ -151,7 +174,9 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { conversationId, updates } = params;
 
-      const { conversation } = await this.conversationRepository.updateConversation({ conversationId, updates });
+      const { conversation: conversationEntity } = await this.conversationRepository.updateConversation({ conversationId, updates });
+
+      const { conversation } = this.convertConversationEntityToConversation({ conversationEntity });
 
       return { conversation };
     } catch (error: unknown) {
@@ -184,7 +209,9 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { conversations } = await this.conversationRepository.getConversations({ conversationIds });
 
-      const conversationMap = conversations.reduce((acc: { [key: string]: Conversation<ConversationType<T>>; }, conversation) => {
+      const conversationMap = conversations.reduce((acc: { [key: string]: Conversation<ConversationType<T>>; }, conversationEntity) => {
+        const { conversation } = this.convertConversationEntityToConversation({ conversationEntity });
+
         acc[conversation.id] = conversation;
 
         return acc;
@@ -206,11 +233,177 @@ export class ConversationService implements ConversationServiceInterface {
 
       const { teamId, type, exclusiveStartKey, limit } = params;
 
-      const { conversations, lastEvaluatedKey } = await this.conversationRepository.getConversationsByTeamId({ teamId, type, exclusiveStartKey, limit });
+      const { conversations: conversationEntities, lastEvaluatedKey } = await this.conversationRepository.getConversationsByTeamId({ teamId, type, exclusiveStartKey, limit });
+
+      const conversations = conversationEntities.map((conversationEntity) => {
+        const { conversation } = this.convertConversationEntityToConversation({ conversationEntity })
+
+        return conversation;
+      });
 
       return { conversations, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversationsByTeamId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public getConversationImageUploadUrl<T extends ConversationTypeEnum.Group | ConversationTypeEnum.Meeting>(params: GetConversationImageUploadUrlInput<T>): GetConversationImageUploadUrlOutput {
+    try {
+      this.loggerService.trace("getConversationImageUploadUrl called", { params }, this.constructor.name);
+
+      const { conversationType, conversationId, mimeType } = params;
+
+      const { signedUrl: uploadUrl } = this.imageFileRepository.getSignedUrl({
+        operation: FileOperation.Upload,
+        entityType: conversationType === ConversationTypeEnum.Group ? EntityType.GroupConversation : EntityType.MeetingConversation,
+        entityId: conversationId,
+        mimeType,
+      });
+
+      return { uploadUrl };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getConversationImageUploadUrl", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async indexGroupConversationForSearch(params: IndexGroupConversationForSearchInput): Promise<IndexGroupConversationForSearchOutput> {
+    try {
+      this.loggerService.trace("indexGroupConversationForSearch called", { params }, this.constructor.name);
+
+      const { group: rawGroup } = params;
+
+      const { conversation: group } = this.conversationRepository.convertRawConversationToConversation({ rawConversation: rawGroup });
+
+      await this.conversationSearchRepository.indexDocument({ index: SearchIndex.Group, document: group });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in indexGroupConversationForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async deindexGroupConversationForSearch(params: DeindexGroupConversationForSearchInput): Promise<DeindexGroupConversationForSearchOutput> {
+    try {
+      this.loggerService.trace("deindexGroupConversationForSearch called", { params }, this.constructor.name);
+
+      const { groupId } = params;
+
+      await this.conversationSearchRepository.deindexDocument({ index: SearchIndex.Group, id: groupId });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deindexGroupConversationForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getGroupConversationsBySearchTerm(params: GetGroupConversationsBySearchTermInput): Promise<GetGroupConversationsBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getGroupConversationsBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, groupIds, limit, exclusiveStartKey } = params;
+
+      const { groups: groupEntities, lastEvaluatedKey } = await this.conversationSearchRepository.getGroupsBySearchTerm({ searchTerm, groupIds, limit, exclusiveStartKey });
+
+      const searchGroupIds = groupEntities.map((group) => group.id);
+
+      const { conversations: groups } = await this.getConversations({ conversationIds: searchGroupIds });
+
+      return { groups, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGroupConversationsBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async indexMeetingConversationForSearch(params: IndexMeetingConversationForSearchInput): Promise<IndexMeetingConversationForSearchOutput> {
+    try {
+      this.loggerService.trace("indexMeetingConversationForSearch called", { params }, this.constructor.name);
+
+      const { meeting: rawMeeting } = params;
+
+      const { conversation: meeting } = this.conversationRepository.convertRawConversationToConversation({ rawConversation: rawMeeting });
+
+      await this.conversationSearchRepository.indexDocument({ index: SearchIndex.Meeting, document: meeting });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in indexMeetingConversationForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async deindexMeetingConversationForSearch(params: DeindexMeetingConversationForSearchInput): Promise<DeindexMeetingConversationForSearchOutput> {
+    try {
+      this.loggerService.trace("deindexMeetingConversationForSearch called", { params }, this.constructor.name);
+
+      const { meetingId } = params;
+
+      await this.conversationSearchRepository.deindexDocument({ index: SearchIndex.Meeting, id: meetingId });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deindexMeetingConversationForSearch", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getMeetingConversationsBySearchTerm(params: GetMeetingConversationsBySearchTermInput): Promise<GetMeetingConversationsBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getMeetingConversationsBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, meetingIds, limit, exclusiveStartKey } = params;
+
+      const { meetings: meetingEntities, lastEvaluatedKey } = await this.conversationSearchRepository.getMeetingsBySearchTerm({ searchTerm, meetingIds, limit, exclusiveStartKey });
+
+      const searchMeetingIds = meetingEntities.map((meeting) => meeting.id);
+
+      const { conversations: meetings } = await this.getConversations({ conversationIds: searchMeetingIds });
+
+      return { meetings, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMeetingConversationsBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public getUserIdsFromFriendConversationId(params: GetUserIdsFromFriendConversationIdInput): GetUserIdsFromFriendConversationIdOutput {
+    try {
+      this.loggerService.trace("getUserIdsFromFriendConversationId called", { params }, this.constructor.name);
+
+      const { conversationId } = params;
+
+      const userIds = conversationId.replace(KeyPrefix.FriendConversation, "").split(/-(?=user)/) as [UserId, UserId];
+
+      return { userIds };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUserIdsFromFriendConversationId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private convertConversationEntityToConversation<T extends ConversationEntity>(params: ConverInput<T>): ConverOutput<T> {
+    try {
+      this.loggerService.trace("convertConversationEntityToConversation called", { params }, this.constructor.name);
+
+      const { conversationEntity } = params;
+
+      if (conversationEntity.type === ConversationTypeEnum.Friend) {
+        return { conversation: conversationEntity as unknown as Conversation<T["type"]> }
+      }
+
+      const { entity: conversation } = this.imageFileRepository.replaceImageMimeTypeForImage({ 
+        entityType: conversationEntity.type === ConversationTypeEnum.Group ? EntityType.GroupConversation : EntityType.MeetingConversation, 
+        entity: conversationEntity 
+      });
+
+      return { conversation: conversation as Conversation<T["type"]> };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in convertConversationEntityToConversation", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -227,15 +420,30 @@ export interface ConversationServiceInterface {
   deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput>;
   getConversations<T extends ConversationId>(params: GetConversationsInput<T>): Promise<GetConversationsOutput<T>>;
   getConversationsByTeamId<T extends ConversationType>(params: GetConversationsByTeamIdInput<T>): Promise<GetConversationsByTeamIdOutput<T>>;
+  getConversationImageUploadUrl<T extends ConversationTypeEnum.Group | ConversationTypeEnum.Meeting>(params: GetConversationImageUploadUrlInput<T>): GetConversationImageUploadUrlOutput;
+  indexGroupConversationForSearch(params: IndexGroupConversationForSearchInput): Promise<IndexGroupConversationForSearchOutput>;
+  deindexGroupConversationForSearch(params: DeindexGroupConversationForSearchInput): Promise<DeindexGroupConversationForSearchOutput>;
+  getGroupConversationsBySearchTerm(params: GetGroupConversationsBySearchTermInput): Promise<GetGroupConversationsBySearchTermOutput>;
+  indexMeetingConversationForSearch(params: IndexMeetingConversationForSearchInput): Promise<IndexMeetingConversationForSearchOutput>;
+  deindexMeetingConversationForSearch(params: DeindexMeetingConversationForSearchInput): Promise<DeindexMeetingConversationForSearchOutput>;
+  getMeetingConversationsBySearchTerm(params: GetMeetingConversationsBySearchTermInput): Promise<GetMeetingConversationsBySearchTermOutput>;
+  getUserIdsFromFriendConversationId(params: GetUserIdsFromFriendConversationIdInput): GetUserIdsFromFriendConversationIdOutput;
 }
 
 
-export type Conversation<T extends ConversationType = ConversationType> = ConversationEntity<T>
-
 export type FriendConversation = FriendConversationEntity;
-export type GroupConversation = GroupConversationEntity;
-export type MeetingConversation = MeetingConversationEntity;
+export type GroupConversation = Omit<GroupConversationEntity, "imageMimeType"> & { 
+  image: string;
+};
 
+export type MeetingConversation = Omit<MeetingConversationEntity, "imageMimeType"> & { 
+image: string;
+};
+
+
+export type Conversation<T extends ConversationTypeEnum> =
+  T extends ConversationTypeEnum.Friend ? FriendConversation :
+  T extends ConversationTypeEnum.Group ? GroupConversation : MeetingConversation 
 
 export interface CreateFriendConversationInput {
   userIds: [UserId, UserId];
@@ -248,7 +456,6 @@ export interface CreateFriendConversationOutput {
 }
 
 export interface CreateGroupConversationInput {
-  imageMimeType: ImageMimeType;
   name: string;
   createdBy: UserId;
   teamId?: TeamId;
@@ -259,7 +466,6 @@ export interface CreateGroupConversationOutput {
 }
 
 export interface CreateMeetingConversationInput {
-  imageMimeType: ImageMimeType;
   name: string;
   createdBy: UserId;
   dueDate: string;
@@ -275,7 +481,7 @@ export interface GetConversationInput<T extends ConversationId> {
 }
 
 export interface GetConversationOutput<T extends ConversationId> {
-  conversation: Conversation<ConversationType<T>>
+  conversation: Conversation<ConversationType<T>>;
 }
 
 export interface UpdateConversationInput<T extends ConversationId> {
@@ -321,3 +527,79 @@ export interface DeleteConversationInput {
 }
 
 export type DeleteConversationOutput = void;
+
+export interface IndexGroupConversationForSearchInput {
+  group: RawConversation<GroupConversationEntity>;
+}
+
+export type IndexGroupConversationForSearchOutput = void;
+
+export interface DeindexGroupConversationForSearchInput {
+  groupId: GroupId;
+}
+
+export type DeindexGroupConversationForSearchOutput = void;
+
+export interface GetGroupConversationsBySearchTermInput {
+  searchTerm: string;
+  groupIds?: GroupId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetGroupConversationsBySearchTermOutput {
+  groups: GroupConversation[];
+  lastEvaluatedKey?: string;
+}
+
+export interface IndexMeetingConversationForSearchInput {
+  meeting: RawConversation<MeetingConversationEntity>;
+}
+
+export type IndexMeetingConversationForSearchOutput = void;
+
+export interface DeindexMeetingConversationForSearchInput {
+  meetingId: MeetingId;
+}
+
+export type DeindexMeetingConversationForSearchOutput = void;
+
+export interface GetMeetingConversationsBySearchTermInput {
+  searchTerm: string;
+  meetingIds?: MeetingId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetMeetingConversationsBySearchTermOutput {
+  meetings: MeetingConversation[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetConversationImageUploadUrlInput<T extends ConversationTypeEnum.Group | ConversationTypeEnum.Meeting> {
+  conversationType: T;
+  conversationId: ConversationId<T>;
+  mimeType: ImageMimeType;
+}
+
+export interface GetConversationImageUploadUrlOutput {
+  uploadUrl: string;
+}
+
+export interface GetUserIdsFromFriendConversationIdInput {
+  conversationId: FriendConvoId;
+}
+
+export interface GetUserIdsFromFriendConversationIdOutput {
+  userIds: [UserId, UserId];
+}
+
+interface ConverInput<T extends ConversationEntity> {
+  conversationEntity: T;
+}
+
+interface ConverOutput<T extends ConversationEntity> {
+  conversation: Conversation<T["type"]>
+}
+
+type ConversationSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getGroupsBySearchTerm" | "getMeetingsBySearchTerm">;

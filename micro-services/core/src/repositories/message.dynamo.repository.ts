@@ -78,7 +78,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
 
       const rawMessage = await this.get({ Key: { pk: messageId, sk: messageId } }, "Message");
 
-      const message = this.cleanseSet(rawMessage);
+      const message = this.cleanseReactionsSet(rawMessage);
 
       return { message };
     } catch (error: unknown) {
@@ -96,7 +96,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
 
       const rawMessages = await this.batchGet({ Keys: messageIds.map((messageId) => ({ pk: messageId, sk: messageId })) });
 
-      const messages = rawMessages.map((message) => this.cleanseSet(message));
+      const messages = rawMessages.map((message) => this.cleanseReactionsSet(message));
 
       return { messages };
     } catch (error: unknown) {
@@ -125,7 +125,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
         ExpressionAttributeValues: { ":seenAtValue": seenAtValue },
       });
 
-      const message = this.cleanseSet(rawMessage);
+      const message = this.cleanseReactionsSet(rawMessage);
 
       return { message };
     } catch (error: unknown) {
@@ -154,7 +154,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
         ExpressionAttributeValues: { ":value": this.documentClient.createSet([ userId ]) },
       });
 
-      const message = this.cleanseSet(rawMessage);
+      const message = this.cleanseReactionsSet(rawMessage);
 
       return { message };
     } catch (error: unknown) {
@@ -180,7 +180,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
         ExpressionAttributeValues: { ":one": 1 },
       });
 
-      const message = this.cleanseSet(rawMessage);
+      const message = this.cleanseReactionsSet(rawMessage);
 
       return { message };
     } catch (error: unknown) {
@@ -212,7 +212,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
         },
       });
 
-      const messages = rawMessages.map((message) => this.cleanseSet(message));
+      const messages = rawMessages.map((message) => this.cleanseReactionsSet(message));
 
       return {
         messages,
@@ -247,7 +247,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
         },
       });
 
-      const replies = rawReplies.map((reply) => this.cleanseSet(reply));
+      const replies = rawReplies.map((reply) => this.cleanseReactionsSet(reply));
 
       return {
         replies,
@@ -260,9 +260,9 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
     }
   }
 
-  private cleanseSet(messageWithReactionsSet: MessageWithReactionsSet): Message {
+  public cleanseReactionsSet(messageWithReactionsSet: MessageWithReactionsSet): Message {
     try {
-      this.loggerService.trace("cleanseSet called", { messageWithReactionsSet }, this.constructor.name);
+      this.loggerService.trace("cleanseReactionsSet called", { messageWithReactionsSet }, this.constructor.name);
 
       const { reactions: rawReactions, ...rest } = messageWithReactionsSet;
 
@@ -279,7 +279,24 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
         reactions,
       };
     } catch (error: unknown) {
-      this.loggerService.error("Error in cleanseSet", { error, messageWithReactionsSet }, this.constructor.name);
+      this.loggerService.error("Error in cleanseReactionsSet", { error, messageWithReactionsSet }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public convertRawMessageToMessage(params: ConvertRawMessageToMessageInput): ConvertRawMessageToMessageOutput {
+    try {
+      this.loggerService.trace("convertRawMessageToMessage called", { params }, this.constructor.name);
+
+      const { rawMessage } = params;
+
+      const messageWithReactionsSet = this.cleanse(rawMessage);
+      const message = this.cleanseReactionsSet(messageWithReactionsSet);
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in convertRawMessageToMessage", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -295,6 +312,7 @@ export interface MessageRepositoryInterface {
   incrementMessageReplyCount(params: IncrementMessageReplyCountInput): Promise<IncrementMessageReplyCountOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
+  convertRawMessageToMessage(params: ConvertRawMessageToMessageInput): ConvertRawMessageToMessageOutput;
 }
 
 type MessageRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
@@ -400,5 +418,14 @@ export interface IncrementMessageReplyCountInput {
 }
 
 export interface IncrementMessageReplyCountOutput {
+  message: Message;
+}
+
+export interface ConvertRawMessageToMessageInput {
+  rawMessage: RawMessage;
+
+}
+
+export interface ConvertRawMessageToMessageOutput {
   message: Message;
 }

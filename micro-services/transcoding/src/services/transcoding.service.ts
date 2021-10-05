@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { MessageTranscodedSnsMessage, EnhancedMessageFileRepositoryInterface, HttpRequestServiceInterface, LoggerServiceInterface, MessageMimeType, RawMessageFileRepositoryInterface } from "@yac/util";
+import { MessageTranscodedSnsMessage, MessageFileRepositoryInterface, HttpRequestServiceInterface, LoggerServiceInterface, MessageMimeType, FileOperation } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { MessageTranscodedSnsServiceInterface } from "../sns-services/messageTranscoded.sns.service";
@@ -14,8 +14,8 @@ export class TranscodingService implements TranscodingServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestServiceInterface,
     @inject(TYPES.MessageTranscodedSnsServiceInterface) private messageTranscodedSnsService: MessageTranscodedSnsServiceInterface,
-    @inject(TYPES.RawMessageFileRepositoryInterface) private rawMessageFileRepository: RawMessageFileRepositoryInterface,
-    @inject(TYPES.EnhancedMessageFileRepositoryInterface) private enhancedMessageFileRepository: EnhancedMessageFileRepositoryInterface,
+    @inject(TYPES.RawMessageFileRepositoryInterface) private rawMessageFileRepository: MessageFileRepositoryInterface,
+    @inject(TYPES.EnhancedMessageFileRepositoryInterface) private enhancedMessageFileRepository: MessageFileRepositoryInterface,
     @inject(TYPES.EnvConfigInterface) config: MessageFileCreatedS3ProcessorServiceConfig,
   ) {
     this.audoAiApiKey = config.audoAiApiKey;
@@ -30,15 +30,14 @@ export class TranscodingService implements TranscodingServiceInterface {
 
       const fileDetails = await this.rawMessageFileRepository.headObject({ key });
       const isVideo = fileDetails.ContentType?.toLowerCase().includes("video");
-
       const keyWithoutExtension = key.slice(0, key.lastIndexOf("."));
       const outputExtension = isVideo ? "mp4" : "mp3";
       const outputKey = `${keyWithoutExtension}.${outputExtension}`;
-      const outputContentType = isVideo ? MessageMimeType.VideoMp4 : MessageMimeType.AudioMp3;
+      const outputMimeType = isVideo ? MessageMimeType.VideoMp4 : MessageMimeType.AudioMp3;
 
-      const { signedUrl: inputUrl } = this.rawMessageFileRepository.getSignedUrl({ operation: "getObject", key });
+      const { signedUrl: inputUrl } = this.rawMessageFileRepository.getSignedUrl({ operation: FileOperation.Get, key });
 
-      const { signedUrl: outputUrl } = this.enhancedMessageFileRepository.getSignedUrl({ operation: "putObject", key: outputKey, contentType: outputContentType });
+      const { signedUrl: outputUrl } = this.enhancedMessageFileRepository.getSignedUrl({ operation: FileOperation.Upload, key: outputKey, mimeType: outputMimeType });
 
       const body = {
         input: inputUrl,

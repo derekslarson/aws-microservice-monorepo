@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, DynamoProcessorServiceInterface, User, DynamoProcessorServiceRecord, Message } from "@yac/util";
+import { MessageService, MessageServiceInterface } from "../../entity-services/message.service";
 import { ConversationType } from "../../enums/conversationType.enum";
 import { EntityType } from "../../enums/entityType.enum";
 import { KeyPrefix } from "../../enums/keyPrefix.enum";
@@ -16,6 +17,7 @@ describe("FriendMessageUpdatedDynamoProcessorService", () => {
   let friendMessageUpdatedSnsService: Spied<FriendMessageUpdatedSnsServiceInterface>;
   let userMediatorService: Spied<UserMediatorServiceInterface>;
   let messageMediatorService: Spied<MessageMediatorServiceInterface>;
+  let messageService: Spied<MessageServiceInterface>;
   let friendMessageUpdatedDynamoProcessorService: DynamoProcessorServiceInterface;
 
   const mockCoreTableName = "mock-core-table-name";
@@ -49,8 +51,8 @@ describe("FriendMessageUpdatedDynamoProcessorService", () => {
 
   const mockMessage: Message = {
     id: mockMessageId,
-    to: mockFromUserId,
-    from: mockToUserId,
+    to: mockFromUser,
+    from: mockToUser,
     type: ConversationType.Friend,
     createdAt: new Date().toISOString(),
     seenAt: { [mockToUserId]: new Date().toISOString() },
@@ -58,7 +60,6 @@ describe("FriendMessageUpdatedDynamoProcessorService", () => {
     replyCount: 0,
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockError = new Error("test");
@@ -68,8 +69,9 @@ describe("FriendMessageUpdatedDynamoProcessorService", () => {
     friendMessageUpdatedSnsService = TestSupport.spyOnClass(FriendMessageUpdatedSnsService);
     userMediatorService = TestSupport.spyOnClass(UserMediatorService);
     messageMediatorService = TestSupport.spyOnClass(MessageMediatorService);
+    messageService = TestSupport.spyOnClass(MessageService);
 
-    friendMessageUpdatedDynamoProcessorService = new FriendMessageUpdatedDynamoProcessorService(loggerService, friendMessageUpdatedSnsService, userMediatorService, messageMediatorService, mockConfig);
+    friendMessageUpdatedDynamoProcessorService = new FriendMessageUpdatedDynamoProcessorService(loggerService, friendMessageUpdatedSnsService, messageMediatorService, messageService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
@@ -157,19 +159,11 @@ describe("FriendMessageUpdatedDynamoProcessorService", () => {
         expect(messageMediatorService.getMessage).toHaveBeenCalledWith({ messageId: mockMessageId });
       });
 
-      it("calls userMediatorService.getUser with the correct parameters", async () => {
-        await friendMessageUpdatedDynamoProcessorService.processRecord(mockRecord);
-
-        expect(userMediatorService.getUser).toHaveBeenCalledTimes(2);
-        expect(userMediatorService.getUser).toHaveBeenCalledWith({ userId: mockToUserId });
-        expect(userMediatorService.getUser).toHaveBeenCalledWith({ userId: mockFromUserId });
-      });
-
       it("calls friendMessageUpdatedSnsService.sendMessage with the correct parameters", async () => {
         await friendMessageUpdatedDynamoProcessorService.processRecord(mockRecord);
 
         expect(friendMessageUpdatedSnsService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(friendMessageUpdatedSnsService.sendMessage).toHaveBeenCalledWith({ to: mockToUser, from: mockFromUser, message: mockMessage });
+        expect(friendMessageUpdatedSnsService.sendMessage).toHaveBeenCalledWith({ message: mockMessage });
       });
     });
 

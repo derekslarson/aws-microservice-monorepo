@@ -22,7 +22,7 @@ export class ConversationController extends BaseController implements Conversati
       const {
         jwtId,
         pathParameters: { userId },
-        queryStringParameters: { exclusiveStartKey, type, unread, limit },
+        queryStringParameters: { exclusiveStartKey, type, searchTerm, unread, limit },
       } = this.validationService.validate({ dto: GetConversationsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
@@ -33,6 +33,7 @@ export class ConversationController extends BaseController implements Conversati
         userId,
         exclusiveStartKey,
         type,
+        searchTerm,
         unread: unread === "true",
         limit: limit ? parseInt(limit, 10) : undefined,
       });

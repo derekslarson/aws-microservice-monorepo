@@ -1,23 +1,24 @@
+/* eslint-disable no-return-assign */
+/* eslint-disable no-nested-ternary */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationServiceInterface, Conversation as ConversationEntity } from "../entity-services/conversation.service";
-import { ConversationUserRelationshipServiceInterface, ConversationFetchTypeToConversationType } from "../entity-services/conversationUserRelationship.service";
+import { ConversationServiceInterface, Conversation as ConversationEntity, GroupConversation, MeetingConversation } from "../entity-services/conversation.service";
+import { ConversationUserRelationshipServiceInterface, ConversationFetchTypeToConversationType, ConversationUserRelationship } from "../entity-services/conversationUserRelationship.service";
 import { UserId } from "../types/userId.type";
 import { ConversationType } from "../types/conversationType.type";
 import { ConversationType as ConversationTypeEnum } from "../enums/conversationType.enum";
 import { ConversationId } from "../types/conversationId.type";
 import { Message as MessageEntity, MessageServiceInterface } from "../entity-services/message.service";
 import { MessageId } from "../types/messageId.type";
-import { MessageFileServiceInterface } from "../entity-services/mesage.file.service";
-import { ImageFileServiceInterface } from "../entity-services/image.file.service";
-import { UserServiceInterface } from "../entity-services/user.service";
+import { User, UserServiceInterface } from "../entity-services/user.service";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { EntityType } from "../enums/entityType.enum";
 import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
+import { UserGroupMeetingSearchServiceInterface } from "../entity-services/userGroupMeeting.search.service";
+import { FriendConvoId } from "../types/friendConvoId.type";
 
 @injectable()
 export class ConversationMediatorService implements ConversationMediatorServiceInterface {
@@ -25,58 +26,114 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
-    @inject(TYPES.MessageFileServiceInterface) private messageFileService: MessageFileServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
+    @inject(TYPES.UserGroupMeetingSearchServiceInterface) private userGroupMeetingSearchService: UserGroupMeetingSearchServiceInterface,
   ) {}
 
   public async getConversationsByUserId<T extends ConversationFetchType>(params: GetConversationsByUserIdInput<T>): Promise<GetConversationsByUserIdOutput<T>> {
     try {
       this.loggerService.trace("getConversationsByUserId called", { params }, this.constructor.name);
 
-      const { userId, type, unread, exclusiveStartKey, limit } = params;
+      const { userId, type, searchTerm, unread, exclusiveStartKey, limit } = params;
 
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
+      let lastEvaluatedKey: string | undefined;
+
+      // Fetch all the user's conversationUserRelationships (taking into account type and unread)
+      const { conversationUserRelationships, lastEvaluatedKey: dynamoLastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
         userId,
-        exclusiveStartKey,
         type,
         unread,
-        limit,
+        // If using a search term, pagination will be handled by calls to the search service.
+        // We need every relevant convo id so we can pass them to the search service.
+        ...(!searchTerm && { exclusiveStartKey, limit }),
       });
 
-      const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
-      const recentMessageIds = conversationUserRelationships.map((relationship) => relationship.recentMessageId);
+      lastEvaluatedKey = dynamoLastEvaluatedKey;
 
-      const [ { conversations: conversationEntities }, { recentMessages } ] = await Promise.all([
+      // Since the conversationId of a friend convo is `convo-friend-<userIdA>-<userIdB>,
+      // we need to convert that into the other user's id as set it as entityId, so that we can fetch the user record
+      let relationshipsWithEntityIds: ConversationUserRelationshipWithEntityId<T>[] = conversationUserRelationships.map((relationship) => {
+        let entityId: UserId | GroupId | MeetingId;
+
+        if (relationship.type === ConversationTypeEnum.Friend) {
+          const { userIds: conversationMemberIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: relationship.conversationId as FriendConvoId });
+          ([ entityId ] = conversationMemberIds.filter((conversationMemberId) => conversationMemberId !== userId));
+        } else {
+          entityId = relationship.conversationId as GroupId | MeetingId;
+        }
+
+        return { ...relationship, entityId };
+      });
+
+      if (searchTerm) {
+        // We need to create a map of the relationshipWithEntityIds array by their entityIds
+        // so that we can recalculate them after the search query with O(1) time complexity
+        const relationshipWithEntityIdsMap: Record<string, ConversationUserRelationshipWithEntityId<T>> = {};
+        relationshipsWithEntityIds.forEach((relationship) => relationshipWithEntityIdsMap[relationship.entityId] = relationship);
+
+        const entityIds = relationshipsWithEntityIds.map(({ entityId }) => entityId);
+
+        const { usersGroupsAndMeetings, lastEvaluatedKey: searchLastEvaluatedKey } = await this.userGroupMeetingSearchService.getUsersGroupsAndMeetingsBySearchTerm({
+          searchTerm,
+          entityIds,
+          limit,
+          exclusiveStartKey,
+        });
+
+        lastEvaluatedKey = searchLastEvaluatedKey;
+
+        // Since relationshipsWithEntityIds was initially set with every conversationId,
+        // we need to recalculate it with the usersGroupsAndMeetings returned by the search service
+        // so they are in the correct order and only contain the relevant ones
+        relationshipsWithEntityIds = usersGroupsAndMeetings.map(({ id }) => relationshipWithEntityIdsMap[id]);
+      }
+
+      // We need to pull the ids for each of these entity types out of relationshipsWithEntityIds
+      // so that we can fetch each type efficiently
+      const friendIds: UserId[] = [];
+      const conversationIds: (GroupId | MeetingId)[] = [];
+      const recentMessageIds: MessageId[] = [];
+
+      relationshipsWithEntityIds.forEach((relationship) => {
+        if (relationship.type === ConversationTypeEnum.Friend) {
+          friendIds.push(relationship.entityId as UserId);
+        } else {
+          conversationIds.push(relationship.entityId as GroupId | MeetingId);
+        }
+
+        if (relationship.recentMessageId) {
+          recentMessageIds.push(relationship.recentMessageId);
+        }
+      });
+
+      const [ { users: friends }, { conversations: groupsAndMeetings }, { recentMessages } ] = await Promise.all([
+        this.userService.getUsers({ userIds: friendIds }),
         this.conversationService.getConversations({ conversationIds }),
         this.getRecentMessages({ recentMessageIds }),
       ]);
 
-      const conversations = await Promise.all(conversationEntities.map(async (conversationEntity, i) => {
-        const conversationUserRelationship = conversationUserRelationships[i];
-        const recentMessage = recentMessages[i];
+      // We need to create maps of each of the responses by their ids
+      // so that we can fetch each one with O(1) time complexity
+      // when generating the final conversation objects
+      const entityMap: Record<string, User | GroupConversation | MeetingConversation> = {};
+      [ ...friends, ...groupsAndMeetings ].forEach((entity) => entityMap[entity.id] = entity);
 
-        const { image } = await this.getConversationImage({ conversation: conversationEntity, requestingUserId: userId });
+      const recentMessageMap: Record<string, Message> = {};
+      recentMessages.forEach((recentMessage) => recentMessageMap[recentMessage.to.id === userId ? recentMessage.from.id : recentMessage.to.id] = recentMessage);
 
-        let conversationEntityWithoutImageMimeType: Omit<ConversationEntity, "imageMimeType">;
-
-        if (this.isGroupOrMeetingConversationEntity(conversationEntity)) {
-          const { imageMimeType, ...restOfConvo } = conversationEntity;
-          conversationEntityWithoutImageMimeType = restOfConvo;
-        } else {
-          conversationEntityWithoutImageMimeType = conversationEntity;
-        }
+      const conversations = relationshipsWithEntityIds.map(({ type: conversationType, entityId, unreadMessages, updatedAt, role }) => {
+        const entity = entityMap[entityId];
 
         return {
-          ...conversationEntityWithoutImageMimeType,
-          image,
-          updatedAt: conversationUserRelationship.updatedAt,
-          recentMessage,
-          unreadMessages: conversationUserRelationship.unreadMessages?.length || 0,
-          role: conversationUserRelationship.role,
+          ...entity,
+          updatedAt,
+          role,
+          type: conversationType,
+          unreadMessages: unreadMessages?.length || 0,
+          recentMessage: recentMessageMap[entityId],
         } as WithRole<Conversation<ConversationFetchTypeToConversationType<T>>>;
-      }));
+      });
 
       return { conversations, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -109,112 +166,54 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
     }
   }
 
-  private async getConversationImage(params: GetConversationImageInput): Promise<GetConversationImageOutput> {
-    try {
-      this.loggerService.trace("getConversationImage called", { params }, this.constructor.name);
-
-      const { conversation, requestingUserId } = params;
-
-      if (this.isFriendConversationEntity(conversation)) {
-        const userId = conversation.id.replace(KeyPrefix.FriendConversation, "").replace(requestingUserId, "").replace(/^-|-$/, "") as UserId;
-
-        const { user } = await this.userService.getUser({ userId });
-
-        const { signedUrl } = this.imageFileService.getSignedUrl({
-          operation: "get",
-          entityId: user.id,
-          entityType: EntityType.User,
-          mimeType: user.imageMimeType,
-        });
-
-        return { image: signedUrl };
-      }
-
-      const { signedUrl } = this.imageFileService.getSignedUrl({
-        entityId: conversation.id,
-        entityType: conversation.type === ConversationTypeEnum.Group ? EntityType.GroupConversation : EntityType.MeetingConversation,
-        mimeType: conversation.imageMimeType,
-        operation: "get",
-      });
-
-      return { image: signedUrl };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getConversationImage", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  private isFriendConversationEntity(conversationEntity: ConversationEntity): conversationEntity is ConversationEntity<ConversationTypeEnum.Friend> {
-    try {
-      this.loggerService.trace("isFriendConversationEntity called", { conversationEntity }, this.constructor.name);
-
-      return !("imageMimeType" in conversationEntity);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in isFriendConversationEntity", { error, conversationEntity }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  private isGroupOrMeetingConversationEntity(conversationEntity: ConversationEntity): conversationEntity is ConversationEntity<ConversationTypeEnum.Group | ConversationTypeEnum.Meeting> {
-    try {
-      this.loggerService.trace("isGroupOrMeetingConversationEntity called", { conversationEntity }, this.constructor.name);
-
-      return "imageMimeType" in conversationEntity;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in isGroupOrMeetingConversationEntity", { error, conversationEntity }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
   private async getRecentMessages(params: GetRecentMessagesInput): Promise<GetRecentMessagesOutput> {
     try {
       this.loggerService.trace("getRecentMessages called", { params }, this.constructor.name);
 
-      const { recentMessageIds: recentMessageIdsWithUndefined } = params;
-
-      const recentMessageIds = recentMessageIdsWithUndefined.filter((messageId): messageId is MessageId => typeof messageId === "string");
+      const { recentMessageIds } = params;
 
       const { messages: recentMessageEntities } = await this.messageService.getMessages({ messageIds: recentMessageIds });
 
-      const userIds = recentMessageEntities.map((message) => message.from);
+      const userIdSet = new Set<UserId>();
+      const groupMeetingIdSet = new Set<GroupId | MeetingId>();
 
-      const { users } = await this.userService.getUsers({ userIds });
+      const recentMessageEntitiesWithToEntityId = recentMessageEntities.map((message) => {
+        userIdSet.add(message.from);
 
-      const recentMessageMap = recentMessageEntities.reduce((acc: { [key: string]: Message; }, message, i) => {
-        const user = users[i];
+        if (message.conversationId.startsWith(KeyPrefix.FriendConversation)) {
+          const { userIds: conversationMemberIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: message.conversationId as FriendConvoId });
+          conversationMemberIds.forEach((userId) => userIdSet.add(userId));
+          const [ toUserId ] = conversationMemberIds.filter((userId) => userId !== message.from);
 
-        const { signedUrl: messageUrl } = this.messageFileService.getSignedUrl({
-          messageId: message.id,
-          conversationId: message.conversationId,
-          mimeType: message.mimeType,
-          operation: "get",
-        });
+          return { ...message, toEntityId: toUserId };
+        }
 
-        const { signedUrl: imageUrl } = this.imageFileService.getSignedUrl({
-          entityType: EntityType.User,
-          entityId: user.id,
-          mimeType: user.imageMimeType,
-          operation: "get",
-        });
+        groupMeetingIdSet.add(message.conversationId as GroupId | MeetingId);
 
-        const { conversationId, ...restOfMessage } = message;
-        const { to, type } = this.getToAndTypeFromConversationIdAndFrom({ conversationId, from: message.from });
+        return { ...message, toEntityId: message.conversationId };
+      });
 
-        acc[message.id] = {
+      const [ { users }, { conversations: groupsAndMeetings } ] = await Promise.all([
+        this.userService.getUsers({ userIds: Array.from(userIdSet) }),
+        this.conversationService.getConversations({ conversationIds: Array.from(groupMeetingIdSet) }),
+      ]);
+
+      const entityMap: Record<string, User | GroupConversation | MeetingConversation> = {};
+      [ ...users, ...groupsAndMeetings ].forEach((toEntity) => entityMap[toEntity.id] = toEntity);
+
+      const recentMessages = recentMessageEntitiesWithToEntityId.map((message) => {
+        const { conversationId, toEntityId, ...restOfMessage } = message;
+
+        const to = entityMap[toEntityId];
+        const from = entityMap[message.from] as User;
+
+        return {
           ...restOfMessage,
+          type: "type" in to ? to.type : ConversationTypeEnum.Friend,
           to,
-          type,
-          fetchUrl: messageUrl,
-          fromImage: imageUrl,
+          from,
         };
-
-        return acc;
-      }, {});
-
-      const recentMessages = recentMessageIdsWithUndefined.map((recentMessageId) => recentMessageId && recentMessageMap[recentMessageId]);
+      });
 
       return { recentMessages };
     } catch (error: unknown) {
@@ -223,59 +222,23 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       throw error;
     }
   }
-
-  private getToAndTypeFromConversationIdAndFrom(params: GetToAndTypeFromConversationIdAndFromInput): GetToAndTypeFromConversationIdAndFromOutput {
-    try {
-      this.loggerService.trace("getToAndTypeFromConversationIdAndFrom called", { params }, this.constructor.name);
-
-      const { from, conversationId } = params;
-
-      if (conversationId.startsWith(KeyPrefix.GroupConversation)) {
-        return {
-          to: conversationId as GroupId,
-          type: ConversationTypeEnum.Group,
-        };
-      }
-
-      if (conversationId.startsWith(KeyPrefix.MeetingConversation)) {
-        return {
-          to: conversationId as MeetingId,
-          type: ConversationTypeEnum.Meeting,
-        };
-      }
-
-      const toUserId = conversationId.replace(KeyPrefix.FriendConversation, "").replace(from, "").replace(/^-|-$/, "") as UserId;
-
-      return {
-        to: toUserId,
-        type: ConversationTypeEnum.Friend,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getToAndTypeFromConversationIdAndFrom", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
 }
-
 export interface ConversationMediatorServiceInterface {
   getConversationsByUserId<T extends ConversationFetchType>(params: GetConversationsByUserIdInput<T>): Promise<GetConversationsByUserIdOutput<T>>;
   isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput>;
 }
 
-type To = UserId | GroupId | MeetingId;
-
-export interface Message extends Omit<MessageEntity, "conversationId"> {
-  fetchUrl: string;
-  fromImage: string;
+export interface Message extends Omit<MessageEntity, "conversationId" | "from"> {
+  from: User;
   to: To;
   type: ConversationType;
 }
 
-export type Conversation<T extends ConversationType> = Omit<ConversationEntity<T>, "imageMimeType"> & {
+export type Conversation<T extends ConversationType> = Omit<(T extends ConversationTypeEnum.Friend ? User : ConversationEntity<T>), "imageMimeType"> & {
   unreadMessages: number;
   image: string;
   updatedAt: string;
+  type: T;
   recentMessage?: Message;
 };
 
@@ -283,6 +246,7 @@ export interface GetConversationsByUserIdInput<T extends ConversationFetchType> 
   userId: UserId;
   type?: T;
   unread?: boolean;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -301,29 +265,14 @@ export interface IsConversationMemberOutput {
   isConversationMember: boolean;
 }
 
-interface GetConversationImageInput {
-  conversation: ConversationEntity;
-  requestingUserId: UserId;
-}
-
-interface GetConversationImageOutput {
-  image: string;
-}
+type To = User | GroupConversation | MeetingConversation;
 
 interface GetRecentMessagesInput {
-  recentMessageIds: Array<MessageId | undefined>;
+  recentMessageIds: MessageId[];
 }
 
 interface GetRecentMessagesOutput {
-  recentMessages: Array<Message | undefined>;
+  recentMessages: Message[];
 }
 
-interface GetToAndTypeFromConversationIdAndFromInput {
-  from: UserId;
-  conversationId: ConversationId;
-}
-
-interface GetToAndTypeFromConversationIdAndFromOutput {
-  to: To;
-  type: ConversationTypeEnum;
-}
+type ConversationUserRelationshipWithEntityId<T extends ConversationFetchType> = ConversationUserRelationship<ConversationFetchTypeToConversationType<T>> & { entityId: UserId | GroupId | MeetingId; };

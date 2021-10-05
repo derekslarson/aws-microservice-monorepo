@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { LoggerService, Spied, TestSupport, DynamoProcessorServiceInterface, User, DynamoProcessorServiceRecord, Message, Meeting } from "@yac/util";
+import { MessageService, MessageServiceInterface } from "../../entity-services/message.service";
 import { ConversationType } from "../../enums/conversationType.enum";
 import { EntityType } from "../../enums/entityType.enum";
 import { KeyPrefix } from "../../enums/keyPrefix.enum";
 import { MessageMimeType } from "../../enums/message.mimeType.enum";
-import { MeetingMediatorService, MeetingMediatorServiceInterface } from "../../mediator-services/meeting.mediator.service";
 import { MessageMediatorService, MessageMediatorServiceInterface } from "../../mediator-services/message.mediator.service";
 import { UserMediatorService, UserMediatorServiceInterface } from "../../mediator-services/user.mediator.service";
 import { MeetingMessageCreatedSnsService, MeetingMessageCreatedSnsServiceInterface } from "../../sns-services/meetingMessageCreated.sns.service";
@@ -17,8 +17,8 @@ describe("MeetingMessageCreatedDynamoProcessorService", () => {
   let loggerService: Spied<LoggerService>;
   let meetingMessageCreatedSnsService: Spied<MeetingMessageCreatedSnsServiceInterface>;
   let userMediatorService: Spied<UserMediatorServiceInterface>;
-  let meetingMediatorService: Spied<MeetingMediatorServiceInterface>;
   let messageMediatorService: Spied<MessageMediatorServiceInterface>;
+  let messageService: Spied<MessageServiceInterface>;
   let meetingMessageCreatedDynamoProcessorService: DynamoProcessorServiceInterface;
 
   const mockCoreTableName = "mock-core-table-name";
@@ -61,8 +61,8 @@ describe("MeetingMessageCreatedDynamoProcessorService", () => {
 
   const mockMessage: Message = {
     id: mockMessageId,
-    to: mockMeetingId,
-    from: mockUserIdOne,
+    to: mockMeeting,
+    from: mockUserOne,
     type: ConversationType.Meeting,
     createdAt: new Date().toISOString(),
     seenAt: { [mockUserIdOne]: new Date().toISOString(), [mockUserIdTwo]: null },
@@ -70,7 +70,6 @@ describe("MeetingMessageCreatedDynamoProcessorService", () => {
     replyCount: 0,
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockError = new Error("test");
@@ -79,10 +78,10 @@ describe("MeetingMessageCreatedDynamoProcessorService", () => {
     loggerService = TestSupport.spyOnClass(LoggerService);
     meetingMessageCreatedSnsService = TestSupport.spyOnClass(MeetingMessageCreatedSnsService);
     userMediatorService = TestSupport.spyOnClass(UserMediatorService);
-    meetingMediatorService = TestSupport.spyOnClass(MeetingMediatorService);
     messageMediatorService = TestSupport.spyOnClass(MessageMediatorService);
+    messageService = TestSupport.spyOnClass(MessageService);
 
-    meetingMessageCreatedDynamoProcessorService = new MeetingMessageCreatedDynamoProcessorService(loggerService, meetingMessageCreatedSnsService, userMediatorService, meetingMediatorService, messageMediatorService, mockConfig);
+    meetingMessageCreatedDynamoProcessorService = new MeetingMessageCreatedDynamoProcessorService(loggerService, meetingMessageCreatedSnsService, userMediatorService, messageMediatorService, messageService, mockConfig);
   });
 
   describe("determineRecordSupport", () => {
@@ -158,9 +157,7 @@ describe("MeetingMessageCreatedDynamoProcessorService", () => {
   describe("processRecord", () => {
     describe("under normal conditions", () => {
       beforeEach(() => {
-        userMediatorService.getUser.and.returnValue(Promise.resolve({ user: mockUserOne }));
         userMediatorService.getUsersByMeetingId.and.returnValue(Promise.resolve({ users: [ mockUserOne, mockUserTwo ] }));
-        meetingMediatorService.getMeeting.and.returnValue(Promise.resolve({ meeting: mockMeeting }));
         messageMediatorService.getMessage.and.returnValue(Promise.resolve({ message: mockMessage }));
         meetingMessageCreatedSnsService.sendMessage.and.returnValue(Promise.resolve());
       });
@@ -172,13 +169,6 @@ describe("MeetingMessageCreatedDynamoProcessorService", () => {
         expect(messageMediatorService.getMessage).toHaveBeenCalledWith({ messageId: mockMessageId });
       });
 
-      it("calls userMediatorService.getUser with the correct parameters", async () => {
-        await meetingMessageCreatedDynamoProcessorService.processRecord(mockRecord);
-
-        expect(userMediatorService.getUser).toHaveBeenCalledTimes(1);
-        expect(userMediatorService.getUser).toHaveBeenCalledWith({ userId: mockUserIdOne });
-      });
-
       it("calls userMediatorService.getUsersByMeetingId with the correct parameters", async () => {
         await meetingMessageCreatedDynamoProcessorService.processRecord(mockRecord);
 
@@ -186,18 +176,11 @@ describe("MeetingMessageCreatedDynamoProcessorService", () => {
         expect(userMediatorService.getUsersByMeetingId).toHaveBeenCalledWith({ meetingId: mockMeetingId });
       });
 
-      it("calls meetingMediatorService.getMeeting with the correct parameters", async () => {
-        await meetingMessageCreatedDynamoProcessorService.processRecord(mockRecord);
-
-        expect(meetingMediatorService.getMeeting).toHaveBeenCalledTimes(1);
-        expect(meetingMediatorService.getMeeting).toHaveBeenCalledWith({ meetingId: mockMeetingId });
-      });
-
       it("calls meetingMessageCreatedSnsService.sendMessage with the correct parameters", async () => {
         await meetingMessageCreatedDynamoProcessorService.processRecord(mockRecord);
 
         expect(meetingMessageCreatedSnsService.sendMessage).toHaveBeenCalledTimes(1);
-        expect(meetingMessageCreatedSnsService.sendMessage).toHaveBeenCalledWith({ to: mockMeeting, from: mockUserOne, message: mockMessage, meetingMemberIds: [ mockUserIdOne, mockUserIdTwo ] });
+        expect(meetingMessageCreatedSnsService.sendMessage).toHaveBeenCalledWith({ message: mockMessage, meetingMemberIds: [ mockUserIdOne, mockUserIdTwo ] });
       });
     });
 
@@ -206,7 +189,6 @@ describe("MeetingMessageCreatedDynamoProcessorService", () => {
         beforeEach(() => {
           userMediatorService.getUser.and.returnValue(Promise.resolve({ user: mockUserOne }));
           userMediatorService.getUsersByMeetingId.and.returnValue(Promise.resolve({ users: [ mockUserOne, mockUserTwo ] }));
-          meetingMediatorService.getMeeting.and.returnValue(Promise.resolve({ meeting: mockMeeting }));
           messageMediatorService.getMessage.and.returnValue(Promise.resolve({ message: mockMessage }));
           meetingMessageCreatedSnsService.sendMessage.and.throwError(mockError);
         });

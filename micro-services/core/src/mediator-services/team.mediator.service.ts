@@ -5,8 +5,6 @@ import { TeamServiceInterface, Team as TeamEntity } from "../entity-services/tea
 import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
-import { ImageFileServiceInterface } from "../entity-services/image.file.service";
-import { EntityType } from "../enums/entityType.enum";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
@@ -15,7 +13,6 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
     @inject(TYPES.TeamUserRelationshipServiceInterface) private teamUserRelationshipService: TeamUserRelationshipServiceInterface,
-    @inject(TYPES.ImageFileServiceInterface) private imageFileService: ImageFileServiceInterface,
   ) {}
 
   public async createTeam(params: CreateTeamInput): Promise<CreateTeamOutput> {
@@ -24,31 +21,15 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { name, createdBy } = params;
 
-      const { image, mimeType } = this.imageFileService.createDefaultImage();
-
       const { team: teamEntity } = await this.teamService.createTeam({
         name,
         createdBy,
-        imageMimeType: mimeType,
       });
 
-      const [ { teamUserRelationship } ] = await Promise.all([
-        this.teamUserRelationshipService.createTeamUserRelationship({ teamId: teamEntity.id, userId: createdBy, role: Role.Admin }),
-        this.imageFileService.uploadFile({ entityType: EntityType.Team, entityId: teamEntity.id, file: image, mimeType }),
-      ]);
-
-      const { signedUrl } = this.imageFileService.getSignedUrl({
-        operation: "get",
-        entityType: EntityType.Team,
-        entityId: teamEntity.id,
-        mimeType: teamEntity.imageMimeType,
-      });
-
-      const { imageMimeType, ...restOfTeamEntity } = teamEntity;
+      const { teamUserRelationship } = await this.teamUserRelationshipService.createTeamUserRelationship({ teamId: teamEntity.id, userId: createdBy, role: Role.Admin });
 
       const team: WithRole<Team> = {
-        ...restOfTeamEntity,
-        image: signedUrl,
+        ...teamEntity,
         role: teamUserRelationship.role,
       };
 
@@ -66,21 +47,7 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { teamId } = params;
 
-      const { team: teamEntity } = await this.teamService.getTeam({ teamId });
-
-      const { signedUrl } = this.imageFileService.getSignedUrl({
-        operation: "get",
-        entityType: EntityType.Team,
-        entityId: teamEntity.id,
-        mimeType: teamEntity.imageMimeType,
-      });
-
-      const { imageMimeType, ...restOfTeamEntity } = teamEntity;
-
-      const team: Team = {
-        ...restOfTeamEntity,
-        image: signedUrl,
-      };
+      const { team } = await this.teamService.getTeam({ teamId });
 
       return { team };
     } catch (error: unknown) {
@@ -126,12 +93,7 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { teamId, mimeType } = params;
 
-      const { signedUrl: uploadUrl } = this.imageFileService.getSignedUrl({
-        operation: "upload",
-        entityType: EntityType.Team,
-        entityId: teamId,
-        mimeType,
-      });
+      const { uploadUrl } = this.teamService.getTeamImageUploadUrl({ teamId, mimeType });
 
       return { uploadUrl };
     } catch (error: unknown) {
@@ -151,26 +113,14 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const teamIds = teamUserRelationships.map((relationship) => relationship.teamId);
 
-      const { teams: teamEntities } = await this.teamService.getTeams({ teamIds });
+      const { teams } = await this.teamService.getTeams({ teamIds });
 
-      const teams = teamEntities.map((teamEntity, i) => {
-        const { signedUrl } = this.imageFileService.getSignedUrl({
-          operation: "get",
-          entityType: EntityType.User,
-          entityId: teamEntity.id,
-          mimeType: teamEntity.imageMimeType,
-        });
+      const teamsWithRoles = teams.map((team, i) => ({
+        ...team,
+        role: teamUserRelationships[i].role,
+      }));
 
-        const { imageMimeType, ...restOfTeamEntity } = teamEntity;
-
-        return {
-          ...restOfTeamEntity,
-          image: signedUrl,
-          role: teamUserRelationships[i].role,
-        };
-      });
-
-      return { teams, lastEvaluatedKey };
+      return { teams: teamsWithRoles, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getTeamsByUserId", { error, params }, this.constructor.name);
 

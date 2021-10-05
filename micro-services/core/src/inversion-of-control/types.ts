@@ -74,20 +74,21 @@ const TYPES = {
   // Entity Services
   ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
   ConversationUserRelationshipServiceInterface: Symbol.for("ConversationUserRelationshipServiceInterface"),
-  ImageFileServiceInterface: Symbol.for("ImageFileServiceInterface"),
   MessageServiceInterface: Symbol.for("MessageServiceInterface"),
-  MessageFileServiceInterface: Symbol.for("MessageFileServiceInterface"),
   PendingMessageServiceInterface: Symbol.for("PendingMessageServiceInterface"),
+  SearchServiceInterface: Symbol.for("SearchServiceInterface"),
   TeamServiceInterface: Symbol.for("TeamServiceInterface"),
   TeamUserRelationshipServiceInterface: Symbol.for("TeamUserRelationshipServiceInterface"),
   UniquePropertyServiceInterface: Symbol.for("UniquePropertyServiceInterface"),
   UserServiceInterface: Symbol.for("UserServiceInterface"),
+  UserGroupMeetingSearchServiceInterface: Symbol.for("UserGroupMeetingSearchServiceInterface"),
 
   // Repositories
   ConversationRepositoryInterface: Symbol.for("ConversationRepositoryInterface"),
   ConversationUserRelationshipRepositoryInterface: Symbol.for("ConversationUserRelationshipRepositoryInterface"),
   ImageFileRepositoryInterface: Symbol.for("ImageFileRepositoryInterface"),
   MessageRepositoryInterface: Symbol.for("MessageRepositoryInterface"),
+  SearchRepositoryInterface: Symbol.for("SearchRepositoryInterface"),
   PendingMessageRepositoryInterface: Symbol.for("PendingMessageRepositoryInterface"),
   TeamRepositoryInterface: Symbol.for("TeamRepositoryInterface"),
   TeamUserRelationshipRepositoryInterface: Symbol.for("TeamUserRelationshipRepositoryInterface"),
@@ -95,6 +96,7 @@ const TYPES = {
   UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
 
   // Factories
+  Aws4Factory: Symbol.for("Aws4Factory"),
   IdenticonFactory: Symbol.for("IdenticonFactory"),
 };
 

@@ -22,27 +22,27 @@ class TestDynamoRepository extends BaseDynamoRepository<Test> {
     super(tableName, documentClientFactory, idService, loggerService);
   }
 
-  public getByPrimaryKey(id: string) {
+  public override getByPrimaryKey(id: string) {
     return super.getByPrimaryKey(id);
   }
 
-  public deleteByPrimaryKey(id: string) {
+  public override deleteByPrimaryKey(id: string) {
     return super.deleteByPrimaryKey(id);
   }
 
-  public getAll() {
+  public override getAll() {
     return super.getAll();
   }
 
-  public insert(item: Omit<Test, "id">) {
+  public override insert(item: Omit<Test, "id">) {
     return super.insert(item);
   }
 
-  public insertWithIdIncluded(item: Test) {
+  public override insertWithIdIncluded(item: Test) {
     return super.insertWithIdIncluded(item);
   }
 
-  public partialUpdate(id: string, update: RecursivePartial<Omit<Test, "id">>) {
+  public override partialUpdate(id: string, update: RecursivePartial<Omit<Test, "id">>) {
     return super.partialUpdate(id, update);
   }
 }

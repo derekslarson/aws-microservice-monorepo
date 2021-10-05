@@ -12,7 +12,6 @@ describe("GroupMessageUpdatedSnsProcessorService", () => {
   const mockGroupMessageUpdatedSnsTopicArn = "mock-group-message-updated-sns-topic-arn";
   const mockConfig = { snsTopicArns: { groupMessageUpdated: mockGroupMessageUpdatedSnsTopicArn } };
   const mockMessageId = "message-id";
-  const mockGroupId = "convo-group-mock-id";
   const mockUserIdOne = "user-mock-id-one";
   const mockUserIdTwo = "user-mock-id-two";
 
@@ -22,7 +21,7 @@ describe("GroupMessageUpdatedSnsProcessorService", () => {
   };
 
   const mockGroup: Group = {
-    id: mockGroupId,
+    id: "convo-group-mock-id",
     name: "mock-name",
     image: "mock-image",
     createdBy: "user-mock-id",
@@ -31,8 +30,8 @@ describe("GroupMessageUpdatedSnsProcessorService", () => {
 
   const mockMessage: Message = {
     id: mockMessageId,
-    to: mockGroupId,
-    from: mockUserIdOne,
+    to: mockGroup,
+    from: mockUser,
     type: "group",
     createdAt: new Date().toISOString(),
     seenAt: { [mockUserIdOne]: new Date().toISOString(), [mockUserIdTwo]: null },
@@ -40,7 +39,6 @@ describe("GroupMessageUpdatedSnsProcessorService", () => {
     replyCount: 0,
     mimeType: "audio/mpeg",
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockRecord = {
@@ -96,8 +94,8 @@ describe("GroupMessageUpdatedSnsProcessorService", () => {
         await groupMessageUpdatedSnsProcessorService.processRecord(mockRecord);
 
         expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageUpdated, data: { to: mockGroup, from: mockUser, message: mockMessage } });
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageUpdated, data: { to: mockGroup, from: mockUser, message: mockMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageUpdated, data: { message: mockMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageUpdated, data: { message: mockMessage } });
       });
     });
 

@@ -9,8 +9,8 @@ import { UserMediatorServiceInterface } from "../mediator-services/user.mediator
 import { RawMessage } from "../repositories/message.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
-import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { GroupId } from "../types/groupId.type";
+import { MessageServiceInterface } from "../entity-services/message.service";
 
 @injectable()
 export class GroupMessageUpdatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -20,8 +20,8 @@ export class GroupMessageUpdatedDynamoProcessorService implements DynamoProcesso
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.GroupMessageUpdatedSnsServiceInterface) private groupMessageUpdatedSnsService: GroupMessageUpdatedSnsServiceInterface,
     @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
-    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
+    @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserUpdatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -48,18 +48,19 @@ export class GroupMessageUpdatedDynamoProcessorService implements DynamoProcesso
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { newImage: { id, conversationId, from } } = record;
+      const { newImage: { id, conversationId } } = record;
 
-      const [ { message }, { group }, { user }, { users: groupMembers } ] = await Promise.all([
+      const [ { message }, { users: groupMembers } ] = await Promise.all([
         this.messageMediatorService.getMessage({ messageId: id }),
-        this.groupMediatorService.getGroup({ groupId: conversationId as GroupId }),
-        this.userMediatorService.getUser({ userId: from }),
         this.userMediatorService.getUsersByGroupId({ groupId: conversationId as GroupId }),
       ]);
 
       const groupMemberIds = groupMembers.map((groupMember) => groupMember.id);
 
-      await this.groupMessageUpdatedSnsService.sendMessage({ groupMemberIds, to: group, from: user, message });
+      await Promise.allSettled([
+        this.groupMessageUpdatedSnsService.sendMessage({ groupMemberIds, message }),
+        this.messageService.indexMessageForSearch({ message: record.newImage }),
+      ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

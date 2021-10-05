@@ -12,7 +12,7 @@ describe("BaseIntegrationMediatorService", () => {
       super(mockNotficationType, loggerService, listenerMappingService);
     }
 
-    public getListenersByUserId(params: GetListenersByUserIdInput) {
+    public override getListenersByUserId(params: GetListenersByUserIdInput) {
       return super.getListenersByUserId(params);
     }
   }

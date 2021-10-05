@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, MeetingMessageCreatedSnsMessage } from "@yac/util";
+import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, MeetingMessageCreatedSnsMessage, Meeting } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
@@ -37,23 +37,23 @@ export class MeetingMessageCreatedSnsProcessorService implements SnsProcessorSer
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { message: { meetingMemberIds, to, from, message } } = record;
+      const { message: { meetingMemberIds, message } } = record;
 
-      const senderName = from.realName || from.username || from.email || from.phone as string;
+      const senderName = message.from.realName || message.from.username || message.from.email || message.from.phone as string;
 
-      const memberIdsOtherThanSender = meetingMemberIds.filter((meetingMemberId) => meetingMemberId !== from.id);
+      const memberIdsOtherThanSender = meetingMemberIds.filter((meetingMemberId) => meetingMemberId !== message.from.id);
 
       await Promise.allSettled([
         ...memberIdsOtherThanSender.map((memberId) => this.pushNotificationMediatorService.sendPushNotification({
           userId: memberId,
           event: PushNotificationEvent.MeetingMessageCreated,
           title: "New Message Received",
-          body: `Message from ${senderName} in ${to.name}`,
+          body: `Message from ${senderName} in ${(message.to as Meeting).name}`,
         })),
         ...meetingMemberIds.map((userId) => this.webSocketMediatorService.sendMessage({
           userId,
           event: WebSocketEvent.MeetingMessageCreated,
-          data: { to, from, message },
+          data: { message },
         })),
       ]);
 

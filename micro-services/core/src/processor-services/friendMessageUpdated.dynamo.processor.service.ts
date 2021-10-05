@@ -5,11 +5,10 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { FriendMessageUpdatedSnsServiceInterface } from "../sns-services/friendMessageUpdated.sns.service";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 import { RawMessage } from "../repositories/message.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
-import { UserId } from "../types/userId.type";
+import { MessageServiceInterface } from "../entity-services/message.service";
 
 @injectable()
 export class FriendMessageUpdatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -18,8 +17,8 @@ export class FriendMessageUpdatedDynamoProcessorService implements DynamoProcess
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.FriendMessageUpdatedSnsServiceInterface) private friendMessageUpdatedSnsService: FriendMessageUpdatedSnsServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
+    @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserUpdatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -46,16 +45,14 @@ export class FriendMessageUpdatedDynamoProcessorService implements DynamoProcess
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { newImage: { id, conversationId, from } } = record;
-      const toUserId = conversationId.replace(KeyPrefix.FriendConversation, "").replace(from, "").replace(/^-|-$/, "") as UserId;
+      const { newImage: { id } } = record;
 
-      const [ { message }, { user: toUser }, { user: fromUser } ] = await Promise.all([
-        this.messageMediatorService.getMessage({ messageId: id }),
-        this.userMediatorService.getUser({ userId: toUserId }),
-        this.userMediatorService.getUser({ userId: from }),
+      const { message } = await this.messageMediatorService.getMessage({ messageId: id });
+
+      await Promise.allSettled([
+        this.friendMessageUpdatedSnsService.sendMessage({ message }),
+        this.messageService.indexMessageForSearch({ message: record.newImage }),
       ]);
-
-      await this.friendMessageUpdatedSnsService.sendMessage({ message, to: toUser, from: fromUser });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

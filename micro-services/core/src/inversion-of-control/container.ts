@@ -10,8 +10,6 @@ import { TeamController, TeamControllerInterface } from "../controllers/team.con
 import { UserController, UserControllerInterface } from "../controllers/user.controller";
 import { ConversationService, ConversationServiceInterface } from "../entity-services/conversation.service";
 import { ConversationUserRelationshipService, ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
-import { ImageFileService, ImageFileServiceInterface } from "../entity-services/image.file.service";
-import { MessageFileService, MessageFileServiceInterface } from "../entity-services/mesage.file.service";
 import { MessageService, MessageServiceInterface } from "../entity-services/message.service";
 import { PendingMessageService, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
 import { TeamService, TeamServiceInterface } from "../entity-services/team.service";
@@ -76,6 +74,9 @@ import { MeetingMessageUpdatedSnsService, MeetingMessageUpdatedSnsServiceInterfa
 import { MeetingMessageUpdatedDynamoProcessorService } from "../processor-services/meetingMessageUpdated.dynamo.processor.service";
 import { MessageTranscodedSnsProcessorService } from "../processor-services/messageTranscoded.sns.processor.service";
 import { MessageTranscribedSnsProcessorService } from "../processor-services/messageTranscribed.sns.processor.service";
+import { aws4Factory, Aws4Factory } from "../factories/aws4.factory";
+import { UserGroupMeetingSearchService, UserGroupMeetingSearchServiceInterface } from "../entity-services/userGroupMeeting.search.service";
+import { OpenSearchRepository, SearchRepositoryInterface } from "../repositories/openSearch.repository";
 
 const container = new Container();
 
@@ -156,14 +157,13 @@ try {
   // Entity Services
   container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
   container.bind<ConversationUserRelationshipServiceInterface>(TYPES.ConversationUserRelationshipServiceInterface).to(ConversationUserRelationshipService);
-  container.bind<ImageFileServiceInterface>(TYPES.ImageFileServiceInterface).to(ImageFileService);
   container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);
-  container.bind<MessageFileServiceInterface>(TYPES.MessageFileServiceInterface).to(MessageFileService);
   container.bind<PendingMessageServiceInterface>(TYPES.PendingMessageServiceInterface).to(PendingMessageService);
   container.bind<TeamServiceInterface>(TYPES.TeamServiceInterface).to(TeamService);
   container.bind<TeamUserRelationshipServiceInterface>(TYPES.TeamUserRelationshipServiceInterface).to(TeamUserRelationshipService);
   container.bind<UniquePropertyServiceInterface>(TYPES.UniquePropertyServiceInterface).to(UniquePropertyService);
   container.bind<UserServiceInterface>(TYPES.UserServiceInterface).to(UserService);
+  container.bind<UserGroupMeetingSearchServiceInterface>(TYPES.UserGroupMeetingSearchServiceInterface).to(UserGroupMeetingSearchService);
 
   // Repositories
   container.bind<ConversationRepositoryInterface>(TYPES.ConversationRepositoryInterface).to(ConversationDynamoRepository);
@@ -172,11 +172,13 @@ try {
   container.bind<MessageRepositoryInterface>(TYPES.MessageRepositoryInterface).to(MessageDynamoRepository);
   container.bind<PendingMessageRepositoryInterface>(TYPES.PendingMessageRepositoryInterface).to(PendingMessageDynamoRepository);
   container.bind<TeamRepositoryInterface>(TYPES.TeamRepositoryInterface).to(TeamDynamoRepository);
+  container.bind<SearchRepositoryInterface>(TYPES.SearchRepositoryInterface).to(OpenSearchRepository);
   container.bind<TeamUserRelationshipRepositoryInterface>(TYPES.TeamUserRelationshipRepositoryInterface).to(TeamUserRelationshipDynamoRepository);
   container.bind<UniquePropertyRepositoryInterface>(TYPES.UniquePropertyRepositoryInterface).to(UniquePropertyDynamoRepository);
   container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);
 
   // Factories
+  container.bind<Aws4Factory>(TYPES.Aws4Factory).toFactory(() => aws4Factory);
   container.bind<IdenticonFactory>(TYPES.IdenticonFactory).toFactory(() => identiconFactory);
 
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)

@@ -3,7 +3,6 @@ import { LoggerService, Spied, TestSupport, SnsFactory, Message, User, Group } f
 import SNS from "aws-sdk/clients/sns";
 import { ConversationType } from "../../enums/conversationType.enum";
 import { MessageMimeType } from "../../enums/message.mimeType.enum";
-import { GroupId } from "../../types/groupId.type";
 import { UserId } from "../../types/userId.type";
 import { GroupMessageUpdatedSnsService, GroupMessageUpdatedSnsServiceInterface } from "../groupMessageUpdated.sns.service";
 
@@ -23,7 +22,6 @@ describe("GroupMessageUpdatedSnsService", () => {
   const mockMessageId = "message-id";
   const mockUserIdOne: UserId = "user-mock-id-one";
   const mockUserIdTwo: UserId = "user-mock-id-two";
-  const mockGroupId: GroupId = "convo-group-mock-id";
 
   const mockUser: User = {
     id: mockUserIdOne,
@@ -31,7 +29,7 @@ describe("GroupMessageUpdatedSnsService", () => {
   };
 
   const mockGroup: Group = {
-    id: mockGroupId,
+    id: "convo-group-mock-id",
     name: "mock-name",
     image: "mock-image",
     createdBy: "user-mock-id",
@@ -40,8 +38,8 @@ describe("GroupMessageUpdatedSnsService", () => {
 
   const mockGroupMessage: Message = {
     id: mockMessageId,
-    to: mockGroupId,
-    from: mockUserIdOne,
+    to: mockGroup,
+    from: mockUser,
     type: ConversationType.Group,
     createdAt: new Date().toISOString(),
     seenAt: { [mockUserIdOne]: new Date().toISOString() },
@@ -49,7 +47,6 @@ describe("GroupMessageUpdatedSnsService", () => {
     replyCount: 0,
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockError = new Error("test");
@@ -61,7 +58,7 @@ describe("GroupMessageUpdatedSnsService", () => {
   });
 
   describe("sendMessage", () => {
-    const mockMessage = { message: mockGroupMessage, to: mockGroup, from: mockUser, groupMemberIds: [ mockUserIdOne, mockUserIdTwo ] };
+    const mockMessage = { message: mockGroupMessage, groupMemberIds: [ mockUserIdOne, mockUserIdTwo ] };
 
     describe("under normal conditions", () => {
       beforeEach(() => {

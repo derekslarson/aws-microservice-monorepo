@@ -7,10 +7,10 @@ import { UserServiceInterface } from "../entity-services/user.service";
 import { TeamServiceInterface } from "../entity-services/team.service";
 import { ConversationServiceInterface } from "../entity-services/conversation.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-import { FileExtension } from "../entity-services/image.file.service";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { ConversationId } from "../types/conversationId.type";
+import { FileExtension } from "../repositories/image.s3.repository";
 
 @injectable()
 export class ImageFileCreatedS3ProcessorService implements S3ProcessorServiceInterface {

@@ -15,7 +15,6 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
   const mockGroupMessageCreatedSnsTopicArn = "mock-group-message-created-sns-topic-arn";
   const mockConfig = { snsTopicArns: { groupMessageCreated: mockGroupMessageCreatedSnsTopicArn } };
   const mockMessageId = "message-id";
-  const mockGroupId = "convo-group-mock-id";
   const mockUserIdOne = "user-mock-id-one";
   const mockUserIdTwo = "user-mock-id-two";
 
@@ -26,7 +25,7 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
   };
 
   const mockGroup: Group = {
-    id: mockGroupId,
+    id: "convo-group-mock-id",
     name: "mock-name",
     image: "mock-image",
     createdBy: "user-mock-id",
@@ -35,8 +34,8 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
 
   const mockMessage: Message = {
     id: mockMessageId,
-    to: mockGroupId,
-    from: mockUserIdOne,
+    to: mockGroup,
+    from: mockUser,
     type: "group",
     createdAt: new Date().toISOString(),
     seenAt: { [mockUserIdOne]: new Date().toISOString(), [mockUserIdTwo]: null },
@@ -44,7 +43,6 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
     replyCount: 0,
     mimeType: "audio/mpeg",
     fetchUrl: "mock-fetch-url",
-    fromImage: "mock-from-image",
   };
 
   const mockRecord = {
@@ -116,9 +114,12 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
           ...mockRecord,
           message: {
             ...mockRecord.message,
-            from: {
-              id: mockRecord.message.from.id,
-              username: "mock-username",
+            message: {
+              ...mockRecord.message.message,
+              from: {
+                id: mockRecord.message.from.id,
+                username: "mock-username",
+              },
             },
           },
         };
@@ -130,7 +131,7 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
             userId: mockUserIdTwo,
             event: PushNotificationEvent.GroupMessageCreated,
             title: "New Message Received",
-            body: `Message from ${mockRecordTwo.message.from.username} in ${mockGroup.name}`,
+            body: `Message from ${mockRecordTwo.message.message.from.username} in ${mockGroup.name}`,
           });
         });
       });
@@ -140,9 +141,12 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
           ...mockRecord,
           message: {
             ...mockRecord.message,
-            from: {
-              id: mockRecord.message.from.id,
-              email: "mock-email",
+            message: {
+              ...mockRecord.message.message,
+              from: {
+                id: mockRecord.message.from.id,
+                email: "mock-email",
+              },
             },
           },
         };
@@ -154,7 +158,7 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
             userId: mockUserIdTwo,
             event: PushNotificationEvent.GroupMessageCreated,
             title: "New Message Received",
-            body: `Message from ${mockRecordTwo.message.from.email} in ${mockGroup.name}`,
+            body: `Message from ${mockRecordTwo.message.message.from.email} in ${mockGroup.name}`,
           });
         });
       });
@@ -164,9 +168,12 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
           ...mockRecord,
           message: {
             ...mockRecord.message,
-            from: {
-              id: mockRecord.message.from.id,
-              phone: "mock-phone",
+            message: {
+              ...mockRecord.message.message,
+              from: {
+                id: mockRecord.message.from.id,
+                phone: "mock-phone",
+              },
             },
           },
         };
@@ -178,7 +185,7 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
             userId: mockUserIdTwo,
             event: PushNotificationEvent.GroupMessageCreated,
             title: "New Message Received",
-            body: `Message from ${mockRecordTwo.message.from.phone} in ${mockGroup.name}`,
+            body: `Message from ${mockRecordTwo.message.message.from.phone} in ${mockGroup.name}`,
           });
         });
       });
@@ -187,8 +194,8 @@ describe("GroupMessageCreatedSnsProcessorService", () => {
         await groupMessageCreatedSnsProcessorService.processRecord(mockRecord);
 
         expect(webSocketMediatorService.sendMessage).toHaveBeenCalledTimes(2);
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageCreated, data: { to: mockGroup, from: mockUser, message: mockMessage } });
-        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageCreated, data: { to: mockGroup, from: mockUser, message: mockMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageCreated, data: { message: mockMessage } });
+        expect(webSocketMediatorService.sendMessage).toHaveBeenCalledWith({ userId: mockUserIdOne, event: WebSocketEvent.GroupMessageCreated, data: { message: mockMessage } });
       });
     });
 

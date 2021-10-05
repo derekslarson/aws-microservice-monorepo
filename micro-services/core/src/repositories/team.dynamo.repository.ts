@@ -93,6 +93,22 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
       throw error;
     }
   }
+
+  public convertRawTeamToTeam(params: ConvertRawTeamToTeamInput): ConvertRawTeamToTeamOutput {
+    try {
+      this.loggerService.trace("convertRawTeamToTeam called", { params }, this.constructor.name);
+
+      const { rawTeam } = params;
+
+      const team = this.cleanse(rawTeam);
+
+      return { team };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in convertRawTeamToTeam", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface TeamRepositoryInterface {
@@ -100,6 +116,7 @@ export interface TeamRepositoryInterface {
   getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
   updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput>;
   getTeams(params: GetTeamsInput): Promise<GetTeamsOutput>;
+  convertRawTeamToTeam(params: ConvertRawTeamToTeamInput): ConvertRawTeamToTeamOutput;
 }
 
 type TeamRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
@@ -150,4 +167,13 @@ export interface GetTeamsInput {
 
 export interface GetTeamsOutput {
   teams: Team[];
+}
+
+export interface ConvertRawTeamToTeamInput {
+  rawTeam: RawTeam;
+
+}
+
+export interface ConvertRawTeamToTeamOutput {
+  team: Team;
 }

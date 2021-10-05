@@ -24,7 +24,7 @@ export function getMessageFile(format: "MP4" | "WEBM" | "MP3"): Promise<Buffer> 
 
 export function separateBufferIntoChunks(buffer: Buffer, chunkSize: number, limit?: number): Buffer[] {
   const totalSize = limit && buffer.byteLength > limit ? limit : buffer.byteLength;
-  const finalChunkedArray = [];
+  const finalChunkedArray: Buffer[] = [];
 
   for (let i = 0; i < totalSize; i += chunkSize) {
     const chunk = buffer.slice(i, i + chunkSize);

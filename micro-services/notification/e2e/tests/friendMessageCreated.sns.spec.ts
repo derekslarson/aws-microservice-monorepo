@@ -54,19 +54,17 @@ describe("Friend Message Created SNS Topic", () => {
 
         it("sends valid web socket events to the correct connectionIds", async () => {
           const message: FriendMessageCreatedSnsMessage = {
-            to: {
-              id: userOneId,
-              image: "test-image-one",
-            },
-            from: {
-              id: userTwoId,
-              image: "test-image-two",
-              realName: "User Two",
-            },
             message: {
               id: "message-id",
-              to: userOneId,
-              from: userTwoId,
+              to: {
+                id: userOneId,
+                image: "test-image-one",
+              },
+              from: {
+                id: userTwoId,
+                image: "test-image-two",
+                realName: "User Two",
+              },
               type: "friend",
               createdAt: new Date().toISOString(),
               seenAt: { [userOneId]: new Date().toISOString() },
@@ -74,7 +72,6 @@ describe("Friend Message Created SNS Topic", () => {
               replyCount: 0,
               mimeType: "audio/mpeg",
               fetchUrl: "mock-fetch-url",
-              fromImage: "mock-from-image",
             },
           };
 
@@ -94,21 +91,13 @@ describe("Friend Message Created SNS Topic", () => {
           expect(userOneAWebSocketListener.messages.length).toBe(1);
           expect(userOneAWebSocketListener.messages[0]).toEqual({
             event: WebSocketEvent.FriendMessageCreated,
-            data: {
-              to: message.to,
-              from: message.from,
-              message: message.message,
-            },
+            data: { message: message.message },
           });
 
           expect(userOneBWebSocketListener.messages.length).toBe(1);
           expect(userOneBWebSocketListener.messages[0]).toEqual({
             event: WebSocketEvent.FriendMessageCreated,
-            data: {
-              to: message.to,
-              from: message.from,
-              message: message.message,
-            },
+            data: { message: message.message },
           });
         });
       });
@@ -133,19 +122,17 @@ describe("Friend Message Created SNS Topic", () => {
 
         it("sends valid push notification events to the correct device tokens", async () => {
           const message: FriendMessageCreatedSnsMessage = {
-            to: {
-              id: userOneId,
-              image: "test-image-one",
-            },
-            from: {
-              id: userTwoId,
-              image: "test-image-two",
-              realName: "User Two",
-            },
             message: {
               id: "message-id",
-              to: userOneId,
-              from: userTwoId,
+              to: {
+                id: userOneId,
+                image: "test-image-one",
+              },
+              from: {
+                id: userTwoId,
+                image: "test-image-two",
+                realName: "User Two",
+              },
               type: "friend",
               createdAt: new Date().toISOString(),
               seenAt: { [userOneId]: new Date().toISOString() },
@@ -153,7 +140,6 @@ describe("Friend Message Created SNS Topic", () => {
               replyCount: 0,
               mimeType: "audio/mpeg",
               fetchUrl: "mock-fetch-url",
-              fromImage: "mock-from-image",
             },
           };
 

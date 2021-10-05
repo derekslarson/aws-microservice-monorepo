@@ -357,6 +357,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
                 name: meeting.name,
                 dueDate: meeting.dueDate,
                 createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+                type: ConversationType.Meeting,
               },
               user: {
                 email: userByEmail.email,
@@ -375,6 +376,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
                 name: meeting.name,
                 dueDate: meeting.dueDate,
                 createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+                type: ConversationType.Meeting,
               },
               user: {
                 phone: userByPhone.phone,
@@ -393,6 +395,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
                 name: meeting.name,
                 dueDate: meeting.dueDate,
                 createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+                type: ConversationType.Meeting,
               },
               user: {
                 email: otherUser.email,
