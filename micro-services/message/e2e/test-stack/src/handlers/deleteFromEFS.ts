@@ -13,14 +13,11 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     const exist = fs.existsSync(filePath);
     if(exist) {
       await rmfr(filePath);
-          return {
-            statusCode: 200,
-            body: "Deleted " + fileName + "(" + filePath + ")"
-          }
-    } else {
-      return {
-        statusCode: 404
-      }
+    }
+
+    return {
+      statusCode: 200,
+      body: `Deleted ${fileName} (${filePath})`
     }
   } catch (error: unknown) {
     console.log("Error:\n", error);

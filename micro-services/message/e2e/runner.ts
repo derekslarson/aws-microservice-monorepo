@@ -17,6 +17,7 @@ if (!environment) {
 const requiredParams = [
   "raw-message-s3-bucket-name",
   "message-testing-utils-endpoint",
+  "message-upload-token-secret-id",
 ];
 
 (async () => {

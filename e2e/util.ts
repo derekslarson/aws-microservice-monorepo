@@ -4,6 +4,7 @@ import { CognitoIdentityServiceProvider, DynamoDB, S3, SNS, SSM, TranscribeServi
 import crypto from "crypto";
 import axios from "axios";
 import ksuid from "ksuid";
+import jwt from "jsonwebtoken";
 
 const ssm = new SSM({ region: "us-east-1" });
 export const s3 = new S3({ region: "us-east-1" });
@@ -274,6 +275,24 @@ export async function createRandomCognitoUser(): Promise<{ id: `user-${string}`,
     return { id, email };
   } catch (error) {
     console.log("Error in createRandomCognitoUser:\n", error);
+
+    throw error;
+  }
+}
+
+export async function generateMessageUploadToken(conversationId: string, messageId: string, mimeType: string): Promise<string> {
+  try {
+    const { SecretString: secret } = await secretsManager.getSecretValue({ SecretId: process.env["message-upload-token-secret-id"] as string }).promise();
+
+    if (!secret) {
+      throw new Error("Error fetching secret");
+    }
+
+    const token = jwt.sign({ conversationId, messageId, mimeType }, secret, { expiresIn: 7200 });
+
+    return token;
+  } catch (error: unknown) {
+    console.log("Error in generateMessageUploadToken:\n", error);
 
     throw error;
   }

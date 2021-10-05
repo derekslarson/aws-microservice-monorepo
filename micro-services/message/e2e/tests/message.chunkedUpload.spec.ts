@@ -3,18 +3,15 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import crypto from "crypto";
-import { Message } from "@yac/util";
+import { MessageMimeType } from "@yac/util";
 import { checkFileOnS3, getMessageFile, separateBufferIntoChunks } from "../utils";
-import { backoff } from "../../../../e2e/util";
-
-const mockMessageId: Message["id"] = "message-mock-123";
+import { backoff, generateRandomString, generateMessageUploadToken } from "../../../../e2e/util";
 
 describe("Chunked Message upload", () => {
   describe("MP3", () => {
-    const messageId = `${mockMessageId}_${Date.now()}`;
+    const mimeType = MessageMimeType.AudioMp3;
     let file: Buffer;
     let chunkedFile: Buffer[];
-    const format = "audio/mpeg";
 
     beforeAll(async () => {
       // get file metadata
@@ -23,157 +20,241 @@ describe("Chunked Message upload", () => {
       chunkedFile = separateBufferIntoChunks(file, 5000);
     });
 
-    afterAll(async () => {
-      await Promise.allSettled([
-        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_chunks-test`),
-        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_finish-test`),
-      ]);
-    });
+    describe("/chunk", () => {
+      let conversationId: string;
+      let messageId: string;
+      let fileSystemDir: string;
+      let uploadToken: string;
 
-    describe("under normal conditions", () => {
-      it("uploads a chunk correctly", async () => {
-        const auxMessageId = `${messageId}_chunks-test`;
-        const chunkNumber = 0;
-        const chunk = chunkedFile[chunkNumber];
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-          chunkNumber,
-          data: chunk.toString("base64"),
-        });
-        expect(req.status).toBe(201);
+      beforeEach(async () => {
+        conversationId = `convo-group-${generateRandomString(10)}`;
+        messageId = `message-${generateRandomString(10)}`;
+        fileSystemDir = `${conversationId}_${messageId}`;
 
-        const checkOnServer = await backoff(() => axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`), (res) => res.status === 200 || res.status === 404);
-
-        expect(checkOnServer.status).toBe(200);
-        expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
-        expect(checkOnServer.data.size).toEqual(chunk.byteLength);
-        expect(checkOnServer.data.checksum).toEqual(crypto.createHash("sha256").update(chunk).digest("base64"));
+        uploadToken = await generateMessageUploadToken(conversationId, messageId, mimeType);
       });
 
-      it("finishes the file upload", async () => {
-        const auxMessageId = `${messageId}_finish-test`;
-        await Promise.all(chunkedFile.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+      afterEach(async () => {
+        await axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${fileSystemDir}`);
+      });
+
+      describe("under normal conditions", () => {
+        it("uploads a chunk correctly", async () => {
+          const chunkNumber = 0;
+          const chunk = chunkedFile[chunkNumber];
+
+          const req = await axios.post(`${process.env.baseUrl as string}/chunk`, {
+            chunkNumber,
+            data: chunk.toString("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } });
+
+          expect(req.status).toBe(201);
+
+          const checkOnServer = await backoff(() => axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${fileSystemDir}/${chunkNumber}`), (res) => res.status === 200 || res.status === 404);
+
+          expect(checkOnServer.status).toBe(200);
+          expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
+          expect(checkOnServer.data.size).toEqual(chunk.byteLength);
+          expect(checkOnServer.data.checksum).toEqual(crypto.createHash("sha256").update(chunk).digest("base64"));
+        });
+      });
+
+      describe("under error conditions", () => {
+        describe("when not passed an authorization header", () => {
+          it("throws an Unauthorized error", async () => {
+            try {
+              const chunkNumber = 0;
+              const chunk = chunkedFile[chunkNumber];
+
+              await axios.post(`${process.env.baseUrl as string}/chunk`, {
+                chunkNumber,
+                data: chunk.toString("base64"),
+              });
+
+              fail("should have not continued");
+            } catch (error) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(401);
+                expect(error.response?.data.message).toBe("Unauthorized");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
+
+        describe("when passed an invalid authorization header", () => {
+          it("throws a Forbidden error", async () => {
+            try {
+              const chunkNumber = 0;
+              const chunk = chunkedFile[chunkNumber];
+
+              await axios.post(`${process.env.baseUrl as string}/chunk`, {
+                chunkNumber,
+                data: chunk.toString("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken.slice(0, -4)}test` } });
+
+              fail("should have not continued");
+            } catch (error) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(403);
+                expect(error.response?.data.message).toBe("Forbidden");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
+      });
+    });
+
+    describe("/finish", () => {
+      let conversationId: string;
+      let messageId: string;
+      let fileSystemDir: string;
+      let s3Key: string;
+      let uploadToken: string;
+
+      beforeEach(async () => {
+        conversationId = `convo-group-${generateRandomString(10)}`;
+        messageId = `message-${generateRandomString(10)}`;
+        fileSystemDir = `${conversationId}_${messageId}`;
+        s3Key = `${conversationId}/${messageId}`;
+
+        uploadToken = await generateMessageUploadToken(conversationId, messageId, mimeType);
+      });
+
+      afterEach(async () => {
+        await axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${fileSystemDir}`);
+      });
+
+      describe("under normal conditions", () => {
+        beforeEach(async () => {
+          await Promise.all(chunkedFile.map(async (data, index) => axios.post(`${process.env.baseUrl as string}/chunk`, {
             chunkNumber: index,
             data: data.toString("base64"),
-          });
-
-          return req;
-        }));
-
-        await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunkedFile.length,
-          checksum: crypto.createHash("sha256").update(file).digest("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } })));
         });
 
-        const fileOnS3 = await checkFileOnS3(auxMessageId);
+        it("finishes the file upload", async () => {
+          await axios.post(`${process.env.baseUrl as string}/finish`, {
+            totalChunks: chunkedFile.length,
+            checksum: crypto.createHash("sha256").update(file).digest("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } });
 
-        expect(fileOnS3.ContentLength).toEqual(file.byteLength);
+          const fileOnS3 = await checkFileOnS3(s3Key);
 
-        expect(crypto.createHash("sha256").update(fileOnS3.Body as Buffer).digest("base64")).toEqual(crypto.createHash("sha256").update(file).digest("base64"));
-      });
-    });
+          expect(fileOnS3.ContentLength).toEqual(file.byteLength);
 
-    describe("under error conditions", () => {
-      it("fails when totalChunks is less than chunks in server", async () => {
-        const chunksToUpload = chunkedFile.slice(0, 50);
-        const auxMessageId = `${messageId}_failed-chunks--lesser`;
-        try {
-          // upload
-          await Promise.all(chunksToUpload.map(async (data, index) => {
-            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-              chunkNumber: index,
-              data: data.toString("base64"),
-            });
-
-            return req;
-          }));
-
-          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-            totalChunks: chunksToUpload.length + 10,
-            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
-          });
-
-          fail("should have not continued");
-        } catch (error: unknown) {
-          if (axios.isAxiosError(error) && error.response) {
-            expect(error.response?.status).toBe(400);
-            expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
-          } else {
-            console.log({ error });
-            fail("error is not the expected one");
-          }
-        }
+          expect(crypto.createHash("sha256").update(fileOnS3.Body as Buffer).digest("base64")).toEqual(crypto.createHash("sha256").update(file).digest("base64"));
+        });
       });
 
-      it("fails when totalChunks is larger than chunks in server", async () => {
-        const chunksToUpload = chunkedFile.slice(0, 50);
-        const auxMessageId = `${messageId}_failed-chunks--larger`;
-        try {
-          // upload
-          await Promise.all(chunksToUpload.map(async (data, index) => {
-            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-              chunkNumber: index,
-              data: data.toString("base64"),
-            });
+      describe("under error conditions", () => {
+        let chunksToUpload: Buffer[];
 
-            return req;
-          }));
+        beforeEach(async () => {
+          chunksToUpload = chunkedFile.slice(0, 50);
 
-          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-            totalChunks: chunksToUpload.length - 10,
-            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+          await Promise.all(chunksToUpload.map(async (data, index) => axios.post(`${process.env.baseUrl as string}/chunk`, {
+            chunkNumber: index,
+            data: data.toString("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } })));
+        });
+
+        describe("when totalChunks is larger than the chunks on the server", () => {
+          it("throws a BadRequestError", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length + 10,
+                checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken}` } });
+
+              fail("should have not continued");
+            } catch (error: unknown) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(400);
+                expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
           });
+        });
 
-          fail("should have not continued");
-        } catch (error: unknown) {
-          if (axios.isAxiosError(error) && error.response) {
-            expect(error.response?.status).toBe(400);
-            expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
-          } else {
-            console.log({ error });
-            fail("error is not the expected one");
-          }
-        }
-      });
+        describe("when totalChunks is smaller than the chunks on the server", () => {
+          it("throws a BadRequestError", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length - 10,
+                checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken}` } });
 
-      it("fails when the checksum is different than the one expected on server", async () => {
-        const chunksToUpload = chunkedFile.slice(0, 50);
-        const auxMessageId = `${messageId}_failed-checksum`;
-        try {
-          // upload
-          await Promise.all(chunksToUpload.map(async (data, index) => {
-            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-              chunkNumber: index,
-              data: data.toString("base64"),
-            });
-
-            return req;
-          }));
-
-          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-            totalChunks: chunksToUpload.length,
-            checksum: crypto.createHash("sha256").update("fake-checksum-that-is-not-right").digest("base64"),
+              fail("should have not continued");
+            } catch (error: unknown) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(400);
+                expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
           });
+        });
 
-          fail("should have not continued");
-        } catch (error: unknown) {
-          if (axios.isAxiosError(error) && error.response) {
-            expect(error.response?.status).toBe(400);
-            expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
-          } else {
-            console.log({ error });
-            fail("error is not the expected one");
-          }
-        }
+        describe("when the checksum is different than the one expected on server", () => {
+          it("throws a BadRequestError", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length,
+                checksum: crypto.createHash("sha256").update("fake-checksum-that-is-not-right").digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken}` } });
+
+              fail("should have not continued");
+            } catch (error: unknown) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(400);
+                expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
+
+        describe("when passed an invalid authorization header", () => {
+          it("throws a Forbidden error", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length,
+                checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken.slice(0, -4)}test` } });
+
+              fail("should have not continued");
+            } catch (error) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(403);
+                expect(error.response?.data.message).toBe("Forbidden");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
       });
     });
   });
 
   describe("MP4", () => {
-    const messageId = `${mockMessageId}_${Date.now()}`;
+    const mimeType = MessageMimeType.VideoMp4;
     let file: Buffer;
     let chunkedFile: Buffer[];
-    const format = "audio/mp4";
 
     beforeAll(async () => {
       // get file metadata
@@ -182,156 +263,241 @@ describe("Chunked Message upload", () => {
       chunkedFile = separateBufferIntoChunks(file, 5000);
     });
 
-    afterAll(async () => {
-      await Promise.allSettled([
-        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_chunks-test`),
-        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_finish-test`),
-      ]);
-    });
+    describe("/chunk", () => {
+      let conversationId: string;
+      let messageId: string;
+      let fileSystemDir: string;
+      let uploadToken: string;
 
-    describe("under normal conditions", () => {
-      it("uploads a chunk correctly", async () => {
-        const auxMessageId = `${messageId}_chunks-test`;
-        const chunkNumber = 0;
-        const chunk = chunkedFile[chunkNumber];
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-          chunkNumber,
-          data: chunk.toString("base64"),
-        });
-        expect(req.status).toBe(201);
+      beforeEach(async () => {
+        conversationId = `convo-group-${generateRandomString(10)}`;
+        messageId = `message-${generateRandomString(10)}`;
+        fileSystemDir = `${conversationId}_${messageId}`;
 
-        const checkOnServer = await backoff(() => axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`), (res) => res.status === 200 || res.status === 404);
-
-        expect(checkOnServer.status).toBe(200);
-        expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
-        expect(checkOnServer.data.size).toEqual(chunk.byteLength);
-        expect(checkOnServer.data.checksum).toEqual(crypto.createHash("sha256").update(chunk).digest("base64"));
+        uploadToken = await generateMessageUploadToken(conversationId, messageId, mimeType);
       });
 
-      it("finishes the file upload", async () => {
-        const auxMessageId = `${messageId}_finish-test`;
-        await Promise.all(chunkedFile.map(async (data, index) => {
-          const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
+      afterEach(async () => {
+        await axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${fileSystemDir}`);
+      });
+
+      describe("under normal conditions", () => {
+        it("uploads a chunk correctly", async () => {
+          const chunkNumber = 0;
+          const chunk = chunkedFile[chunkNumber];
+
+          const req = await axios.post(`${process.env.baseUrl as string}/chunk`, {
+            chunkNumber,
+            data: chunk.toString("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } });
+
+          expect(req.status).toBe(201);
+
+          const checkOnServer = await backoff(() => axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${fileSystemDir}/${chunkNumber}`), (res) => res.status === 200 || res.status === 404);
+
+          expect(checkOnServer.status).toBe(200);
+          expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
+          expect(checkOnServer.data.size).toEqual(chunk.byteLength);
+          expect(checkOnServer.data.checksum).toEqual(crypto.createHash("sha256").update(chunk).digest("base64"));
+        });
+      });
+
+      describe("under error conditions", () => {
+        describe("when not passed an authorization header", () => {
+          it("throws an Unauthorized error", async () => {
+            try {
+              const chunkNumber = 0;
+              const chunk = chunkedFile[chunkNumber];
+
+              await axios.post(`${process.env.baseUrl as string}/chunk`, {
+                chunkNumber,
+                data: chunk.toString("base64"),
+              });
+
+              fail("should have not continued");
+            } catch (error) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(401);
+                expect(error.response?.data.message).toBe("Unauthorized");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
+
+        describe("when passed an invalid authorization header", () => {
+          it("throws a Forbidden error", async () => {
+            try {
+              const chunkNumber = 0;
+              const chunk = chunkedFile[chunkNumber];
+
+              await axios.post(`${process.env.baseUrl as string}/chunk`, {
+                chunkNumber,
+                data: chunk.toString("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken.slice(0, -4)}test` } });
+
+              fail("should have not continued");
+            } catch (error) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(403);
+                expect(error.response?.data.message).toBe("Forbidden");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
+      });
+    });
+
+    describe("/finish", () => {
+      let conversationId: string;
+      let messageId: string;
+      let fileSystemDir: string;
+      let s3Key: string;
+      let uploadToken: string;
+
+      beforeEach(async () => {
+        conversationId = `convo-group-${generateRandomString(10)}`;
+        messageId = `message-${generateRandomString(10)}`;
+        fileSystemDir = `${conversationId}_${messageId}`;
+        s3Key = `${conversationId}/${messageId}`;
+
+        uploadToken = await generateMessageUploadToken(conversationId, messageId, mimeType);
+      });
+
+      afterEach(async () => {
+        await axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${fileSystemDir}`);
+      });
+
+      describe("under normal conditions", () => {
+        beforeEach(async () => {
+          await Promise.all(chunkedFile.map(async (data, index) => axios.post(`${process.env.baseUrl as string}/chunk`, {
             chunkNumber: index,
             data: data.toString("base64"),
-          });
-
-          return req;
-        }));
-
-        await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunkedFile.length,
-          checksum: crypto.createHash("sha256").update(file).digest("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } })));
         });
 
-        const fileOnS3 = await checkFileOnS3(auxMessageId);
+        it("finishes the file upload", async () => {
+          await axios.post(`${process.env.baseUrl as string}/finish`, {
+            totalChunks: chunkedFile.length,
+            checksum: crypto.createHash("sha256").update(file).digest("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } });
 
-        expect(fileOnS3.ContentLength).toEqual(file.byteLength);
-        expect(crypto.createHash("sha256").update(fileOnS3.Body as Buffer).digest("base64")).toEqual(crypto.createHash("sha256").update(file).digest("base64"));
-      });
-    });
+          const fileOnS3 = await checkFileOnS3(s3Key);
 
-    describe("under error conditions", () => {
-      it("fails when totalChunks is less than chunks in server", async () => {
-        const chunksToUpload = chunkedFile.slice(0, 50);
-        const auxMessageId = `${messageId}_failed-chunks--lesser`;
-        try {
-          // upload
-          await Promise.all(chunksToUpload.map(async (data, index) => {
-            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-              chunkNumber: index,
-              data: data.toString("base64"),
-            });
+          expect(fileOnS3.ContentLength).toEqual(file.byteLength);
 
-            return req;
-          }));
-
-          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-            totalChunks: chunksToUpload.length + 10,
-            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
-          });
-
-          fail("should have not continued");
-        } catch (error: unknown) {
-          if (axios.isAxiosError(error) && error.response) {
-            expect(error.response?.status).toBe(400);
-            expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
-          } else {
-            console.log({ error });
-            fail("error is not the expected one");
-          }
-        }
+          expect(crypto.createHash("sha256").update(fileOnS3.Body as Buffer).digest("base64")).toEqual(crypto.createHash("sha256").update(file).digest("base64"));
+        });
       });
 
-      it("fails when totalChunks is larger than chunks in server", async () => {
-        const chunksToUpload = chunkedFile.slice(0, 50);
-        const auxMessageId = `${messageId}_failed-chunks--larger`;
-        try {
-          // upload
-          await Promise.all(chunksToUpload.map(async (data, index) => {
-            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-              chunkNumber: index,
-              data: data.toString("base64"),
-            });
+      describe("under error conditions", () => {
+        let chunksToUpload: Buffer[];
 
-            return req;
-          }));
+        beforeEach(async () => {
+          chunksToUpload = chunkedFile.slice(0, 50);
 
-          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-            totalChunks: chunksToUpload.length - 10,
-            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+          await Promise.all(chunksToUpload.map(async (data, index) => axios.post(`${process.env.baseUrl as string}/chunk`, {
+            chunkNumber: index,
+            data: data.toString("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } })));
+        });
+
+        describe("when totalChunks is larger than the chunks on the server", () => {
+          it("throws a BadRequestError", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length + 10,
+                checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken}` } });
+
+              fail("should have not continued");
+            } catch (error: unknown) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(400);
+                expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
           });
+        });
 
-          fail("should have not continued");
-        } catch (error: unknown) {
-          if (axios.isAxiosError(error) && error.response) {
-            expect(error.response?.status).toBe(400);
-            expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
-          } else {
-            console.log({ error });
-            fail("error is not the expected one");
-          }
-        }
-      });
+        describe("when totalChunks is smaller than the chunks on the server", () => {
+          it("throws a BadRequestError", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length - 10,
+                checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken}` } });
 
-      it("fails when the checksum is different than the one expected on server", async () => {
-        const chunksToUpload = chunkedFile.slice(0, 50);
-        const auxMessageId = `${messageId}_failed-checksum`;
-        try {
-          // upload
-          await Promise.all(chunksToUpload.map(async (data, index) => {
-            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-              chunkNumber: index,
-              data: data.toString("base64"),
-            });
-
-            return req;
-          }));
-
-          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-            totalChunks: chunksToUpload.length,
-            checksum: crypto.createHash("sha256").update("fake-checksum-that-is-not-right").digest("base64"),
+              fail("should have not continued");
+            } catch (error: unknown) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(400);
+                expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
           });
+        });
 
-          fail("should have not continued");
-        } catch (error: unknown) {
-          if (axios.isAxiosError(error) && error.response) {
-            expect(error.response?.status).toBe(400);
-            expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
-          } else {
-            console.log({ error });
-            fail("error is not the expected one");
-          }
-        }
+        describe("when the checksum is different than the one expected on server", () => {
+          it("throws a BadRequestError", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length,
+                checksum: crypto.createHash("sha256").update("fake-checksum-that-is-not-right").digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken}` } });
+
+              fail("should have not continued");
+            } catch (error: unknown) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(400);
+                expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
+
+        describe("when passed an invalid authorization header", () => {
+          it("throws a Forbidden error", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length,
+                checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken.slice(0, -4)}test` } });
+
+              fail("should have not continued");
+            } catch (error) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(403);
+                expect(error.response?.data.message).toBe("Forbidden");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
       });
     });
   });
 
   describe("WEBM", () => {
-    const messageId = `${mockMessageId}_${Date.now()}`;
+    const mimeType = MessageMimeType.VideoWebm;
     let file: Buffer;
     let chunkedFile: Buffer[];
-    const format = "video/webm";
 
     beforeAll(async () => {
       // get file metadata
@@ -340,143 +506,233 @@ describe("Chunked Message upload", () => {
       chunkedFile = separateBufferIntoChunks(file, 5000);
     });
 
-    afterAll(async () => {
-      await Promise.allSettled([
-        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_chunks-test`),
-        axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${messageId}_finish-test`),
-      ]);
+    describe("/chunk", () => {
+      let conversationId: string;
+      let messageId: string;
+      let fileSystemDir: string;
+      let uploadToken: string;
+
+      beforeEach(async () => {
+        conversationId = `convo-group-${generateRandomString(10)}`;
+        messageId = `message-${generateRandomString(10)}`;
+        fileSystemDir = `${conversationId}_${messageId}`;
+
+        uploadToken = await generateMessageUploadToken(conversationId, messageId, mimeType);
+      });
+
+      afterEach(async () => {
+        await axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${fileSystemDir}`);
+      });
+
+      describe("under normal conditions", () => {
+        it("uploads a chunk correctly", async () => {
+          const chunkNumber = 0;
+          const chunk = chunkedFile[chunkNumber];
+
+          const req = await axios.post(`${process.env.baseUrl as string}/chunk`, {
+            chunkNumber,
+            data: chunk.toString("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } });
+
+          expect(req.status).toBe(201);
+
+          const checkOnServer = await backoff(() => axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${fileSystemDir}/${chunkNumber}`), (res) => res.status === 200 || res.status === 404);
+
+          expect(checkOnServer.status).toBe(200);
+          expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
+          expect(checkOnServer.data.size).toEqual(chunk.byteLength);
+          expect(checkOnServer.data.checksum).toEqual(crypto.createHash("sha256").update(chunk).digest("base64"));
+        });
+      });
+
+      describe("under error conditions", () => {
+        describe("when not passed an authorization header", () => {
+          it("throws an Unauthorized error", async () => {
+            try {
+              const chunkNumber = 0;
+              const chunk = chunkedFile[chunkNumber];
+
+              await axios.post(`${process.env.baseUrl as string}/chunk`, {
+                chunkNumber,
+                data: chunk.toString("base64"),
+              });
+
+              fail("should have not continued");
+            } catch (error) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(401);
+                expect(error.response?.data.message).toBe("Unauthorized");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
+
+        describe("when passed an invalid authorization header", () => {
+          it("throws a Forbidden error", async () => {
+            try {
+              const chunkNumber = 0;
+              const chunk = chunkedFile[chunkNumber];
+
+              await axios.post(`${process.env.baseUrl as string}/chunk`, {
+                chunkNumber,
+                data: chunk.toString("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken.slice(0, -4)}test` } });
+
+              fail("should have not continued");
+            } catch (error) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(403);
+                expect(error.response?.data.message).toBe("Forbidden");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
+      });
     });
 
-    describe("under normal conditions", () => {
-      it("uploads a chunk correctly", async () => {
-        const auxMessageId = `${messageId}_chunks-test`;
-        const chunkNumber = 0;
-        const chunk = chunkedFile[chunkNumber];
-        const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-          chunkNumber,
-          data: chunk.toString("base64"),
-        });
-        expect(req.status).toBe(201);
+    describe("/finish", () => {
+      let conversationId: string;
+      let messageId: string;
+      let fileSystemDir: string;
+      let s3Key: string;
+      let uploadToken: string;
 
-        const checkOnServer = await backoff(() => axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${auxMessageId}/${chunkNumber}`), (res) => res.status === 200 || res.status === 404);
+      beforeEach(async () => {
+        conversationId = `convo-group-${generateRandomString(10)}`;
+        messageId = `message-${generateRandomString(10)}`;
+        fileSystemDir = `${conversationId}_${messageId}`;
+        s3Key = `${conversationId}/${messageId}`;
 
-        expect(checkOnServer.status).toBe(200);
-        expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
-        expect(checkOnServer.data.size).toEqual(chunk.byteLength);
-        expect(checkOnServer.data.checksum).toEqual(crypto.createHash("sha256").update(chunk).digest("base64"));
+        uploadToken = await generateMessageUploadToken(conversationId, messageId, mimeType);
       });
 
-      it("finishes the file upload", async () => {
-        const auxMessageId = `${messageId}_finish-test`;
-        await Promise.all(chunkedFile.map(async (data, index) => axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-          chunkNumber: index,
-          data: data.toString("base64"),
-        })));
+      afterEach(async () => {
+        await axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${fileSystemDir}`);
+      });
 
-        await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-          totalChunks: chunkedFile.length,
-          checksum: crypto.createHash("sha256").update(file).digest("base64"),
+      describe("under normal conditions", () => {
+        beforeEach(async () => {
+          await Promise.all(chunkedFile.map(async (data, index) => axios.post(`${process.env.baseUrl as string}/chunk`, {
+            chunkNumber: index,
+            data: data.toString("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } })));
         });
 
-        const fileOnS3 = await checkFileOnS3(auxMessageId);
+        it("finishes the file upload", async () => {
+          await axios.post(`${process.env.baseUrl as string}/finish`, {
+            totalChunks: chunkedFile.length,
+            checksum: crypto.createHash("sha256").update(file).digest("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } });
 
-        expect(fileOnS3.ContentLength).toEqual(Buffer.concat(chunkedFile).byteLength);
-        expect(crypto.createHash("sha256").update(fileOnS3.Body as Buffer).digest("base64")).toEqual(crypto.createHash("sha256").update(file).digest("base64"));
-      });
-    });
+          const fileOnS3 = await checkFileOnS3(s3Key);
 
-    describe("under error conditions", () => {
-      it("fails when totalChunks is less than chunks in server", async () => {
-        const chunksToUpload = chunkedFile.slice(0, 50);
-        const auxMessageId = `${messageId}_failed-chunks--lesser`;
-        try {
-          // upload
-          await Promise.all(chunksToUpload.map(async (data, index) => {
-            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-              chunkNumber: index,
-              data: data.toString("base64"),
-            });
+          expect(fileOnS3.ContentLength).toEqual(file.byteLength);
 
-            return req;
-          }));
-
-          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-            totalChunks: chunksToUpload.length + 10,
-            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
-          });
-
-          fail("should have not continued");
-        } catch (error: unknown) {
-          if (axios.isAxiosError(error) && error.response) {
-            expect(error.response?.status).toBe(400);
-            expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
-          } else {
-            console.log({ error });
-            fail("error is not the expected one");
-          }
-        }
+          expect(crypto.createHash("sha256").update(fileOnS3.Body as Buffer).digest("base64")).toEqual(crypto.createHash("sha256").update(file).digest("base64"));
+        });
       });
 
-      it("fails when totalChunks is larger than chunks in server", async () => {
-        const chunksToUpload = chunkedFile.slice(0, 50);
-        const auxMessageId = `${messageId}_failed-chunks--larger`;
-        try {
-          // upload
-          await Promise.all(chunksToUpload.map(async (data, index) => {
-            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-              chunkNumber: index,
-              data: data.toString("base64"),
-            });
+      describe("under error conditions", () => {
+        let chunksToUpload: Buffer[];
 
-            return req;
-          }));
+        beforeEach(async () => {
+          chunksToUpload = chunkedFile.slice(0, 50);
 
-          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-            totalChunks: chunksToUpload.length - 10,
-            checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+          await Promise.all(chunksToUpload.map(async (data, index) => axios.post(`${process.env.baseUrl as string}/chunk`, {
+            chunkNumber: index,
+            data: data.toString("base64"),
+          }, { headers: { Authorization: `Bearer ${uploadToken}` } })));
+        });
+
+        describe("when totalChunks is larger than the chunks on the server", () => {
+          it("throws a BadRequestError", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length + 10,
+                checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken}` } });
+
+              fail("should have not continued");
+            } catch (error: unknown) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(400);
+                expect(error.response?.data.message).toContain("File on server is incomplete, try uploading again");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
           });
+        });
 
-          fail("should have not continued");
-        } catch (error: unknown) {
-          if (axios.isAxiosError(error) && error.response) {
-            expect(error.response?.status).toBe(400);
-            expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
-          } else {
-            console.log({ error });
-            fail("error is not the expected one");
-          }
-        }
-      });
+        describe("when totalChunks is smaller than the chunks on the server", () => {
+          it("throws a BadRequestError", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length - 10,
+                checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken}` } });
 
-      it("fails when the checksum is different than the one expected on server", async () => {
-        const chunksToUpload = chunkedFile.slice(0, 50);
-        const auxMessageId = `${messageId}_failed-checksum`;
-        try {
-          // upload
-          await Promise.all(chunksToUpload.map(async (data, index) => {
-            const req = await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/chunk`, {
-              chunkNumber: index,
-              data: data.toString("base64"),
-            });
-
-            return req;
-          }));
-
-          await axios.post(`${process.env.baseUrl as string}/${auxMessageId}/finish?format=${format}`, {
-            totalChunks: chunksToUpload.length,
-            checksum: crypto.createHash("sha256").update("fake-checksum-that-is-not-right").digest("base64"),
+              fail("should have not continued");
+            } catch (error: unknown) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(400);
+                expect(error.response?.data.message).toContain("File on server is larger, try uploading again");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
           });
+        });
 
-          fail("should have not continued");
-        } catch (error: unknown) {
-          if (axios.isAxiosError(error) && error.response) {
-            expect(error.response?.status).toBe(400);
-            expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
-          } else {
-            console.log({ error });
-            fail("error is not the expected one");
-          }
-        }
+        describe("when the checksum is different than the one expected on server", () => {
+          it("throws a BadRequestError", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length,
+                checksum: crypto.createHash("sha256").update("fake-checksum-that-is-not-right").digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken}` } });
+
+              fail("should have not continued");
+            } catch (error: unknown) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(400);
+                expect(error.response?.data.message).toContain("File checksum on server is different than provided by client");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
+
+        describe("when passed an invalid authorization header", () => {
+          it("throws a Forbidden error", async () => {
+            try {
+              await axios.post(`${process.env.baseUrl as string}/finish`, {
+                totalChunks: chunksToUpload.length,
+                checksum: crypto.createHash("sha256").update(Buffer.concat(chunksToUpload)).digest("base64"),
+              }, { headers: { Authorization: `Bearer ${uploadToken.slice(0, -4)}test` } });
+
+              fail("should have not continued");
+            } catch (error) {
+              if (axios.isAxiosError(error) && error.response) {
+                expect(error.response?.status).toBe(403);
+                expect(error.response?.data.message).toBe("Forbidden");
+              } else {
+                console.log({ error });
+                fail("error is not the expected one");
+              }
+            }
+          });
+        });
       });
     });
   });

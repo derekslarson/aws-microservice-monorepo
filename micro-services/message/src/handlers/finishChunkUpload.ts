@@ -12,7 +12,9 @@ const messageController = container.get<MessagesControllerInterface>(TYPES.Messa
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
     loggerService.trace("finishChunkUpload called", { event }, "finishChunkUpload handler");
+
     const response = await messageController.finishUpload(event);
+
     return response;
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it

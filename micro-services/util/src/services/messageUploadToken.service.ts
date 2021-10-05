@@ -6,6 +6,7 @@ import { MessageUploadToken } from "../api-contracts/jwt-tokens/messageUpload.to
 import { Jwt, JwtFactory } from "../factories/jwt.factory";
 import { LoggerServiceInterface } from "./logger.service";
 import { SecretsManagerFactory } from "../factories/secretsManager.factory";
+import { ForbiddenError } from "../errors/forbidden.error";
 
 @injectable()
 export class MessageUploadTokenService implements MessageUploadTokenServiceInterface {
@@ -28,9 +29,9 @@ export class MessageUploadTokenService implements MessageUploadTokenServiceInter
 
   public async generateToken(params: MessageUploadToken): Promise<GenerateTokenOutput> {
     try {
-      this.loggerService.trace("verifyToken called", { params }, this.constructor.name);
+      this.loggerService.trace("generateToken called", { params }, this.constructor.name);
 
-      const { messageId, mimeType } = params;
+      const { conversationId, messageId, mimeType } = params;
 
       const { SecretString: messageUploadTokenSecret } = await this.secretsManager.getSecretValue({ SecretId: this.messageUploadTokenSecretId }).promise();
 
@@ -38,11 +39,11 @@ export class MessageUploadTokenService implements MessageUploadTokenServiceInter
         throw new Error("Error fetching secret");
       }
 
-      const token = this.jwt.sign({ messageId, mimeType }, messageUploadTokenSecret, { expiresIn: 7200 });
+      const token = this.jwt.sign({ conversationId, messageId, mimeType }, messageUploadTokenSecret, { expiresIn: 7200 });
 
       return { token };
     } catch (error: unknown) {
-      this.loggerService.error("Error in verifyToken", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in generateToken", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -64,6 +65,10 @@ export class MessageUploadTokenService implements MessageUploadTokenServiceInter
 
       return { decodedToken };
     } catch (error: unknown) {
+      if ((error as Error)?.message === "invalid signature") {
+        throw new ForbiddenError("Forbidden");
+      }
+
       this.loggerService.error("Error in verifyToken", { error, params }, this.constructor.name);
 
       throw error;

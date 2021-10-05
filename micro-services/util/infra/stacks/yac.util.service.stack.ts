@@ -329,6 +329,11 @@ export class YacUtilServiceStack extends CDK.Stack {
       parameterName: `/yac-api-v4/${stackPrefix}/enhanced-message-s3-bucket-name`,
       stringValue: enhancedMessageS3Bucket.bucketName,
     });
+
+    new SSM.StringParameter(this, `MessageUploadTokenSecretIdSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/message-upload-token-secret-id`,
+      stringValue: messageUploadTokenSecret.secretArn,
+    });
   }
 
   public get recordName(): string {

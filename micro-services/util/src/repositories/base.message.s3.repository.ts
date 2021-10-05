@@ -12,10 +12,10 @@ import {
 import { S3Factory } from "../factories/s3.factory";
 import { LoggerServiceInterface } from "../services/logger.service";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
-import { MessageId } from "../api-contracts/types/messageId.type";
-import { FriendConvoId } from "../api-contracts/types/friendConvoId.type";
-import { GroupId } from "../api-contracts/types/groupId.type";
-import { MeetingId } from "../api-contracts/types/meetingId.type";
+import { MessageId } from "../types/messageId.type";
+import { FriendConvoId } from "../types/friendConvoId.type";
+import { GroupId } from "../types/groupId.type";
+import { MeetingId } from "../types/meetingId.type";
 import { FileOperation } from "../enums/fileOperation.enum";
 
 @injectable()
