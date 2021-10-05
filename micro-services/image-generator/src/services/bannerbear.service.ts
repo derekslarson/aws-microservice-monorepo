@@ -122,14 +122,14 @@ type BannerbearServiceConfigType = Pick<EnvConfigInterface, "origin" | "bannerbe
 
 interface BannerbearTemplateVideoParameters {
   username: `@${string}`,
-  channel?: `#${string}`,
+  channel?: string,
   subject?: string
 }
 
 interface BannerbearTemplateImageParameters {
   username: `@${string}`,
   user_image: string,
-  channel?: `#${string}`,
+  channel?: string,
   subject?: string
 }
 

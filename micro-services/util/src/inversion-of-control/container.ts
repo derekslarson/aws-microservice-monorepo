@@ -13,6 +13,7 @@ import { RawMessageS3Repository } from "../repositories/rawMessage.s3.repository
 import { axiosFactory, AxiosFactory } from "../factories/axios.factory";
 import { classTransformerFactory, ClassTransformerFactory } from "../factories/classTransformer.factory";
 import { classValidatorFactory, ClassValidatorFactory } from "../factories/classValidator.factory";
+import { cryptoFactory, CryptoFactory } from "../factories/crypto.factory";
 import { documentClientFactory, DocumentClientFactory } from "../factories/documentClient.factory";
 import { errorSerializerFactory, ErrorSerializerFactory } from "../factories/errorSerializer.factory";
 import { logWriterFactory, LogWriterFactory } from "../factories/logWriter.factory";
@@ -29,6 +30,8 @@ import { SmsService, SmsServiceInterface } from "../services/sms.service";
 import { EnhancedMessageS3Repository } from "../repositories/enhancedMessage.s3.repository";
 import { MessageFileRepositoryInterface } from "../repositories/base.message.s3.repository";
 import { MessageUploadTokenService, MessageUploadTokenServiceInterface } from "../services/messageUploadToken.service";
+import { fsFactory, FsFactory } from "../factories/fs.factory";
+import { pathFactory, PathFactory } from "../factories/path.factory";
 
 const coreContainerModule = new ContainerModule((bind) => {
   try {
@@ -50,10 +53,13 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<AxiosFactory>(TYPES.AxiosFactory).toFactory(() => axiosFactory);
     bind<ClassTransformerFactory>(TYPES.ClassTransformerFactory).toFactory(() => classTransformerFactory);
     bind<ClassValidatorFactory>(TYPES.ClassValidatorFactory).toFactory(() => classValidatorFactory);
+    bind<CryptoFactory>(TYPES.CryptoFactory).toFactory(() => cryptoFactory);
     bind<DocumentClientFactory>(TYPES.DocumentClientFactory).toFactory(() => documentClientFactory);
     bind<ErrorSerializerFactory>(TYPES.ErrorSerializerFactory).toFactory(() => errorSerializerFactory);
+    bind<FsFactory>(TYPES.FsFactory).toFactory(() => fsFactory);
     bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
     bind<JwtFactory>(TYPES.JwtFactory).toFactory(() => jwtFactory);
+    bind<PathFactory>(TYPES.PathFactory).toFactory(() => pathFactory);
     bind<KsuidFactory>(TYPES.KsuidFactory).toFactory(() => ksuidFactory);
     bind<S3Factory>(TYPES.S3Factory).toFactory(() => s3Factory);
     bind<SecretsManagerFactory>(TYPES.SecretsManagerFactory).toFactory(() => secretsManagerFactory);

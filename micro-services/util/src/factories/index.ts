@@ -10,3 +10,6 @@ export * from "./uuidV4.factory";
 export * from "./s3.factory";
 export * from "./secretsManager.factory";
 export * from "./sns.factory";
+export * from "./crypto.factory";
+export * from "./fs.factory";
+export * from "./path.factory";

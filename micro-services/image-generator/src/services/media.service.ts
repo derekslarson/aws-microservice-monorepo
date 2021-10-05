@@ -93,7 +93,7 @@ export class MediaService implements MediaServiceInterface {
           source: yacMessage.fileName,
           templateParameters: {
             username: `@${senderName}`,
-            channel: isGroup ? `#${yacMessage.profileNameTo}` : undefined,
+            channel: isGroup ? `${yacMessage.profileNameTo}` : undefined,
             subject: yacMessage.subject && yacMessage.subject.length >= 32 ? `${yacMessage.subject.slice(0, 32)}...` : yacMessage.subject || undefined,
           },
         };
@@ -110,7 +110,7 @@ export class MediaService implements MediaServiceInterface {
         const options: Task<"IMAGE">["options"] = {
           templateParameters: {
             username: `@${senderName}`,
-            channel: isGroup ? `#${yacMessage.profileNameTo}` : undefined,
+            channel: isGroup ? `${yacMessage.profileNameTo}` : undefined,
             subject: yacMessage.subject && yacMessage.subject.length >= 32 ? `${yacMessage.subject.slice(0, 32)}...` : yacMessage.subject || undefined,
             user_image: yacMessage.isForwarded && actualSenderInfo ? actualSenderInfo.image : yacMessage.profileImageFrom,
           },
