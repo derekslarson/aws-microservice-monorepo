@@ -1,29 +1,23 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { Crypto, CryptoFactory, FriendConvoId, Fs, FsFactory, GroupId, LoggerServiceInterface, MeetingId, MessageId, Path, PathFactory } from "@yac/util";
+import { BaseEfsRepository, Crypto, CryptoFactory, FriendConvoId, FsFactory, GroupId, LoggerServiceInterface, MeetingId, MessageId, PathFactory } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { DirectoryIsFilledError } from "../errors/DirectoryIsFilled";
-import { DirectoryExistError } from "../errors/DirectoryExists";
 
 @injectable()
-export class MessageEFSRepository implements MessageEFSRepositoryInterface {
+export class MessageEfsRepository extends BaseEfsRepository implements MessageFileSystemRepositoryInterface {
   private crypto: Crypto;
 
-  private fs: Fs;
-
-  private path: Path;
-
   constructor(
-    @inject(TYPES.EnvConfigInterface) private envConfig: MessageEFSRepositoryConfigInterface,
-    @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
+  @inject(TYPES.EnvConfigInterface) config: MessageEFSRepositoryConfigInterface,
+    @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
     @inject(TYPES.FsFactory) fsFactory: FsFactory,
     @inject(TYPES.PathFactory) pathFactory: PathFactory,
+    @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
   ) {
+    super(loggerService, config.fileSystemPath, fsFactory, pathFactory);
+
     this.crypto = cryptoFactory();
-    this.fs = fsFactory();
-    this.path = pathFactory();
   }
 
   public async addMessageChunk(params: AddMessageChunkInput): Promise<void> {
@@ -32,13 +26,13 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
 
       const { conversationId, messageId, chunkData, chunkNumber } = params;
 
-      const { path: absoluteDirectoryPath } = this.generateDirectoryPath({ conversationId, messageId });
+      const { directoryName } = this.generateDirectoryName({ conversationId, messageId });
 
-      const dataBuffer = Buffer.from(chunkData, "base64");
+      const file = Buffer.from(chunkData, "base64");
 
-      const absoluteChunkPath = this.path.join(absoluteDirectoryPath, `${chunkNumber}.tmp`);
+      const path = `${directoryName}/${chunkNumber}.tmp`;
 
-      await this.fs.promises.writeFile(absoluteChunkPath, dataBuffer);
+      await this.writeFile({ path, file });
     } catch (error: unknown) {
       this.loggerService.error("Error in addMessageChunk", { error, params }, this.constructor.name);
       throw error;
@@ -51,30 +45,27 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
 
       const { conversationId, messageId } = params;
 
-      const { path: absoluteDirectoryPath } = this.generateDirectoryPath({ conversationId, messageId });
+      const { directoryName } = this.generateDirectoryName({ conversationId, messageId });
 
-      const chunkFileNames = await this.fs.promises.readdir(absoluteDirectoryPath, "utf-8");
+      const { fileNames } = await this.readDirectory({ path: directoryName });
 
-      const writeBuffer = [];
+      const sortedFileNames = fileNames.sort((a: string, b: string) => Number(a.replace(".tmp", "")) - Number(b.replace(".tmp", "")));
 
-      const sortedChunkFileNames = chunkFileNames.sort((a: string, b: string) => {
-        const n1 = Number(a.replace(".tmp", ""));
-        const n2 = Number(b.replace(".tmp", ""));
+      const chunkBuffers = [];
 
-        return n1 - n2;
-      });
+      for await (const fileName of sortedFileNames) {
+        const chunkFilePath = `${directoryName}/${fileName}`;
 
-      for await (const fileName of sortedChunkFileNames) {
-        const fileData = await this.fs.promises.readFile(this.path.join(absoluteDirectoryPath, fileName));
-        const normalizedData = Buffer.from(fileData.toString("base64"), "base64");
-        writeBuffer.push(normalizedData);
+        const { file } = await this.readFile({ path: chunkFilePath });
+
+        chunkBuffers.push(file);
       }
 
-      const finalBuffer = Buffer.concat(writeBuffer);
+      const file = Buffer.concat(chunkBuffers);
 
       return {
-        fileData: finalBuffer,
-        checksum: this.crypto.createHash("sha256").update(finalBuffer).digest("base64"),
+        file,
+        checksum: this.crypto.createHash("sha256").update(file).digest("base64"),
       };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessageFile", { error, params }, this.constructor.name);
@@ -82,94 +73,75 @@ export class MessageEFSRepository implements MessageEFSRepositoryInterface {
     }
   }
 
-  public async readDirectory(params: ReadDirectoryInput): Promise<ReadDirectoryOutput> {
+  public async readMessageDirectory(params: ReadMessageDirectoryInput): Promise<ReadMessageDirectoryOutput> {
     try {
-      this.loggerService.trace("readDirectory called", { params }, this.constructor.name);
+      this.loggerService.trace("readMessageDirectory called", { params }, this.constructor.name);
 
       const { conversationId, messageId } = params;
 
-      const { path: absoluteDirectoryPath } = this.generateDirectoryPath({ conversationId, messageId });
+      const { directoryName } = this.generateDirectoryName({ conversationId, messageId });
 
-      const chunks = await this.fs.promises.readdir(absoluteDirectoryPath);
+      const { fileNames } = await this.readDirectory({ path: directoryName });
 
-      return { chunks };
+      return { fileNames };
     } catch (error: unknown) {
-      this.loggerService.error("Error in readDirectory", { error, params }, this.constructor.name);
+      this.loggerService.error("error in readMessageDirectory", { error, params }, this.constructor.name);
       throw error;
     }
   }
 
-  public async createDirectoryIfNecessary(params: CreateDirectoryIfNecessaryInput): Promise<CreateDirectoryIfNecessaryOutput> {
+  public async upsertMessageDirectory(params: UpsertMessageDirectoryInput): Promise<UpsertMessageDirectoryOutput> {
     try {
-      this.loggerService.trace("createDirectoryIfNecessary called", { params }, this.constructor.name);
+      this.loggerService.trace("upsertMessageDirectory called", { params }, this.constructor.name);
 
       const { conversationId, messageId } = params;
 
-      const { path: absoluteDirectoryPath } = this.generateDirectoryPath({ conversationId, messageId });
+      const { directoryName } = this.generateDirectoryName({ conversationId, messageId });
 
-      // check existence
-      try {
-        const dirItems = await this.fs.promises.readdir(absoluteDirectoryPath);
-
-        if (dirItems && dirItems.length > 0) {
-          throw new DirectoryIsFilledError();
-        } else {
-          throw new DirectoryExistError();
-        }
-      } catch (error: unknown) {
-        if ((error as Record<string, string>).code === "ENOENT") {
-          try {
-            await this.fs.promises.mkdir(absoluteDirectoryPath);
-          } catch (error2: unknown) {
-            this.loggerService.info("error in createDirectory: Error in mkdir, gracefully continue", { error, params }, this.constructor.name);
-          }
-        }
-      }
+      await this.upsertDirectory({ path: directoryName });
     } catch (error: unknown) {
-      this.loggerService.error("error in createDirectoryIfNecessary", { error, params }, this.constructor.name);
+      this.loggerService.error("error in upsertMessageDirectory", { error, params }, this.constructor.name);
       throw error;
     }
   }
 
-  public async deleteDirectory(params: DeleteDirectoryInput): Promise<void> {
+  public async deleteMessageDirectory(params: DeleteMessageDirectoryInput): Promise<void> {
     try {
-      this.loggerService.trace("deleteDirectory called", { params }, this.constructor.name);
+      this.loggerService.trace("deleteMessageDirectory called", { params }, this.constructor.name);
 
       const { conversationId, messageId } = params;
 
-      const { path: absoluteDirectoryPath } = this.generateDirectoryPath({ conversationId, messageId });
+      const { directoryName } = this.generateDirectoryName({ conversationId, messageId });
 
-      await this.fs.rmfr(absoluteDirectoryPath);
+      await this.deleteDirectory({ path: directoryName });
     } catch (error: unknown) {
-      this.loggerService.error("Error in deleteDirectory", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in deleteMessageDirectory", { error, params }, this.constructor.name);
       throw error;
     }
   }
 
-  private generateDirectoryPath(params: GenerateDirectoryPathInput): GenerateDirectoryPathOutput {
+  private generateDirectoryName(params: GenerateDirectoryNameInput): GenerateDirectoryNameOutput {
     try {
-      this.loggerService.trace("generateDirectoryPath called", { params }, this.constructor.name);
+      this.loggerService.trace("generateDirectoryName called", { params }, this.constructor.name);
 
       const { conversationId, messageId } = params;
 
-      const dirName = `${conversationId}_${messageId}`;
+      const directoryName = `${conversationId}_${messageId}`;
 
-      const path = this.path.resolve(__dirname, this.envConfig.fileSystemPath, dirName);
-
-      return { path };
+      return { directoryName };
     } catch (error: unknown) {
-      this.loggerService.error("Error in generateDirectoryPath", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in generateDirectoryName", { error, params }, this.constructor.name);
       throw error;
     }
   }
 }
 
-export interface MessageEFSRepositoryInterface {
-  deleteDirectory(params: DeleteDirectoryInput): Promise<void>,
-  readDirectory(params: ReadDirectoryInput): Promise<ReadDirectoryOutput>,
-  createDirectoryIfNecessary(params: CreateDirectoryIfNecessaryInput): Promise<CreateDirectoryIfNecessaryOutput>;
-  addMessageChunk(params: AddMessageChunkInput): Promise<void>
-  getMessageFile(params: GetMediaMessageFileInput): Promise<GetMediaMessageFileOutput>
+export interface MessageFileSystemRepositoryInterface {
+  readMessageDirectory(params: ReadMessageDirectoryInput): Promise<ReadMessageDirectoryOutput>;
+  deleteMessageDirectory(params: DeleteMessageDirectoryInput): Promise<void>;
+  upsertMessageDirectory(params: UpsertMessageDirectoryInput): Promise<UpsertMessageDirectoryOutput>;
+  addMessageChunk(params: AddMessageChunkInput): Promise<void>;
+  getMessageFile(params: GetMediaMessageFileInput): Promise<GetMediaMessageFileOutput>;
 }
 
 type MessageEFSRepositoryConfigInterface = Pick<EnvConfigInterface, "fileSystemPath">;
@@ -187,36 +159,36 @@ interface GetMediaMessageFileInput {
 }
 
 interface GetMediaMessageFileOutput {
-  fileData: Buffer;
+  file: Buffer;
   checksum: string;
 }
 
-interface CreateDirectoryIfNecessaryInput {
+interface ReadMessageDirectoryInput {
   conversationId: FriendConvoId | GroupId | MeetingId;
   messageId: MessageId;
 }
 
-type CreateDirectoryIfNecessaryOutput = void;
+interface ReadMessageDirectoryOutput {
+  fileNames: string[];
+}
 
-interface ReadDirectoryInput {
+interface UpsertMessageDirectoryInput {
   conversationId: FriendConvoId | GroupId | MeetingId;
   messageId: MessageId;
 }
 
-interface ReadDirectoryOutput {
-  chunks: string[];
-}
+type UpsertMessageDirectoryOutput = void;
 
-interface DeleteDirectoryInput {
+interface DeleteMessageDirectoryInput {
   conversationId: FriendConvoId | GroupId | MeetingId;
   messageId: MessageId;
 }
 
-interface GenerateDirectoryPathInput {
+interface GenerateDirectoryNameInput {
   conversationId: FriendConvoId | GroupId | MeetingId;
   messageId: MessageId;
 }
 
-interface GenerateDirectoryPathOutput {
-  path: string;
+interface GenerateDirectoryNameOutput {
+  directoryName: string;
 }

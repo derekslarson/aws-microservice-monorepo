@@ -1,14 +1,14 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BadRequestError, LoggerServiceInterface, MessageMimeType, MessageFileRepositoryInterface, MessageId, FriendConvoId, MeetingId, GroupId } from "@yac/util";
+import { BadRequestError, LoggerServiceInterface, MessageMimeType, MessageFileRepositoryInterface, MessageId, FriendConvoId, MeetingId, GroupId, FileOperation } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { MessageEFSRepositoryInterface } from "../repositories/message.efs.repository";
+import { MessageFileSystemRepositoryInterface } from "../repositories/message.efs.repository";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.MessageEFSRepository) private messageEFSRepository: MessageEFSRepositoryInterface,
+    @inject(TYPES.MessageFileSystemRepositoryInterface) private messageFileSystemRepository: MessageFileSystemRepositoryInterface,
     @inject(TYPES.RawMessageFileRepositoryInterface) private rawMessageFileRepository: MessageFileRepositoryInterface,
   ) { }
 
@@ -18,9 +18,9 @@ export class MessageService implements MessageServiceInterface {
 
       const { conversationId, messageId, chunkData, chunkNumber } = params;
 
-      await this.messageEFSRepository.createDirectoryIfNecessary({ conversationId, messageId });
+      await this.messageFileSystemRepository.upsertMessageDirectory({ conversationId, messageId });
 
-      await this.messageEFSRepository.addMessageChunk({ conversationId, messageId, chunkData, chunkNumber });
+      await this.messageFileSystemRepository.addMessageChunk({ conversationId, messageId, chunkData, chunkNumber });
     } catch (error: unknown) {
       this.loggerService.error("Error in processChunk", { error, params }, this.constructor.name);
       throw error;
@@ -33,40 +33,38 @@ export class MessageService implements MessageServiceInterface {
 
       const { conversationId, messageId, mimeType, totalChunks, checksum } = params;
 
-      const { chunks: serverChunks } = await this.messageEFSRepository.readDirectory({ conversationId, messageId });
+      const { fileNames } = await this.messageFileSystemRepository.readMessageDirectory({ conversationId, messageId });
 
-      this.loggerService.info("chunk info", { serverChunks: serverChunks.length, totalChunks }, this.constructor.name);
-
-      if (serverChunks.length < totalChunks) {
-        await this.messageEFSRepository.deleteDirectory({ conversationId, messageId });
+      if (fileNames.length < totalChunks) {
+        await this.messageFileSystemRepository.deleteMessageDirectory({ conversationId, messageId });
 
         throw new BadRequestError("File on server is incomplete, try uploading again");
       }
 
-      if (serverChunks.length > totalChunks) {
-        await this.messageEFSRepository.deleteDirectory({ conversationId, messageId });
+      if (fileNames.length > totalChunks) {
+        await this.messageFileSystemRepository.deleteMessageDirectory({ conversationId, messageId });
 
         throw new BadRequestError("File on server is larger, try uploading again");
       }
 
-      const { fileData, checksum: serverChecksum } = await this.messageEFSRepository.getMessageFile({ conversationId, messageId });
+      const { file, checksum: serverChecksum } = await this.messageFileSystemRepository.getMessageFile({ conversationId, messageId });
 
       if (serverChecksum !== checksum) {
-        await this.messageEFSRepository.deleteDirectory({ conversationId, messageId });
+        await this.messageFileSystemRepository.deleteMessageDirectory({ conversationId, messageId });
 
         throw new BadRequestError("File checksum on server is different than provided by client");
       }
 
       const key = `${conversationId}/${messageId}`;
 
-      // upload to s3
-      await this.rawMessageFileRepository.uploadFile({
-        body: fileData,
-        mimeType,
-        key,
-      });
+      await Promise.all([
+        this.rawMessageFileRepository.uploadFile({ body: file, mimeType, key }),
+        this.messageFileSystemRepository.deleteMessageDirectory({ conversationId, messageId }),
+      ]);
 
-      await this.messageEFSRepository.deleteDirectory({ conversationId, messageId });
+      const { signedUrl } = this.rawMessageFileRepository.getSignedUrl({ operation: FileOperation.Get, conversationId, messageId, mimeType });
+
+      return { fetchUrl: signedUrl };
     } catch (error: unknown) {
       this.loggerService.error("Error in saveMessage", { error, params }, this.constructor.name);
       throw error;
@@ -94,4 +92,6 @@ interface SaveMessageInput {
   mimeType: MessageMimeType;
 }
 
-type SaveMessageOutput = void;
+interface SaveMessageOutput {
+  fetchUrl: string;
+}

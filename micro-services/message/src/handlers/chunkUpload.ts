@@ -7,7 +7,7 @@ import { MessagesControllerInterface } from "../controllers/messages.controller"
 
 // eslint-disable-next-line @typescript-eslint/require-await
 const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
-const messageController = container.get<MessagesControllerInterface>(TYPES.MessagesController);
+const messageController = container.get<MessagesControllerInterface>(TYPES.MessagesControllerInterface);
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
   try {

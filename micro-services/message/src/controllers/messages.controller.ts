@@ -13,7 +13,7 @@ export class MessagesController extends BaseController implements MessagesContro
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.MessageUploadTokenServiceInterface) private messageUploadTokenService: MessageUploadTokenServiceInterface,
-    @inject(TYPES.MessagesService) private messageService: MessageServiceInterface,
+    @inject(TYPES.MessagesServiceInterface) private messageService: MessageServiceInterface,
   ) {
     super();
   }

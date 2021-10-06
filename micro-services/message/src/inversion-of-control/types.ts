@@ -3,11 +3,11 @@ import { TYPES as CORE_TYPES } from "@yac/util";
 const TYPES = {
   ...CORE_TYPES,
 
-  MessagesController: Symbol.for("MessagesController"),
+  MessagesControllerInterface: Symbol.for("MessagesControllerInterface"),
 
-  MessagesService: Symbol.for("MessagesService"),
+  MessagesServiceInterface: Symbol.for("MessagesServiceInterface"),
 
-  MessageEFSRepository: Symbol.for("MessageEFSRepository"),
+  MessageFileSystemRepositoryInterface: Symbol.for("MessageFileSystemRepositoryInterface"),
 };
 
 export { TYPES };
