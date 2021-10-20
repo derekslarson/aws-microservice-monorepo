@@ -90,7 +90,7 @@ export class MediaService implements MediaServiceInterface {
         const actualSenderInfo = yacMessage.isForwarded ? await this.yacApiService.getUserImageAndNameWithId(yacMessage.actualMessageSenderId as number) : null;
         const senderName = yacMessage.isForwarded && actualSenderInfo ? actualSenderInfo.username : yacMessage.usernameFrom;
         const options: Task<"GIF2VIDEO">["options"] = {
-          source: yacMessage.fileName,
+          source: yacMessage.fileName.replace(/_enhanced.(mp4|webm)$/, "_raw.$1"),
           templateParameters: {
             username: `@${senderName}`,
             channel: isGroup ? `${yacMessage.profileNameTo}` : undefined,
