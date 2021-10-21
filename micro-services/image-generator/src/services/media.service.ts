@@ -85,12 +85,14 @@ export class MediaService implements MediaServiceInterface {
   }
 
   private async generateTask<T extends TaskTypes>(type: T, yacMessage: YacMessage, isGroup: boolean): Promise<Task<TaskTypes>> {
+    this.loggerService.trace("generateTask called", { type, yacMessage, isGroup }, this.constructor.name);
     switch (type) {
       case "GIF2VIDEO": {
         const actualSenderInfo = yacMessage.isForwarded ? await this.yacApiService.getUserImageAndNameWithId(yacMessage.actualMessageSenderId as number) : null;
         const senderName = yacMessage.isForwarded && actualSenderInfo ? actualSenderInfo.username : yacMessage.usernameFrom;
+        const source: string = yacMessage.rawFileName || yacMessage.fileName;
         const options: Task<"GIF2VIDEO">["options"] = {
-          source: yacMessage.fileName.replace(/_enhanced.(mp4|webm)$/, "_raw.$1"),
+          source,
           templateParameters: {
             username: `@${senderName}`,
             channel: isGroup ? `${yacMessage.profileNameTo}` : undefined,
