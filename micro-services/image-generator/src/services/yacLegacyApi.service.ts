@@ -54,7 +54,7 @@ export interface YacMessage {
   unHeardMailed: number;
   unHeardMailSentAt?: string;
   mediaFileName: string;
-  rawFileName: string;
+  rawFileName?: string;
   mediaType: string;
   isForwarded: number;
   forwardMessageId?: string;
