@@ -1,9 +1,8 @@
 /* eslint-disable max-len */
 import { inject, injectable } from "inversify";
-import { ForbiddenError, HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/util";
+import { ForbiddenError, HttpRequestServiceInterface, LoggerServiceInterface, JwtFactory, Jwt } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
-import { Jwt, JwtFactory } from "../factories/jwt.factory";
 import { Jwk, JwkToPem, JwkToPemFactory } from "../factories/jwkToPem.factory";
 
 @injectable()

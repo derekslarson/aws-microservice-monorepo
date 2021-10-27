@@ -5,6 +5,7 @@ import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Cognito from "@aws-cdk/aws-cognito";
 import * as SSM from "@aws-cdk/aws-ssm";
+import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
 import * as SNS from "@aws-cdk/aws-sns";
 import * as CustomResources from "@aws-cdk/custom-resources";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
@@ -50,7 +51,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const stackPrefix = environment === Environment.Local ? developer : environment;
     const ExportNames = generateExportNames(stackPrefix);
-    const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
     const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
 
     // Layers
@@ -59,14 +59,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       code: Lambda.Code.fromAsset("dist/dependencies"),
     });
 
-    // Tables
-    // const pkceTable = new DynamoDB.Table(this, `PkceTable_${id}`, {
-    //   billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
-    //   partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
-    //   sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
-    //   removalPolicy: CDK.RemovalPolicy.DESTROY,
-    //   stream: DynamoDB.StreamViewType.NEW_AND_OLD_IMAGES,
-    // });
+    const authSecret = new SecretsManager.Secret(this, `AuthSecret_${id}`);
 
     // id.yac.com Deployment Resources
     const websiteBucket = new S3.Bucket(this, `IdYacComS3Bucket_${id}`, {
@@ -106,7 +99,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     // User Pool Lambdas
     const userPoolLambaEnvVars: Record<string, string> = {
-      SECRET: secret,
+      AUTH_SECRET_ID: authSecret.secretArn,
       ENVIRONMENT: environment,
       STACK_PREFIX: stackPrefix,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Info}`,
@@ -272,6 +265,11 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       resources: [ this.clientsUpdatedSnsTopic.topicArn ],
     });
 
+    const getAuthSecretPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "secretsmanager:GetSecretValue" ],
+      resources: [ authSecret.secretArn ],
+    });
+
     const adminPolicyStatement = new IAM.PolicyStatement({
       actions: [ "*" ],
       resources: [ "*" ],
@@ -281,7 +279,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
-      SECRET: secret,
+      AUTH_SECRET_ID: authSecret.secretArn,
       ENVIRONMENT: environment,
       STACK_PREFIX: stackPrefix,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Info}`,
@@ -318,7 +316,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, getAuthSecretPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserCreatedSnsTopic_${id}`, userCreatedSnsTopicArn)),
@@ -343,7 +341,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, getAuthSecretPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -453,6 +451,11 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     new SSM.StringParameter(this, `YacClientRedirectUriSsmParameter_${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/yac-client-redirect-uri`,
       stringValue: yacUserPoolClientRedirectUri,
+    });
+
+    new SSM.StringParameter(this, `AuthSecretIdSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/auth-secret-id`,
+      stringValue: authSecret.secretArn,
     });
 
     new CDK.CfnOutput(this, `UserPoolIdExport_${id}`, {

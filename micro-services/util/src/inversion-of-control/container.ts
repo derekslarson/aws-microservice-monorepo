@@ -17,6 +17,8 @@ import { cryptoFactory, CryptoFactory } from "../factories/crypto.factory";
 import { documentClientFactory, DocumentClientFactory } from "../factories/documentClient.factory";
 import { errorSerializerFactory, ErrorSerializerFactory } from "../factories/errorSerializer.factory";
 import { logWriterFactory, LogWriterFactory } from "../factories/logWriter.factory";
+import { secretsManagerFactory, SecretsManagerFactory } from "../factories/secretsManager.factory";
+import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { ksuidFactory, KsuidFactory } from "../factories/ksuid.factory";
 import { s3Factory, S3Factory } from "../factories/s3.factory";
 import { snsFactory, SnsFactory } from "../factories/sns.factory";
@@ -27,6 +29,7 @@ import { DynamoStreamController, DynamoStreamControllerInterface } from "../cont
 import { SmsService, SmsServiceInterface } from "../services/sms.service";
 import { EnhancedMessageS3Repository } from "../repositories/enhancedMessage.s3.repository";
 import { MessageFileRepositoryInterface } from "../repositories/base.message.s3.repository";
+import { MessageUploadTokenService, MessageUploadTokenServiceInterface } from "../services/messageUploadToken.service";
 import { fsFactory, FsFactory } from "../factories/fs.factory";
 import { pathFactory, PathFactory } from "../factories/path.factory";
 
@@ -39,6 +42,7 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<HttpRequestServiceInterface>(TYPES.HttpRequestServiceInterface).to(HttpRequestService);
     bind<IdServiceInterface>(TYPES.IdServiceInterface).to(IdService);
     bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);
+    bind<MessageUploadTokenServiceInterface>(TYPES.MessageUploadTokenServiceInterface).to(MessageUploadTokenService);
     bind<SmsServiceInterface>(TYPES.SmsServiceInterface).to(SmsService);
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
     bind<ValidationServiceV2Interface>(TYPES.ValidationServiceV2Interface).to(ValidationServiceV2);
@@ -54,9 +58,11 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<ErrorSerializerFactory>(TYPES.ErrorSerializerFactory).toFactory(() => errorSerializerFactory);
     bind<FsFactory>(TYPES.FsFactory).toFactory(() => fsFactory);
     bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
+    bind<JwtFactory>(TYPES.JwtFactory).toFactory(() => jwtFactory);
     bind<PathFactory>(TYPES.PathFactory).toFactory(() => pathFactory);
     bind<KsuidFactory>(TYPES.KsuidFactory).toFactory(() => ksuidFactory);
     bind<S3Factory>(TYPES.S3Factory).toFactory(() => s3Factory);
+    bind<SecretsManagerFactory>(TYPES.SecretsManagerFactory).toFactory(() => secretsManagerFactory);
     bind<SnsFactory>(TYPES.SnsFactory).toFactory(() => snsFactory);
     bind<UnmarshallFactory>(TYPES.UnmarshallFactory).toFactory(() => unmarshallFactory);
     bind<UuidV4Factory>(TYPES.UuidV4Factory).toFactory(() => uuidV4Factory);

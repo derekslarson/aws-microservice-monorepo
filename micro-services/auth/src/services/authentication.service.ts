@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { AWSError, CognitoIdentityServiceProvider } from "aws-sdk";
-import { BadRequestError, Crypto, CryptoFactory, HttpRequestServiceInterface, LoggerServiceInterface, SmsServiceInterface } from "@yac/util";
+import { AWSError, CognitoIdentityServiceProvider, SecretsManager } from "aws-sdk";
+import { BadRequestError, Crypto, CryptoFactory, HttpRequestServiceInterface, LoggerServiceInterface, SecretsManagerFactory, SmsServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
@@ -13,6 +13,8 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
   private crypto: Crypto;
 
+  private secretsManager: SecretsManager;
+
   constructor(
     @inject(TYPES.EnvConfigInterface) private config: AuthenticationServiceConfigInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
@@ -21,9 +23,11 @@ export class AuthenticationService implements AuthenticationServiceInterface {
     @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestServiceInterface,
     @inject(TYPES.CognitoFactory) cognitoFactory: CognitoFactory,
     @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
+    @inject(TYPES.SecretsManagerFactory) secretsManagerFactory: SecretsManagerFactory,
   ) {
     this.cognito = cognitoFactory();
     this.crypto = cryptoFactory();
+    this.secretsManager = secretsManagerFactory();
   }
 
   public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
@@ -32,13 +36,19 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       const { id, email, phone } = params;
 
+      const { SecretString: authSecret } = await this.secretsManager.getSecretValue({ SecretId: this.config.authSecretId }).promise();
+
+      if (!authSecret) {
+        throw new Error("Error fetching auth secret");
+      }
+
       const secretHash = this.createUserPoolClientSecretHash(id);
 
       const signUpParams: CognitoIdentityServiceProvider.Types.SignUpRequest = {
         ClientId: this.config.userPool.yacClientId,
         SecretHash: secretHash,
         Username: id,
-        Password: `YAC-${this.config.secret}`,
+        Password: authSecret,
         UserAttributes: [],
       };
 
@@ -166,7 +176,13 @@ export class AuthenticationService implements AuthenticationServiceInterface {
 
       const { username, clientId, redirectUri, xsrfToken, state, codeChallenge, codeChallengeMethod, scope } = params;
 
-      const data = `_csrf=${xsrfToken}&username=${encodeURIComponent(username)}&password=YAC-${this.config.secret}`;
+      const { SecretString: authSecret } = await this.secretsManager.getSecretValue({ SecretId: this.config.authSecretId }).promise();
+
+      if (!authSecret) {
+        throw new Error("Error fetching auth secret");
+      }
+
+      const data = `_csrf=${xsrfToken}&username=${encodeURIComponent(username)}&password=${authSecret}`;
 
       const queryParameters = {
         response_type: "code",
@@ -253,7 +269,7 @@ export class AuthenticationService implements AuthenticationServiceInterface {
   }
 }
 
-export type AuthenticationServiceConfigInterface = Pick<EnvConfigInterface, "userPool" | "apiDomain" | "secret">;
+export type AuthenticationServiceConfigInterface = Pick<EnvConfigInterface, "userPool" | "apiDomain" | "authSecretId">;
 
 export interface AuthenticationServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;

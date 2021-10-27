@@ -16,7 +16,7 @@ if (!environment) {
 }
 
 const necessaryParams = [
-  "secret",
+  "auth-secret-id",
   "user-pool-id",
   "user-pool-domain-url",
   "yac-client-id",

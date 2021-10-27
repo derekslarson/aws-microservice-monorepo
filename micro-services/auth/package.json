@@ -43,6 +43,7 @@
     "@aws-cdk/aws-route53-targets": "~1.114.0",
     "@aws-cdk/aws-s3": "~1.114.0",
     "@aws-cdk/aws-s3-deployment": "~1.114.0",
+    "@aws-cdk/aws-secretsmanager": "~1.114.0",
     "@aws-cdk/aws-sns": "~1.114.0",
     "@aws-cdk/aws-ssm": "~1.114.0",
     "@aws-cdk/core": "~1.114.0",

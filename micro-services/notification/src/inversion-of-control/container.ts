@@ -5,7 +5,6 @@ import { WebSocketController, WebSocketControllerInterface } from "../controller
 import { ListenerMappingService, ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
 import { apiGatewayManagementFactory, ApiGatewayManagementFactory } from "../factories/apiGatewayManagement.factory";
 import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory";
-import { jwtFactory, JwtFactory } from "../factories/jwt.factory";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { MeetingCreatedSnsProcessorService } from "../processor-services/meetingCreated.sns.processor.service";
 import { FriendMessageCreatedSnsProcessorService } from "../processor-services/friendMessageCreated.sns.processor.service";
@@ -80,7 +79,6 @@ try {
 
   // Factories
   container.bind<ApiGatewayManagementFactory>(TYPES.ApiGatewayManagementFactory).toFactory(() => apiGatewayManagementFactory);
-  container.bind<JwtFactory>(TYPES.JwtFactory).toFactory(() => jwtFactory);
   container.bind<JwkToPemFactory>(TYPES.JwkToPemFactory).toFactory(() => jwkToPemFactory);
 
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)

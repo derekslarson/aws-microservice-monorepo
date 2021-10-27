@@ -6,6 +6,8 @@ import * as EFS from "@aws-cdk/aws-efs";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as S3 from "@aws-cdk/aws-s3";
 import * as EC2 from "@aws-cdk/aws-ec2";
+import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
+import * as IAM from "@aws-cdk/aws-iam";
 import {
   Environment,
   LogLevel,
@@ -38,20 +40,29 @@ export class YacMessageService extends YacHttpServiceStack {
     // APIs
     const { httpApi } = this;
 
-    const secret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/secret`);
+    // Secret imports from Util
+    const messageUploadTokenSecretArn = CDK.Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
 
     // S3 Bucket ARN Imports from Util
     const messageS3BucketArn = CDK.Fn.importValue(ExportNames.RawMessageS3BucketArn);
     const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket_${id}`, messageS3BucketArn);
     const mountedPath = "/mnt/messages";
 
+    // Secrets
+    const messageUploadTokenSecret = SecretsManager.Secret.fromSecretCompleteArn(this, `MessageUploadTokenSecret_${id}`, messageUploadTokenSecretArn);
+
+    const getMessageUploadTokenSecretPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "secretsmanager:GetSecretValue" ],
+      resources: [ messageUploadTokenSecret.secretArn ],
+    });
+
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
-      SECRET: secret,
       RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
       EFS_MOUNTED_PATH: mountedPath,
+      MESSAGE_UPLOAD_TOKEN_SECRET_ID: messageUploadTokenSecret.secretArn,
     };
 
     // vpc
@@ -59,6 +70,8 @@ export class YacMessageService extends YacHttpServiceStack {
       subnetConfiguration: [ { name: "main", subnetType: EC2.SubnetType.ISOLATED } ],
       gatewayEndpoints: { [`S3GatewayEndpoint_${id}`]: { service: { name: `com.amazonaws.${this.region}.s3` } } },
     });
+
+    vpc.addInterfaceEndpoint(`SMInterfaceEndpoint_${id}`, { service: { port: 443, name: `com.amazonaws.${this.region}.secretsmanager` } });
 
     new S3.CfnAccessPoint(this, `VpcMessageBucketAccessPoint_${id}`, {
       bucket: rawMessageS3Bucket.bucketName,
@@ -110,6 +123,7 @@ export class YacMessageService extends YacHttpServiceStack {
       vpc,
       // mount the access point to /mnt/msg in the lambda runtime environment
       filesystem: FSAccessPoint,
+      initialPolicy: [ getMessageUploadTokenSecretPolicyStatement ],
     });
 
     const finishChunkUploadHandler = new Lambda.Function(this, `FinishChunkUploadHandler_${id}`, {
@@ -123,6 +137,7 @@ export class YacMessageService extends YacHttpServiceStack {
       vpc,
       // mount the access point to /mnt/msg in the lambda runtime environment
       filesystem: FSAccessPoint,
+      initialPolicy: [ getMessageUploadTokenSecretPolicyStatement ],
     });
 
     rawMessageS3Bucket.grantReadWrite(finishChunkUploadHandler);
@@ -130,11 +145,11 @@ export class YacMessageService extends YacHttpServiceStack {
     // Lambda Routes
     const routes: RouteProps[] = [
       {
-        path: "/{messageId}/chunk",
+        path: "/chunk",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: uploadMessageChunkFileHandler,
       }, {
-        path: "/{messageId}/finish",
+        path: "/finish",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: finishChunkUploadHandler,
       },

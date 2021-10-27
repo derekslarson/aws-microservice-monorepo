@@ -34,6 +34,7 @@ const ExportNames = {
   MessageS3BucketArn: "messageS3BucketArn",
   RawMessageS3BucketArn: "rawMessageS3BucketArn",
   EnhancedMessageS3BucketArn: "enhancedMessageS3BucketArn",
+  MessageUploadTokenSecretArn: "messageUploadTokenSecretArn",
   ChunkedUploadsFSId: "chunkedUploadsFSId",
   ChunkedUploadsFSAccessPointId: "chunkedUploadsFsAccesPointId",
   ChunkedUploadsFSMountedPath: "chunkedUploadsFSMountedPath",

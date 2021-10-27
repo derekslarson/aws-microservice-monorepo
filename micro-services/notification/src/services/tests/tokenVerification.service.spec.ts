@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Spied, TestSupport, HttpRequestService, ForbiddenError } from "@yac/util";
+import { LoggerService, Spied, TestSupport, HttpRequestService, ForbiddenError, Jwt, JwtFactory } from "@yac/util";
 import jwtActual from "jsonwebtoken";
 import jwkToPemActual from "jwk-to-pem";
 import { JwkToPem, JwkToPemFactory } from "../../factories/jwkToPem.factory";
-import { Jwt, JwtFactory } from "../../factories/jwt.factory";
-import { TokenVerificationService, TokenVerificationServiceInterface } from "../tokenVerification.service";
+import { DecodedToken, TokenVerificationService, TokenVerificationServiceInterface } from "../tokenVerification.service";
 
 describe("TokenVerificationService", () => {
   let jwt: Spied<Jwt>;
@@ -21,7 +20,7 @@ describe("TokenVerificationService", () => {
   const mockOtherKid = "mock-kid";
   const mockTokenJwk = { kid: mockMatchingKid };
   const mockToken = "mock-token";
-  const mockDecodedToken = {};
+  const mockDecodedToken = {} as unknown as DecodedToken;
   const mockCompleteDecodedToken = { ...mockDecodedToken, header: { kid: mockMatchingKid } };
   const mockPem = "mock-pem";
   const mockJwksUrlResponseBody = { keys: [ mockTokenJwk, { kid: mockOtherKid } ] };

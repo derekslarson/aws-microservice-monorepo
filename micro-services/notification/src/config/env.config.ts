@@ -1,7 +1,6 @@
 import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util";
 
 export const envConfig: EnvConfigInterface = {
-  secret: process.env.SECRET || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   jwksUrl: process.env.JWKS_URL || "",
   webSocketApiEndpoint: process.env.WEBSOCKET_API_ENDPOINT || "",

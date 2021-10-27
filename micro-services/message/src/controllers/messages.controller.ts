@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { inject, injectable } from "inversify";
-import { BaseController, Request, Response, LoggerServiceInterface, ValidationServiceV2Interface, Message, MessageMimeType } from "@yac/util";
+import { BaseController, Request, Response, LoggerServiceInterface, ValidationServiceV2Interface, MessageUploadTokenServiceInterface, UnauthorizedError } from "@yac/util";
 
 import { TYPES } from "../inversion-of-control/types";
 import { MessageServiceInterface } from "../services/message.service";
@@ -12,7 +12,8 @@ export class MessagesController extends BaseController implements MessagesContro
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
-    @inject(TYPES.MessagesService) private messageService: MessageServiceInterface,
+    @inject(TYPES.MessageUploadTokenServiceInterface) private messageUploadTokenService: MessageUploadTokenServiceInterface,
+    @inject(TYPES.MessagesServiceInterface) private messageService: MessageServiceInterface,
   ) {
     super();
   }
@@ -21,15 +22,18 @@ export class MessagesController extends BaseController implements MessagesContro
     this.loggerService.trace("chunkUpload called", { request }, this.constructor.name);
 
     try {
-      const {
-        pathParameters: { messageId },
-        body: { chunkNumber, data },
-      } = this.validationService.validate({ dto: MessageChunkUploadDto, request });
+      if (!request.headers.authorization) {
+        throw new UnauthorizedError("Unauthorized");
+      }
+
+      const { decodedToken: { conversationId, messageId } } = await this.messageUploadTokenService.verifyToken({ token: request.headers.authorization.replace("Bearer ", "") });
+      const { body: { chunkNumber, data: chunkData } } = this.validationService.validate({ dto: MessageChunkUploadDto, request });
 
       try {
         await this.messageService.processChunk({
-          chunkData: data,
-          messageId: messageId as Message["id"],
+          conversationId,
+          messageId,
+          chunkData,
           chunkNumber,
         });
 
@@ -38,18 +42,18 @@ export class MessagesController extends BaseController implements MessagesContro
           data: {
             messageId,
             chunkNumber,
-            chunkData: data,
+            chunkData,
           },
         };
         return this.generateCreatedResponse(response);
       } catch (error: unknown) {
-        this.loggerService.error("error in chunkUpload: Error in append chunk to this file", { error, request: { messageId, chunkNumber, data } }, this.constructor.name);
+        this.loggerService.error("error in chunkUpload: Error in append chunk to this file", { error, request: { messageId, chunkNumber, data: chunkData } }, this.constructor.name);
         const errorResponse: ChunkUploadResponse = {
           success: false,
           data: {
             messageId,
             chunkNumber,
-            chunkData: data,
+            chunkData,
           },
         };
 
@@ -66,20 +70,22 @@ export class MessagesController extends BaseController implements MessagesContro
     this.loggerService.trace("finishUpload called", { request }, this.constructor.name);
 
     try {
-      const {
-        pathParameters: { messageId },
-        body: { checksum, totalChunks },
-        queryStringParameters: { format },
-      } = this.validationService.validate({ dto: MessageFinishUploadDto, request });
+      if (!request.headers.authorization) {
+        throw new UnauthorizedError("Unauthorized");
+      }
 
-      const file = await this.messageService.saveMessage({
+      const { decodedToken: { conversationId, messageId, mimeType } } = await this.messageUploadTokenService.verifyToken({ token: request.headers.authorization.replace("Bearer ", "") });
+      const { body: { checksum, totalChunks } } = this.validationService.validate({ dto: MessageFinishUploadDto, request });
+
+      await this.messageService.saveMessage({
+        conversationId,
+        messageId,
+        mimeType,
         checksum,
-        messageId: messageId as Message["id"],
-        contentType: format as MessageMimeType,
         totalChunks,
       });
 
-      const response: FinishUploadResponse = { url: file.url };
+      const response: FinishUploadResponse = { message: "Upload finished." };
 
       return this.generateSuccessResponse(response);
     } catch (error: unknown) {
@@ -105,5 +111,5 @@ interface ChunkUploadResponse {
 }
 
 interface FinishUploadResponse {
-  url: string
+  message: "Upload finished."
 }

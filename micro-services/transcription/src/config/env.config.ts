@@ -2,7 +2,6 @@ import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util";
 
 export const envConfig: EnvConfigInterface = {
   environment: process.env.ENVIRONMENT || "",
-  secret: process.env.SECRET || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   audoAiApiDomain: process.env.AUDO_AI_API_DOMAIN || "",
   audoAiApiKey: process.env.AUDO_AI_API_KEY || "",

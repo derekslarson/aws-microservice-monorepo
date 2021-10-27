@@ -47,7 +47,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
       const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
       const { users: [ toUser, fromUser ] } = await this.userService.getUsers({ userIds: [ to, from ] });
-
       const pendingMessage = {
         ...restOfPendingMessageEntity,
         to: toUser,

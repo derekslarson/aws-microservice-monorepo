@@ -8,6 +8,7 @@ import Loader from './components/Loader'
 
 import './Login.scss'
 import useCookieSession from './hooks/useCookieSession'
+const PHONE_REG_EXP = /\+?(9[976]\d|8[987530]\d|6[987]\d|5[90]\d|42\d|3[875]\d|2[98654321]\d|9[8543210]|8[6421]|6[6543210]|5[87654321]|4[987654310]|3[9643210]|2[70]|7|1)\d{1,14}$/
 
 interface ILoginProps { }
 
@@ -80,7 +81,7 @@ const Login: React.FC<ILoginProps> = () => {
 
     try {
       let phone
-      const isPhoneNumber = /\+?([^A-Za-z]\d)+/g.test(email)
+      const isPhoneNumber = PHONE_REG_EXP.test(email)
       if (isPhoneNumber) {
         phone = /\+\d/.test(email) ? email : `+1${email}`
       }
@@ -216,7 +217,7 @@ const Login: React.FC<ILoginProps> = () => {
       return
     }
     if (email) {
-      const isPhoneNumber = /\+?([^A-Za-z]\d)+/g.test(email)
+      const isPhoneNumber = PHONE_REG_EXP.test(email)
       if (isPhoneNumber) {
         const phone = /\+\d/.test(email) ? email : `+1${email}`
         await authenticate({ phone, otp })
@@ -294,7 +295,7 @@ const Login: React.FC<ILoginProps> = () => {
       <span className={'login__form-description'}>
         We sent a 6 digit code to{' '}
         <strong>
-          {/\+?([^A-Za-z]\d)+/g.test(email) && !/\+\d/.test(email)
+          {PHONE_REG_EXP.test(email) && !/\+\d/.test(email)
             ? `+1${email}`
             : email.toLowerCase()}
         </strong>

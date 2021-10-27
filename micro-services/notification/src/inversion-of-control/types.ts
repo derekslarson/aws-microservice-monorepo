@@ -43,7 +43,6 @@ const TYPES = {
 
   // Factories
   ApiGatewayManagementFactory: Symbol.for("ApiGatewayManagementFactory"),
-  JwtFactory: Symbol.for("JwtFactory"),
   JwkToPemFactory: Symbol.for("JwkToPemFactory"),
 };
 

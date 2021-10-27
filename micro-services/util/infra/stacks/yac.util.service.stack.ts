@@ -6,6 +6,7 @@ import * as CDK from "@aws-cdk/core";
 import * as ACM from "@aws-cdk/aws-certificatemanager";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as SSM from "@aws-cdk/aws-ssm";
+import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as Route53Targets from "@aws-cdk/aws-route53-targets";
 import * as SNS from "@aws-cdk/aws-sns";
@@ -76,6 +77,9 @@ export class YacUtilServiceStack extends CDK.Stack {
     const meetingMessageUpdatedSnsTopic = new SNS.Topic(this, `MeetingMessageUpdatedSnsTopic_${id}`, { topicName: `MeetingMessageUpdatedSnsTopic_${id}` });
     const messageTranscodedSnsTopic = new SNS.Topic(this, `MessageTranscodedSnsTopic_${id}`, { topicName: `MessageTranscodedSnsTopic_${id}` });
     const messageTranscribedSnsTopic = new SNS.Topic(this, `MessageTranscribedSnsTopic_${id}`, { topicName: `MessageTranscribedSnsTopic_${id}` });
+
+    // Secret for signing token for use in message flow (core and message services)
+    const messageUploadTokenSecret = new SecretsManager.Secret(this, `MessageUploadTokenSecret_${id}`);
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
@@ -215,6 +219,11 @@ export class YacUtilServiceStack extends CDK.Stack {
       value: enhancedMessageS3Bucket.bucketArn,
     });
 
+    new CDK.CfnOutput(this, `MessageUploadTokenSecretArn_${id}`, {
+      exportName: ExportNames.MessageUploadTokenSecretArn,
+      value: messageUploadTokenSecret.secretArn,
+    });
+
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `YacClientRedirectUriSsmParameter_${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/user-added-to-team-sns-topic-arn`,
@@ -319,6 +328,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new SSM.StringParameter(this, `EnhancedMessageS3BucketNameSsmParameter_${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/enhanced-message-s3-bucket-name`,
       stringValue: enhancedMessageS3Bucket.bucketName,
+    });
+
+    new SSM.StringParameter(this, `MessageUploadTokenSecretIdSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/message-upload-token-secret-id`,
+      stringValue: messageUploadTokenSecret.secretArn,
     });
   }
 

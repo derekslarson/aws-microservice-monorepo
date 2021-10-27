@@ -1,4 +1,4 @@
-import { MessageId } from "../types/messageId.type";
+import { MessageId } from "../../types/messageId.type";
 import { MessageMimeType } from "../../enums";
 
 export type MessageTranscodedSnsMessage = {

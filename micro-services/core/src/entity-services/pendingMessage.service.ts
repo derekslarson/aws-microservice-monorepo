@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { inject, injectable } from "inversify";
-import { FileOperation, IdServiceInterface, LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/util";
+import { FileOperation, IdServiceInterface, LoggerServiceInterface, MessageFileRepositoryInterface, MessageUploadTokenServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { PendingMessageRepositoryInterface, PendingMessage as PendingMessageEntity, PendingMessageUpdates } from "../repositories/pendingMessage.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -17,6 +17,7 @@ export class PendingMessageService implements PendingMessageServiceInterface {
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
     @inject(TYPES.RawMessageFileRepositoryInterface) private rawMessageFileRepository: MessageFileRepositoryInterface,
     @inject(TYPES.PendingMessageRepositoryInterface) private pendingMessageRepository: PendingMessageRepositoryInterface,
+    @inject(TYPES.MessageUploadTokenServiceInterface) private messageUploadTokenService: MessageUploadTokenServiceInterface,
   ) {}
 
   public async createPendingMessage(params: CreatePendingMessageInput): Promise<CreatePendingMessageOutput> {
@@ -46,9 +47,12 @@ export class PendingMessageService implements PendingMessageServiceInterface {
         operation: FileOperation.Upload,
       });
 
+      const { token: chunkedUploadToken } = await this.messageUploadTokenService.generateToken({ conversationId, messageId, mimeType });
+
       const pendingMessage = {
         ...pendingMessageEntity,
         uploadUrl: signedUrl,
+        chunkedUploadToken,
       };
 
       return { pendingMessage };
@@ -76,9 +80,16 @@ export class PendingMessageService implements PendingMessageServiceInterface {
         operation: FileOperation.Upload,
       });
 
+      const { token: chunkedUploadToken } = await this.messageUploadTokenService.generateToken({
+        conversationId: pendingMessageEntity.conversationId,
+        messageId,
+        mimeType: pendingMessageEntity.mimeType,
+      });
+
       const pendingMessage = {
         ...pendingMessageEntity,
         uploadUrl: signedUrl,
+        chunkedUploadToken,
       };
 
       return { pendingMessage };
@@ -106,9 +117,16 @@ export class PendingMessageService implements PendingMessageServiceInterface {
         operation: FileOperation.Upload,
       });
 
+      const { token: chunkedUploadToken } = await this.messageUploadTokenService.generateToken({
+        conversationId: pendingMessageEntity.conversationId,
+        messageId,
+        mimeType: pendingMessageEntity.mimeType,
+      });
+
       const pendingMessage = {
         ...pendingMessageEntity,
         uploadUrl: signedUrl,
+        chunkedUploadToken,
       };
 
       return { pendingMessage };
@@ -159,6 +177,7 @@ export interface PendingMessageServiceInterface {
 
 export interface PendingMessage extends PendingMessageEntity {
   uploadUrl: string;
+  chunkedUploadToken: string;
 }
 
 export interface CreatePendingMessageInput {
