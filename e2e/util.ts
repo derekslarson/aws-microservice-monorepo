@@ -134,7 +134,7 @@ async function getAuthorizationCode(emailOrId: string, xsrfToken: string, logErr
       throw new Error("Error fetching auth secret");
     }
 
-    const data = `_csrf=${xsrfToken}&username=${emailOrId}&password=${authSecret}`;
+    const data = `_csrf=${encodeURIComponent(xsrfToken)}&username=${encodeURIComponent(emailOrId)}&password=${encodeURIComponent(authSecret)}`;
 
     const queryParameters = {
       response_type: "code",
