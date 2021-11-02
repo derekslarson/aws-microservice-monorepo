@@ -97,6 +97,12 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       destinationBucket: websiteBucket,
     });
 
+    // User Pool Lambda Policies
+    const cognitoIdpFullAccessPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "cognito-idp:*" ],
+      resources: [ "*" ],
+    });
+
     // User Pool Lambdas
     const userPoolLambaEnvVars: Record<string, string> = {
       AUTH_SECRET_ID: authSecret.secretArn,
@@ -113,6 +119,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       environment: userPoolLambaEnvVars,
       memorySize: 2048,
       timeout: CDK.Duration.seconds(15),
+      initialPolicy: [ cognitoIdpFullAccessPolicyStatement ],
     });
 
     const defineAuthChallengeHandler = new Lambda.Function(this, `DefineAuthChallengeHandler_${id}`, {
@@ -158,6 +165,14 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
         createAuthChallenge: createAuthChallengeHandler,
         verifyAuthChallengeResponse: verifyAuthChallengeResponseHandler,
       },
+    });
+
+    new Cognito.UserPoolIdentityProviderGoogle(this, `UserPoolIdentityProviderGoogle_${id}`, {
+      userPool,
+      clientId: "1609416142-ncbd1msqf1n7i2gfmhhvfl4su6v63kqm.apps.googleusercontent.com",
+      clientSecret: "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",
+      attributeMapping: { email: Cognito.ProviderAttribute.GOOGLE_EMAIL },
+      scopes: [ "profile", "email", "openid" ],
     });
 
     const userPoolDomain = new Cognito.UserPoolDomain(this, `UserPoolDomain_${id}`, {

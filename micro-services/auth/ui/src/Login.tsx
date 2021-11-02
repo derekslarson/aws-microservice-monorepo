@@ -42,6 +42,7 @@ function useQuery() {
   return {
     client_id: params.get('client_id'),
     redirect_uri: params.get('redirect_uri'),
+    response_type: params.get('response_type'),
     state: params.get('state'),
     code_challenge: params.get('code_challenge'),
     code_challenge_method: params.get('code_challenge_method'),
@@ -261,6 +262,9 @@ const Login: React.FC<ILoginProps> = () => {
       exit={'exit'}
     >
       <h2>Sign in</h2>
+      <div>
+        <a href={`https://dereklarson-yac-auth-service.auth.us-east-1.amazoncognito.com/oauth2/authorize?identity_provider=Google&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}&scope=${query.scope}&code_challenge=${query.code_challenge}&code_challenge_method=${query.code_challenge_method}&state=${query.state}`}>Sign in with Google</a>
+      </div>
       <span className={'login__form-description'}>
         Use your Yac account email address or phone number
       </span>

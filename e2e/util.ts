@@ -108,6 +108,7 @@ async function getXsrfToken(): Promise<{ xsrfToken: string }> {
 
     const authorizeResponse = await axios.get(`${process.env["user-pool-domain-url"] as string}/oauth2/authorize`, { params: queryParameters });
 
+    console.log("authorizeResponse: ", authorizeResponse);
     const setCookieHeader = (authorizeResponse.headers as Record<string, string[]>)["set-cookie"];
 
     if (!Array.isArray(setCookieHeader)) {
@@ -134,6 +135,8 @@ async function getAuthorizationCode(emailOrId: string, xsrfToken: string, logErr
       throw new Error("Error fetching auth secret");
     }
 
+    console.log({ emailOrId, xsrfToken, authSecret });
+
     const data = `_csrf=${xsrfToken}&username=${emailOrId}&password=${authSecret}`;
 
     const queryParameters = {
@@ -147,6 +150,10 @@ async function getAuthorizationCode(emailOrId: string, xsrfToken: string, logErr
       Cookie: `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`,
     };
 
+    console.log("queryParams: ", queryParameters);
+    console.log("headers: ", headers);
+    console.log("url: ", `${process.env["user-pool-domain-url"] as string}/login`);
+
     const loginResponse = await axios.post(`${process.env["user-pool-domain-url"] as string}/login`, data, {
       params: queryParameters,
       headers,
@@ -156,6 +163,7 @@ async function getAuthorizationCode(emailOrId: string, xsrfToken: string, logErr
       maxRedirects: 0,
     });
 
+    console.log("loginResponse: ", loginResponse);
     const redirectPath = (loginResponse.headers as Record<string, string>).location;
 
     if (!redirectPath) {
