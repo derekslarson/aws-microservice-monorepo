@@ -148,6 +148,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
                       username: toUser.username,
                       phone: toUser.phone,
                       realName: toUser.realName,
+                      bio: toUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
                     from: {
@@ -156,6 +157,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
                       username: fromUser.username,
                       phone: fromUser.phone,
                       realName: fromUser.realName,
+                      bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
                     type: ConversationType.Friend,
@@ -179,6 +181,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
                       username: toUser.username,
                       phone: toUser.phone,
                       realName: toUser.realName,
+                      bio: toUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
                     from: {
@@ -187,6 +190,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
                       username: fromUser.username,
                       phone: fromUser.phone,
                       realName: fromUser.realName,
+                      bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
                     type: ConversationType.Friend,

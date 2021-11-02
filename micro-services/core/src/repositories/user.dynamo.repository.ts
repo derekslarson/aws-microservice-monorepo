@@ -127,6 +127,7 @@ export interface User {
   phone?: string;
   username?: string;
   realName?: string;
+  bio?: string;
 }
 
 export interface RawUser extends User {
@@ -151,7 +152,7 @@ export interface GetUserOutput {
   user: User;
 }
 
-export type UserUpdates = Partial<Pick<User, "realName" | "imageMimeType">>;
+export type UserUpdates = Partial<Pick<User, "realName" | "imageMimeType" | "bio">>;
 
 export interface UpdateUserInput {
   userId: UserId;

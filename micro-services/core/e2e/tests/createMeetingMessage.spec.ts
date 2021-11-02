@@ -73,6 +73,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
             },
             from: {
               realName: user.realName,
+              bio: user.bio,
               username: user.username,
               id: user.id,
               email: user.email,

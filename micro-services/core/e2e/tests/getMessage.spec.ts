@@ -59,6 +59,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
               username: otherUser.username,
               phone: otherUser.phone,
               realName: otherUser.realName,
+              bio: otherUser.bio,
               image: jasmine.stringMatching(URL_REGEX),
             },
             type: ConversationType.Group,

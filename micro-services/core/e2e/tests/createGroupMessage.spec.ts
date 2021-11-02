@@ -71,6 +71,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
             },
             from: {
               realName: user.realName,
+              bio: user.bio,
               username: user.username,
               id: user.id,
               email: user.email,
