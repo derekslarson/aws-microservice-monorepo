@@ -188,7 +188,7 @@ export async function createUser(params: CreateUserInput): Promise<CreateUserOut
 
     const userId: UserId = `${KeyPrefix.User}${ksuid.randomSync().string}`;
 
-    const user: MakeRequired<RawUser, "email" | "username" | "realName" | "bio"> = {
+    const user: MakeRequired<RawUser, "email" | "username" | "realName"> = {
       entityType: EntityType.User,
       imageMimeType: mimeType,
       pk: userId,
@@ -926,7 +926,7 @@ export interface CreateUserInput {
 }
 
 export interface CreateUserOutput {
-  user: MakeRequired<RawUser, "email" | "username" | "realName" | "bio">;
+  user: MakeRequired<RawUser, "email" | "username" | "realName">;
 }
 
 export interface CreateRandomUserOutput {
