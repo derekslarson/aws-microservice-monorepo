@@ -35,6 +35,7 @@ describe("PendingMessageDynamoRepository", () => {
   const mockConversationId: GroupId = `${KeyPrefix.GroupConversation}mock-id`;
   const mockUserId: UserId = `${KeyPrefix.User}mock-id`;
   const mockMimeType = MessageMimeType.AudioMp3;
+  const mockTitle = "mock-title";
 
   const mockPendingMessage: PendingMessage = {
     id: mockPendingMessageId,
@@ -43,6 +44,7 @@ describe("PendingMessageDynamoRepository", () => {
     createdAt: mockUserId,
     mimeType: mockMimeType,
     replyTo: mockMessageId,
+    title: mockTitle,
   };
 
   const mockError = new Error("mock-error");

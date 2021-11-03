@@ -61,7 +61,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
         createFriendConversation({ userId: user.id, friendId: otherUser.id }),
       ]));
 
-      ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ user.id, otherUser.id ], mimeType: MessageMimeType.AudioMp3 }));
+      ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ user.id, otherUser.id ], mimeType: MessageMimeType.AudioMp3, title: generateRandomString(8) }));
 
       // We need to create the relationships in sequence, so that we can be sure of the return order in the test
       ({ conversationUserRelationship: meetingUserRelationship } = await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId: user.id, role: Role.Admin, dueDate: meeting.dueDate }));
@@ -108,6 +108,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
+                  title: message.title,
                   to: {
                     id: group.id,
                     name: group.name,
@@ -202,6 +203,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
+                  title: message.title,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
                   to: {
@@ -326,6 +328,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
+                  title: message.title,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
                   to: {
@@ -471,6 +474,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
+                  title: message.title,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
                   to: {

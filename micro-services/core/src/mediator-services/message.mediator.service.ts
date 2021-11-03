@@ -135,7 +135,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { pendingMessageId, transcript } = params;
 
-      const { pendingMessage: { conversationId, from: fromId, replyTo, mimeType } } = await this.pendingMessageService.getPendingMessage({ pendingMessageId });
+      const { pendingMessage: { conversationId, from: fromId, replyTo, mimeType, title } } = await this.pendingMessageService.getPendingMessage({ pendingMessageId });
 
       const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
 
@@ -148,7 +148,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         seenAt[relationship.userId] = relationship.userId === fromId ? timestamp : null;
       });
 
-      const { message: messageEntity } = await this.messageService.createMessage({ messageId, conversationId, from: fromId, replyTo, mimeType, transcript, seenAt });
+      const { message: messageEntity } = await this.messageService.createMessage({ messageId, conversationId, from: fromId, replyTo, mimeType, transcript, seenAt, title });
 
       await Promise.all(conversationUserRelationships.map((relationship) => this.conversationUserRelationshipService.addMessageToConversationUserRelationship({
         conversationId,

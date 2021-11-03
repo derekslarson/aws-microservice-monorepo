@@ -33,7 +33,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
       ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
 
       ([ { message } ] = await Promise.all([
-        createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId, otherUser.id ], replyCount: 1, mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId, otherUser.id ], replyCount: 1, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
         createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.User }),
       ]));
 
@@ -43,7 +43,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
       ([ { message: messageTwo } ] = await Promise.all([
         createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId, otherUser.id ], mimeType: MessageMimeType.AudioMp3 }),
         // We have to create a reply to prove that it doesnt get returned at root level
-        createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId, otherUser.id ], replyTo: message.id, mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId, otherUser.id ], replyTo: message.id, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
       ]));
     });
 
@@ -81,6 +81,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 reactions: messageTwo.reactions,
                 mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
+                title: messageTwo.title,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: messageTwo.transcript,
 
@@ -109,6 +110,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 reactions: message.reactions,
                 mimeType: message.mimeType,
                 replyCount: message.replyCount,
+                title: message.title,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: message.transcript,
               },
@@ -155,6 +157,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 reactions: messageTwo.reactions,
                 mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
+                title: messageTwo.title,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: messageTwo.transcript,
               },
@@ -193,6 +196,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 reactions: message.reactions,
                 mimeType: message.mimeType,
                 replyCount: message.replyCount,
+                title: message.title,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: message.transcript,
               },

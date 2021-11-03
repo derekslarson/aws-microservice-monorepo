@@ -733,7 +733,7 @@ export async function getConversationUserRelationship<T extends ConversationId>(
 
 export async function createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
   try {
-    const { from, conversationId, conversationMemberIds, mimeType, replyTo, markSeenByAll, transcript = "", reactions = {}, replyCount = 0 } = params;
+    const { from, conversationId, conversationMemberIds, mimeType, replyTo, markSeenByAll, title, transcript = "", reactions = {}, replyCount = 0 } = params;
 
     const messageId = `${replyTo ? KeyPrefix.Reply : KeyPrefix.Message}${ksuid.randomSync().string}` as MessageId;
 
@@ -768,6 +768,7 @@ export async function createMessage(params: CreateMessageInput): Promise<CreateM
       mimeType,
       replyCount,
       transcript,
+      title,
       ...(replyTo && { gsi2pk: replyTo }),
       ...(replyTo && { gsi2sk: messageId }),
       ...(replyTo && { replyTo }),
@@ -1081,6 +1082,7 @@ export interface CreateMessageInput {
   transcript?: string;
   reactions?: Record<string, UserId[]>
   replyTo?: MessageId;
+  title?: string;
   replyCount?: number;
   markSeenByAll?: boolean;
 }
