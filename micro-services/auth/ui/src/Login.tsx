@@ -36,6 +36,7 @@ const CONFIG: IEnvConfig = {
   SIGN_IN_PATH: "/login",
   SIGN_UP_PATH: "sign-up",
   AUTHENTICATE_PATH: "/confirm",
+  OAUTH2_AUTHORIZE_PATH: "/oauth2/authorize"
 }
 function useQuery() {
   const params = new URLSearchParams(window.location.search) as any
@@ -251,6 +252,12 @@ const Login: React.FC<ILoginProps> = () => {
     }
   }
 
+  const redirectToGoogleAuth = () => {    
+    const redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.OAUTH2_AUTHORIZE_PATH}?identity_provider=Google&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}&scope=${query.scope}&code_challenge=${query.code_challenge}&code_challenge_method=${query.code_challenge_method}&state=${query.state}`;
+
+    window.location.href = redirectLocation
+  }
+
   const email_form = () => (
     <motion.form
       key={'email_form'}
@@ -262,9 +269,10 @@ const Login: React.FC<ILoginProps> = () => {
       exit={'exit'}
     >
       <h2>Sign in</h2>
-      <div>
-        <a href={`https://dereklarson-yac-auth-service.auth.us-east-1.amazoncognito.com/oauth2/authorize?identity_provider=Google&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}&scope=${query.scope}&code_challenge=${query.code_challenge}&code_challenge_method=${query.code_challenge_method}&state=${query.state}`}>Sign in with Google</a>
-      </div>
+      <button type="button" className="login-with-google-btn" onClick={redirectToGoogleAuth}>
+        Sign in with Google
+      </button>
+      <span>or</span>
       <span className={'login__form-description'}>
         Use your Yac account email address or phone number
       </span>
@@ -431,6 +439,7 @@ interface IEnvConfig {
   SIGN_IN_PATH: string,
   SIGN_UP_PATH: string,
   AUTHENTICATE_PATH: string,
+  OAUTH2_AUTHORIZE_PATH: string
 }
 
 export default Login

@@ -3,40 +3,38 @@
 import "reflect-metadata";
 import { PreSignUpTriggerEvent } from "aws-lambda";
 import { LoggerServiceInterface } from "@yac/util";
-import { CognitoIdentityServiceProvider } from "aws-sdk";
+// import { CognitoIdentityServiceProvider } from "aws-sdk";
 // import ksuid from "ksuid";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 
-const cognitoIdp = new CognitoIdentityServiceProvider();
+// const cognitoIdp = new CognitoIdentityServiceProvider();
 
-async function getUserByEmail(userPoolId: string, email: string): Promise<CognitoIdentityServiceProvider.UserType | undefined> {
-  const params = {
-    UserPoolId: userPoolId,
-    Filter: `email = "${email}"`,
-  };
+// async function getUserByEmail(userPoolId: string, email: string): Promise<CognitoIdentityServiceProvider.UserType | undefined> {
+//   const params = {
+//     UserPoolId: userPoolId,
+//     Filter: `email = "${email}"`,
+//   };
 
-  const { Users = [] } = await cognitoIdp.listUsers(params).promise();
+//   const { Users = [] } = await cognitoIdp.listUsers(params).promise();
 
-  return Users[0];
-}
+//   return Users[0];
+// }
 
-async function linkProviderToUser(username: string, userPoolId: string, providerName: string, providerUserId: string): Promise<void> {
-  const params = {
-    DestinationUser: {
-      ProviderAttributeValue: username,
-      ProviderName: "Cognito",
-    },
-    SourceUser: {
-      ProviderAttributeName: "Cognito_Subject",
-      ProviderAttributeValue: providerUserId,
-      ProviderName: providerName,
-    },
-    UserPoolId: userPoolId,
-  };
-
-  await cognitoIdp.adminLinkProviderForUser(params).promise();
-}
+// async function linkProviderToUser(username: string, userPoolId: string, providerName: string, providerUserId: string): Promise<void> {
+//   await cognitoIdp.adminLinkProviderForUser({
+//     DestinationUser: {
+//       ProviderAttributeValue: username,
+//       ProviderName: "Cognito",
+//     },
+//     SourceUser: {
+//       ProviderAttributeName: "Cognito_Subject",
+//       ProviderAttributeValue: providerUserId,
+//       ProviderName: providerName,
+//     },
+//     UserPoolId: userPoolId,
+//   }).promise();
+// }
 
 export const handler = async (event: PreSignUpTriggerEvent): Promise<PreSignUpTriggerEvent> => {
   const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
@@ -54,13 +52,13 @@ export const handler = async (event: PreSignUpTriggerEvent): Promise<PreSignUpTr
 
     event.response.autoConfirmUser = true;
 
-    if (event.triggerSource === "PreSignUp_ExternalProvider") {
-      const existingUser = await getUserByEmail(event.userPoolId, event.request.userAttributes.email);
-      if (existingUser) {
-        const [ providerName, providerUserId ] = event.userName.split("_");
-        await linkProviderToUser(existingUser.Username as string, event.userPoolId, providerName, providerUserId);
-      }
-    }
+    // if (event.triggerSource === "PreSignUp_ExternalProvider") {
+    //   const existingUser = await getUserByEmail(event.userPoolId, event.request.userAttributes.email);
+    //   if (existingUser) {
+    //     const [ providerName, providerUserId ] = event.userName.split("_");
+    //     await linkProviderToUser(existingUser.Username as string, event.userPoolId, providerName, providerUserId);
+    //   }
+    // }
 
     return event;
   } catch (error: unknown) {

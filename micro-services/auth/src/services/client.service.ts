@@ -31,7 +31,7 @@ export class ClientService implements ClientServiceInterface {
         ClientName: name,
         GenerateSecret: type === ClientType.Private,
         CallbackURLs: [ redirectUri ],
-        SupportedIdentityProviders: [ "COGNITO" ],
+        SupportedIdentityProviders: [ "COGNITO", "Google" ],
         ExplicitAuthFlows: [ "ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH" ],
         AllowedOAuthFlows: [ "code" ],
         AllowedOAuthScopes: scopes,

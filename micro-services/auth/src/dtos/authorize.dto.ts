@@ -10,5 +10,6 @@ export const AuthorizeDto = Record({
     code_challenge_method: Optional(Literal("S256")),
     code_challenge: Optional(String),
     scope: Optional(String),
+    identity_provider: Optional(Literal("Google")),
   }),
 });

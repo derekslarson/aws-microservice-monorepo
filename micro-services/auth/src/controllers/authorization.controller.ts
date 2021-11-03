@@ -32,6 +32,7 @@ export class AuthorizationController extends BaseController implements Authoriza
           redirect_uri: redirectUri,
           code_challenge: codeChallenge,
           code_challenge_method: codeChallengeMethod,
+          identity_provider: identityProvider,
           state,
           scope,
         },
@@ -43,7 +44,21 @@ export class AuthorizationController extends BaseController implements Authoriza
         throw new BadRequestError("code_challenge required");
       }
 
-      const { xsrfToken } = await this.authorizationService.authorize({
+      if (identityProvider === "Google") {
+        const { location, cookies } = await this.authorizationService.getGoogleSigninRedirectData({
+          clientId,
+          state,
+          responseType,
+          redirectUri,
+          codeChallenge,
+          codeChallengeMethod,
+          scope,
+        });
+
+        return this.generateSeeOtherResponse(location, {}, cookies);
+      }
+
+      const { xsrfToken } = await this.authorizationService.getXsrfToken({
         clientId,
         state,
         responseType,
@@ -52,10 +67,6 @@ export class AuthorizationController extends BaseController implements Authoriza
         codeChallengeMethod,
         scope,
       });
-
-      if (clientId === this.config.userPool.yacClientId) {
-        return this.generateSuccessResponse({ xsrfToken });
-      }
 
       const optionalQueryParams = { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod, state, scope };
       const optionalQueryString = Object.entries(optionalQueryParams).reduce((acc, [ key, value ]) => (value ? `${acc}&${key}=${value}` : acc), "");
