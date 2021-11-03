@@ -26,7 +26,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const { email, phone, username, realName } = params;
+      const { email, phone, username, realName, bio } = params;
 
       const [
         { isPropertyUnique: isEmailUnique },
@@ -58,6 +58,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
         phone,
         username,
         realName,
+        bio,
       } as UserServiceCreateUserInput;
 
       const { user } = await this.userService.createUser(userServiceCreateUserInput);
@@ -339,6 +340,7 @@ interface BaseCreateUserInput {
   phone?: string;
   username?: string;
   realName?: string;
+  bio?: string;
 }
 interface CreateUserEmailRequiredInput extends Omit<BaseCreateUserInput, "email"> {
   email: string;

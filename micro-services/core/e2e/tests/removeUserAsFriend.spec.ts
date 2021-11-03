@@ -113,6 +113,7 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
                 username: user.username,
                 phone: user.phone,
                 realName: user.realName,
+                bio: user.bio,
                 image: jasmine.stringMatching(URL_REGEX),
               },
               userB: {
@@ -121,6 +122,7 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
                 username: otherUser.username,
                 phone: otherUser.phone,
                 realName: otherUser.realName,
+                bio: otherUser.bio,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             },

@@ -65,6 +65,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 id: messageTwo.id,
                 to: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,
@@ -73,6 +74,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 },
                 from: {
                   realName: user.realName,
+                  bio: user.bio,
                   username: user.username,
                   id: user.id,
                   email: user.email,
@@ -92,6 +94,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 id: message.id,
                 to: {
                   realName: user.realName,
+                  bio: user.bio,
                   username: user.username,
                   id: user.id,
                   email: user.email,
@@ -100,6 +103,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 },
                 from: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,
@@ -138,6 +142,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 id: messageTwo.id,
                 to: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,
@@ -146,6 +151,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 },
                 from: {
                   realName: user.realName,
+                  bio: user.bio,
                   username: user.username,
                   id: user.id,
                   email: user.email,
@@ -176,6 +182,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 id: message.id,
                 to: {
                   realName: user.realName,
+                  bio: user.bio,
                   username: user.username,
                   id: user.id,
                   email: user.email,
@@ -184,6 +191,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 },
                 from: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,

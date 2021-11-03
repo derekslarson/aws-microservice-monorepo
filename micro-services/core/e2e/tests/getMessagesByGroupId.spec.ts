@@ -69,6 +69,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 },
                 from: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,
@@ -97,6 +98,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 },
                 from: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,
@@ -143,6 +145,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 },
                 from: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,
@@ -181,6 +184,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 },
                 from: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,

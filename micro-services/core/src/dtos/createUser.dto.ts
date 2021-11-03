@@ -7,6 +7,7 @@ const PhoneOptional = Record({
   username: String,
   realName: String,
   phone: Optional(Phone),
+  bio: Optional(String),
 });
 
 const EmailOptional = Record({
@@ -14,6 +15,7 @@ const EmailOptional = Record({
   username: String,
   realName: String,
   email: Optional(Email),
+  bio: Optional(String),
 });
 
 export const CreateUserDto = Record({ body: Union(PhoneOptional, EmailOptional) });

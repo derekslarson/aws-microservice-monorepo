@@ -75,6 +75,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 },
                 from: {
                   realName: user.realName,
+                  bio: user.bio,
                   username: user.username,
                   id: user.id,
                   email: user.email,
@@ -103,6 +104,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 },
                 from: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,
@@ -150,6 +152,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 },
                 from: {
                   realName: user.realName,
+                  bio: user.bio,
                   username: user.username,
                   id: user.id,
                   email: user.email,
@@ -189,6 +192,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 },
                 from: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,

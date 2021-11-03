@@ -97,6 +97,7 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
               phone: otherUser.phone,
               username: otherUser.username,
               realName: otherUser.realName,
+              bio: otherUser.bio,
               image: jasmine.stringMatching(URL_REGEX),
             },
           },

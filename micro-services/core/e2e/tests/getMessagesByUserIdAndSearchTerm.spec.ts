@@ -80,6 +80,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -107,6 +108,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -155,6 +157,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,

@@ -12,7 +12,7 @@ import { FriendConversation, GroupConversation, MeetingConversation, RawConversa
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage, createUser, createRandomUser, CreateRandomUserOutput, generateRandomPhone } from "../util";
+import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage, createUser, createRandomUser, CreateRandomUserOutput, generateRandomPhone, CreateUserOutput } from "../util";
 
 describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -24,7 +24,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
     const searchParamPhone = generateRandomPhone();
 
     let user: CreateRandomUserOutput["user"];
-    let otherUser: CreateRandomUserOutput["user"];
+    let otherUser: CreateUserOutput["user"];
     let accessToken: string;
 
     let meeting: RawConversation<MeetingConversation>;
@@ -47,6 +47,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
         createRandomUser(),
         createUser({
           realName: `${generateRandomString(10)} ${searchParamNameRealName}`,
+          bio: `${generateRandomString(10)}`,
           email: `${generateRandomString(10)}${searchParamEmail}@test.com`,
           username: `${generateRandomString(10)}-${searchParamUserName}`,
           phone: searchParamPhone,
@@ -86,6 +87,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               {
                 id: otherUser.id,
                 realName: otherUser.realName,
+                bio: otherUser.bio,
                 username: otherUser.username,
                 email: otherUser.email,
                 phone: otherUser.phone,
@@ -118,6 +120,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -180,6 +183,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               {
                 id: otherUser.id,
                 realName: otherUser.realName,
+                bio: otherUser.bio,
                 username: otherUser.username,
                 email: otherUser.email,
                 phone: otherUser.phone,
@@ -214,6 +218,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -285,6 +290,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               {
                 id: otherUser.id,
                 realName: otherUser.realName,
+                bio: otherUser.bio,
                 username: otherUser.username,
                 email: otherUser.email,
                 phone: otherUser.phone,
@@ -338,6 +344,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -483,6 +490,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -520,6 +528,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 {
                   id: otherUser.id,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,
                   phone: otherUser.phone,
@@ -564,6 +573,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 {
                   id: otherUser.id,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,
                   phone: otherUser.phone,
@@ -595,6 +605,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 {
                   id: otherUser.id,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,
                   phone: otherUser.phone,
@@ -626,6 +637,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 {
                   id: otherUser.id,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,
                   phone: otherUser.phone,

@@ -25,7 +25,7 @@ export class UserService implements UserServiceInterface {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const { email, phone, username, realName } = params;
+      const { email, phone, username, realName, bio } = params;
 
       const userId: UserId = `${KeyPrefix.User}${this.idService.generateId()}`;
 
@@ -38,6 +38,7 @@ export class UserService implements UserServiceInterface {
         phone,
         username,
         realName,
+        bio,
       };
 
       await Promise.all([
@@ -206,6 +207,7 @@ interface BaseCreateUserInput {
   phone?: string;
   username?: string;
   realName?: string;
+  bio?: string;
 }
 interface CreateUserEmailRequiredInput extends Omit<BaseCreateUserInput, "email"> {
   email: string;
