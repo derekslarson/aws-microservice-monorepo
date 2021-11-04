@@ -11,11 +11,16 @@ const TYPES = {
   AuthenticationServiceInterface: Symbol.for("AuthenticationServiceInterface"),
   AuthorizationServiceInterface: Symbol.for("AuthorizationServiceInterface"),
   ClientServiceInterface: Symbol.for("ClientServiceInterface"),
+  ExternalProviderUserMappingServiceInterface: Symbol.for("ExternalProviderUserMappingServiceInterface"),
   MailServiceInterface: Symbol.for("MailServiceInterface"),
 
+  ExternalProviderUserMappingFoundProcessorServiceInterface: Symbol.for("ExternalProviderUserMappingFoundProcessorServiceInterface"),
   UserCreatedProcessorServiceInterface: Symbol.for("UserCreatedProcessorServiceInterface"),
 
   ClientsUpdatedSnsServiceInterface: Symbol.for("ClientsUpdatedSnsServiceInterface"),
+  ExternalProviderUserSignedUpSnsServiceInterface: Symbol.for("ExternalProviderUserSignedUpSnsServiceInterface"),
+
+  ExternalProviderUserMappingRepositoryInterface: Symbol.for("ExternalProviderUserMappingRepositoryInterface"),
 
   CognitoFactory: Symbol.for("CognitoFactory"),
   SesFactory: Symbol.for("SesFactory"),

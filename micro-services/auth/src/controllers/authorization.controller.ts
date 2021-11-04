@@ -4,7 +4,6 @@ import { injectable, inject } from "inversify";
 import { BadRequestError, BaseController, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
 
 import { TYPES } from "../inversion-of-control/types";
-import { EnvConfigInterface } from "../config/env.config";
 import { AuthorizeDto } from "../dtos/authorize.dto";
 import { AuthorizationServiceInterface } from "../services/authorization.service";
 import { ClientServiceInterface } from "../services/client.service";
@@ -16,7 +15,6 @@ export class AuthorizationController extends BaseController implements Authoriza
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.AuthorizationServiceInterface) private authorizationService: AuthorizationServiceInterface,
     @inject(TYPES.ClientServiceInterface) private clientService: ClientServiceInterface,
-    @inject(TYPES.EnvConfigInterface) private config: AuthorizationControllerConfigInterface,
   ) {
     super();
   }
@@ -44,37 +42,19 @@ export class AuthorizationController extends BaseController implements Authoriza
         throw new BadRequestError("code_challenge required");
       }
 
-      if (identityProvider === "Google") {
-        const { location, cookies } = await this.authorizationService.getGoogleSigninRedirectData({
-          clientId,
-          state,
-          responseType,
-          redirectUri,
-          codeChallenge,
-          codeChallengeMethod,
-          scope,
-        });
-
-        return this.generateSeeOtherResponse(location, {}, cookies);
-      }
-
-      const { xsrfToken } = await this.authorizationService.getXsrfToken({
+      const { location, cookies } = await this.authorizationService.getAuthorizationRedirectData({
+        host: request.headers.host as string,
         clientId,
-        state,
         responseType,
         redirectUri,
         codeChallenge,
         codeChallengeMethod,
+        identityProvider,
+        state,
         scope,
       });
 
-      const optionalQueryParams = { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod, state, scope };
-      const optionalQueryString = Object.entries(optionalQueryParams).reduce((acc, [ key, value ]) => (value ? `${acc}&${key}=${value}` : acc), "");
-
-      const redirectLocation = `${this.config.authUI}?client_id=${clientId}&redirect_uri=${redirectUri}${optionalQueryString}`;
-      const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Domain=${request.headers.host as string}; Secure; HttpOnly; SameSite=Lax`;
-
-      return this.generateSeeOtherResponse(redirectLocation, {}, [ xsrfTokenCookie ]);
+      return this.generateSeeOtherResponse(location, {}, cookies);
     } catch (error: unknown) {
       this.loggerService.error("Error in oauth2Authorize", { error, request }, this.constructor.name);
 
@@ -82,7 +62,6 @@ export class AuthorizationController extends BaseController implements Authoriza
     }
   }
 }
-export type AuthorizationControllerConfigInterface = Pick<EnvConfigInterface, "userPool" | "authUI">;
 
 export interface AuthorizationControllerInterface {
   authorize(request: Request): Promise<Response>;

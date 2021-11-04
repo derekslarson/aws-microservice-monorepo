@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { AWSError, CognitoIdentityServiceProvider, SecretsManager } from "aws-sdk";
 import { BadRequestError, Crypto, CryptoFactory, HttpRequestServiceInterface, LoggerServiceInterface, SecretsManagerFactory, SmsServiceInterface } from "@yac/util";
+import { UserType } from "aws-sdk/clients/cognitoidentityserviceprovider";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
@@ -73,6 +74,25 @@ export class AuthenticationService implements AuthenticationServiceInterface {
       }
 
       this.loggerService.error("Error in createUser", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getUsersByEmail(params: GetUsersByEmailInput): Promise<GetUsersByEmailOutput> {
+    try {
+      this.loggerService.trace("getUsersByEmail called", { params }, this.constructor.name);
+
+      const { email } = params;
+
+      const { Users = [] } = await this.cognito.listUsers({
+        UserPoolId: this.config.userPool.id,
+        Filter: `email = "${email}"`,
+      }).promise();
+
+      return { users: Users };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersByEmail", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -273,6 +293,7 @@ export type AuthenticationServiceConfigInterface = Pick<EnvConfigInterface, "use
 
 export interface AuthenticationServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
+  getUsersByEmail(params: GetUsersByEmailInput): Promise<GetUsersByEmailOutput>;
   login(params: LoginInput): Promise<LoginOutput>;
   confirm(params: ConfirmInput): Promise<ConfirmOutput>;
 }
@@ -343,4 +364,12 @@ export interface GetAuthorizationCodeInput {
 
 export interface GetAuthorizationCodeOutput {
   authorizationCode: string;
+}
+
+export interface GetUsersByEmailInput {
+  email: string;
+}
+
+export interface GetUsersByEmailOutput {
+  users: UserType[];
 }

@@ -16,6 +16,9 @@ import { UserCreatedProcessorService } from "../processor-services/userCreated.p
 import { AuthorizationService, AuthorizationServiceInterface } from "../services/authorization.service";
 import { AuthorizationController, AuthorizationControllerInterface } from "../controllers/authorization.controller";
 import { ClientsUpdatedSnsService, ClientsUpdatedSnsServiceInterface } from "../sns-services/clientsUpdated.sns.service";
+import { ExternalProviderUserMappingDynamoRepository, ExternalProviderUserMappingRepositoryInterface } from "../repositories/externalProviderUserMapping.dynamo.repository";
+import { ExternalProviderUserMappingService, ExternalProviderUserMappingServiceInterface } from "../services/externalProviderUserMapping.service";
+import { ExternalProviderUserSignedUpSnsService, ExternalProviderUserSignedUpSnsServiceInterface } from "../sns-services/externalProviderUserSignedUp.sns.service";
 
 const container = new Container();
 
@@ -31,11 +34,15 @@ try {
   container.bind<AuthenticationServiceInterface>(TYPES.AuthenticationServiceInterface).to(AuthenticationService);
   container.bind<AuthorizationServiceInterface>(TYPES.AuthorizationServiceInterface).to(AuthorizationService);
   container.bind<ClientServiceInterface>(TYPES.ClientServiceInterface).to(ClientService);
+  container.bind<ExternalProviderUserMappingServiceInterface>(TYPES.ExternalProviderUserMappingServiceInterface).to(ExternalProviderUserMappingService);
   container.bind<MailServiceInterface>(TYPES.MailServiceInterface).to(MailService);
 
   container.bind<ClientsUpdatedSnsServiceInterface>(TYPES.ClientsUpdatedSnsServiceInterface).to(ClientsUpdatedSnsService);
+  container.bind<ExternalProviderUserSignedUpSnsServiceInterface>(TYPES.ExternalProviderUserSignedUpSnsServiceInterface).to(ExternalProviderUserSignedUpSnsService);
 
   container.bind<SnsProcessorServiceInterface>(TYPES.UserCreatedProcessorServiceInterface).to(UserCreatedProcessorService);
+
+  container.bind<ExternalProviderUserMappingRepositoryInterface>(TYPES.ExternalProviderUserMappingRepositoryInterface).to(ExternalProviderUserMappingDynamoRepository);
 
   container.bind<CognitoFactory>(TYPES.CognitoFactory).toFactory(() => cognitoFactory);
   container.bind<SesFactory>(TYPES.SesFactory).toFactory(() => sesFactory);

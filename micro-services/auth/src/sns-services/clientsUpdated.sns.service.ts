@@ -32,4 +32,6 @@ export interface ClientsUpdatedSnsServiceInterface {
   sendMessage(): Promise<void>;
 }
 
-export type ClientsUpdatedSnsServiceConfigInterface = Pick<EnvConfigInterface, "snsTopicArns">;
+export type ClientsUpdatedSnsServiceConfigInterface = {
+  snsTopicArns: Pick<EnvConfigInterface["snsTopicArns"], "clientsUpdated">
+};

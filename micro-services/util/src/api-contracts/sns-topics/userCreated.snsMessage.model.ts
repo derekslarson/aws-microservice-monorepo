@@ -1,5 +1,7 @@
+import { UserId } from "../../types";
+
 export type UserCreatedSnsMessage = {
-  id: string;
+  id: UserId;
   email?: string;
   phone?: string;
 };

@@ -14,6 +14,7 @@ import * as CloudFront from "@aws-cdk/aws-cloudfront";
 import * as CFOrigins from "@aws-cdk/aws-cloudfront-origins";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as S3Deployment from "@aws-cdk/aws-s3-deployment";
+import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import {
   Environment,
   HttpApi,
@@ -33,6 +34,7 @@ import {
   AuthServiceOauth2AuthorizeMethod,
 } from "@yac/util";
 import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export type IYacAuthServiceStackProps = IYacHttpServiceProps;
 
@@ -53,10 +55,26 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const ExportNames = generateExportNames(stackPrefix);
     const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
 
+    const externalProviderUserSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.ExternalProviderUserSignedUpSnsTopicArn);
+
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
       compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
       code: Lambda.Code.fromAsset("dist/dependencies"),
+    });
+
+    // Tables
+    const authTable = new DynamoDB.Table(this, `AuthTable_${id}`, {
+      billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
+      partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
+      sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
+      removalPolicy: CDK.RemovalPolicy.DESTROY,
+    });
+
+    authTable.addGlobalSecondaryIndex({
+      indexName: GlobalSecondaryIndex.One,
+      partitionKey: { name: "gsi1pk", type: DynamoDB.AttributeType.STRING },
+      sortKey: { name: "gsi1sk", type: DynamoDB.AttributeType.STRING },
     });
 
     const authSecret = new SecretsManager.Secret(this, `AuthSecret_${id}`);
@@ -103,12 +121,24 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       resources: [ "*" ],
     });
 
+    const authTableFullAccessPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "dynamodb:*" ],
+      resources: [ authTable.tableArn, `${authTable.tableArn}/*` ],
+    });
+
+    const externalProviderUserSignedUpSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ externalProviderUserSignedUpSnsTopicArn ],
+    });
+
     // User Pool Lambdas
     const userPoolLambaEnvVars: Record<string, string> = {
       AUTH_SECRET_ID: authSecret.secretArn,
       ENVIRONMENT: environment,
       STACK_PREFIX: stackPrefix,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Info}`,
+      EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN: externalProviderUserSignedUpSnsTopicArn,
+      AUTH_TABLE_NAME: authTable.tableName,
     };
 
     const preSignUpHandler = new Lambda.Function(this, `PreSignUpHandler_${id}`, {
@@ -120,6 +150,17 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       memorySize: 2048,
       timeout: CDK.Duration.seconds(15),
       initialPolicy: [ cognitoIdpFullAccessPolicyStatement ],
+    });
+
+    const postConfirmationHandler = new Lambda.Function(this, `PostConfirmationHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/postConfirmation"),
+      handler: "postConfirmation.handler",
+      layers: [ dependencyLayer ],
+      environment: userPoolLambaEnvVars,
+      memorySize: 2048,
+      timeout: CDK.Duration.seconds(15),
+      initialPolicy: [ cognitoIdpFullAccessPolicyStatement, authTableFullAccessPolicyStatement, externalProviderUserSignedUpSnsPublishPolicyStatement ],
     });
 
     const defineAuthChallengeHandler = new Lambda.Function(this, `DefineAuthChallengeHandler_${id}`, {
@@ -161,6 +202,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       customAttributes: { authChallenge: new Cognito.StringAttribute({ mutable: true }) },
       lambdaTriggers: {
         preSignUp: preSignUpHandler,
+        postConfirmation: postConfirmationHandler,
         defineAuthChallenge: defineAuthChallengeHandler,
         createAuthChallenge: createAuthChallengeHandler,
         verifyAuthChallengeResponse: verifyAuthChallengeResponseHandler,
@@ -307,9 +349,26 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       YAC_AUTH_UI: yacUserPoolClientRedirectUri,
       CLIENTS_UPDATED_SNS_TOPIC_ARN: this.clientsUpdatedSnsTopic.topicArn,
       USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
+      EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN: externalProviderUserSignedUpSnsTopicArn,
+      AUTH_TABLE_NAME: authTable.tableName,
     };
 
     // Handlers
+    new Lambda.Function(this, `SnsEventHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
+      handler: "snsEvent.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, getAuthSecretPolicyStatement, authTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+      events: [
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserCreatedSnsTopic_${id}`, userCreatedSnsTopicArn)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `ExternalProviderUserMappingFoundSnsTopic_${id}`, externalProviderUserMappingFoundSnsTopicArn)),
+      ],
+    });
+
     new Lambda.Function(this, `SetAuthorizerAudiencesHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/setAuthorizerAudiences"),
@@ -321,20 +380,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       initialPolicy: [ ...basePolicy, adminPolicyStatement ],
       events: [
         new LambdaEventSources.SnsEventSource(this.clientsUpdatedSnsTopic),
-      ],
-    });
-
-    new Lambda.Function(this, `UserCreatedHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/userCreated"),
-      handler: "userCreated.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      memorySize: 2048,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, getAuthSecretPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-      events: [
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserCreatedSnsTopic_${id}`, userCreatedSnsTopicArn)),
       ],
     });
 

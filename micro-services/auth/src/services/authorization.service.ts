@@ -11,14 +11,22 @@ export class AuthorizationService implements AuthorizationServiceInterface {
     @inject(TYPES.EnvConfigInterface) private config: AuthorizationServiceConfigInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestServiceInterface,
-  ) {
-  }
+  ) {}
 
-  public async getXsrfToken(params: GetXsrfTokenInput): Promise<GetXsrfTokenOutput> {
+  public async getAuthorizationRedirectData(params: GetAuthorizationRedirectDataInput): Promise<GetAuthorizationRedirectDataOutput> {
     try {
-      this.loggerService.trace("getXsrfToken called", { params }, this.constructor.name);
+      this.loggerService.trace("getAuthorizationRedirectData called", { params }, this.constructor.name);
 
-      const { clientId, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope } = params;
+      const { host, clientId, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope, identityProvider } = params;
+
+      const optionalQueryParams = { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod, state, scope };
+      const optionalQueryString = Object.entries(optionalQueryParams).reduce((acc, [ key, value ]) => (value ? `${acc}&${key}=${value}` : acc), "");
+
+      if (identityProvider) {
+        const location = `${this.config.userPool.domain}/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&identity_provider=${identityProvider}&response_type=${responseType}${optionalQueryString}`;
+
+        return { location, cookies: [] };
+      }
 
       const authorizeResponse = await this.httpRequestService.get(`${this.config.userPool.domain}/oauth2/authorize`, {
         response_type: responseType,
@@ -40,61 +48,26 @@ export class AuthorizationService implements AuthorizationServiceInterface {
 
       const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
 
-      return { xsrfToken };
+      const location = `${this.config.authUI}?client_id=${clientId}&redirect_uri=${redirectUri}${optionalQueryString}`;
+      const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Domain=${host}; Secure; HttpOnly; SameSite=Lax`;
+
+      return { location, cookies: [ xsrfTokenCookie ] };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getXsrfToken", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getGoogleSigninRedirectData(params: GetGoogleSigninRedirectDataInput): Promise<GetGoogleSigninRedirectDataOutput> {
-    try {
-      this.loggerService.trace("getGoogleSigninRedirectData called", { params }, this.constructor.name);
-
-      const { clientId, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope } = params;
-
-      const authorizeResponse = await this.httpRequestService.get(`${this.config.userPool.domain}/oauth2/authorize`, {
-        response_type: responseType,
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        identity_provider: "Google",
-        ...(state && { state }),
-        ...(codeChallenge && { code_challenge: codeChallenge }),
-        ...(codeChallengeMethod && { code_challenge_method: codeChallengeMethod }),
-        ...(scope && { scope }),
-      }, {}, { maxRedirects: 0, validateStatus: (status) => status === 302 });
-
-      const { location } = authorizeResponse.headers;
-      const cookies = authorizeResponse.headers["set-cookie"];
-
-      if (typeof location !== "string") {
-        throw new Error("Malformed 'location' header in response.");
-      }
-
-      if (!Array.isArray(cookies)) {
-        throw new Error("Malformed 'set-cookie' header in response.");
-      }
-
-      const locationWithAccessType = `${location}&access_type=offline`;
-
-      return { location: locationWithAccessType, cookies };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getGoogleSigninRedirectData", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getAuthorizationRedirectData", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 }
 
-export type AuthorizationServiceConfigInterface = Pick<EnvConfigInterface, "userPool" | "apiDomain">;
+export type AuthorizationServiceConfigInterface = Pick<EnvConfigInterface, "userPool" | "apiDomain" | "authUI">;
 
 export interface AuthorizationServiceInterface {
-  getXsrfToken(params: GetXsrfTokenInput): Promise<GetXsrfTokenOutput>;
-  getGoogleSigninRedirectData(params: GetGoogleSigninRedirectDataInput): Promise<GetGoogleSigninRedirectDataOutput>;
+  getAuthorizationRedirectData(params: GetAuthorizationRedirectDataInput): Promise<GetAuthorizationRedirectDataOutput>;
 }
 
-export interface GetXsrfTokenInput {
+export interface GetAuthorizationRedirectDataInput {
+  host: string;
   clientId: string;
   responseType: string;
   redirectUri: string;
@@ -102,23 +75,10 @@ export interface GetXsrfTokenInput {
   codeChallenge?: string;
   codeChallengeMethod?: string;
   scope?: string;
+  identityProvider?: string;
 }
 
-export interface GetXsrfTokenOutput {
-  xsrfToken: string;
-}
-
-export interface GetGoogleSigninRedirectDataInput {
-  clientId: string;
-  responseType: string;
-  redirectUri: string;
-  state?: string;
-  codeChallenge?: string;
-  codeChallengeMethod?: string;
-  scope?: string;
-}
-
-export interface GetGoogleSigninRedirectDataOutput {
+export interface GetAuthorizationRedirectDataOutput {
   location: string;
   cookies: string[];
 }

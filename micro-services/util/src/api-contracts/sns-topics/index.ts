@@ -19,3 +19,5 @@ export * from "./meetingMessageCreated.snsMessage.model";
 export * from "./meetingMessageUpdated.snsMessage.model";
 export * from "./messageTranscoded.snsMessage.model";
 export * from "./messageTranscribed.snsMessage.model";
+export * from "./externalProviderUserSignedUp.snsMessage.model";
+export * from "./externalProviderUserMappingFound.snsMessage.model";

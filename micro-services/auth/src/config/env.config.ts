@@ -5,10 +5,12 @@ export const envConfig: EnvConfigInterface = {
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   apiDomain: process.env.API_DOMAIN || "",
   bucketNames: {},
-  tableNames: { pkce: process.env.PKCE_TABLE_NAME || "" },
+  tableNames: { auth: process.env.AUTH_TABLE_NAME || "" },
+  globalSecondaryIndexNames: { one: process.env.GSI_ONE_INDEX_NAME || "" },
   snsTopicArns: {
     clientsUpdated: process.env.CLIENTS_UPDATED_SNS_TOPIC_ARN || "",
     userCreated: process.env.USER_CREATED_SNS_TOPIC_ARN || "",
+    externalProviderUserSignedUp: process.env.EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN || "",
   },
   mailSender: process.env.MAIL_SENDER || "",
   authUI: process.env.YAC_AUTH_UI || "",
@@ -24,10 +26,18 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   authSecretId: string;
   apiDomain: string;
   mailSender: string;
-  tableNames: {
-    pkce: string;
-  };
   authUI: string;
+  tableNames: {
+    auth: string;
+  };
+  globalSecondaryIndexNames: {
+    one: string;
+  }
+  snsTopicArns: {
+    clientsUpdated: string;
+    userCreated: string;
+    externalProviderUserSignedUp: string;
+  }
   userPool: {
     id: string;
     domain: string;
