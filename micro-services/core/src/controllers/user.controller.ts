@@ -12,6 +12,7 @@ import { GetUsersByGroupIdDto } from "../dtos/getUsersByGroupId.dto";
 import { GetUsersByMeetingIdDto } from "../dtos/getUsersByMeetingId.dto";
 import { CreateUserDto } from "../dtos/createUser.dto";
 import { GetUserImageUploadUrlDto } from "../dtos/getUserImageUploadUrl.dto";
+import { UpdateUserByUserIdDto } from "../dtos/updateUserByUserId.dto";
 
 @injectable()
 export class UserController extends BaseController implements UserControllerInterface {
@@ -24,6 +25,32 @@ export class UserController extends BaseController implements UserControllerInte
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
   ) {
     super();
+  }
+
+  public async updateUserByUserId(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("updateUserByUserId called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { userId },
+        body,
+      } = this.validationService.validate({ dto: UpdateUserByUserIdDto, request, getUserIdFromJwt: true });
+
+      if (jwtId !== userId) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      await this.userMediatorService.updateUserByUserId({ userId, ...body });
+
+      const response: UpdateUserByUserIdResponse = { message: "User updated." };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateUserByUserId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
   }
 
   public async createUser(request: Request): Promise<Response> {
@@ -174,6 +201,7 @@ export class UserController extends BaseController implements UserControllerInte
 
 export interface UserControllerInterface {
   createUser(request: Request): Promise<Response>;
+  updateUserByUserId(request: Request): Promise<Response>;
   getUser(request: Request): Promise<Response>;
   getUserImageUploadUrl(request: Request): Promise<Response>;
   getUsersByTeamId(request: Request): Promise<Response>;
@@ -183,6 +211,10 @@ export interface UserControllerInterface {
 
 interface CreateUserResponse {
   user: User;
+}
+
+interface UpdateUserByUserIdResponse {
+  message: "User updated.";
 }
 
 interface GetUserResponse {

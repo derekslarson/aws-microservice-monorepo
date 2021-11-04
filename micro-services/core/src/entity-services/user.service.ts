@@ -56,6 +56,22 @@ export class UserService implements UserServiceInterface {
     }
   }
 
+  public async updateUserByUserId(params: UpdateUserByUserIdInput): Promise<UpdateUserByUserIdOutput> {
+    try {
+      this.loggerService.trace("updateUserByUserId called", { params }, this.constructor.name);
+
+      const { userId, realName, bio } = params;
+
+      await this.userRepository.updateUser({ userId, updates: { realName, bio } });
+
+      return;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUser", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getUser(params: GetUserInput): Promise<GetUserOutput> {
     try {
       this.loggerService.trace("getUser called", { params }, this.constructor.name);
@@ -193,6 +209,7 @@ export interface User extends Omit<UserEntity, "imageMimeType"> {
 
 export interface UserServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
+  updateUserByUserId(params: UpdateUserByUserIdInput): Promise<UpdateUserByUserIdOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
   updateUser(params: UpdateUserInput): Promise<UpdateUserOutput>;
   getUsers(params: GetUsersInput): Promise<GetUsersOutput>;
@@ -222,6 +239,12 @@ export type CreateUserInput = CreateUserEmailRequiredInput | CreateUserPhoneRequ
 export interface CreateUserOutput {
   user: User;
 }
+
+export type UpdateUserByUserIdInput = Pick<BaseCreateUserInput, "realName" | "bio"> & {
+  userId: UserId;
+};
+
+export type UpdateUserByUserIdOutput = void;
 
 export interface GetUserInput {
   userId: UserId;

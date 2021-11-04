@@ -371,6 +371,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const updateUserByUserIdHandler = new Lambda.Function(this, `UpdateUserByUserId${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateUserByUserId"),
+      handler: "updateUserByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const getUserHandler = new Lambda.Function(this, `GetUser_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getUser"),
@@ -832,6 +843,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createUserHandler,
+      },
+      {
+        path: "/users/{userId}",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateUserByUserIdHandler,
+        authorizationScopes: [ "yac/user.write" ],
       },
       {
         path: "/users/{userId}",
