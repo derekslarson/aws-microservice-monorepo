@@ -83,7 +83,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const { userId, realName, bio } = params;
 
-      await this.userService.updateUserByUserId({ userId, realName, bio });
+      await this.userService.updateUser({ userId, updates: { realName, bio } });
 
       return;
     } catch (error: unknown) {
