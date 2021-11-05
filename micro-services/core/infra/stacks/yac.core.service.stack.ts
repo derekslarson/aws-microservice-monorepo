@@ -371,10 +371,10 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const updateUserByUserIdHandler = new Lambda.Function(this, `UpdateUserByUserId${id}`, {
+    const updateUserHandler = new Lambda.Function(this, `UpdateUser${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/updateUserByUserId"),
-      handler: "updateUserByUserId.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/updateUser"),
+      handler: "updateUser.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -847,7 +847,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       {
         path: "/users/{userId}",
         method: ApiGatewayV2.HttpMethod.PATCH,
-        handler: updateUserByUserIdHandler,
+        handler: updateUserHandler,
         authorizationScopes: [ "yac/user.write" ],
       },
       {

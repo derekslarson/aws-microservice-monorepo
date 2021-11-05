@@ -77,7 +77,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
     }
   }
 
-  public async updateUserByUserId(params: UpdateUserByUserIdInput): Promise<UpdateUserByUserIdOutput> {
+  public async updateUser(params: UpdateUserInput): Promise<UpdateUserOutput> {
     try {
       this.loggerService.trace("getUser called", { params }, this.constructor.name);
 
@@ -336,7 +336,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
 export interface UserMediatorServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
-  updateUserByUserId(params: UpdateUserByUserIdInput): Promise<UpdateUserByUserIdOutput>;
+  updateUser(params: UpdateUserInput): Promise<UpdateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
   getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput>;
   getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput>;
@@ -373,11 +373,11 @@ export interface CreateUserOutput {
   user: User;
 }
 
-export type UpdateUserByUserIdInput = Pick<BaseCreateUserInput, "realName" | "bio"> & {
+export type UpdateUserInput = Pick<User, "realName" | "bio"> & {
   userId: UserId;
 };
 
-export type UpdateUserByUserIdOutput = void;
+export type UpdateUserOutput = void;
 export interface GetUserInput {
   userId: UserId;
 }

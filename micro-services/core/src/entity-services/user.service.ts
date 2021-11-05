@@ -223,12 +223,6 @@ export interface CreateUserOutput {
   user: User;
 }
 
-export type UpdateUserByUserIdInput = Pick<BaseCreateUserInput, "realName" | "bio"> & {
-  userId: UserId;
-};
-
-export type UpdateUserByUserIdOutput = void;
-
 export interface GetUserInput {
   userId: UserId;
 }

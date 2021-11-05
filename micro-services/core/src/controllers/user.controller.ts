@@ -12,7 +12,7 @@ import { GetUsersByGroupIdDto } from "../dtos/getUsersByGroupId.dto";
 import { GetUsersByMeetingIdDto } from "../dtos/getUsersByMeetingId.dto";
 import { CreateUserDto } from "../dtos/createUser.dto";
 import { GetUserImageUploadUrlDto } from "../dtos/getUserImageUploadUrl.dto";
-import { UpdateUserByUserIdDto } from "../dtos/updateUserByUserId.dto";
+import { UpdateUserDto } from "../dtos/updateUser.dto";
 
 @injectable()
 export class UserController extends BaseController implements UserControllerInterface {
@@ -27,27 +27,27 @@ export class UserController extends BaseController implements UserControllerInte
     super();
   }
 
-  public async updateUserByUserId(request: Request): Promise<Response> {
+  public async updateUser(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("updateUserByUserId called", { request }, this.constructor.name);
+      this.loggerService.trace("updateUser called", { request }, this.constructor.name);
 
       const {
         jwtId,
         pathParameters: { userId },
         body,
-      } = this.validationService.validate({ dto: UpdateUserByUserIdDto, request, getUserIdFromJwt: true });
+      } = this.validationService.validate({ dto: UpdateUserDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.userMediatorService.updateUserByUserId({ userId, ...body });
+      await this.userMediatorService.updateUser({ userId, ...body });
 
-      const response: UpdateUserByUserIdResponse = { message: "User updated." };
+      const response: UpdateUserResponse = { message: "User updated." };
 
       return this.generateSuccessResponse(response);
     } catch (error: unknown) {
-      this.loggerService.error("Error in updateUserByUserId", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in updateUser", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -201,7 +201,7 @@ export class UserController extends BaseController implements UserControllerInte
 
 export interface UserControllerInterface {
   createUser(request: Request): Promise<Response>;
-  updateUserByUserId(request: Request): Promise<Response>;
+  updateUser(request: Request): Promise<Response>;
   getUser(request: Request): Promise<Response>;
   getUserImageUploadUrl(request: Request): Promise<Response>;
   getUsersByTeamId(request: Request): Promise<Response>;
@@ -213,7 +213,7 @@ interface CreateUserResponse {
   user: User;
 }
 
-interface UpdateUserByUserIdResponse {
+interface UpdateUserResponse {
   message: "User updated.";
 }
 

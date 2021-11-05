@@ -1,59 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
+import { generateRandomString } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { CreateRandomUserOutput, createRandomUser } from "../util";
+import { getUser } from "../util";
+import { UserId } from "../../src/types/userId.type";
 
 describe("PATCH /users/{userId} (Update User by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
-  let user: CreateRandomUserOutput["user"];
-  let accessToken: string;
-
-  beforeEach(async () => {
-    ({ user } = await createRandomUser());
-    ({ accessToken } = await getAccessTokenByEmail(user.email));
-  });
+  const userId = process.env.userId as UserId;
+  const accessToken = process.env.accessToken as string;
 
   describe("under normal conditions", () => {
-    describe("when passed a 'bio' value", () => {
-      const body = { bio: generateRandomString(5) };
-
-      it("returns a valid response", async () => {
-        const headers = { Authorization: `Bearer ${accessToken}` };
-
-        try {
-          const { status, data } = await axios.patch(`${baseUrl}/users/${user.id}`, body, { headers });
-
-          expect(status).toBe(200);
-          expect(data).toEqual({ message: "User updated." });
-        } catch (error) {
-          fail(error);
-        }
-      });
-
-      it("updates the User entity", async () => {
-        const headers = { Authorization: `Bearer ${accessToken}` };
-
-        try {
-          await axios.patch(`${baseUrl}/users/${user.id}`, body, { headers });
-
-          const { data } = await axios.get(`${baseUrl}/users/${user.id}`, { headers });
-
-          expect(data.user).toEqual({
-            ...data.user,
-            ...body,
-          });
-        } catch (error) {
-          fail(error);
-        }
-      });
-
-      // it("publishes a valid SNS message", async () => {
-      // }, 45000);
-    });
-
     describe("when passed both 'bio' and 'realName' value", () => {
       const body = { bio: generateRandomString(5), realName: generateRandomString(5) };
 
@@ -61,7 +20,7 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.patch(`${baseUrl}/users/${user.id}`, body, { headers });
+          const { status, data } = await axios.patch(`${baseUrl}/users/${userId}`, body, { headers });
 
           expect(status).toBe(200);
           expect(data).toEqual({ message: "User updated." });
@@ -74,21 +33,18 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.patch(`${baseUrl}/users/${user.id}`, body, { headers });
+          await axios.patch(`${baseUrl}/users/${userId}`, body, { headers });
 
-          const { data } = await axios.get(`${baseUrl}/users/${user.id}`, { headers });
+          const { user: userEntity } = await getUser({ userId });
 
-          expect(data.user).toEqual({
-            ...data.user,
+          expect(userEntity).toEqual({
+            ...userEntity,
             ...body,
           });
         } catch (error) {
           fail(error);
         }
       });
-
-      // it("publishes a valid SNS message", async () => {
-      // }, 45000);
     });
   });
 
@@ -101,7 +57,7 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
         const body = { realName: generateRandomString(5), bio: generateRandomString(5) };
 
         try {
-          await axios.patch(`${baseUrl}/users/${user.id}`, body, { headers });
+          await axios.patch(`${baseUrl}/users/${userId}`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
