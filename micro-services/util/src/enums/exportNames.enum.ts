@@ -42,6 +42,7 @@ const ExportNames = {
   ChunkedUploadsVPCAvailabilityZone: "chunkedUploadsVPCAvailabilityZones",
   ChunkedUploadsVPCSecurityGroupSSM: "chunkedUploadsVPCSecurityGroupSSM",
   ExternalProviderUserSignedUpSnsTopicArn: "externalProviderUserSignedUpSnsTopicArn",
+  AuthorizerHandlerFunctionArn: "authorizerHandlerFunctionArn",
 };
 
 export function generateExportNames(id: string): Readonly<typeof ExportNames> {

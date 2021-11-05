@@ -5,7 +5,6 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { CognitoFactory } from "../factories/cognito.factory";
 import { ClientType } from "../enums/clientType.enum";
-import { ClientsUpdatedSnsServiceInterface } from "../sns-services/clientsUpdated.sns.service";
 
 @injectable()
 export class ClientService implements ClientServiceInterface {
@@ -13,7 +12,6 @@ export class ClientService implements ClientServiceInterface {
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.ClientsUpdatedSnsServiceInterface) private clientsUpdatedSnsService: ClientsUpdatedSnsServiceInterface,
     @inject(TYPES.EnvConfigInterface) private config: ClientServiceConfigInterface,
     @inject(TYPES.CognitoFactory) cognitoFactory: CognitoFactory,
   ) {
@@ -39,8 +37,6 @@ export class ClientService implements ClientServiceInterface {
       };
 
       const { UserPoolClient } = await this.cognito.createUserPoolClient(createClientParams).promise();
-
-      await this.clientsUpdatedSnsService.sendMessage();
 
       if (!UserPoolClient || !UserPoolClient.ClientId) {
         throw new Error("Malformed response from createUserPoolClient");
@@ -100,8 +96,6 @@ export class ClientService implements ClientServiceInterface {
       };
 
       await this.cognito.deleteUserPoolClient(deleteUserPoolClientParams).promise();
-
-      await this.clientsUpdatedSnsService.sendMessage();
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteClient", { error, params }, this.constructor.name);
 

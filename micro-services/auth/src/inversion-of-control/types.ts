@@ -17,7 +17,6 @@ const TYPES = {
   ExternalProviderUserMappingFoundProcessorServiceInterface: Symbol.for("ExternalProviderUserMappingFoundProcessorServiceInterface"),
   UserCreatedProcessorServiceInterface: Symbol.for("UserCreatedProcessorServiceInterface"),
 
-  ClientsUpdatedSnsServiceInterface: Symbol.for("ClientsUpdatedSnsServiceInterface"),
   ExternalProviderUserSignedUpSnsServiceInterface: Symbol.for("ExternalProviderUserSignedUpSnsServiceInterface"),
 
   ExternalProviderUserMappingRepositoryInterface: Symbol.for("ExternalProviderUserMappingRepositoryInterface"),

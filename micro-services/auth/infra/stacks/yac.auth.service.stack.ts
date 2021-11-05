@@ -317,25 +317,16 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       notResources: [ "arn:aws:sns:*:*:*" ],
     });
 
-    const clientsUpdatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "SNS:Publish" ],
-      resources: [ this.clientsUpdatedSnsTopic.topicArn ],
-    });
-
     const getAuthSecretPolicyStatement = new IAM.PolicyStatement({
       actions: [ "secretsmanager:GetSecretValue" ],
       resources: [ authSecret.secretArn ],
-    });
-
-    const adminPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "*" ],
-      resources: [ "*" ],
     });
 
     const basePolicy: IAM.PolicyStatement[] = [];
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
+      JWKS_URI: `https://cognito-idp.${this.region}.amazonaws.com/${userPool.userPoolId}/.well-known/jwks.json`,
       AUTH_SECRET_ID: authSecret.secretArn,
       ENVIRONMENT: environment,
       STACK_PREFIX: stackPrefix,
@@ -347,13 +338,24 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       YAC_USER_POOL_CLIENT_SECRET: yacUserPoolClientSecret,
       MAIL_SENDER: "no-reply@yac.com",
       YAC_AUTH_UI: yacUserPoolClientRedirectUri,
-      CLIENTS_UPDATED_SNS_TOPIC_ARN: this.clientsUpdatedSnsTopic.topicArn,
       USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
       EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN: externalProviderUserSignedUpSnsTopicArn,
       AUTH_TABLE_NAME: authTable.tableName,
+      GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
     };
 
     // Handlers
+    const authorizerHandler = new Lambda.Function(this, `Authorizer_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/authorizer"),
+      handler: "authorizer.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, authTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     new Lambda.Function(this, `SnsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
@@ -365,21 +367,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserCreatedSnsTopic_${id}`, userCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `ExternalProviderUserMappingFoundSnsTopic_${id}`, externalProviderUserMappingFoundSnsTopicArn)),
-      ],
-    });
-
-    new Lambda.Function(this, `SetAuthorizerAudiencesHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/setAuthorizerAudiences"),
-      handler: "setAuthorizerAudiences.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      memorySize: 2048,
-      timeout: CDK.Duration.seconds(15),
-      initialPolicy: [ ...basePolicy, adminPolicyStatement ],
-      events: [
-        new LambdaEventSources.SnsEventSource(this.clientsUpdatedSnsTopic),
       ],
     });
 
@@ -412,7 +399,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsUpdatedSnsPublishPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -423,7 +410,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, clientsUpdatedSnsPublishPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -536,6 +523,11 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     new CDK.CfnOutput(this, `YacUserPoolClientRedirectUriExport_${id}`, {
       exportName: ExportNames.YacUserPoolClientRedirectUri,
       value: yacUserPoolClientRedirectUri,
+    });
+
+    new CDK.CfnOutput(this, `AuthorizerHandlerFunctionArnExport_${id}`, {
+      exportName: ExportNames.AuthorizerHandlerFunctionArn,
+      value: authorizerHandler.functionArn,
     });
 
     new CDK.CfnOutput(this, `AuthServiceBaseUrlExport_${id}`, { value: this.httpApi.apiURL });

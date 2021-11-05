@@ -10,12 +10,11 @@ import { ExternalProviderUserMappingServiceInterface } from "../services/externa
 import { ExternalProviderUserSignedUpSnsServiceInterface } from "../sns-services/externalProviderUserSignedUp.sns.service";
 
 const cognito = new CognitoIdentityServiceProvider({});
+const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
+const externalProviderUserMappingService = container.get<ExternalProviderUserMappingServiceInterface>(TYPES.ExternalProviderUserMappingServiceInterface);
+const externalProviderUserSignedUpSnsService = container.get<ExternalProviderUserSignedUpSnsServiceInterface>(TYPES.ExternalProviderUserSignedUpSnsServiceInterface);
 
 export const handler = async (event: PostConfirmationTriggerEvent): Promise<PostConfirmationTriggerEvent> => {
-  const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
-  const externalProviderUserMappingService = container.get<ExternalProviderUserMappingServiceInterface>(TYPES.ExternalProviderUserMappingServiceInterface);
-  const externalProviderUserSignedUpSnsService = container.get<ExternalProviderUserSignedUpSnsServiceInterface>(TYPES.ExternalProviderUserSignedUpSnsServiceInterface);
-
   try {
     loggerService.trace("postConfirmation called", { event }, "postConfirmation handler");
 

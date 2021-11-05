@@ -56,7 +56,6 @@ export class YacUtilServiceStack extends CDK.Stack {
     const enhancedMessageS3Bucket = new S3.Bucket(this, `EnhancedMessageS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
 
     // SNS Topics
-    const clientsUpdatedSnsTopic = new SNS.Topic(this, `ClientsUpdatedSnsTopic_${id}`, { topicName: `ClientsUpdatedSnsTopic_${id}` });
     const userCreatedSnsTopic = new SNS.Topic(this, `UserCreatedSnsTopic_${id}`, { topicName: `UserCreatedSnsTopic_${id}` });
     const userAddedToTeamSnsTopic = new SNS.Topic(this, `UserAddedToTeamSnsTopic_${id}`, { topicName: `UserAddedToTeamSnsTopic_${id}` });
     const userRemovedFromTeamSnsTopic = new SNS.Topic(this, `UserRemovedFromTeamSnsTopic_${id}`, { topicName: `UserRemovedFromTeamSnsTopic_${id}` });
@@ -98,11 +97,6 @@ export class YacUtilServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `RegionalHostedZoneIdExport_${id}`, {
       exportName: ExportNames.RegionalHostedZoneId,
       value: domainName.regionalHostedZoneId,
-    });
-
-    new CDK.CfnOutput(this, `ClientsUpdatedSnsTopicExport_${id}`, {
-      exportName: ExportNames.ClientsUpdatedSnsTopicArn,
-      value: clientsUpdatedSnsTopic.topicArn,
     });
 
     new CDK.CfnOutput(this, `UserCreatedSnsTopicExport_${id}`, {

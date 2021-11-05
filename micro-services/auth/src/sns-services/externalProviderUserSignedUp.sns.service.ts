@@ -17,11 +17,11 @@ export class ExternalProviderUserSignedUpSnsService extends BaseSnsService<Exter
 
   public async sendMessage(message: ExternalProviderUserSignedUpSnsMessage): Promise<void> {
     try {
-      this.loggerService.trace("clientsUpdated called", {}, this.constructor.name);
+      this.loggerService.trace("sendMessage called", {}, this.constructor.name);
 
       await this.publish(message);
     } catch (error: unknown) {
-      this.loggerService.error("Error in clientsUpdated", { error }, this.constructor.name);
+      this.loggerService.error("Error in sendMessage", { error }, this.constructor.name);
 
       throw error;
     }

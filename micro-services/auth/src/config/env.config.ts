@@ -1,6 +1,7 @@
 import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util";
 
 export const envConfig: EnvConfigInterface = {
+  jwksUri: process.env.JWKS_URI || "",
   authSecretId: process.env.AUTH_SECRET_ID || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   apiDomain: process.env.API_DOMAIN || "",
@@ -8,7 +9,6 @@ export const envConfig: EnvConfigInterface = {
   tableNames: { auth: process.env.AUTH_TABLE_NAME || "" },
   globalSecondaryIndexNames: { one: process.env.GSI_ONE_INDEX_NAME || "" },
   snsTopicArns: {
-    clientsUpdated: process.env.CLIENTS_UPDATED_SNS_TOPIC_ARN || "",
     userCreated: process.env.USER_CREATED_SNS_TOPIC_ARN || "",
     externalProviderUserSignedUp: process.env.EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN || "",
   },
@@ -23,6 +23,7 @@ export const envConfig: EnvConfigInterface = {
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
+  jwksUri: string;
   authSecretId: string;
   apiDomain: string;
   mailSender: string;
@@ -34,7 +35,6 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     one: string;
   }
   snsTopicArns: {
-    clientsUpdated: string;
     userCreated: string;
     externalProviderUserSignedUp: string;
   }
