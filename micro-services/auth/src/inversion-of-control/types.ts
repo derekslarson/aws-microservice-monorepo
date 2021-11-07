@@ -13,6 +13,7 @@ const TYPES = {
   ClientServiceInterface: Symbol.for("ClientServiceInterface"),
   ExternalProviderUserMappingServiceInterface: Symbol.for("ExternalProviderUserMappingServiceInterface"),
   MailServiceInterface: Symbol.for("MailServiceInterface"),
+  UserPoolServiceInterface: Symbol.for("UserPoolServiceInterface"),
 
   ExternalProviderUserMappingFoundProcessorServiceInterface: Symbol.for("ExternalProviderUserMappingFoundProcessorServiceInterface"),
   UserCreatedProcessorServiceInterface: Symbol.for("UserCreatedProcessorServiceInterface"),

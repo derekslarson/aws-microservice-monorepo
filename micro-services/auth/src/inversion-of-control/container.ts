@@ -18,6 +18,7 @@ import { AuthorizationController, AuthorizationControllerInterface } from "../co
 import { ExternalProviderUserMappingDynamoRepository, ExternalProviderUserMappingRepositoryInterface } from "../repositories/externalProviderUserMapping.dynamo.repository";
 import { ExternalProviderUserMappingService, ExternalProviderUserMappingServiceInterface } from "../services/externalProviderUserMapping.service";
 import { ExternalProviderUserSignedUpSnsService, ExternalProviderUserSignedUpSnsServiceInterface } from "../sns-services/externalProviderUserSignedUp.sns.service";
+import { UserPoolService, UserPoolServiceInterface } from "../services/userPool.service";
 
 const container = new Container();
 
@@ -35,6 +36,7 @@ try {
   container.bind<ClientServiceInterface>(TYPES.ClientServiceInterface).to(ClientService);
   container.bind<ExternalProviderUserMappingServiceInterface>(TYPES.ExternalProviderUserMappingServiceInterface).to(ExternalProviderUserMappingService);
   container.bind<MailServiceInterface>(TYPES.MailServiceInterface).to(MailService);
+  container.bind<UserPoolServiceInterface>(TYPES.UserPoolServiceInterface).to(UserPoolService);
 
   container.bind<ExternalProviderUserSignedUpSnsServiceInterface>(TYPES.ExternalProviderUserSignedUpSnsServiceInterface).to(ExternalProviderUserSignedUpSnsService);
 

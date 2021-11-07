@@ -139,6 +139,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Info}`,
       EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN: externalProviderUserSignedUpSnsTopicArn,
       AUTH_TABLE_NAME: authTable.tableName,
+      API_DOMAIN: `https://${this.httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`,
     };
 
     const preSignUpHandler = new Lambda.Function(this, `PreSignUpHandler_${id}`, {

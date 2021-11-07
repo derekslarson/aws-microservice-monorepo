@@ -3,8 +3,8 @@ import { injectable, inject } from "inversify";
 import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, UserCreatedSnsMessage } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
-import { AuthenticationServiceInterface } from "../services/authentication.service";
 import { ExternalProviderUserMappingServiceInterface } from "../services/externalProviderUserMapping.service";
+import { UserPoolServiceInterface } from "../services/userPool.service";
 
 @injectable()
 export class UserCreatedProcessorService implements SnsProcessorServiceInterface {
@@ -12,7 +12,7 @@ export class UserCreatedProcessorService implements SnsProcessorServiceInterface
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.AuthenticationServiceInterface) private authenticationService: AuthenticationServiceInterface,
+    @inject(TYPES.UserPoolServiceInterface) private userPoolService: UserPoolServiceInterface,
     @inject(TYPES.ExternalProviderUserMappingServiceInterface) private externalProviderMappingService: ExternalProviderUserMappingServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedProcessorServiceConfigInterface,
   ) {
@@ -37,10 +37,10 @@ export class UserCreatedProcessorService implements SnsProcessorServiceInterface
 
       const { message: { id, email, phone } } = record;
 
-      await this.authenticationService.createUser({ id, email, phone });
+      await this.userPoolService.createUser({ id, email, phone });
 
       if (email) {
-        const { users } = await this.authenticationService.getUsersByEmail({ email });
+        const { users } = await this.userPoolService.getUsersByEmail({ email });
 
         const externalProviderUsers = users.filter((user) => user.UserStatus === "EXTERNAL_PROVIDER");
 

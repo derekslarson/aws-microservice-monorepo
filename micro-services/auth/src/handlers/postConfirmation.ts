@@ -3,14 +3,14 @@
 import "reflect-metadata";
 import { PostConfirmationTriggerEvent } from "aws-lambda";
 import { LoggerServiceInterface, UserId } from "@yac/util";
-import { CognitoIdentityServiceProvider } from "aws-sdk";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 import { ExternalProviderUserMappingServiceInterface } from "../services/externalProviderUserMapping.service";
 import { ExternalProviderUserSignedUpSnsServiceInterface } from "../sns-services/externalProviderUserSignedUp.sns.service";
+import { UserPoolServiceInterface } from "../services/userPool.service";
 
-const cognito = new CognitoIdentityServiceProvider({});
 const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
+const userPoolService = container.get<UserPoolServiceInterface>(TYPES.UserPoolServiceInterface);
 const externalProviderUserMappingService = container.get<ExternalProviderUserMappingServiceInterface>(TYPES.ExternalProviderUserMappingServiceInterface);
 const externalProviderUserSignedUpSnsService = container.get<ExternalProviderUserSignedUpSnsServiceInterface>(TYPES.ExternalProviderUserSignedUpSnsServiceInterface);
 
@@ -19,12 +19,12 @@ export const handler = async (event: PostConfirmationTriggerEvent): Promise<Post
     loggerService.trace("postConfirmation called", { event }, "postConfirmation handler");
 
     if (event.request.userAttributes["cognito:user_status"] === "EXTERNAL_PROVIDER" && event.request.userAttributes.email) {
-      const { Users = [] } = await cognito.listUsers({
-        UserPoolId: event.userPoolId,
-        Filter: `email = "${event.request.userAttributes.email}"`,
-      }).promise();
+      // Since this lambda was deployed before the user pool existed, this wasn't set via env vars, so we need to set it now
+      userPoolService.userPoolId = event.userPoolId;
 
-      const [ normalUser ] = Users.filter((user) => user.UserStatus === "CONFIRMED");
+      const { users } = await userPoolService.getUsersByEmail({ email: event.request.userAttributes.email });
+
+      const [ normalUser ] = users.filter((user) => user.UserStatus === "CONFIRMED");
 
       if (normalUser) {
         await externalProviderUserMappingService.createExternalProviderUserMapping({ externalProviderId: event.userName, userId: normalUser.Username as UserId });
