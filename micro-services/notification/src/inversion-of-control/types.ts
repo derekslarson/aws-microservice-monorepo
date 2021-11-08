@@ -35,7 +35,6 @@ const TYPES = {
 
   // General Services
   PushNotificationServiceInterface: Symbol.for("PushNotificationServiceInterface"),
-  TokenVerificationServiceInterface: Symbol.for("TokenVerificationServiceInterface"),
   WebSocketServiceInterface: Symbol.for("WebSocketServiceInterface"),
 
   // Repositories

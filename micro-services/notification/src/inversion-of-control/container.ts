@@ -21,7 +21,6 @@ import { UserRemovedFromGroupSnsProcessorService } from "../processor-services/u
 import { UserRemovedFromMeetingSnsProcessorService } from "../processor-services/userRemovedFromMeeting.sns.processor.service";
 import { UserRemovedFromTeamSnsProcessorService } from "../processor-services/userRemovedFromTeam.sns.processor.service";
 import { ListenerMappingDynamoRepository, ListenerMappingRepositoryInterface } from "../repositories/listenerMapping.dynamo.repository";
-import { TokenVerificationService, TokenVerificationServiceInterface } from "../services/tokenVerification.service";
 import { WebSocketService, WebSocketServiceInterface } from "../services/webSocket.service";
 import { TYPES } from "./types";
 import { FriendMessageUpdatedSnsProcessorService } from "../processor-services/friendMessageUpdated.sns.processor.service";
@@ -71,7 +70,6 @@ try {
 
   // General Services
   container.bind<PushNotificationServiceInterface>(TYPES.PushNotificationServiceInterface).to(PushNotificationService);
-  container.bind<TokenVerificationServiceInterface>(TYPES.TokenVerificationServiceInterface).to(TokenVerificationService);
   container.bind<WebSocketServiceInterface>(TYPES.WebSocketServiceInterface).to(WebSocketService);
 
   // Repositories

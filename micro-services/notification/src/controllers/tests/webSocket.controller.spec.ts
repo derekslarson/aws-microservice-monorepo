@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Spied, TestSupport, ValidationServiceV2Interface, ValidationServiceV2, generateMockRequest } from "@yac/util";
+import { LoggerService, Spied, TestSupport, ValidationServiceV2Interface, ValidationServiceV2, generateMockRequest, TokenVerificationService, TokenVerificationServiceInterface } from "@yac/util";
 import { ConnectDto } from "../../dtos/connect.dto";
 import { DisconnectDto } from "../../dtos/disconnect.dto";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../../mediator-services/webSocket.mediator.service";
-import { TokenVerificationService, TokenVerificationServiceInterface } from "../../services/tokenVerification.service";
 import { WebSocketController, WebSocketControllerInterface } from "../webSocket.controller";
 
 interface WebSocketControllerWithAnyMethod extends WebSocketControllerInterface {
