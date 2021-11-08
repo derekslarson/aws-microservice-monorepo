@@ -154,7 +154,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       environment: userPoolLambaEnvVars,
       memorySize: 2048,
       timeout: CDK.Duration.seconds(15),
-      initialPolicy: [ cognitoIdpFullAccessPolicyStatement ],
+      initialPolicy: [],
     });
 
     const postConfirmationHandler = new Lambda.Function(this, `PostConfirmationHandler_${id}`, {
@@ -350,17 +350,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     };
 
     // Handlers
-    const authorizerHandler = new Lambda.Function(this, `Authorizer_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/authorizer"),
-      handler: "authorizer.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      memorySize: 2048,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
     new Lambda.Function(this, `SnsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
@@ -373,6 +362,17 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserCreatedSnsTopic_${id}`, userCreatedSnsTopicArn)),
       ],
+    });
+
+    const authorizerHandler = new Lambda.Function(this, `AuthorizerHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/authorizer"),
+      handler: "authorizer.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, authTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
     });
 
     const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
