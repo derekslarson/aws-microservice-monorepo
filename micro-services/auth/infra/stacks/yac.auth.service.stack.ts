@@ -53,8 +53,12 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const stackPrefix = environment === Environment.Local ? developer : environment;
     const ExportNames = generateExportNames(stackPrefix);
-    const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
 
+    // Manually Set SSM Parameters for the Google app client
+    const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`);
+    const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`);
+
+    const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
     const externalProviderUserSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.ExternalProviderUserSignedUpSnsTopicArn);
 
     // Layers
@@ -212,8 +216,8 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     new Cognito.UserPoolIdentityProviderGoogle(this, `UserPoolIdentityProviderGoogle_${id}`, {
       userPool,
-      clientId: "1609416142-ncbd1msqf1n7i2gfmhhvfl4su6v63kqm.apps.googleusercontent.com",
-      clientSecret: "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",
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
       attributeMapping: { email: Cognito.ProviderAttribute.GOOGLE_EMAIL },
       scopes: [ "profile", "email", "openid" ],
     });
