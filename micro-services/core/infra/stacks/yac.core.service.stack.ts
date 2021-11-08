@@ -253,11 +253,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       resources: [ meetingMessageUpdatedSnsTopicArn ],
     });
 
-    const externalProviderUserSignedUpSnsPublishPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "SNS:Publish" ],
-      resources: [ externalProviderUserSignedUpSnsTopicArn ],
-    });
-
     const getMessageUploadTokenSecretPolicyStatement = new IAM.PolicyStatement({
       actions: [ "secretsmanager:GetSecretValue" ],
       resources: [ messageUploadTokenSecret.secretArn ],
@@ -358,7 +353,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, externalProviderUserSignedUpSnsPublishPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn)),
