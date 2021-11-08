@@ -154,7 +154,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       environment: userPoolLambaEnvVars,
       memorySize: 2048,
       timeout: CDK.Duration.seconds(15),
-      initialPolicy: [],
     });
 
     const postConfirmationHandler = new Lambda.Function(this, `PostConfirmationHandler_${id}`, {
