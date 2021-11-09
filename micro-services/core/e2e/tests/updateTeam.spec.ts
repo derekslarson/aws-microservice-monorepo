@@ -27,7 +27,7 @@ describe("PATCH /teams/{teamId} (Update User by User Id)", () => {
           const { status, data } = await axios.patch(`${baseUrl}/teams/${team.id}`, body, { headers });
 
           expect(status).toBe(200);
-          expect(data).toEqual({ message: "User updated." });
+          expect(data).toEqual({ message: "Team updated." });
         } catch (error) {
           fail(error);
         }
