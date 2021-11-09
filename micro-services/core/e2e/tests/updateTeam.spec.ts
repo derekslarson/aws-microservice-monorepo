@@ -5,7 +5,7 @@ import { generateRandomString, getAccessToken } from "../../../../e2e/util";
 import { createRandomTeam, CreateRandomTeamOutput, createRandomUser, getTeam } from "../util";
 import { UserId } from "../../src/types/userId.type";
 
-describe("PATCH /teams/{team.id} (Update User by User Id)", () => {
+describe("PATCH /teams/{teamId} (Update User by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   const userId = process.env.userId as UserId;
