@@ -54,9 +54,11 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const stackPrefix = environment === Environment.Local ? developer : environment;
     const ExportNames = generateExportNames(stackPrefix);
 
-    // Manually Set SSM Parameters for the Google app client
+    // Manually Set SSM Parameters for the external provider app clients
     const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`);
     const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`);
+    const slackClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-id`);
+    const slackClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-secret`);
 
     const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
     const externalProviderUserSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.ExternalProviderUserSignedUpSnsTopicArn);
@@ -219,6 +221,20 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       clientSecret: googleClientSecret,
       attributeMapping: { email: Cognito.ProviderAttribute.GOOGLE_EMAIL },
       scopes: [ "profile", "email", "openid" ],
+    });
+
+    new Cognito.CfnUserPoolIdentityProvider(this, `UserPoolIdentityProviderSlack_${id}`, {
+      providerName: "Slack",
+      providerType: "OIDC",
+      userPoolId: userPool.userPoolId,
+      attributeMapping: { email: "email" },
+      providerDetails: {
+        client_id: slackClientId,
+        client_secret: slackClientSecret,
+        authorize_scopes: "openid profile email",
+        oidc_issuer: "https://slack.com",
+        attributes_request_method: "GET",
+      },
     });
 
     const userPoolDomain = new Cognito.UserPoolDomain(this, `UserPoolDomain_${id}`, {

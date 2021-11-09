@@ -60,9 +60,25 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
     });
 
     if (props.authorizerHandlerFunctionArn) {
+      const authorizerHandler = Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, props.authorizerHandlerFunctionArn);
+
+      // This should be handled by this.authorizer.bind (used in the route declarations below)
+      // but for some reason it isn't working as expected.
+      // See https://github.com/aws/aws-cdk/issues/7588
+      new Lambda.CfnPermission(this, `HttpApiAuthorizerPermission_${id}`, {
+        action: "lambda:InvokeFunction",
+        principal: "apigateway.amazonaws.com",
+        functionName: authorizerHandler.functionName,
+        sourceArn: CDK.Stack.of(scope).formatArn({
+          service: "execute-api",
+          resource: this.apiId,
+          resourceName: "authorizers/*",
+        }),
+      });
+
       this.authorizer = new ApiGatewayV2Authorizers.HttpLambdaAuthorizer({
         authorizerName: `LambdaAuthorizer_${id}`,
-        handler: Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, props.authorizerHandlerFunctionArn),
+        handler: authorizerHandler,
         resultsCacheTtl: Duration.hours(1),
         responseTypes: [ ApiGatewayV2Authorizers.HttpLambdaResponseType.SIMPLE ],
       });
