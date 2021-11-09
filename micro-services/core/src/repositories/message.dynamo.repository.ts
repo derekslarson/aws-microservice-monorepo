@@ -164,6 +164,33 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
     }
   }
 
+  public async updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput> {
+    try {
+      this.loggerService.trace("updateMessage called", { params }, this.constructor.name);
+
+      const { messageId, updates } = params;
+      const { transcript } = updates;
+
+      const rawMessage = await this.update({
+        Key: {
+          pk: messageId,
+          sk: messageId,
+        },
+        UpdateExpression: "SET #transcript = :transcript",
+        ExpressionAttributeNames: { "#transcript": "transcript" },
+        ExpressionAttributeValues: { ":transcript": transcript },
+      });
+
+      const message = this.cleanseReactionsSet(rawMessage);
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async incrementMessageReplyCount(params: IncrementMessageReplyCountInput): Promise<IncrementMessageReplyCountOutput> {
     try {
       this.loggerService.trace("incrementMessageReplyCount called", { params }, this.constructor.name);
@@ -309,6 +336,7 @@ export interface MessageRepositoryInterface {
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
   updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>;
   updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
+  updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
   incrementMessageReplyCount(params: IncrementMessageReplyCountInput): Promise<IncrementMessageReplyCountOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
@@ -376,6 +404,17 @@ export interface UpdateMessageSeenAtInput {
 }
 
 export interface UpdateMessageSeenAtOutput {
+  message: Message;
+}
+
+export interface UpdateMessageInput {
+  messageId: MessageId;
+  updates: {
+    transcript: string;
+  }
+}
+
+export interface UpdateMessageOutput {
   message: Message;
 }
 

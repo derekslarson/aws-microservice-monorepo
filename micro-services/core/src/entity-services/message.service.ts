@@ -174,6 +174,20 @@ export class MessageService implements MessageServiceInterface {
     }
   }
 
+  public async updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput> {
+    try {
+      this.loggerService.trace("updateMessage called", { params }, this.constructor.name);
+
+      await this.messageRepository.updateMessage(params);
+
+      return;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput> {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
@@ -291,6 +305,7 @@ export interface MessageServiceInterface {
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
   updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>;
   updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
+  updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
   indexMessageForSearch(params: IndexMessageForSearchInput): Promise<IndexMessageForSearchOutput>;
@@ -352,6 +367,15 @@ export interface UpdateMessageReactionInput {
 export interface UpdateMessageReactionOutput {
   message: Message;
 }
+
+export interface UpdateMessageInput {
+  messageId: MessageId;
+  updates: {
+    transcript: string;
+  }
+}
+
+export type UpdateMessageOutput = void;
 
 export interface GetMessagesByConversationIdInput {
   conversationId: ConversationId;
