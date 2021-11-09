@@ -56,7 +56,7 @@ describe("PATCH /teams/{teamId} (Update User by User Id)", () => {
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
         const headers = {};
-        const body = { realName: generateRandomString(5), bio: generateRandomString(5) };
+        const body = { name: generateRandomString(5) };
 
         try {
           await axios.patch(`${baseUrl}/teams/${team.id}`, body, { headers });
