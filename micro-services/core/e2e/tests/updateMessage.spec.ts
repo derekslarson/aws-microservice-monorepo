@@ -27,7 +27,7 @@ describe("PATCH /messages/{message.id} (Update User by User Id)", () => {
   });
 
   describe("under normal conditions", () => {
-    describe("when passed both 'transcript' value", () => {
+    describe("when passed 'transcript' value", () => {
       const body = { transcript: generateRandomString(5) };
 
       it("returns a valid response", async () => {
