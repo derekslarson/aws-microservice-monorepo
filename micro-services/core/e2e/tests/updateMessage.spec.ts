@@ -7,7 +7,7 @@ import { createGroupConversation, createMessage, createRandomUser, getMessage } 
 import { UserId } from "../../src/types/userId.type";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 
-describe("PATCH /messages/{message.id} (Update User by User Id)", () => {
+describe("PATCH /messages/{messageId} (Update User by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   const userId = process.env.userId as UserId;
