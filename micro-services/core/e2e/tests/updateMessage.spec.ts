@@ -79,7 +79,7 @@ describe("PATCH /messages/{messageId} (Update Message by Message Id)", () => {
       });
     });
 
-    describe("when an access token from a user who who did not send the message passed in", () => {
+    describe("when an access token from a user who did not send the message passed in", () => {
       it("throws a 403 error", async () => {
         const { user: randomUser } = await createRandomUser();
         const { accessToken: wrongAccessToken } = await getAccessToken(randomUser.id);
