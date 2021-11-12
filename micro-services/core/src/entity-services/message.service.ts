@@ -179,8 +179,6 @@ export class MessageService implements MessageServiceInterface {
       this.loggerService.trace("updateMessage called", { params }, this.constructor.name);
 
       await this.messageRepository.updateMessage(params);
-
-      return;
     } catch (error: unknown) {
       this.loggerService.error("Error in updateMessage", { error, params }, this.constructor.name);
 

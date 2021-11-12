@@ -435,8 +435,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
       const { messageId, updates } = params;
 
       await this.messageService.updateMessage({ messageId, updates });
-
-      return;
     } catch (error: unknown) {
       this.loggerService.error("Error in updateMessage", { error, params }, this.constructor.name);
 
