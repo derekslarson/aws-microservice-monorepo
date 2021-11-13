@@ -5,10 +5,20 @@ export const envConfig: EnvConfigInterface = {
   tableNames: { calendar: process.env.CALENDAR_TABLE_NAME || "" },
   bucketNames: {},
   snsTopicArns: {},
+  googleClient: {
+    id: process.env.GOOGLE_CLIENT_ID || "",
+    secret: process.env.GOOGLE_CLIENT_SECRET || "",
+    redirectUri: process.env.GOOGLE_CLIENT_REDIRECT_URI || "",
+  },
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
   tableNames: {
     calendar: string;
   };
+  googleClient: {
+    id: string;
+    secret: string;
+    redirectUri: string;
+  }
 }

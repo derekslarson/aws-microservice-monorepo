@@ -10,14 +10,14 @@ const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceI
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
-    loggerService.trace("getGoogleAccess called", { event }, "getGoogleAccess handler");
+    loggerService.trace("initiateGoogleAccessFlow called", { event }, "initiateGoogleAccessFlow handler");
 
-    const response = await calendarController.getGoogleAccess(event);
+    const response = await calendarController.initiateGoogleAccessFlow(event);
 
     return response;
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
-    loggerService.error("Catastrophic error in getGoogleAccess handler", { error, event }, "getGoogleAccess handler");
+    loggerService.error("Catastrophic error in initiateGoogleAccessFlow handler", { error, event }, "initiateGoogleAccessFlow handler");
 
     return generateInternalServerErrorResponse(error);
   }

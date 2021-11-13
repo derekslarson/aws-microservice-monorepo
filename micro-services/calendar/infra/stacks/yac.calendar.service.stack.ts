@@ -24,6 +24,10 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars-experimental
     const ExportNames = generateExportNames(stackPrefix);
 
+    const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`);
+    const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`);
+    const googleClientRedirectUri = `${this.httpApi.apiURL}/google/callback`;
+
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
       compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
@@ -50,12 +54,26 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       CALENDAR_TABLE_NAME: calendarTable.tableName,
+      GOOGLE_CLIENT_ID: googleClientId,
+      GOOGLE_CLIENT_SECRET: googleClientSecret,
+      GOOGLE_CLIENT_REDIRECT_URI: googleClientRedirectUri,
     };
 
-    const getGoogleAccessHandler = new Lambda.Function(this, `GetGoogleAccessHandler_${id}`, {
+    const initiateGoogleAccessFlowHandler = new Lambda.Function(this, `InitiateGoogleAccessFlowHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getGoogleAccess"),
-      handler: "getGoogleAccess.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/initiateGoogleAccessFlow"),
+      handler: "initiateGoogleAccessFlow.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const completeGoogleAccessFlowHandler = new Lambda.Function(this, `CompleteGoogleAccessFlowHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/completeGoogleAccessFlow"),
+      handler: "completeGoogleAccessFlow.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -67,7 +85,13 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       {
         path: "/users/{userId}/google/access",
         method: ApiGatewayV2.HttpMethod.GET,
-        handler: getGoogleAccessHandler,
+        handler: initiateGoogleAccessFlowHandler,
+        authorizationScopes: [ "yac/user.write" ],
+      },
+      {
+        path: "/google/callback",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: completeGoogleAccessFlowHandler,
       },
     ];
 
