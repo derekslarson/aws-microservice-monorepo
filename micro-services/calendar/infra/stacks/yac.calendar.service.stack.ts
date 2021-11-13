@@ -1,0 +1,82 @@
+/* eslint-disable no-new */
+import * as CDK from "@aws-cdk/core";
+import * as DynamoDB from "@aws-cdk/aws-dynamodb";
+import * as SSM from "@aws-cdk/aws-ssm";
+import * as IAM from "@aws-cdk/aws-iam";
+import * as Lambda from "@aws-cdk/aws-lambda";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import { Environment, generateExportNames, LogLevel, RouteProps } from "@yac/util";
+import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+
+export class YacCalendarServiceStack extends YacHttpServiceStack {
+  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
+    super(scope, id, props);
+
+    const environment = this.node.tryGetContext("environment") as string;
+    const developer = this.node.tryGetContext("developer") as string;
+
+    if (!environment) {
+      throw new Error("'environment' context param required.");
+    }
+
+    const stackPrefix = environment === Environment.Local ? developer : environment;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars-experimental
+    const ExportNames = generateExportNames(stackPrefix);
+
+    // Layers
+    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
+      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
+      code: Lambda.Code.fromAsset("dist/dependencies"),
+    });
+
+    // Databases
+    const calendarTable = new DynamoDB.Table(this, `CalendarTable_${id}`, {
+      billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
+      partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
+      sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
+      removalPolicy: CDK.RemovalPolicy.DESTROY,
+    });
+
+    // Policies
+    const basePolicy: IAM.PolicyStatement[] = [];
+
+    const calendarTableFullAccessPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "dynamodb:*" ],
+      resources: [ calendarTable.tableArn, `${calendarTable.tableArn}/*` ],
+    });
+
+    // Environment Variables
+    const environmentVariables: Record<string, string> = {
+      LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
+      CALENDAR_TABLE_NAME: calendarTable.tableName,
+    };
+
+    const getGoogleAccessHandler = new Lambda.Function(this, `GetGoogleAccessHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getGoogleAccess"),
+      handler: "getGoogleAccess.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const routes: RouteProps[] = [
+      {
+        path: "/users/{userId}/google/access",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getGoogleAccessHandler,
+      },
+    ];
+
+    routes.forEach((route) => this.httpApi.addRoute(route));
+
+    // SSM Parameters (to be imported in e2e tests)
+    new SSM.StringParameter(this, `CalendarTableNameSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/calendar-table-name`,
+      stringValue: calendarTable.tableName,
+    });
+  }
+}
