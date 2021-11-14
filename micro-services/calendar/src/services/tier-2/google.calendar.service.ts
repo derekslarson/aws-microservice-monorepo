@@ -62,7 +62,7 @@ export class GoogleCalendarService implements GoogleCalendarServiceInterface {
 
       const listResponse = await calendar.events.list({
         calendarId: "primary",
-        timeMin: (new Date()).toISOString(),
+        timeMin: new Date().toISOString(),
         maxResults: 10,
         singleEvents: true,
         orderBy: "startTime",

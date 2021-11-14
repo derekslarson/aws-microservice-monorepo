@@ -111,7 +111,10 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
       }
 
       if (googleCredentials.accessToken !== freshAccesToken) {
-        await this.googleCredentialsRepository.updateGoogleCredentials({ userId, updates: { accessToken: freshAccesToken } });
+        const expiryDate = oAuth2Client.credentials.expiry_date as number;
+        const refreshToken = oAuth2Client.credentials.refresh_token as string;
+
+        await this.googleCredentialsRepository.updateGoogleCredentials({ userId, updates: { accessToken: freshAccesToken, refreshToken, expiryDate } });
       }
 
       return { oAuth2Client };
