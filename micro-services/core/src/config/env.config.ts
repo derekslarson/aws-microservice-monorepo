@@ -29,6 +29,7 @@ export const envConfig: EnvConfigInterface = {
     meetingMessageUpdated: process.env.MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
     messageTranscoded: process.env.MESSAGE_TRANSCODED_SNS_TOPIC_ARN || "",
     messageTranscribed: process.env.MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN || "",
+    externalProviderUserSignedUp: process.env.EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN || "",
   },
   globalSecondaryIndexNames: {
     one: process.env.GSI_ONE_INDEX_NAME || "",
@@ -64,6 +65,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     meetingMessageUpdated: string;
     messageTranscoded: string;
     messageTranscribed: string;
+    externalProviderUserSignedUp: string;
   };
   bucketNames: {
     rawMessage: string;
