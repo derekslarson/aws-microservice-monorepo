@@ -32,7 +32,7 @@ export class CalendarController extends BaseController implements CalendarContro
 
       const { authUri } = await this.googleAuthService.initiateGoogleAccessFlow({ userId: userId as UserId, redirectUri });
 
-      return this.generateSeeOtherResponse(authUri);
+      return this.generateSuccessResponse({ authUri });
     } catch (error: unknown) {
       this.loggerService.error("Error in initiateGoogleAccessFlow", { error, request }, this.constructor.name);
 

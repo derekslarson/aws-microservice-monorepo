@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface, UserId } from "@yac/util";
+import { IdServiceInterface, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { GoogleCredentialsRepositoryInterface } from "../repositories/google.credentials.dynamo.repository";
 import { GoogleOAuth2Client, GoogleOAuth2ClientFactory } from "../factories/google.oAuth2Client.factory";
@@ -65,9 +65,24 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
         throw new Error("accessToken or refreshToken missing from Google response");
       }
 
+      let credentialsEntityExists = false;
+
+      try {
+        await this.googleCredentialsRepository.getGoogleCredentials({ userId: authFlowAttempt.userId });
+
+        credentialsEntityExists = true;
+      } catch (error) {
+        if (!(error instanceof NotFoundError)) {
+          throw error;
+        }
+      }
+
+      const credentialsEntityRequest = credentialsEntityExists
+        ? this.googleCredentialsRepository.updateGoogleCredentials({ userId: authFlowAttempt.userId, updates: { accessToken, refreshToken } })
+        : this.googleCredentialsRepository.createGoogleCredentials({ googleCredentials: { userId: authFlowAttempt.userId, accessToken, refreshToken } });
+
       await Promise.all([
-        // upsert credentials entity
-        this.googleCredentialsRepository.updateGoogleCredentials({ userId: authFlowAttempt.userId, updates: { accessToken, refreshToken } }),
+        credentialsEntityRequest,
         this.authFlowAttempt.deleteAuthFlowAttempt({ state }),
       ]);
 

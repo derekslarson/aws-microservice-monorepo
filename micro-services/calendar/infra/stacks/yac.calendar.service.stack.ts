@@ -5,7 +5,7 @@ import * as SSM from "@aws-cdk/aws-ssm";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import { Environment, generateExportNames, LogLevel, RouteProps } from "@yac/util";
+import { Environment, LogLevel, RouteProps } from "@yac/util";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 
 export class YacCalendarServiceStack extends YacHttpServiceStack {
@@ -20,9 +20,6 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
     }
 
     const stackPrefix = environment === Environment.Local ? developer : environment;
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars-experimental
-    const ExportNames = generateExportNames(stackPrefix);
 
     const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`);
     const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`);
@@ -86,7 +83,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/google/access",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: initiateGoogleAccessFlowHandler,
-        authorizationScopes: [ "yac/user.write" ],
+        restricted: true,
       },
       {
         path: "/google/callback",
