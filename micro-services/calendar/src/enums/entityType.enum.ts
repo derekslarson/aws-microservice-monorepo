@@ -1,4 +1,4 @@
 export enum EntityType {
-  GoogleCredentials = "GOOGLE_CREDENTIALS",
+  GoogleCredentials = "CREDENTIALS_GOOGLE",
   AuthFlowAttempt = "AUTH_FLOW_ATTEMPT",
 }

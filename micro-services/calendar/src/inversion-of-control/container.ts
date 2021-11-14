@@ -6,7 +6,9 @@ import { CalendarController, CalendarControllerInterface } from "../controllers/
 import { GoogleOAuth2ClientFactory, googleOAuth2ClientFactory } from "../factories/google.oAuth2Client.factory";
 import { GoogleCredentialsRepositoryInterface, GoogleCredentialsDynamoRepository } from "../repositories/google.credentials.dynamo.repository";
 import { AuthFlowAttemptDynamoRepository, AuthFlowAttemptRepositoryInterface } from "../repositories/authFlowAttempt.dynamo.repository";
-import { GoogleAuthService, GoogleAuthServiceInterface } from "../mediator-services/google.auth.service";
+import { GoogleAuthService, GoogleAuthServiceInterface } from "../services/tier-1/google.auth.service";
+import { GoogleCalendarService, GoogleCalendarServiceInterface } from "../services/tier-2/google.calendar.service";
+import { googleCalendarFactory, GoogleCalendarFactory } from "../factories/google.calendar.factory";
 
 const container = new Container();
 
@@ -19,14 +21,18 @@ try {
   // Controllers
   container.bind<CalendarControllerInterface>(TYPES.CalendarControllerInterface).to(CalendarController);
 
-  // Mediator Service
+  // Tier 1 Service
   container.bind<GoogleAuthServiceInterface>(TYPES.GoogleAuthServiceInterface).to(GoogleAuthService);
+
+  // Tier 2 Services
+  container.bind<GoogleCalendarServiceInterface>(TYPES.GoogleCalendarServiceInterface).to(GoogleCalendarService);
 
   // Repositories
   container.bind<AuthFlowAttemptRepositoryInterface>(TYPES.AuthFlowAttemptRepositoryInterface).to(AuthFlowAttemptDynamoRepository);
   container.bind<GoogleCredentialsRepositoryInterface>(TYPES.GoogleCredentialsRepositoryInterface).to(GoogleCredentialsDynamoRepository);
 
   // Factories
+  container.bind<GoogleCalendarFactory>(TYPES.GoogleCalendarFactory).toFactory(() => googleCalendarFactory);
   container.bind<GoogleOAuth2ClientFactory>(TYPES.GoogleOAuth2ClientFactory).toFactory(() => googleOAuth2ClientFactory);
 
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)

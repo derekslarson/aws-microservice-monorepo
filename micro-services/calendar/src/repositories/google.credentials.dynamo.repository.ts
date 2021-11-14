@@ -24,7 +24,7 @@ export class GoogleCredentialsDynamoRepository extends BaseDynamoRepositoryV2<Go
       const googleCredentialsEntity: RawGoogleCredentials = {
         entityType: EntityType.GoogleCredentials,
         pk: googleCredentials.userId,
-        sk: googleCredentials.userId,
+        sk: EntityType.GoogleCredentials,
         ...googleCredentials,
       };
 
@@ -48,7 +48,7 @@ export class GoogleCredentialsDynamoRepository extends BaseDynamoRepositoryV2<Go
 
       const { userId } = params;
 
-      const googleCredentials = await this.get<GoogleCredentials>({ Key: { pk: userId, sk: userId } }, "Google Credentials");
+      const googleCredentials = await this.get<GoogleCredentials>({ Key: { pk: userId, sk: EntityType.GoogleCredentials } }, "Google Credentials");
 
       return { googleCredentials };
     } catch (error: unknown) {
@@ -64,10 +64,26 @@ export class GoogleCredentialsDynamoRepository extends BaseDynamoRepositoryV2<Go
 
       const { userId, updates } = params;
 
-      const googleCredentials = await this.partialUpdate(userId, userId, updates);
+      const googleCredentials = await this.partialUpdate(userId, EntityType.GoogleCredentials, updates);
       return { googleCredentials };
     } catch (error: unknown) {
       this.loggerService.error("Error in updateGoogleCredentials", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async upsertGoogleCredentials(params: UpsertGoogleCredentialsInput): Promise<UpsertGoogleCredentialsOutput> {
+    try {
+      this.loggerService.trace("upsertGoogleCredentials called", { params }, this.constructor.name);
+
+      const { googleCredentials } = params;
+
+      await this.partialUpdate(googleCredentials.userId, EntityType.GoogleCredentials, googleCredentials);
+
+      return { googleCredentials };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in upsertGoogleCredentials", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -81,7 +97,7 @@ export class GoogleCredentialsDynamoRepository extends BaseDynamoRepositoryV2<Go
 
       await this.documentClient.delete({
         TableName: this.tableName,
-        Key: { pk: userId, sk: userId },
+        Key: { pk: userId, sk: EntityType.GoogleCredentials },
       }).promise();
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteGoogleCredentials", { error, params }, this.constructor.name);
@@ -95,6 +111,7 @@ export interface GoogleCredentialsRepositoryInterface {
   createGoogleCredentials(params: CreateGoogleCredentialsInput): Promise<CreateGoogleCredentialsOutput>;
   getGoogleCredentials(params: GetGoogleCredentialsInput): Promise<GetGoogleCredentialsOutput>;
   updateGoogleCredentials(params: UpdateGoogleCredentialsInput): Promise<UpdateGoogleCredentialsOutput>;
+  upsertGoogleCredentials(params: UpsertGoogleCredentialsInput): Promise<UpsertGoogleCredentialsOutput>;
   deleteGoogleCredentials(params: DeleteGoogleCredentialsInput): Promise<DeleteGoogleCredentialsOutput>;
 }
 
@@ -104,12 +121,15 @@ export interface GoogleCredentials {
   userId: UserId;
   accessToken: string;
   refreshToken: string;
+  tokenType: string;
+  expiryDate: number;
+  scope: string;
 }
 
 export interface RawGoogleCredentials extends GoogleCredentials {
   entityType: EntityType.GoogleCredentials;
   pk: UserId;
-  sk: UserId;
+  sk: EntityType.GoogleCredentials;
 }
 
 export interface CreateGoogleCredentialsInput {
@@ -120,7 +140,15 @@ export interface CreateGoogleCredentialsOutput {
   googleCredentials: GoogleCredentials;
 }
 
-export type GoogleCredentialsUpdates = Partial<Pick<GoogleCredentials, "accessToken" | "refreshToken">>;
+export interface UpsertGoogleCredentialsInput {
+  googleCredentials: GoogleCredentials;
+}
+
+export interface UpsertGoogleCredentialsOutput {
+  googleCredentials: GoogleCredentials;
+}
+
+export type GoogleCredentialsUpdates = Partial<Omit<GoogleCredentials, "userId">>;
 
 export interface UpdateGoogleCredentialsInput {
   userId: UserId;

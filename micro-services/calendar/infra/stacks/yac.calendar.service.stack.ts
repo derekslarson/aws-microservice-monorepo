@@ -78,11 +78,28 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const getGoogleEventsHandler = new Lambda.Function(this, `GetGoogleEventsHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getGoogleEvents"),
+      handler: "getGoogleEvents.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const routes: RouteProps[] = [
       {
         path: "/users/{userId}/google/access",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: initiateGoogleAccessFlowHandler,
+        restricted: true,
+      },
+      {
+        path: "/users/{userId}/google/events",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getGoogleEventsHandler,
         restricted: true,
       },
       {
