@@ -41,6 +41,22 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
     }
   }
 
+  public async updateMeeting(params: UpdateMeetingInput): Promise<UpdateMeetingOutput> {
+    try {
+      this.loggerService.trace("updateMeeting called", { params }, this.constructor.name);
+
+      const { meetingId, updates } = params;
+
+      await this.conversationService.updateConversation({ conversationId: meetingId, updates });
+
+      return;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMeeting", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getMeeting(params: GetMeetingInput): Promise<GetMeetingOutput> {
     try {
       this.loggerService.trace("getMeeting called", { params }, this.constructor.name);
@@ -247,6 +263,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
 export interface MeetingMediatorServiceInterface {
   createMeeting(params: CreateMeetingInput): Promise<CreateMeetingOutput>;
+  updateMeeting(params: UpdateMeetingInput): Promise<UpdateMeetingOutput>;
   getMeeting(params: GetMeetingInput): Promise<GetMeetingOutput>
   deleteMeeting(params: DeleteMeetingInput): Promise<DeleteMeetingOutput>;
   addUserToMeeting(params: AddUserToMeetingInput): Promise<AddUserToMeetingOutput>;
@@ -274,6 +291,13 @@ export interface CreateMeetingInput {
 export interface CreateMeetingOutput {
   meeting: Meeting;
 }
+
+export interface UpdateMeetingInput {
+  meetingId: MeetingId;
+  updates: Partial<Pick<Meeting, "name" | "outcomes">>
+}
+
+export type UpdateMeetingOutput = void;
 
 export interface GetMeetingInput {
   meetingId: MeetingId;

@@ -374,6 +374,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const updateUserHandler = new Lambda.Function(this, `UpdateUser${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateUser"),
+      handler: "updateUser.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const getUserHandler = new Lambda.Function(this, `GetUser_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getUser"),
@@ -434,6 +445,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/createTeam"),
       handler: "createTeam.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const updateTeamHandler = new Lambda.Function(this, `UpdateTeam${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateTeam"),
+      handler: "updateTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -613,6 +635,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/createMeeting"),
       handler: "createMeeting.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const updateMeetingHandler = new Lambda.Function(this, `UpdateMeeting${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateMeeting"),
+      handler: "updateMeeting.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -838,6 +871,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       },
       {
         path: "/users/{userId}",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateUserHandler,
+        restricted: true,
+      },
+      {
+        path: "/users/{userId}",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUserHandler,
         restricted: true,
@@ -873,6 +912,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/teams",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createTeamHandler,
+        restricted: true,
+      },
+      {
+        path: "/teams/{teamId}",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateTeamHandler,
         restricted: true,
       },
       {
@@ -978,6 +1023,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/meetings",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createMeetingHandler,
+        restricted: true,
+      },
+      {
+        path: "/meetings/{meetingId}",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateMeetingHandler,
         restricted: true,
       },
       {
