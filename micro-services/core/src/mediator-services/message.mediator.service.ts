@@ -428,6 +428,20 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
+  public async updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput> {
+    try {
+      this.loggerService.trace("updateMessage called", { params }, this.constructor.name);
+
+      const { messageId, updates } = params;
+
+      await this.messageService.updateMessage({ messageId, updates });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   private async updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
     try {
       this.loggerService.trace("updateMessageSeenAt called", { params }, this.constructor.name);
@@ -544,6 +558,7 @@ export interface MessageMediatorServiceInterface {
   updateFriendMessagesByUserId(params: UpdateFriendMessagesByUserIdInput): Promise<UpdateFriendMessagesByUserIdOutput>;
   updateMeetingMessagesByUserId(params: UpdateMeetingMessagesByUserIdInput): Promise<UpdateMeetingMessagesByUserIdOutput>;
   updateGroupMessagesByUserId(params: UpdateGroupMessagesByUserIdInput): Promise<UpdateGroupMessagesByUserIdOutput>;
+  updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
 }
 
 type To = User | GroupConversation | MeetingConversation;
@@ -691,6 +706,15 @@ export interface UpdateMeetingMessagesByUserIdInput {
 }
 
 export type UpdateMeetingMessagesByUserIdOutput = void;
+
+export interface UpdateMessageInput {
+  messageId: MessageId;
+  updates: {
+    transcript: string;
+  }
+}
+
+export type UpdateMessageOutput = void;
 
 export interface ConvertPendingToRegularMessageInput {
   pendingMessageId: PendingMessageId;
