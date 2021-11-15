@@ -10,6 +10,7 @@ import { RemoveUserFromTeamDto } from "../dtos/removeUserFromTeam.dto";
 import { GetTeamsByUserIdDto } from "../dtos/getTeamsByUserId.dto";
 import { AddUsersToTeamInput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { GetTeamImageUploadUrlDto } from "../dtos/getTeamImageUploadUrl.dto";
+import { UpdateTeamDto } from "../dtos/updateTeam.dto";
 
 @injectable()
 export class TeamController extends BaseController implements TeamControllerInterface {
@@ -43,6 +44,34 @@ export class TeamController extends BaseController implements TeamControllerInte
       return this.generateCreatedResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in createTeam", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async updateTeam(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("updateTeam called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { teamId },
+        body,
+      } = this.validationService.validate({ dto: UpdateTeamDto, request, getUserIdFromJwt: true });
+
+      const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
+
+      if (isTeamAdmin) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      await this.teamMediatorService.updateTeam({ teamId, ...body });
+
+      const response: UpdateTeamResponse = { message: "Team updated." };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateTeam", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -191,6 +220,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
 export interface TeamControllerInterface {
   createTeam(request: Request): Promise<Response>;
+  updateTeam(request: Request): Promise<Response>;
   getTeam(request: Request): Promise<Response>;
   addUsersToTeam(request: Request): Promise<Response>;
   removeUserFromTeam(request: Request): Promise<Response>;
@@ -218,6 +248,9 @@ interface AddUsersToTeamResponse {
 
 interface RemoveUserFromTeamResponse {
   message: string;
+}
+interface UpdateTeamResponse {
+  message: "Team updated.";
 }
 
 interface GetTeamsByUserIdResponse {
