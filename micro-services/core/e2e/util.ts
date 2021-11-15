@@ -160,7 +160,7 @@ export async function createUniqueProperty(params: CreateUniquePropertyInput): P
 
 export async function createUser(params: CreateUserInput): Promise<CreateUserOutput> {
   try {
-    const { email, realName, username, phone } = params;
+    const { email, realName, username, phone, bio } = params;
 
     const [
       { isUniqueEmail: isUniqueEmailVal },
@@ -198,6 +198,7 @@ export async function createUser(params: CreateUserInput): Promise<CreateUserOut
       username,
       phone,
       realName,
+      bio,
     };
 
     const s3UploadInput: S3.Types.PutObjectRequest = {
@@ -231,6 +232,7 @@ export async function createUser(params: CreateUserInput): Promise<CreateUserOut
 export async function createRandomUser(): Promise<CreateRandomUserOutput> {
   try {
     const realName = generateRandomString(8);
+    const bio = generateRandomString(8);
 
     let email = generateRandomEmail();
     let username = generateRandomString(8);
@@ -269,7 +271,7 @@ export async function createRandomUser(): Promise<CreateRandomUserOutput> {
 
     const userId: UserId = `${KeyPrefix.User}${ksuid.randomSync().string}`;
 
-    const user: MakeRequired<RawUser, "email" | "username" | "realName"> = {
+    const user: MakeRequired<RawUser, "email" | "username" | "realName" | "bio"> = {
       entityType: EntityType.User,
       imageMimeType: mimeType,
       pk: userId,
@@ -279,6 +281,7 @@ export async function createRandomUser(): Promise<CreateRandomUserOutput> {
       username,
       phone,
       realName,
+      bio,
     };
 
     const s3UploadInput: S3.Types.PutObjectRequest = {
@@ -733,7 +736,7 @@ export async function getConversationUserRelationship<T extends ConversationId>(
 
 export async function createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
   try {
-    const { from, conversationId, conversationMemberIds, mimeType, replyTo, markSeenByAll, transcript = "", reactions = {}, replyCount = 0 } = params;
+    const { from, conversationId, conversationMemberIds, mimeType, replyTo, markSeenByAll, title, transcript = "", reactions = {}, replyCount = 0 } = params;
 
     const messageId = `${replyTo ? KeyPrefix.Reply : KeyPrefix.Message}${ksuid.randomSync().string}` as MessageId;
 
@@ -768,6 +771,7 @@ export async function createMessage(params: CreateMessageInput): Promise<CreateM
       mimeType,
       replyCount,
       transcript,
+      title,
       ...(replyTo && { gsi2pk: replyTo }),
       ...(replyTo && { gsi2sk: messageId }),
       ...(replyTo && { replyTo }),
@@ -919,6 +923,7 @@ export interface CreateUserInput {
   username: string;
   realName: string;
   phone?: string;
+  bio?: string;
 }
 
 export interface CreateUserOutput {
@@ -926,7 +931,7 @@ export interface CreateUserOutput {
 }
 
 export interface CreateRandomUserOutput {
-  user: MakeRequired<RawUser, "email" | "username" | "realName">;
+  user: MakeRequired<RawUser, "email" | "username" | "realName" | "bio">;
 }
 
 export interface CreateRandomTeamInput {
@@ -1081,6 +1086,7 @@ export interface CreateMessageInput {
   transcript?: string;
   reactions?: Record<string, UserId[]>
   replyTo?: MessageId;
+  title?: string;
   replyCount?: number;
   markSeenByAll?: boolean;
 }

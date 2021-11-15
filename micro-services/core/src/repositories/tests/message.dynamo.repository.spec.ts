@@ -40,6 +40,7 @@ describe("MessageDynamoRepository", () => {
   const mockReactions = { [mockReaction]: [ mockUserId, mockUserIdTwo ] };
   const mockReactionsWithSet: Record<string, DocumentClient.DynamoDbSet> = { [mockReaction]: { type: "String", values: [ mockUserId, mockUserIdTwo ] } };
   const mockReplyCount = 0;
+  const mockTitle = "mock-title";
   const mockMimeType = MessageMimeType.AudioMp3;
   const mockTranscript = "mock-transcript";
   const mockSeenAt = {
@@ -58,6 +59,7 @@ describe("MessageDynamoRepository", () => {
     mimeType: mockMimeType,
     transcript: mockTranscript,
     replyTo: mockMessageIdTwo,
+    title: mockTitle,
   };
 
   const mockMessageWithReactionsSet: MessageWithReactionsSet = {

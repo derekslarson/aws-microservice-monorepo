@@ -40,8 +40,8 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
       ]));
 
       ([ { message }, { message: messageTwo } ] = await Promise.all([
-        createMessage({ from: otherUser.id, conversationId: meeting.id, conversationMemberIds: [ user.id, otherUser.id ], mimeType: MessageMimeType.AudioMp3, transcript: `${searchParamBoth} ${searchParamOnlyMeetingMessage}` }),
-        createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ user.id, otherUser.id ], mimeType: MessageMimeType.AudioMp3, transcript: searchParamBoth }),
+        createMessage({ from: otherUser.id, conversationId: meeting.id, conversationMemberIds: [ user.id, otherUser.id ], mimeType: MessageMimeType.AudioMp3, transcript: `${searchParamBoth} ${searchParamOnlyMeetingMessage}`, title: generateRandomString(5) }),
+        createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ user.id, otherUser.id ], mimeType: MessageMimeType.AudioMp3, transcript: searchParamBoth, title: generateRandomString(5) }),
       ]));
 
       await Promise.all([
@@ -69,6 +69,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                 {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
+                  title: message.title,
                   to: {
                     id: meeting.id,
                     name: meeting.name,
@@ -80,6 +81,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -97,6 +99,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                 {
                   createdAt: messageTwo.createdAt,
                   replyCount: messageTwo.replyCount,
+                  title: messageTwo.title,
                   to: {
                     id: group.id,
                     name: group.name,
@@ -107,6 +110,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -144,6 +148,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                 {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
+                  title: message.title,
                   to: {
                     id: meeting.id,
                     name: meeting.name,
@@ -155,6 +160,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,

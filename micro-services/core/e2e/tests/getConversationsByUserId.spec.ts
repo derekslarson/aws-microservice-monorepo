@@ -12,7 +12,7 @@ import { FriendConversation, GroupConversation, MeetingConversation, RawConversa
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage, createUser, createRandomUser, CreateRandomUserOutput, generateRandomPhone } from "../util";
+import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage, createUser, createRandomUser, CreateRandomUserOutput, generateRandomPhone, CreateUserOutput } from "../util";
 
 describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -24,7 +24,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
     const searchParamPhone = generateRandomPhone();
 
     let user: CreateRandomUserOutput["user"];
-    let otherUser: CreateRandomUserOutput["user"];
+    let otherUser: CreateUserOutput["user"];
     let accessToken: string;
 
     let meeting: RawConversation<MeetingConversation>;
@@ -47,6 +47,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
         createRandomUser(),
         createUser({
           realName: `${generateRandomString(10)} ${searchParamNameRealName}`,
+          bio: `${generateRandomString(10)}`,
           email: `${generateRandomString(10)}${searchParamEmail}@test.com`,
           username: `${generateRandomString(10)}-${searchParamUserName}`,
           phone: searchParamPhone,
@@ -61,7 +62,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
         createFriendConversation({ userId: user.id, friendId: otherUser.id }),
       ]));
 
-      ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ user.id, otherUser.id ], mimeType: MessageMimeType.AudioMp3 }));
+      ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ user.id, otherUser.id ], mimeType: MessageMimeType.AudioMp3, title: generateRandomString(8) }));
 
       // We need to create the relationships in sequence, so that we can be sure of the return order in the test
       ({ conversationUserRelationship: meetingUserRelationship } = await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId: user.id, role: Role.Admin, dueDate: meeting.dueDate }));
@@ -86,6 +87,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               {
                 id: otherUser.id,
                 realName: otherUser.realName,
+                bio: otherUser.bio,
                 username: otherUser.username,
                 email: otherUser.email,
                 phone: otherUser.phone,
@@ -108,6 +110,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
+                  title: message.title,
                   to: {
                     id: group.id,
                     name: group.name,
@@ -118,6 +121,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -180,6 +184,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               {
                 id: otherUser.id,
                 realName: otherUser.realName,
+                bio: otherUser.bio,
                 username: otherUser.username,
                 email: otherUser.email,
                 phone: otherUser.phone,
@@ -202,6 +207,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
+                  title: message.title,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
                   to: {
@@ -214,6 +220,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -285,6 +292,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               {
                 id: otherUser.id,
                 realName: otherUser.realName,
+                bio: otherUser.bio,
                 username: otherUser.username,
                 email: otherUser.email,
                 phone: otherUser.phone,
@@ -326,6 +334,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
+                  title: message.title,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
                   to: {
@@ -338,6 +347,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -471,6 +481,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 recentMessage: {
                   createdAt: message.createdAt,
                   replyCount: message.replyCount,
+                  title: message.title,
                   seenAt: message.seenAt,
                   reactions: message.reactions,
                   to: {
@@ -483,6 +494,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   },
                   from: {
                     realName: otherUser.realName,
+                    bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
                     email: otherUser.email,
@@ -520,6 +532,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 {
                   id: otherUser.id,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,
                   phone: otherUser.phone,
@@ -564,6 +577,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 {
                   id: otherUser.id,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,
                   phone: otherUser.phone,
@@ -595,6 +609,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 {
                   id: otherUser.id,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,
                   phone: otherUser.phone,
@@ -626,6 +641,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 {
                   id: otherUser.id,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,
                   phone: otherUser.phone,

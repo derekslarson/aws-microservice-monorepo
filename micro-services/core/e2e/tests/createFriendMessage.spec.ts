@@ -60,6 +60,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
             id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Message}.*`)),
             to: {
               realName: otherUser.realName,
+              bio: otherUser.bio,
               username: otherUser.username,
               id: otherUser.id,
               email: otherUser.email,
@@ -68,6 +69,7 @@ describe("POST /users/{userId}/friends/{friendId}/messages (Create Friend Messag
             },
             from: {
               realName: user.realName,
+              bio: user.bio,
               username: user.username,
               id: user.id,
               email: user.email,

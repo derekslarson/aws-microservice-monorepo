@@ -36,8 +36,8 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
       ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       ([ { message }, { message: messageTwo } ] = await Promise.all([
-        createMessage({ from: fromUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-        createMessage({ from: fromUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: fromUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
+        createMessage({ from: fromUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
       ]));
 
       ({ conversationUserRelationship } = await createConversationUserRelationship({
@@ -164,6 +164,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
                       username: fromUser.username,
                       phone: fromUser.phone,
                       realName: fromUser.realName,
+                      bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
                     type: ConversationType.Meeting,
@@ -171,6 +172,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
                     seenAt: updatedMessage.seenAt,
                     reactions: updatedMessage.reactions,
                     replyCount: 0,
+                    title: updatedMessage.title,
                     mimeType: updatedMessage.mimeType,
                     transcript: updatedMessage.transcript,
                     fetchUrl: jasmine.stringMatching(URL_REGEX),
@@ -197,6 +199,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
                       username: fromUser.username,
                       phone: fromUser.phone,
                       realName: fromUser.realName,
+                      bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
                     type: ConversationType.Meeting,
@@ -204,6 +207,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
                     seenAt: updatedMessageTwo.seenAt,
                     reactions: updatedMessageTwo.reactions,
                     replyCount: 0,
+                    title: updatedMessageTwo.title,
                     mimeType: updatedMessageTwo.mimeType,
                     transcript: updatedMessageTwo.transcript,
                     fetchUrl: jasmine.stringMatching(URL_REGEX),

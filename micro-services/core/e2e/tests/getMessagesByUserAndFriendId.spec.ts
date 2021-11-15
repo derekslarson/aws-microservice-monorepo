@@ -37,7 +37,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
       ({ conversation: friendship } = await createFriendConversation({ userId, friendId: otherUser.id }));
 
       ([ { message } ] = await Promise.all([
-        createMessage({ from: otherUser.id, conversationId: friendship.id, conversationMemberIds: [ userId, otherUser.id ], replyCount: 1, mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: otherUser.id, conversationId: friendship.id, conversationMemberIds: [ userId, otherUser.id ], replyCount: 1, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
         createConversationUserRelationship({ type: ConversationType.Friend, conversationId: friendship.id, userId, role: Role.User }),
       ]));
 
@@ -45,9 +45,9 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
 
       // We have to create the messages in sequence to ensure sort order
       ([ { message: messageTwo } ] = await Promise.all([
-        createMessage({ from: userId, conversationId: friendship.id, conversationMemberIds: [ userId, otherUser.id ], mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: userId, conversationId: friendship.id, conversationMemberIds: [ userId, otherUser.id ], mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
         // We have to create a reply to prove that it doesnt get returned at root level
-        createMessage({ from: otherUser.id, conversationId: friendship.id, conversationMemberIds: [ userId, otherUser.id ], replyTo: message.id, mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: otherUser.id, conversationId: friendship.id, conversationMemberIds: [ userId, otherUser.id ], replyTo: message.id, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
       ]));
     });
 
@@ -65,6 +65,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 id: messageTwo.id,
                 to: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,
@@ -73,6 +74,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 },
                 from: {
                   realName: user.realName,
+                  bio: user.bio,
                   username: user.username,
                   id: user.id,
                   email: user.email,
@@ -85,6 +87,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 reactions: messageTwo.reactions,
                 mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
+                title: messageTwo.title,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: messageTwo.transcript,
               },
@@ -92,6 +95,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 id: message.id,
                 to: {
                   realName: user.realName,
+                  bio: user.bio,
                   username: user.username,
                   id: user.id,
                   email: user.email,
@@ -100,6 +104,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 },
                 from: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,
@@ -112,6 +117,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 reactions: message.reactions,
                 mimeType: message.mimeType,
                 replyCount: message.replyCount,
+                title: message.title,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: message.transcript,
               },
@@ -138,6 +144,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 id: messageTwo.id,
                 to: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,
@@ -146,6 +153,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 },
                 from: {
                   realName: user.realName,
+                  bio: user.bio,
                   username: user.username,
                   id: user.id,
                   email: user.email,
@@ -158,6 +166,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 reactions: messageTwo.reactions,
                 mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
+                title: messageTwo.title,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: messageTwo.transcript,
               },
@@ -176,6 +185,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 id: message.id,
                 to: {
                   realName: user.realName,
+                  bio: user.bio,
                   username: user.username,
                   id: user.id,
                   email: user.email,
@@ -184,6 +194,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 },
                 from: {
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
                   email: otherUser.email,
@@ -196,6 +207,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                 reactions: message.reactions,
                 mimeType: message.mimeType,
                 replyCount: message.replyCount,
+                title: message.title,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: message.transcript,
               },

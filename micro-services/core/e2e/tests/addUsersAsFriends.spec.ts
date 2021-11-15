@@ -76,6 +76,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
               id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
               username: otherUser.username,
               realName: otherUser.realName,
+              bio: otherUser.bio,
               email: otherUser.email,
               phone: otherUser.phone,
               image: jasmine.stringMatching(URL_REGEX),
@@ -466,7 +467,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
                 email: user.email,
                 username: user.username,
                 phone: user.phone,
-                realName: user.realName,
+                bio: user.bio,
                 image: jasmine.stringMatching(URL_REGEX),
               },
               addedUser: {
@@ -501,6 +502,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
                 username: user.username,
                 phone: user.phone,
                 realName: user.realName,
+                bio: user.bio,
                 image: jasmine.stringMatching(URL_REGEX),
               },
               addedUser: {
@@ -508,6 +510,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
                 phone: otherUser.phone,
                 username: otherUser.username,
                 realName: otherUser.realName,
+                bio: otherUser.bio,
                 id: otherUser.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },

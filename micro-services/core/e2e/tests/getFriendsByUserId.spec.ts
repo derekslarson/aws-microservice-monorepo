@@ -63,6 +63,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
             friends: [
               {
                 realName: otherUserB.realName,
+                bio: otherUserB.bio,
                 username: otherUserB.username,
                 id: otherUserB.id,
                 email: otherUserB.email,
@@ -71,6 +72,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
               },
               {
                 realName: otherUserA.realName,
+                bio: otherUserA.bio,
                 username: otherUserA.username,
                 id: otherUserA.id,
                 email: otherUserA.email,
@@ -98,6 +100,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
             friends: [
               {
                 realName: otherUserB.realName,
+                bio: otherUserB.bio,
                 username: otherUserB.username,
                 id: otherUserB.id,
                 email: otherUserB.email,
@@ -120,6 +123,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
             friends: [
               {
                 realName: otherUserA.realName,
+                bio: otherUserA.bio,
                 username: otherUserA.username,
                 id: otherUserA.id,
                 email: otherUserA.email,

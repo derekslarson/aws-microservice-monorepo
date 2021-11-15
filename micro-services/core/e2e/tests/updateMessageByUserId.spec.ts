@@ -31,7 +31,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
     let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Group>;
 
     beforeEach(async () => {
-      ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
+      ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }));
 
       ({ conversationUserRelationship } = await createConversationUserRelationship({
         type: ConversationType.Group,
@@ -47,7 +47,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
         const seen = true;
 
         beforeEach(async () => {
-          ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
+          ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({
             type: ConversationType.Group,
@@ -83,6 +83,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                   username: otherUser.username,
                   phone: otherUser.phone,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 type: ConversationType.Group,
@@ -93,6 +94,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                 },
                 reactions: {},
                 replyCount: message.replyCount,
+                title: message.title,
                 mimeType: message.mimeType,
                 transcript: message.transcript,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
@@ -146,7 +148,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
         const seen = false;
 
         beforeEach(async () => {
-          ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, markSeenByAll: true }));
+          ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, markSeenByAll: true, title: generateRandomString(5) }));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({
             type: ConversationType.Group,
@@ -181,6 +183,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                   username: otherUser.username,
                   phone: otherUser.phone,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 type: ConversationType.Group,
@@ -191,6 +194,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                 },
                 reactions: {},
                 replyCount: message.replyCount,
+                title: message.title,
                 mimeType: message.mimeType,
                 transcript: message.transcript,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
@@ -247,7 +251,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
 
       describe("when 'reactions[0].action: \"add\"'", () => {
         beforeEach(async () => {
-          ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
+          ({ message } = await createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ otherUser.id, userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({
             type: ConversationType.Group,
@@ -283,6 +287,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                   username: otherUser.username,
                   phone: otherUser.phone,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 type: ConversationType.Group,
@@ -293,6 +298,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                   [mockReaction]: [ userId ],
                 },
                 replyCount: message.replyCount,
+                title: message.title,
                 mimeType: message.mimeType,
                 transcript: message.transcript,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
@@ -334,6 +340,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
             replyCount: 0,
             mimeType: MessageMimeType.AudioMp3,
             reactions: { [mockReaction]: [ userId ] },
+            title: generateRandomString(5),
           }));
 
           ({ conversationUserRelationship } = await createConversationUserRelationship({
@@ -370,6 +377,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                   username: otherUser.username,
                   phone: otherUser.phone,
                   realName: otherUser.realName,
+                  bio: otherUser.bio,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 type: ConversationType.Group,
@@ -377,6 +385,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
                 seenAt: message.seenAt,
                 reactions: {},
                 replyCount: message.replyCount,
+                title: message.title,
                 mimeType: message.mimeType,
                 transcript: message.transcript,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
@@ -435,7 +444,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
         ({ conversation: groupTwo } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
 
         ([ { message } ] = await Promise.all([
-          createMessage({ from: otherUser.id, conversationId: groupTwo.id, conversationMemberIds: [ otherUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+          createMessage({ from: otherUser.id, conversationId: groupTwo.id, conversationMemberIds: [ otherUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
         ]));
       });
 
