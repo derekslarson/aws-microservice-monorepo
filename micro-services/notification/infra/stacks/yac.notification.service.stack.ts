@@ -3,6 +3,8 @@ import * as CDK from "@aws-cdk/core";
 import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as SNS from "@aws-cdk/aws-sns";
+import * as SNSSubscriptions from "@aws-cdk/aws-sns-subscriptions";
+import * as SQS from "@aws-cdk/aws-sqs";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
@@ -57,6 +59,24 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
 
     // Imported User Pool Id from Auth
     const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
+
+    // SNS Topics
+    const userAddedToTeamSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn);
+    const userRemovedFromTeamSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedFromTeamSnsTopic_${id}`, userRemovedFromTeamSnsTopicArn);
+    const userAddedToGroupSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToGroupSnsTopic_${id}`, userAddedToGroupSnsTopicArn);
+    const userRemovedFromGroupSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedFromGroupSnsTopic_${id}`, userRemovedFromGroupSnsTopicArn);
+    const userAddedToMeetingSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToMeetingSnsTopic_${id}`, userAddedToMeetingSnsTopicArn);
+    const userRemovedFromMeetingSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedFromMeetingSnsTopic_${id}`, userRemovedFromMeetingSnsTopicArn);
+    const userAddedAsFriendSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedAsFriendSnsTopic_${id}`, userAddedAsFriendSnsTopicArn);
+    const userRemovedAsFriendSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedAsFriendSnsTopic_${id}`, userRemovedAsFriendSnsTopicArn);
+    const teamCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `TeamCreatedSnsTopic_${id}`, teamCreatedSnsTopicArn);
+    const groupCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `GroupCreatedSnsTopic_${id}`, groupCreatedSnsTopicArn);
+    const friendMessageCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `FriendMessageCreatedSnsTopic_${id}`, friendMessageCreatedSnsTopicArn);
+    const friendMessageUpdatedSnsTopic = SNS.Topic.fromTopicArn(this, `FriendMessageUpdatedSnsTopic_${id}`, friendMessageUpdatedSnsTopicArn);
+    const groupMessageCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `GroupMessageCreatedSnsTopic_${id}`, groupMessageCreatedSnsTopicArn);
+    const groupMessageUpdatedSnsTopic = SNS.Topic.fromTopicArn(this, `GroupMessageUpdatedSnsTopic_${id}`, groupMessageUpdatedSnsTopicArn);
+    const meetingMessageCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `MeetingMessageCreatedSnsTopic_${id}`, meetingMessageCreatedSnsTopicArn);
+    const meetingMessageUpdatedSnsTopic = SNS.Topic.fromTopicArn(this, `MeetingMessageUpdatedSnsTopic_${id}`, meetingMessageUpdatedSnsTopicArn);
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
@@ -172,6 +192,25 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       PLATFORM_APPLICATION_ARN: platformApplicationArn,
     };
 
+    // SQS Queues
+    const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`);
+    userAddedToTeamSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedFromTeamSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedToGroupSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedFromGroupSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedToMeetingSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedFromMeetingSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedAsFriendSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedAsFriendSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    teamCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    groupCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    friendMessageCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    friendMessageUpdatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    groupMessageCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    groupMessageUpdatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    meetingMessageCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    meetingMessageUpdatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+
     // WebSocket Lambdas
     const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
@@ -225,7 +264,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
     // SNS Event Lambda Handler
     new Lambda.Function(this, `SnsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
+      code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
       handler: "snsEvent.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
@@ -233,22 +272,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement, sendPushNotificationPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromTeamSnsTopic_${id}`, userRemovedFromTeamSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToGroupSnsTopic_${id}`, userAddedToGroupSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromGroupSnsTopic_${id}`, userRemovedFromGroupSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToMeetingSnsTopic_${id}`, userAddedToMeetingSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromMeetingSnsTopic_${id}`, userRemovedFromMeetingSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedAsFriendSnsTopic_${id}`, userAddedAsFriendSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedAsFriendSnsTopic_${id}`, userRemovedAsFriendSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `TeamCreatedSnsTopic_${id}`, teamCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `GroupCreatedSnsTopic_${id}`, groupCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `FriendMessageCreatedSnsTopic_${id}`, friendMessageCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `FriendMessageUpdatedSnsTopic_${id}`, friendMessageUpdatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `GroupMessageCreatedSnsTopic_${id}`, groupMessageCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `GroupMessageUpdatedSnsTopic_${id}`, groupMessageUpdatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MeetingMessageCreatedSnsTopic_${id}`, meetingMessageCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MeetingMessageUpdatedSnsTopic_${id}`, meetingMessageUpdatedSnsTopicArn)),
+        new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
       ],
     });
 
