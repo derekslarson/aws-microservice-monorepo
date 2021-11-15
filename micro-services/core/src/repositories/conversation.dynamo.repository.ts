@@ -267,7 +267,7 @@ export interface GetConversationOutput<T extends ConversationId> {
 }
 
 export type ConversationUpdates<T extends ConversationType> =
-  Conversation<T> extends GroupConversation | MeetingConversation ? Partial<Pick<Conversation<T>, "imageMimeType">> : Record<string, unknown>;
+  Conversation<T> extends GroupConversation | MeetingConversation ? Partial<Pick<Conversation<T>, "imageMimeType" | "name">> : Record<string, unknown>;
 
 export interface UpdateConversationInput<T extends ConversationId> {
   conversationId: T;
