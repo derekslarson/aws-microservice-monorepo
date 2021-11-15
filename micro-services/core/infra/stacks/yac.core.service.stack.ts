@@ -774,6 +774,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const updateMessageHandler = new Lambda.Function(this, `UpdateMessage${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateMessage"),
+      handler: "updateMessage.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const getMessagesByUserAndFriendIdsHandler = new Lambda.Function(this, `GetMessagesByUserAndFriendIds_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMessagesByUserAndFriendIds"),
@@ -1111,6 +1122,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/messages/{messageId}",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessageHandler,
+        restricted: true,
+      },
+      {
+        path: "/messages/{messageId}",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateMessageHandler,
         restricted: true,
       },
       {
