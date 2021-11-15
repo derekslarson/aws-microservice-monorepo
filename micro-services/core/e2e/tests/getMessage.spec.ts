@@ -30,7 +30,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
 
     beforeAll(async () => {
       ([ { message } ] = await Promise.all([
-        createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
         createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.User }),
       ]));
     });
@@ -67,6 +67,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
             seenAt: message.seenAt,
             reactions: message.reactions,
             replyCount: message.replyCount,
+            title: message.title,
             mimeType: message.mimeType,
             transcript: message.transcript,
             fetchUrl: jasmine.stringMatching(URL_REGEX),
@@ -103,7 +104,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
       beforeAll(async () => {
         ({ conversation: groupTwo } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
 
-        ({ message } = await createMessage({ from: otherUser.id, conversationId: groupTwo.id, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }));
+        ({ message } = await createMessage({ from: otherUser.id, conversationId: groupTwo.id, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }));
       });
 
       it("throws a 403 error", async () => {

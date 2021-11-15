@@ -23,7 +23,7 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("createMessage called", { params }, this.constructor.name);
 
-      const { messageId, conversationId, from, mimeType, seenAt, transcript, replyTo } = params;
+      const { messageId, conversationId, from, mimeType, seenAt, transcript, replyTo, title } = params;
 
       const messageEntity: MessageEntity = {
         id: messageId,
@@ -36,6 +36,7 @@ export class MessageService implements MessageServiceInterface {
         createdAt: new Date().toISOString(),
         replyCount: 0,
         reactions: {},
+        title,
       };
 
       await this.messageRepository.createMessage({ message: messageEntity });
@@ -323,6 +324,7 @@ export interface CreateMessageInput {
   mimeType: MessageMimeType;
   transcript: string;
   replyTo?: MessageId;
+  title?: string;
 }
 
 export interface CreateMessageOutput {

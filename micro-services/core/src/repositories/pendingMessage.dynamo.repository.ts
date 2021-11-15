@@ -113,6 +113,7 @@ export interface PendingMessage {
   createdAt: string;
   mimeType: MessageMimeType;
   replyTo?: MessageId;
+  title?: string;
 }
 
 export interface RawPendingMessage extends PendingMessage {

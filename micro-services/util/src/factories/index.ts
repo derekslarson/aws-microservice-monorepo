@@ -13,3 +13,4 @@ export * from "./sns.factory";
 export * from "./crypto.factory";
 export * from "./fs.factory";
 export * from "./path.factory";
+export * from "./jwksClient.factory";

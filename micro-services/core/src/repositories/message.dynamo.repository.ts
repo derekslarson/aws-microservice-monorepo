@@ -355,6 +355,7 @@ export interface Message {
   mimeType: MessageMimeType;
   transcript: string;
   replyTo?: MessageId;
+  title?: string;
 }
 
 export interface MessageWithReactionsSet extends Omit<Message, "reactions"> {

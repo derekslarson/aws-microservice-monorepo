@@ -98,6 +98,7 @@ describe("Friend Message Updated (WebSocket Event)", () => {
           seenAt: { [userOneId]: new Date().toISOString() },
           reactions: {},
           replyCount: 0,
+          title: "mock-title",
           mimeType: "audio/mpeg",
           fetchUrl: "mock-fetch-url",
         },

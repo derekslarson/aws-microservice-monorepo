@@ -4,7 +4,6 @@ import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { WebSocketController, WebSocketControllerInterface } from "../controllers/webSocket.controller";
 import { ListenerMappingService, ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
 import { apiGatewayManagementFactory, ApiGatewayManagementFactory } from "../factories/apiGatewayManagement.factory";
-import { jwkToPemFactory, JwkToPemFactory } from "../factories/jwkToPem.factory";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { MeetingCreatedSnsProcessorService } from "../processor-services/meetingCreated.sns.processor.service";
 import { FriendMessageCreatedSnsProcessorService } from "../processor-services/friendMessageCreated.sns.processor.service";
@@ -21,7 +20,6 @@ import { UserRemovedFromGroupSnsProcessorService } from "../processor-services/u
 import { UserRemovedFromMeetingSnsProcessorService } from "../processor-services/userRemovedFromMeeting.sns.processor.service";
 import { UserRemovedFromTeamSnsProcessorService } from "../processor-services/userRemovedFromTeam.sns.processor.service";
 import { ListenerMappingDynamoRepository, ListenerMappingRepositoryInterface } from "../repositories/listenerMapping.dynamo.repository";
-import { TokenVerificationService, TokenVerificationServiceInterface } from "../services/tokenVerification.service";
 import { WebSocketService, WebSocketServiceInterface } from "../services/webSocket.service";
 import { TYPES } from "./types";
 import { FriendMessageUpdatedSnsProcessorService } from "../processor-services/friendMessageUpdated.sns.processor.service";
@@ -71,7 +69,6 @@ try {
 
   // General Services
   container.bind<PushNotificationServiceInterface>(TYPES.PushNotificationServiceInterface).to(PushNotificationService);
-  container.bind<TokenVerificationServiceInterface>(TYPES.TokenVerificationServiceInterface).to(TokenVerificationService);
   container.bind<WebSocketServiceInterface>(TYPES.WebSocketServiceInterface).to(WebSocketService);
 
   // Repositories
@@ -79,7 +76,6 @@ try {
 
   // Factories
   container.bind<ApiGatewayManagementFactory>(TYPES.ApiGatewayManagementFactory).toFactory(() => apiGatewayManagementFactory);
-  container.bind<JwkToPemFactory>(TYPES.JwkToPemFactory).toFactory(() => jwkToPemFactory);
 
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
