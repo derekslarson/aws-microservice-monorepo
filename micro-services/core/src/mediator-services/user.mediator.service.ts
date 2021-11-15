@@ -79,7 +79,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
   public async updateUser(params: UpdateUserInput): Promise<UpdateUserOutput> {
     try {
-      this.loggerService.trace("getUser called", { params }, this.constructor.name);
+      this.loggerService.trace("updateUser called", { params }, this.constructor.name);
 
       const { userId, realName, bio } = params;
 
@@ -87,7 +87,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       return;
     } catch (error: unknown) {
-      this.loggerService.error("Error in getUser", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in updateUser", { error, params }, this.constructor.name);
 
       throw error;
     }
