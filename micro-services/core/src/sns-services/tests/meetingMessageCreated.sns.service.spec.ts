@@ -48,6 +48,7 @@ describe("MeetingMessageCreatedSnsService", () => {
     replyCount: 0,
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
+    title: "mock-title",
   };
 
   const mockError = new Error("test");

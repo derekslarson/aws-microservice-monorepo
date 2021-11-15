@@ -68,6 +68,7 @@ describe("MeetingMessageCreatedDynamoProcessorService", () => {
     seenAt: { [mockUserIdOne]: new Date().toISOString(), [mockUserIdTwo]: null },
     reactions: {},
     replyCount: 0,
+    title: "mock-title",
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
   };
