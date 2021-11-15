@@ -30,8 +30,8 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
       ({ conversation: friendship } = await createFriendConversation({ userId, friendId: fromUser.id }));
 
       ([ { message }, { message: messageTwo } ] = await Promise.all([
-        createMessage({ from: fromUser.id, conversationId: friendship.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
-        createMessage({ from: fromUser.id, conversationId: friendship.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: fromUser.id, conversationId: friendship.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
+        createMessage({ from: fromUser.id, conversationId: friendship.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
       ]));
 
       ({ conversationUserRelationship } = await createConversationUserRelationship({
@@ -164,6 +164,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
                     createdAt: updatedMessage.createdAt,
                     seenAt: updatedMessage.seenAt,
                     reactions: updatedMessage.reactions,
+                    title: updatedMessage.title,
                     replyCount: 0,
                     mimeType: updatedMessage.mimeType,
                     transcript: updatedMessage.transcript,
@@ -197,6 +198,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
                     createdAt: updatedMessageTwo.createdAt,
                     seenAt: updatedMessageTwo.seenAt,
                     reactions: updatedMessageTwo.reactions,
+                    title: updatedMessageTwo.title,
                     replyCount: 0,
                     mimeType: updatedMessageTwo.mimeType,
                     transcript: updatedMessageTwo.transcript,

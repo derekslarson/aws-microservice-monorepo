@@ -19,6 +19,7 @@ describe("FriendMessageUpdatedSnsService", () => {
   const mockFriendMessageUpdatedSnsTopicArn = "mock-friend-message-updated-sns-topic-arn";
   const mockConfig = { snsTopicArns: { friendMessageUpdated: mockFriendMessageUpdatedSnsTopicArn } };
   const mockMessageId = "message-id";
+  const mockTitle = "title";
   const mockToUser: User = {
     id: "user-mock-to",
     image: "mock-image",
@@ -38,6 +39,7 @@ describe("FriendMessageUpdatedSnsService", () => {
     seenAt: { [mockFromUser.id]: new Date().toISOString() },
     reactions: {},
     replyCount: 0,
+    title: mockTitle,
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
   };

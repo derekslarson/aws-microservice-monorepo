@@ -46,9 +46,9 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
 
       // We have to create the messages in sequence to ensure sort order
       ([ { message: messageTwo } ] = await Promise.all([
-        createMessage({ from: userId, conversationId: meeting.id, conversationMemberIds: [ userId, otherUser.id ], mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: userId, conversationId: meeting.id, conversationMemberIds: [ userId, otherUser.id ], mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
         // We have to create a reply to prove that it doesnt get returned at root level
-        createMessage({ from: otherUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, otherUser.id ], replyTo: message.id, mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: otherUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, otherUser.id ], replyTo: message.id, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
       ]));
     });
 
@@ -88,6 +88,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 reactions: messageTwo.reactions,
                 mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
+                title: messageTwo.title,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: messageTwo.transcript,
               },
@@ -117,6 +118,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 reactions: message.reactions,
                 mimeType: message.mimeType,
                 replyCount: message.replyCount,
+                title: message.title,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: message.transcript,
               },
@@ -165,6 +167,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 reactions: messageTwo.reactions,
                 mimeType: messageTwo.mimeType,
                 replyCount: messageTwo.replyCount,
+                title: messageTwo.title,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: messageTwo.transcript,
               },
@@ -204,6 +207,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 seenAt: message.seenAt,
                 reactions: message.reactions,
                 replyCount: message.replyCount,
+                title: message.title,
                 mimeType: message.mimeType,
                 fetchUrl: jasmine.stringMatching(URL_REGEX),
                 transcript: message.transcript,

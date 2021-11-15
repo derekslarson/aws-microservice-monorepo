@@ -44,6 +44,7 @@ describe("GroupMessageCreatedSnsService", () => {
     seenAt: { [mockUser.id]: new Date().toISOString() },
     reactions: {},
     replyCount: 0,
+    title: "mock-title",
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
   };
