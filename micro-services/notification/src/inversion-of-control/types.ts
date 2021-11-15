@@ -42,7 +42,6 @@ const TYPES = {
 
   // Factories
   ApiGatewayManagementFactory: Symbol.for("ApiGatewayManagementFactory"),
-  JwkToPemFactory: Symbol.for("JwkToPemFactory"),
 };
 
 export { TYPES };

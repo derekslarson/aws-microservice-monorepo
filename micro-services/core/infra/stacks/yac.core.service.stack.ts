@@ -873,7 +873,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateUserHandler,
-        authorizationScopes: [ "yac/user.write" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}",
@@ -918,7 +918,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/teams/{teamId}",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateTeamHandler,
-        authorizationScopes: [ "yac/team.write" ],
+        restricted: true,
       },
       {
         path: "/teams/{teamId}",
@@ -1029,7 +1029,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/meetings/{meetingId}",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateMeetingHandler,
-        authorizationScopes: [ "yac/meeting.write" ],
+        restricted: true,
       },
       {
         path: "/meetings/{meetingId}",
