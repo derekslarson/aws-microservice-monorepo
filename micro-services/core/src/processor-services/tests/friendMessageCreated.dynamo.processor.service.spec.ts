@@ -57,6 +57,7 @@ describe("FriendMessageCreatedDynamoProcessorService", () => {
     seenAt: { [mockToUserId]: new Date().toISOString() },
     reactions: {},
     replyCount: 0,
+    title: "mock-title",
     mimeType: MessageMimeType.AudioMp3,
     fetchUrl: "mock-fetch-url",
   };
