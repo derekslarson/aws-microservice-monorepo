@@ -4,38 +4,35 @@ import * as CDK from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
+import * as ApiGatewayV2Authorizers from "@aws-cdk/aws-apigatewayv2-authorizers";
+import { Duration } from "@aws-cdk/core";
 import { Environment } from "../../src/enums/environment.enum";
 
 interface HttpApiProps extends ApiGatewayV2.HttpApiProps {
   serviceName: string
   domainName: ApiGatewayV2.IDomainName,
   corsAllowedOrigins?: string[];
-  jwtAuthorizer?: {
-    jwtAudience: string[];
-    jwtIssuer: string;
-  }
+  authorizerHandlerFunctionArn?: string;
 }
 
 export interface RouteProps<T extends string = string, U extends ApiGatewayV2.HttpMethod = ApiGatewayV2.HttpMethod> {
   path: T;
   method: U;
   handler: Lambda.IFunction;
-  authorizationScopes?: string[];
+  restricted?: boolean;
 }
 
 export interface ProxyRouteProps {
   path: string;
-  proxyUrl: string;
   method: ApiGatewayV2.HttpMethod;
-  authorizerType?: "JWT" | "AWS_IAM";
-  authorizerId?: string;
-  authorizationScopes?: string[];
+  proxyUrl: string;
+  restricted?: boolean;
 }
 
 export class HttpApi extends ApiGatewayV2.HttpApi {
   public readonly apiURL: string;
 
-  public authorizer?: ApiGatewayV2.HttpAuthorizer;
+  private authorizer?: ApiGatewayV2Authorizers.HttpLambdaAuthorizer;
 
   constructor(scope: CDK.Construct, id: string, props: HttpApiProps) {
     const environment = scope.node.tryGetContext("environment") as string;
@@ -62,13 +59,28 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
       },
     });
 
-    if (props.jwtAuthorizer) {
-      this.authorizer = new ApiGatewayV2.HttpAuthorizer(this, `${id}-JwtAuthorizer`, {
-        httpApi: this,
-        type: ApiGatewayV2.HttpAuthorizerType.JWT,
-        identitySource: [ "$request.header.Authorization" ],
-        jwtAudience: props.jwtAuthorizer.jwtAudience,
-        jwtIssuer: props.jwtAuthorizer.jwtIssuer,
+    if (props.authorizerHandlerFunctionArn) {
+      const authorizerHandler = Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, props.authorizerHandlerFunctionArn);
+
+      // This should be handled by this.authorizer.bind (used in the route declarations below)
+      // but for some reason it isn't working as expected.
+      // See https://github.com/aws/aws-cdk/issues/7588
+      new Lambda.CfnPermission(this, `HttpApiAuthorizerPermission_${id}`, {
+        action: "lambda:InvokeFunction",
+        principal: "apigateway.amazonaws.com",
+        functionName: authorizerHandler.functionName,
+        sourceArn: CDK.Stack.of(scope).formatArn({
+          service: "execute-api",
+          resource: this.apiId,
+          resourceName: "authorizers/*",
+        }),
+      });
+
+      this.authorizer = new ApiGatewayV2Authorizers.HttpLambdaAuthorizer({
+        authorizerName: `LambdaAuthorizer_${id}`,
+        handler: authorizerHandler,
+        resultsCacheTtl: Duration.hours(1),
+        responseTypes: [ ApiGatewayV2Authorizers.HttpLambdaResponseType.SIMPLE ],
       });
     }
 
@@ -77,30 +89,18 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
 
   public addRoute(props: RouteProps): void {
     try {
-      const { authorizationScopes, handler, method, path } = props;
+      const { restricted, handler, method, path } = props;
 
-      if (authorizationScopes && !this.authorizer) {
-        throw Error("authorizationScopes not allowed in HttpApi without a jwtAuthorizer config");
+      if (restricted && !this.authorizer) {
+        throw Error("'restricted' not allowed in HttpApi without an authorizer");
       }
 
-      const integration = new ApiGatewayV2Integrations.LambdaProxyIntegration({ handler });
-      const route = new ApiGatewayV2.HttpRoute(this, `${method}${path}`, {
+      new ApiGatewayV2.HttpRoute(this, `${method}${path}`, {
         httpApi: this,
         routeKey: ApiGatewayV2.HttpRouteKey.with(path, method),
-        integration,
+        integration: new ApiGatewayV2Integrations.LambdaProxyIntegration({ handler }),
+        authorizer: restricted ? this.authorizer : undefined,
       });
-
-      if (authorizationScopes) {
-        if (!this.authorizer) {
-          throw new Error("Can't add authorizationScopes to an HttpApi without an authorizer");
-        }
-
-        const routeCfn = route.node.defaultChild as ApiGatewayV2.CfnRoute;
-
-        routeCfn.authorizationType = "JWT";
-        routeCfn.authorizerId = this.authorizer?.authorizerId;
-        routeCfn.authorizationScopes = authorizationScopes;
-      }
     } catch (error) {
       console.log(`${new Date().toISOString()} : Error in HttpApi.addRoute:\n`, error);
 
@@ -109,32 +109,23 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
   }
 
   public addProxyRoute(props: ProxyRouteProps): void {
-    const { authorizerType, authorizerId, authorizationScopes, proxyUrl, method, path } = props;
+    try {
+      const { restricted, proxyUrl, method, path } = props;
 
-    if (authorizerType === "JWT" && authorizerId === undefined) {
-      throw Error("JWT authorizer requires authorizerId");
-    } else if (authorizerType === "AWS_IAM" && authorizerId !== undefined) {
-      throw Error("IAM authorizer can not be configured with authorizerId");
-    }
-
-    const integration = new ApiGatewayV2Integrations.HttpProxyIntegration({ url: proxyUrl, method });
-
-    const route = new ApiGatewayV2.HttpRoute(this, `${method}${path}`, {
-      httpApi: this,
-      routeKey: ApiGatewayV2.HttpRouteKey.with(path, method),
-      integration,
-    });
-
-    if (authorizationScopes) {
-      if (!this.authorizer) {
-        throw new Error("Can't add authorizationScopes to an HttpApi without an authorizer");
+      if (restricted && !this.authorizer) {
+        throw Error("'restricted' not allowed in HttpApi without an authorizer");
       }
 
-      const routeCfn = route.node.defaultChild as ApiGatewayV2.CfnRoute;
+      new ApiGatewayV2.HttpRoute(this, `${method}${path}`, {
+        httpApi: this,
+        routeKey: ApiGatewayV2.HttpRouteKey.with(path, method),
+        integration: new ApiGatewayV2Integrations.HttpProxyIntegration({ url: proxyUrl, method }),
+        authorizer: restricted ? this.authorizer : undefined,
+      });
+    } catch (error) {
+      console.log(`${new Date().toISOString()} : Error in HttpApi.addProxyRoute:\n`, error);
 
-      routeCfn.authorizationType = authorizerType;
-      routeCfn.authorizerId = authorizerId;
-      routeCfn.authorizationScopes = authorizationScopes;
+      throw error;
     }
   }
 }

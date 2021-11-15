@@ -1,6 +1,7 @@
 import { Request } from "../models/http/request.model";
+import { UserId } from "../types";
 
-export function generateMockRequest(overrideParams: Partial<Request> = {}, jwtUserId?: string): Request {
+export function generateMockRequest(overrideParams: Partial<Request> = {}, jwtUserId?: UserId): Request {
   return {
 
     version: "mock-version",
@@ -13,15 +14,12 @@ export function generateMockRequest(overrideParams: Partial<Request> = {}, jwtUs
     requestContext: {
       accountId: "mock-account-id",
       apiId: "mock-api-id",
-      authorizer: {
-        jwt: {
-          claims: {
-            mockClaim: "mock-claim",
-            ...(jwtUserId && { username: jwtUserId }),
-          },
+      authorizer: jwtUserId ? {
+        lambda: {
+          userId: jwtUserId,
           scopes: [ "mock-scope" ],
         },
-      },
+      } : undefined,
       domainName: "mock-domain-name",
       domainPrefix: "mock-domain-prefix",
       http: {
