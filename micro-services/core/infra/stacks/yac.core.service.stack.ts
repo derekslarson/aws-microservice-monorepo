@@ -1128,7 +1128,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/messages/{messageId}",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateMessageHandler,
-        authorizationScopes: [ "yac/message.write" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/messages",
