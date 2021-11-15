@@ -639,6 +639,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const updateMeetingHandler = new Lambda.Function(this, `UpdateMeeting${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateMeeting"),
+      handler: "updateMeeting.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const getMeetingHandler = new Lambda.Function(this, `GetMeeting_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMeeting"),
@@ -1009,6 +1020,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/meetings",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createMeetingHandler,
+        authorizationScopes: [ "yac/meeting.write" ],
+      },
+      {
+        path: "/meetings/{meetingId}",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateMeetingHandler,
         authorizationScopes: [ "yac/meeting.write" ],
       },
       {
