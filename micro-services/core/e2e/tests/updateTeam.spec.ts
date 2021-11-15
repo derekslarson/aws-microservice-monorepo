@@ -17,7 +17,7 @@ describe("PATCH /teams/{teamId} (Update User by User Id)", () => {
       ({ team } = await createRandomTeam({ createdBy: userId }));
     });
 
-    describe("when passed both 'name' value", () => {
+    describe("when passed 'name' value", () => {
       const body = { name: generateRandomString(5) };
 
       it("returns a valid response", async () => {
