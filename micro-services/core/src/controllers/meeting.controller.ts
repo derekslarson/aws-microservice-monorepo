@@ -12,6 +12,7 @@ import { GetMeetingsByTeamIdDto } from "../dtos/getMeetingsByTeamId.dto";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GetMeetingImageUploadUrlDto } from "../dtos/getMeetingImageUploadUrl.dto";
 import { AddUsersToMeetingInput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { UpdateMeetingDto } from "../dtos/updateMeeting.dto";
 
 @injectable()
 export class MeetingController extends BaseController implements MeetingControllerInterface {
@@ -54,6 +55,34 @@ export class MeetingController extends BaseController implements MeetingControll
       return this.generateCreatedResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in createMeeting", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async updateMeeting(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("updateMeeting called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { meetingId },
+        body,
+      } = this.validationService.validate({ dto: UpdateMeetingDto, request, getUserIdFromJwt: true });
+
+      const { isMeetingAdmin } = await this.meetingMediatorService.isMeetingAdmin({ meetingId, userId: jwtId });
+
+      if (!isMeetingAdmin) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      await this.meetingMediatorService.updateMeeting({ meetingId, updates: body });
+
+      const response: UpdateMeetingResponse = { message: "Meeting updated." };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMeeting", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -235,6 +264,7 @@ export class MeetingController extends BaseController implements MeetingControll
 
 export interface MeetingControllerInterface {
   createMeeting(request: Request): Promise<Response>;
+  updateMeeting(request: Request): Promise<Response>;
   getMeeting(request: Request): Promise<Response>;
   addUsersToMeeting(request: Request): Promise<Response>;
   removeUserFromMeeting(request: Request): Promise<Response>;
@@ -245,6 +275,10 @@ export interface MeetingControllerInterface {
 
 interface CreateMeetingResponse {
   meeting: Meeting;
+}
+
+interface UpdateMeetingResponse {
+  message: "Meeting updated.";
 }
 
 interface GetMeetingResponse {

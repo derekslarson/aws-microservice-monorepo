@@ -77,6 +77,7 @@ import { MessageTranscribedSnsProcessorService } from "../processor-services/mes
 import { aws4Factory, Aws4Factory } from "../factories/aws4.factory";
 import { UserGroupMeetingSearchService, UserGroupMeetingSearchServiceInterface } from "../entity-services/userGroupMeeting.search.service";
 import { OpenSearchRepository, SearchRepositoryInterface } from "../repositories/openSearch.repository";
+import { ExternalProviderUserSignedUpSnsProcessorService } from "../processor-services/externalProviderUserSignedUp.sns.processor.service";
 
 const container = new Container();
 
@@ -113,6 +114,7 @@ try {
   // SNS Processor Services
   container.bind<SnsProcessorServiceInterface>(TYPES.MessageTranscodedSnsProcessorServiceInterface).to(MessageTranscodedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.MessageTranscribedSnsProcessorServiceInterface).to(MessageTranscribedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.ExternalProviderUserSignedUpSnsProcessorServiceInterface).to(ExternalProviderUserSignedUpSnsProcessorService);
 
   // Dynamo Processor Services
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserCreatedDynamoProcessorServiceInterface).to(UserCreatedDynamoProcessorService);
@@ -185,6 +187,7 @@ try {
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
     container.get(TYPES.MessageTranscodedSnsProcessorServiceInterface),
     container.get(TYPES.MessageTranscribedSnsProcessorServiceInterface),
+    container.get(TYPES.ExternalProviderUserSignedUpSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([

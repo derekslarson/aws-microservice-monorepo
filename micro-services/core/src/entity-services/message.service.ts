@@ -23,7 +23,7 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("createMessage called", { params }, this.constructor.name);
 
-      const { messageId, conversationId, from, mimeType, seenAt, transcript, replyTo } = params;
+      const { messageId, conversationId, from, mimeType, seenAt, transcript, replyTo, title } = params;
 
       const messageEntity: MessageEntity = {
         id: messageId,
@@ -36,6 +36,7 @@ export class MessageService implements MessageServiceInterface {
         createdAt: new Date().toISOString(),
         replyCount: 0,
         reactions: {},
+        title,
       };
 
       await this.messageRepository.createMessage({ message: messageEntity });
@@ -174,6 +175,18 @@ export class MessageService implements MessageServiceInterface {
     }
   }
 
+  public async updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput> {
+    try {
+      this.loggerService.trace("updateMessage called", { params }, this.constructor.name);
+
+      await this.messageRepository.updateMessage(params);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput> {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
@@ -291,6 +304,7 @@ export interface MessageServiceInterface {
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
   updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>;
   updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
+  updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
   indexMessageForSearch(params: IndexMessageForSearchInput): Promise<IndexMessageForSearchOutput>;
@@ -310,6 +324,7 @@ export interface CreateMessageInput {
   mimeType: MessageMimeType;
   transcript: string;
   replyTo?: MessageId;
+  title?: string;
 }
 
 export interface CreateMessageOutput {
@@ -352,6 +367,15 @@ export interface UpdateMessageReactionInput {
 export interface UpdateMessageReactionOutput {
   message: Message;
 }
+
+export interface UpdateMessageInput {
+  messageId: MessageId;
+  updates: {
+    transcript: string;
+  }
+}
+
+export type UpdateMessageOutput = void;
 
 export interface GetMessagesByConversationIdInput {
   conversationId: ConversationId;

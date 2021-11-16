@@ -293,7 +293,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/devices",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: registerDeviceHandler,
-        authorizationScopes: [ "yac/user.write" ],
+        restricted: true,
       },
     ];
 

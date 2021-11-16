@@ -63,6 +63,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const meetingMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageUpdatedSnsTopicArn);
     const messageTranscodedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
     const messageTranscribedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn);
+    const externalProviderUserSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.ExternalProviderUserSignedUpSnsTopicArn);
 
     // Secret imports from Util
     const messageUploadTokenSecretArn = CDK.Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
@@ -291,6 +292,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN: meetingMessageUpdatedSnsTopicArn,
       MESSAGE_TRANSCODED_SNS_TOPIC_ARN: messageTranscodedSnsTopicArn,
       MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN: messageTranscribedSnsTopicArn,
+      EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN: externalProviderUserSignedUpSnsTopicArn,
       RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
       ENHANCED_MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,
       IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
@@ -363,7 +365,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
@@ -375,6 +377,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/createUser"),
       handler: "createUser.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const updateUserHandler = new Lambda.Function(this, `UpdateUser${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateUser"),
+      handler: "updateUser.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -442,6 +455,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/createTeam"),
       handler: "createTeam.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const updateTeamHandler = new Lambda.Function(this, `UpdateTeam${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateTeam"),
+      handler: "updateTeam.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -639,6 +663,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const updateMeetingHandler = new Lambda.Function(this, `UpdateMeeting${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateMeeting"),
+      handler: "updateMeeting.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const getMeetingHandler = new Lambda.Function(this, `GetMeeting_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMeeting"),
@@ -760,6 +795,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const updateMessageHandler = new Lambda.Function(this, `UpdateMessage${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateMessage"),
+      handler: "updateMessage.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const getMessagesByUserAndFriendIdsHandler = new Lambda.Function(this, `GetMessagesByUserAndFriendIds_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMessagesByUserAndFriendIds"),
@@ -857,33 +903,39 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       },
       {
         path: "/users/{userId}",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateUserHandler,
+        restricted: true,
+      },
+      {
+        path: "/users/{userId}",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUserHandler,
-        authorizationScopes: [ "yac/user.read" ],
+        restricted: true,
       },
       {
         path: "/teams/{teamId}/users",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUsersByTeamIdHandler,
-        authorizationScopes: [ "yac/team_member.read" ],
+        restricted: true,
       },
       {
         path: "/groups/{groupId}/users",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUsersByGroupIdHandler,
-        authorizationScopes: [ "yac/group_member.read" ],
+        restricted: true,
       },
       {
         path: "/meetings/{meetingId}/users",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUsersByMeetingIdHandler,
-        authorizationScopes: [ "yac/meeting_member.read" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/image-upload-url",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUserImageUploadUrlHandler,
-        authorizationScopes: [ "yac/user.write" ],
+        restricted: true,
       },
     ];
 
@@ -892,37 +944,43 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/teams",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createTeamHandler,
-        authorizationScopes: [ "yac/team.write" ],
+        restricted: true,
+      },
+      {
+        path: "/teams/{teamId}",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateTeamHandler,
+        restricted: true,
       },
       {
         path: "/teams/{teamId}",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getTeamHandler,
-        authorizationScopes: [ "yac/team.read" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/teams",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getTeamsByUserIdHandler,
-        authorizationScopes: [ "yac/team.read" ],
+        restricted: true,
       },
       {
         path: "/teams/{teamId}/users",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: addUsersToTeamHandler,
-        authorizationScopes: [ "yac/team_member.write" ],
+        restricted: true,
       },
       {
         path: "/teams/{teamId}/users/{userId}",
         method: ApiGatewayV2.HttpMethod.DELETE,
         handler: removeUserFromTeamHandler,
-        authorizationScopes: [ "yac/team_member.delete" ],
+        restricted: true,
       },
       {
         path: "/teams/{teamId}/image-upload-url",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getTeamImageUploadUrlHandler,
-        authorizationScopes: [ "yac/team.write" ],
+        restricted: true,
       },
     ];
 
@@ -931,19 +989,19 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/friends",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: addUsersAsFriendsHandler,
-        authorizationScopes: [ "yac/friend.write" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/friends",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getFriendsByUserIdHandler,
-        authorizationScopes: [ "yac/friend.read" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/friends/{friendId}",
         method: ApiGatewayV2.HttpMethod.DELETE,
         handler: removeUserAsFriendHandler,
-        authorizationScopes: [ "yac/friend.delete" ],
+        restricted: true,
       },
     ];
 
@@ -952,7 +1010,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/groups",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createGroupHandler,
-        authorizationScopes: [ "yac/group.write" ],
+        restricted: true,
       },
       {
         path: "/groups/{groupId}",
@@ -964,37 +1022,37 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/groups/{groupId}",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getGroupHandler,
-        authorizationScopes: [ "yac/group.read" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/groups",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getGroupsByUserIdHandler,
-        authorizationScopes: [ "yac/group.read" ],
+        restricted: true,
       },
       {
         path: "/teams/{teamId}/groups",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getGroupsByTeamIdHandler,
-        authorizationScopes: [ "yac/group.read" ],
+        restricted: true,
       },
       {
         path: "/groups/{groupId}/users",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: addUsersToGroupHandler,
-        authorizationScopes: [ "yac/group_member.write" ],
+        restricted: true,
       },
       {
         path: "/groups/{groupId}/users/{userId}",
         method: ApiGatewayV2.HttpMethod.DELETE,
         handler: removeUserFromGroupHandler,
-        authorizationScopes: [ "yac/group_member.delete" ],
+        restricted: true,
       },
       {
         path: "/groups/{groupId}/image-upload-url",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getGroupImageUploadUrlHandler,
-        authorizationScopes: [ "yac/group.write" ],
+        restricted: true,
       },
     ];
 
@@ -1003,43 +1061,49 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/meetings",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createMeetingHandler,
-        authorizationScopes: [ "yac/meeting.write" ],
+        restricted: true,
+      },
+      {
+        path: "/meetings/{meetingId}",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateMeetingHandler,
+        restricted: true,
       },
       {
         path: "/meetings/{meetingId}",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingHandler,
-        authorizationScopes: [ "yac/meeting.read" ],
+        restricted: true,
       },
       {
         path: "/meetings/{meetingId}/users",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: addUsersToMeetingHandler,
-        authorizationScopes: [ "yac/meeting_member.write" ],
+        restricted: true,
       },
       {
         path: "/meetings/{meetingId}/users/{userId}",
         method: ApiGatewayV2.HttpMethod.DELETE,
         handler: removeUserFromMeetingHandler,
-        authorizationScopes: [ "yac/meeting_member.delete" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/meetings",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingsByUserIdHandler,
-        authorizationScopes: [ "yac/meeting.read" ],
+        restricted: true,
       },
       {
         path: "/teams/{teamId}/meetings",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingsByTeamIdHandler,
-        authorizationScopes: [ "yac/meeting.read" ],
+        restricted: true,
       },
       {
         path: "/meetings/{meetingId}/image-upload-url",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMeetingImageUploadUrlHandler,
-        authorizationScopes: [ "yac/meeting.write" ],
+        restricted: true,
       },
     ];
 
@@ -1048,74 +1112,80 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/friends/{friendId}/messages",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createFriendMessageHandler,
-        authorizationScopes: [ "yac/message.write" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/friends/{friendId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessagesByUserAndFriendIdsHandler,
-        authorizationScopes: [ "yac/message.read" ],
+        restricted: true,
       },
       {
         path: "/groups/{groupId}/messages",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createGroupMessageHandler,
-        authorizationScopes: [ "yac/message.write" ],
+        restricted: true,
       },
       {
         path: "/groups/{groupId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessagesByGroupIdHandler,
-        authorizationScopes: [ "yac/message.read" ],
+        restricted: true,
       },
       {
         path: "/meetings/{meetingId}/messages",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createMeetingMessageHandler,
-        authorizationScopes: [ "yac/message.write" ],
+        restricted: true,
       },
       {
         path: "/meetings/{meetingId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessagesByMeetingIdHandler,
-        authorizationScopes: [ "yac/message.read" ],
+        restricted: true,
       },
 
       {
         path: "/messages/{messageId}",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessageHandler,
-        authorizationScopes: [ "yac/message.read" ],
+        restricted: true,
+      },
+      {
+        path: "/messages/{messageId}",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateMessageHandler,
+        restricted: true,
       },
       {
         path: "/users/{userId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getMessagesByUserIdAndSearchTermHandler,
-        authorizationScopes: [ "yac/message.read" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/messages/{messageId}",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateMessageByUserIdHandler,
-        authorizationScopes: [ "yac/message.write" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/friends/{friendId}/messages",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateFriendMessagesByUserIdHandler,
-        authorizationScopes: [ "yac/message.write" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/groups/{groupId}/messages",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateGroupMessagesByUserIdHandler,
-        authorizationScopes: [ "yac/message.write" ],
+        restricted: true,
       },
       {
         path: "/users/{userId}/meetings/{meetingId}/messages",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateMeetingMessagesByUserIdHandler,
-        authorizationScopes: [ "yac/message.write" ],
+        restricted: true,
       },
     ];
 
@@ -1124,7 +1194,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/conversations",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getConversationsByUserIdHandler,
-        authorizationScopes: [ "yac/conversation.read" ],
+        restricted: true,
       },
     ];
 

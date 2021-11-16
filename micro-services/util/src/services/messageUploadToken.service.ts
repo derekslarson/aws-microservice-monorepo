@@ -49,7 +49,7 @@ export class MessageUploadTokenService implements MessageUploadTokenServiceInter
     }
   }
 
-  public async verifyToken(params: VerifyTokenInput): Promise<VerifyTokenOutput> {
+  public async verifyToken(params: VerifyUploadTokenInput): Promise<VerifyUploadTokenOutput> {
     try {
       this.loggerService.trace("verifyToken called", { params }, this.constructor.name);
 
@@ -82,7 +82,7 @@ interface MessageUploadTokenServiceConfig {
 
 export interface MessageUploadTokenServiceInterface {
   generateToken(params: GenerateTokenInput): Promise<GenerateTokenOutput>;
-  verifyToken(params: VerifyTokenInput): Promise<VerifyTokenOutput>;
+  verifyToken(params: VerifyUploadTokenInput): Promise<VerifyUploadTokenOutput>;
 }
 
 export type GenerateTokenInput = MessageUploadToken;
@@ -91,10 +91,10 @@ export interface GenerateTokenOutput {
   token: string;
 }
 
-export interface VerifyTokenInput {
+export interface VerifyUploadTokenInput {
   token: string;
 }
 
-export interface VerifyTokenOutput {
+export interface VerifyUploadTokenOutput {
   decodedToken: MessageUploadToken;
 }

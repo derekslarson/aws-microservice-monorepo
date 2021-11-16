@@ -36,12 +36,14 @@ const CONFIG: IEnvConfig = {
   SIGN_IN_PATH: "/login",
   SIGN_UP_PATH: "sign-up",
   AUTHENTICATE_PATH: "/confirm",
+  OAUTH2_AUTHORIZE_PATH: "/oauth2/authorize"
 }
 function useQuery() {
   const params = new URLSearchParams(window.location.search) as any
   return {
     client_id: params.get('client_id'),
     redirect_uri: params.get('redirect_uri'),
+    response_type: params.get('response_type'),
     state: params.get('state'),
     code_challenge: params.get('code_challenge'),
     code_challenge_method: params.get('code_challenge_method'),
@@ -250,6 +252,18 @@ const Login: React.FC<ILoginProps> = () => {
     }
   }
 
+  const redirectToGoogleAuth = () => {    
+    const redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.OAUTH2_AUTHORIZE_PATH}?identity_provider=Google&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}&scope=${query.scope}&code_challenge=${query.code_challenge}&code_challenge_method=${query.code_challenge_method}&state=${query.state}`;
+
+    window.location.href = redirectLocation
+  }
+
+  const redirectToSlackAuth = () => {    
+    const redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.OAUTH2_AUTHORIZE_PATH}?identity_provider=Slack&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}&scope=${query.scope}&code_challenge=${query.code_challenge}&code_challenge_method=${query.code_challenge_method}&state=${query.state}`;
+
+    window.location.href = redirectLocation
+  }
+
   const email_form = () => (
     <motion.form
       key={'email_form'}
@@ -261,6 +275,19 @@ const Login: React.FC<ILoginProps> = () => {
       exit={'exit'}
     >
       <h2>Sign in</h2>
+      <button type="button" className="login-with-google-btn" onClick={redirectToGoogleAuth}>
+        Sign in with Google
+      </button>
+      <button type="button" className="login-with-slack-btn" onClick={redirectToSlackAuth}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 122.8 122.8">
+          <path d="M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z" fill="#e01e5a" />
+          <path d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z" fill="#36c5f0" />
+          <path d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z" fill="#2eb67d" />
+          <path d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z" fill="#ecb22e" />
+        </svg>
+          Sign in with Slack
+      </button>
+      <span>or</span>
       <span className={'login__form-description'}>
         Use your Yac account email address or phone number
       </span>
@@ -427,6 +454,7 @@ interface IEnvConfig {
   SIGN_IN_PATH: string,
   SIGN_UP_PATH: string,
   AUTHENTICATE_PATH: string,
+  OAUTH2_AUTHORIZE_PATH: string
 }
 
 export default Login

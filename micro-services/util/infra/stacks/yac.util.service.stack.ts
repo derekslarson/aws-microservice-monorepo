@@ -56,7 +56,6 @@ export class YacUtilServiceStack extends CDK.Stack {
     const enhancedMessageS3Bucket = new S3.Bucket(this, `EnhancedMessageS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
 
     // SNS Topics
-    const clientsUpdatedSnsTopic = new SNS.Topic(this, `ClientsUpdatedSnsTopic_${id}`, { topicName: `ClientsUpdatedSnsTopic_${id}` });
     const userCreatedSnsTopic = new SNS.Topic(this, `UserCreatedSnsTopic_${id}`, { topicName: `UserCreatedSnsTopic_${id}` });
     const userAddedToTeamSnsTopic = new SNS.Topic(this, `UserAddedToTeamSnsTopic_${id}`, { topicName: `UserAddedToTeamSnsTopic_${id}` });
     const userRemovedFromTeamSnsTopic = new SNS.Topic(this, `UserRemovedFromTeamSnsTopic_${id}`, { topicName: `UserRemovedFromTeamSnsTopic_${id}` });
@@ -77,6 +76,7 @@ export class YacUtilServiceStack extends CDK.Stack {
     const meetingMessageUpdatedSnsTopic = new SNS.Topic(this, `MeetingMessageUpdatedSnsTopic_${id}`, { topicName: `MeetingMessageUpdatedSnsTopic_${id}` });
     const messageTranscodedSnsTopic = new SNS.Topic(this, `MessageTranscodedSnsTopic_${id}`, { topicName: `MessageTranscodedSnsTopic_${id}` });
     const messageTranscribedSnsTopic = new SNS.Topic(this, `MessageTranscribedSnsTopic_${id}`, { topicName: `MessageTranscribedSnsTopic_${id}` });
+    const externalProviderUserSignedUpSnsTopic = new SNS.Topic(this, `ExternalProviderUserSignedUpSnsTopic_${id}`, { topicName: `ExternalProviderUserSignedUpSnsTopic_${id}` });
 
     // Secret for signing token for use in message flow (core and message services)
     const messageUploadTokenSecret = new SecretsManager.Secret(this, `MessageUploadTokenSecret_${id}`);
@@ -97,11 +97,6 @@ export class YacUtilServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `RegionalHostedZoneIdExport_${id}`, {
       exportName: ExportNames.RegionalHostedZoneId,
       value: domainName.regionalHostedZoneId,
-    });
-
-    new CDK.CfnOutput(this, `ClientsUpdatedSnsTopicExport_${id}`, {
-      exportName: ExportNames.ClientsUpdatedSnsTopicArn,
-      value: clientsUpdatedSnsTopic.topicArn,
     });
 
     new CDK.CfnOutput(this, `UserCreatedSnsTopicExport_${id}`, {
@@ -202,6 +197,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new CDK.CfnOutput(this, `MessageTranscribedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.MessageTranscribedSnsTopicArn,
       value: messageTranscribedSnsTopic.topicArn,
+    });
+
+    new CDK.CfnOutput(this, `ExternalProviderUserSignedUpSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.ExternalProviderUserSignedUpSnsTopicArn,
+      value: externalProviderUserSignedUpSnsTopic.topicArn,
     });
 
     new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {
@@ -318,6 +318,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new SSM.StringParameter(this, `MessageTranscribedSsmParameter_${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/message-transcribed-sns-topic-arn`,
       stringValue: messageTranscribedSnsTopic.topicArn,
+    });
+
+    new SSM.StringParameter(this, `ExternalProviderUserSignedUpSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/external-provider-user-signed-up-sns-topic-arn`,
+      stringValue: externalProviderUserSignedUpSnsTopic.topicArn,
     });
 
     new SSM.StringParameter(this, `RawMessageS3BucketNameSsmParameter_${id}`, {

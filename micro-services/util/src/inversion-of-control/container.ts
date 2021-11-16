@@ -33,6 +33,8 @@ import { MessageFileRepositoryInterface } from "../repositories/base.message.s3.
 import { MessageUploadTokenService, MessageUploadTokenServiceInterface } from "../services/messageUploadToken.service";
 import { fsFactory, FsFactory } from "../factories/fs.factory";
 import { pathFactory, PathFactory } from "../factories/path.factory";
+import { jwksClientFactory, JwksClientFactory } from "../factories/jwksClient.factory";
+import { TokenVerificationService, TokenVerificationServiceInterface } from "../services/tokenVerification.service";
 
 const coreContainerModule = new ContainerModule((bind) => {
   try {
@@ -46,6 +48,7 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);
     bind<MessageUploadTokenServiceInterface>(TYPES.MessageUploadTokenServiceInterface).to(MessageUploadTokenService);
     bind<SmsServiceInterface>(TYPES.SmsServiceInterface).to(SmsService);
+    bind<TokenVerificationServiceInterface>(TYPES.TokenVerificationServiceInterface).to(TokenVerificationService);
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
     bind<ValidationServiceV2Interface>(TYPES.ValidationServiceV2Interface).to(ValidationServiceV2);
 
@@ -60,6 +63,7 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<ErrorSerializerFactory>(TYPES.ErrorSerializerFactory).toFactory(() => errorSerializerFactory);
     bind<FsFactory>(TYPES.FsFactory).toFactory(() => fsFactory);
     bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
+    bind<JwksClientFactory>(TYPES.JwksClientFactory).toFactory(() => jwksClientFactory);
     bind<JwtFactory>(TYPES.JwtFactory).toFactory(() => jwtFactory);
     bind<PathFactory>(TYPES.PathFactory).toFactory(() => pathFactory);
     bind<KsuidFactory>(TYPES.KsuidFactory).toFactory(() => ksuidFactory);
