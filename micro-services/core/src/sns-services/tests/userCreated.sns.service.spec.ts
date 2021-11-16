@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { LoggerService, Spied, TestSupport, SnsFactory } from "@yac/util";
+import { LoggerService, Spied, TestSupport, SnsFactory, UserId } from "@yac/util";
 import SNS from "aws-sdk/clients/sns";
 import { UserCreatedSnsService, UserCreatedSnsServiceInterface } from "../userCreated.sns.service";
 
@@ -16,7 +16,7 @@ describe("UserCreatedSnsService", () => {
 
   const mockUserCreatedSnsTopicArn = "mock-user-created-sns-topic-arn";
   const mockConfig = { snsTopicArns: { userCreated: mockUserCreatedSnsTopicArn } };
-  const mockUserId = "user-id";
+  const mockUserId: UserId = "user-id";
   const mockEmail = "mock-email";
 
   const mockError = new Error("test");

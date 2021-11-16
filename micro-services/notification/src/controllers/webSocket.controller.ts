@@ -1,11 +1,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface, TokenVerificationServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { ConnectDto } from "../dtos/connect.dto";
 import { DisconnectDto } from "../dtos/disconnect.dto";
-import { TokenVerificationServiceInterface } from "../services/tokenVerification.service";
 
 @injectable()
 export class WebSocketController extends BaseController implements WebSocketControllerInterface {

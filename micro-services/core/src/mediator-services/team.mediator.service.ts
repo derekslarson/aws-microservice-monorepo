@@ -41,6 +41,22 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
     }
   }
 
+  public async updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput> {
+    try {
+      this.loggerService.trace("updateTeam called", { params }, this.constructor.name);
+
+      const { teamId, name } = params;
+
+      await this.teamService.updateTeam({ teamId, updates: { name } });
+
+      return;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateTeam", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getTeam(params: GetTeamInput): Promise<GetTeamOutput> {
     try {
       this.loggerService.trace("getTeam called", { params }, this.constructor.name);
@@ -171,6 +187,7 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
 export interface TeamMediatorServiceInterface {
   createTeam(params: CreateTeamInput): Promise<CreateTeamOutput>;
+  updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput>;
   getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
   addUserToTeam(params: AddUserToTeamInput): Promise<AddUserToTeamOutput>;
   removeUserFromTeam(params: RemoveUserFromTeamInput): Promise<RemoveUserFromTeamOutput>;
@@ -201,6 +218,12 @@ export interface GetTeamInput {
 export interface GetTeamOutput {
   team: Team;
 }
+
+export type UpdateTeamInput = Pick<Team, "name"> & {
+  teamId: TeamId;
+};
+
+export type UpdateTeamOutput = void;
 
 export interface AddUserToTeamInput {
   teamId: TeamId;

@@ -35,7 +35,6 @@ const TYPES = {
 
   // General Services
   PushNotificationServiceInterface: Symbol.for("PushNotificationServiceInterface"),
-  TokenVerificationServiceInterface: Symbol.for("TokenVerificationServiceInterface"),
   WebSocketServiceInterface: Symbol.for("WebSocketServiceInterface"),
 
   // Repositories
@@ -43,7 +42,6 @@ const TYPES = {
 
   // Factories
   ApiGatewayManagementFactory: Symbol.for("ApiGatewayManagementFactory"),
-  JwkToPemFactory: Symbol.for("JwkToPemFactory"),
 };
 
 export { TYPES };

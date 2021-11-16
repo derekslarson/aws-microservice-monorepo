@@ -1,28 +1,25 @@
 /* eslint-disable max-len */
 import { inject, injectable } from "inversify";
-import { ForbiddenError, HttpRequestServiceInterface, LoggerServiceInterface, JwtFactory, Jwt } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { EnvConfigInterface } from "../config/env.config";
-import { Jwk, JwkToPem, JwkToPemFactory } from "../factories/jwkToPem.factory";
+import { JwksClient, JwksClientFactory } from "../factories/jwksClient.factory";
+import { Jwt, JwtFactory } from "../factories/jwt.factory";
+import { LoggerServiceInterface } from "./logger.service";
+import { ForbiddenError } from "../errors/forbidden.error";
 
 @injectable()
 export class TokenVerificationService implements TokenVerificationServiceInterface {
-  private jwksUrl: string;
-
   private jwt: Jwt;
 
-  private jwkToPem: JwkToPem;
+  private jwksClient: JwksClient;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.HttpRequestServiceInterface) private httpRequestService: HttpRequestServiceInterface,
     @inject(TYPES.EnvConfigInterface) config: TokenVerificationServiceConfig,
     @inject(TYPES.JwtFactory) jwtFactory: JwtFactory,
-    @inject(TYPES.JwkToPemFactory) jwkToPemFactory: JwkToPemFactory,
+    @inject(TYPES.JwksClientFactory) jwksClientFactory: JwksClientFactory,
   ) {
-    this.jwksUrl = config.jwksUrl;
     this.jwt = jwtFactory();
-    this.jwkToPem = jwkToPemFactory();
+    this.jwksClient = jwksClientFactory(config.jwksUri);
   }
 
   public async verifyToken(params: VerifyTokenInput): Promise<VerifyTokenOutput> {
@@ -31,23 +28,16 @@ export class TokenVerificationService implements TokenVerificationServiceInterfa
 
       const { token } = params;
 
-      const { body: { keys: jwks } } = await this.httpRequestService.get<{ keys: Jwk[]; }>(this.jwksUrl);
-
       const completeDecodedToken = this.jwt.decode(token, { complete: true });
 
-      if (!completeDecodedToken) {
+      if (!completeDecodedToken || !completeDecodedToken.header || !completeDecodedToken.header.kid) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const tokenJwk = jwks.find((jwk) => jwk.kid === completeDecodedToken.header.kid);
+      const key = await this.jwksClient.getSigningKey(completeDecodedToken.header.kid);
+      const signingKey = key.getPublicKey();
 
-      if (!tokenJwk) {
-        throw new ForbiddenError("Forbidden");
-      }
-
-      const pem = this.jwkToPem(tokenJwk);
-
-      const decodedToken = this.jwt.verify(token, pem, { algorithms: [ "RS256" ] }) as DecodedToken;
+      const decodedToken = this.jwt.verify(token, signingKey) as DecodedToken;
 
       return { decodedToken };
     } catch (error: unknown) {
@@ -58,7 +48,9 @@ export class TokenVerificationService implements TokenVerificationServiceInterfa
   }
 }
 
-type TokenVerificationServiceConfig = Pick<EnvConfigInterface, "jwksUrl">;
+type TokenVerificationServiceConfig = {
+  jwksUri: string;
+};
 
 export interface TokenVerificationServiceInterface {
   verifyToken(params: VerifyTokenInput): Promise<VerifyTokenOutput>;
@@ -69,8 +61,9 @@ export interface VerifyTokenInput {
 }
 
 export interface DecodedToken {
-  // userId
+  // userId | externalProviderId
   username: string;
+  scope: string;
 }
 
 export interface VerifyTokenOutput {

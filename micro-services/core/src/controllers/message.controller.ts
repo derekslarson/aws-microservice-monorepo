@@ -21,6 +21,7 @@ import { UpdateFriendMessagesByUserIdDto } from "../dtos/updateFriendMessagesByU
 import { ConversationType } from "../enums/conversationType.enum";
 import { MeetingId } from "../types/meetingId.type";
 import { GroupId } from "../types/groupId.type";
+import { UpdateMessageDto } from "../dtos/updateMessage.dto";
 
 @injectable()
 export class MessageController extends BaseController implements MessageControllerInterface {
@@ -387,6 +388,34 @@ export class MessageController extends BaseController implements MessageControll
       return this.generateErrorResponse(error);
     }
   }
+
+  public async updateMessage(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("updateMessage called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { messageId },
+        body,
+      } = this.validationService.validate({ dto: UpdateMessageDto, request, getUserIdFromJwt: true });
+
+      const { message } = await this.messageMediatorService.getMessage({ messageId });
+
+      if (jwtId !== message.from.id) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      await this.messageMediatorService.updateMessage({ messageId, updates: body });
+
+      const response: UpdateMessageResponse = { message: "Message updated." };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMessage", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
 }
 
 export interface MessageControllerInterface {
@@ -402,6 +431,7 @@ export interface MessageControllerInterface {
   updateFriendMessagesByUserId(request: Request): Promise<Response>;
   updateGroupMessagesByUserId(request: Request): Promise<Response>;
   updateMeetingMessagesByUserId(request: Request): Promise<Response>;
+  updateMessage(request: Request): Promise<Response>;
 }
 
 export interface CreateFriendMessageResponse {
@@ -454,4 +484,8 @@ export interface UpdateGroupMessagesByUserIdResponse {
 
 export interface UpdateMeetingMessagesByUserIdResponse {
   message: "Meeting messages updated.";
+}
+
+export interface UpdateMessageResponse {
+  message: "Message updated.";
 }

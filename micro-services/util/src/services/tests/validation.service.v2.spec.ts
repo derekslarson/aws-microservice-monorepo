@@ -86,7 +86,7 @@ describe("ValidationServiceV2", () => {
         });
       });
 
-      describe("when 'getUserIdFromJwt: true' is passed in and there is no sub claim", () => {
+      describe("when 'getUserIdFromJwt: true' is passed in and there is no userId in the request context", () => {
         const mockRawRequest = generateMockRequest();
 
         it("throws a ForbiddenError", () => {

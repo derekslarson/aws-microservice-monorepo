@@ -7,6 +7,7 @@ import { LoggerServiceInterface } from "./logger.service";
 import { Request } from "../models/http/request.model";
 import { ForbiddenError } from "../errors";
 import { ValidatedRequest } from "../types/validatedRequest.type";
+import { UserId } from "../types/userId.type";
 
 @injectable()
 export class ValidationServiceV2 implements ValidationServiceV2Interface {
@@ -18,12 +19,29 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
     try {
       this.loggerService.trace("validate called", { params }, this.constructor.name);
 
-      const { dto, request, getUserIdFromJwt } = params;
+      const { dto, request, getUserIdFromJwt, scopes = [] } = params;
+
+      if (scopes.length) {
+        const tokenScopesSet = new Set(request.requestContext.authorizer?.lambda?.scopes || []);
+
+        let authorized = false;
+
+        for (const scope of scopes) {
+          if (tokenScopesSet.has(scope)) {
+            authorized = true;
+            break;
+          }
+        }
+
+        if (!authorized) {
+          throw new ForbiddenError("Forbidden");
+        }
+      }
 
       let jwtId: `user-${string}` | undefined;
 
       if (getUserIdFromJwt) {
-        const userId = request.requestContext.authorizer?.jwt.claims.username as `user-${string}` | undefined;
+        const userId = request.requestContext.authorizer?.lambda?.userId;
 
         if (!userId) {
           throw new ForbiddenError("Forbidden");
@@ -76,10 +94,22 @@ export interface ValidationServiceV2Interface {
   validate<T extends ValidatedRequest, U extends boolean>(params: ValidateInput<T, U>): ValidateOutput<T, U>
 }
 
+type RequestWithAuthorizerContext = Request & {
+  requestContext: {
+    authorizer?: {
+      lambda?: {
+        userId?: UserId;
+        scopes?: string[];
+      }
+    }
+  }
+};
+
 export interface ValidateInput<T extends ValidatedRequest, U extends boolean> {
   dto: Runtype<T>;
-  request: Request;
+  request: RequestWithAuthorizerContext;
   getUserIdFromJwt?: U;
+  scopes?: string[];
 }
 
 export type ValidateOutput<T extends ValidatedRequest, U extends boolean> = U extends true ? (T & { jwtId: `user-${string}`; }) : T;
