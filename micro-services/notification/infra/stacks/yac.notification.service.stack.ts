@@ -261,11 +261,11 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       resources: [ webSocketApi.apiArn ],
     });
 
-    // SNS Event Lambda Handler
-    new Lambda.Function(this, `SnsEventHandler_${id}`, {
+    // SQS Event Lambda Handler
+    new Lambda.Function(this, `SqsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
-      handler: "snsEvent.handler",
+      handler: "sqsEvent.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,

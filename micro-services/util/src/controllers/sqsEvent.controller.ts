@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { SQSEvent, SQSRecord } from "aws-lambda";
+import { SNSMessage, SQSEvent, SQSRecord } from "aws-lambda";
 import { TYPES } from "../inversion-of-control/types";
 import { LoggerServiceInterface } from "../services/logger.service";
 import { SnsProcessorServiceInterface, SnsProcessorServiceRecord } from "../services/interfaces/sns.processor.service.interface";
@@ -51,11 +51,13 @@ export class SqsEventController implements SqsEventControllerInterface {
     try {
       this.loggerService.trace("prepareRecordsForProcessorServices called", { record }, this.constructor.name);
 
-      const { eventSourceARN, messageAttributes } = record;
+      const snsMessage = JSON.parse(record.body) as SNSMessage;
+
+      const { TopicArn, Message } = snsMessage;
 
       return {
-        topicArn: eventSourceARN,
-        message: messageAttributes as Record<string, unknown>,
+        topicArn: TopicArn,
+        message: JSON.parse(Message) as Record<string, unknown>,
       };
     } catch (error: unknown) {
       this.loggerService.error("Error in prepareRecordsForProcessorServices", { error, record }, this.constructor.name);
