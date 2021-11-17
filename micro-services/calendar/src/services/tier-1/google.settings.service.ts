@@ -16,7 +16,7 @@ export class GoogleSettingsService implements GoogleSettingsServiceInterface {
 
       const { userId, updates } = params;
 
-      // Upsert in case they don't exist yet
+      // Upsert in case it doesn't exist yet
       await this.googleSettingsRepository.upsertGoogleSettings({ googleSettings: { userId, ...updates } });
     } catch (error: unknown) {
       this.loggerService.error("Error in updateSettings", { error, params }, this.constructor.name);
