@@ -5,7 +5,7 @@ import Jasmine from "jasmine";
 import { SpecReporter } from "jasmine-spec-reporter";
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
-import { getSsmParameters, setEnvVars } from "../../../e2e/util";
+import { createRandomCognitoUser, getAccessToken, getSsmParameters, setEnvVars } from "../../../e2e/util";
 
 const { argv } = yargs(hideBin(process.argv));
 const { environment } = argv as { environment?: string; };
@@ -21,14 +21,24 @@ const necessaryParams = [
   "yac-client-id",
   "yac-client-secret",
   "yac-client-redirect-uri",
+  "calendar-table-name",
 ];
 
 (async () => {
   const initialEnvVals = await getSsmParameters(environment, necessaryParams);
-  initialEnvVals.baseUrl = `https://${environment === "dev" ? "develop" : environment}.yacchat.com/notification`;
-  initialEnvVals.webSocketUrl = `wss://${environment === "dev" ? "develop" : environment}-ws.yacchat.com/notification`;
+  initialEnvVals.baseUrl = `https://${environment === "dev" ? "develop" : environment}.yacchat.com/calendar`;
 
   setEnvVars(initialEnvVals);
+
+  const { id: userId } = await createRandomCognitoUser();
+  const { accessToken } = await getAccessToken(userId);
+
+  const userEnvVars = {
+    userId,
+    accessToken,
+  };
+
+  setEnvVars(userEnvVars);
 
   const jasmineInstance = new Jasmine({});
   const specReporter = new SpecReporter({ spec: { displayPending: true } });

@@ -79,7 +79,7 @@ export class GoogleSettingsDynamoRepository extends BaseDynamoRepositoryV2<Googl
 
       const { googleSettings } = params;
 
-      await this.partialUpdate(googleSettings.userId, EntityType.GoogleSettings, googleSettings);
+      await this.partialUpdate<GoogleSettings & { entityType: EntityType.GoogleSettings }>(googleSettings.userId, EntityType.GoogleSettings, { ...googleSettings, entityType: EntityType.GoogleSettings });
 
       return { googleSettings };
     } catch (error: unknown) {
