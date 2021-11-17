@@ -5,6 +5,8 @@ import * as SSM from "@aws-cdk/aws-ssm";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as S3 from "@aws-cdk/aws-s3";
 import * as SNS from "@aws-cdk/aws-sns";
+import * as SNSSubscriptions from "@aws-cdk/aws-sns-subscriptions";
+import * as SQS from "@aws-cdk/aws-sqs";
 import * as EventBridge from "@aws-cdk/aws-events";
 import * as EventBridgeTargets from "@aws-cdk/aws-events-targets";
 import { Environment, generateExportNames, LogLevel } from "@yac/util";
@@ -40,6 +42,7 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
     const transcriptionS3Bucket = new S3.Bucket(this, `TranscriptionS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
 
     // SNS Topics
+    const messageTranscodedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn)
     const transcriptionJobCompletedSnsTopic = new SNS.Topic(this, `TranscriptionJobCompleted_${id}`, { topicName: `TranscriptionJobCompleted_${id}` });
     const transcriptionJobFailedSnsTopic = new SNS.Topic(this, `TranscriptionJobFailed_${id}`, { topicName: `TranscriptionJobFailed_${id}` });
 
@@ -87,20 +90,24 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
 
     };
 
+    // SQS Queues
+    const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`);
+    messageTranscodedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    transcriptionJobCompletedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    transcriptionJobFailedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+
     // Lambdas
-    new Lambda.Function(this, `SnsEventHandler_${id}`, {
+    new Lambda.Function(this, `SqsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
-      handler: "snsEvent.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
+      handler: "sqsEvent.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, enhancedMessageS3BucketFullAccessPolicyStatement, transcriptionS3BucketFullAccessPolicyStatement, startTranscriptionJobPolicyStatement, messageTranscribedSnsPublishPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(transcriptionJobCompletedSnsTopic),
-        new LambdaEventSources.SnsEventSource(transcriptionJobFailedSnsTopic),
+        new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
       ],
     });
 
