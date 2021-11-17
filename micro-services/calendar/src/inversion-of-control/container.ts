@@ -9,6 +9,8 @@ import { AuthFlowAttemptDynamoRepository, AuthFlowAttemptRepositoryInterface } f
 import { GoogleAuthService, GoogleAuthServiceInterface } from "../services/tier-1/google.auth.service";
 import { GoogleCalendarService, GoogleCalendarServiceInterface } from "../services/tier-2/google.calendar.service";
 import { googleCalendarFactory, GoogleCalendarFactory } from "../factories/google.calendar.factory";
+import { GoogleSettingsDynamoRepository, GoogleSettingsRepositoryInterface } from "../repositories/google.settings.dynamo.repository";
+import { GoogleSettingsService, GoogleSettingsServiceInterface } from "../services/tier-1/google.settings.service";
 
 const container = new Container();
 
@@ -23,6 +25,7 @@ try {
 
   // Tier 1 Service
   container.bind<GoogleAuthServiceInterface>(TYPES.GoogleAuthServiceInterface).to(GoogleAuthService);
+  container.bind<GoogleSettingsServiceInterface>(TYPES.GoogleSettingsServiceInterface).to(GoogleSettingsService);
 
   // Tier 2 Services
   container.bind<GoogleCalendarServiceInterface>(TYPES.GoogleCalendarServiceInterface).to(GoogleCalendarService);
@@ -30,6 +33,7 @@ try {
   // Repositories
   container.bind<AuthFlowAttemptRepositoryInterface>(TYPES.AuthFlowAttemptRepositoryInterface).to(AuthFlowAttemptDynamoRepository);
   container.bind<GoogleCredentialsRepositoryInterface>(TYPES.GoogleCredentialsRepositoryInterface).to(GoogleCredentialsDynamoRepository);
+  container.bind<GoogleSettingsRepositoryInterface>(TYPES.GoogleSettingsRepositoryInterface).to(GoogleSettingsDynamoRepository);
 
   // Factories
   container.bind<GoogleCalendarFactory>(TYPES.GoogleCalendarFactory).toFactory(() => googleCalendarFactory);
