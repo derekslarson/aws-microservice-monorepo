@@ -1016,7 +1016,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/groups/{groupId}",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: updateGroupHandler,
-        authorizationScopes: [ "yac/group.write" ],
+        restricted: true,
       },
       {
         path: "/groups/{groupId}",
