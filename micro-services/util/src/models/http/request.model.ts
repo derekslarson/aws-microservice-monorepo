@@ -4,7 +4,7 @@ import { UserId } from "../../types";
 export type Request = Omit<APIGatewayProxyEventV2, "requestContext"> & {
   requestContext: Omit<APIGatewayProxyEventV2["requestContext"], "authorizer"> & {
     authorizer?: Omit<APIGatewayProxyEventV2["requestContext"]["authorizer"], "jwt"> & {
-      lambda: {
+      lambda?: {
         userId: UserId;
         scopes: string[];
       }
