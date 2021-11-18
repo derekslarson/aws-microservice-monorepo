@@ -63,14 +63,15 @@ export class GoogleCalendarService implements GoogleCalendarServiceInterface {
       const listResponse = await calendar.events.list({
         calendarId: "primary",
         timeMin: new Date().toISOString(),
-        maxResults: 10,
+        maxResults: params.limit || 10,
         singleEvents: true,
         orderBy: "startTime",
+        pageToken: params.exclusiveStartKey,
       });
 
       const events = listResponse.data.items || [];
 
-      return { events };
+      return { events, lastEvaluatedKey: listResponse.data.nextPageToken };
     } catch (error: unknown) {
       this.loggerService.error("Error in getEvents", { error, params }, this.constructor.name);
 
@@ -105,8 +106,11 @@ export interface CompleteAccessFlowOutput {
 
 export interface GetEventsInput {
   userId: UserId;
+  limit?: number;
+  exclusiveStartKey?: string;
 }
 
 export interface GetEventsOutput {
   events: calendar_v3.Schema$Event[];
+  lastEvaluatedKey?: calendar_v3.Schema$Events["nextPageToken"];
 }
