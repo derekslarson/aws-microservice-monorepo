@@ -22,6 +22,9 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
 
     const stackPrefix = environment === Environment.Local ? developer : environment;
 
+    // Manually Set SSM Parameter for Stripe
+    const stripeApiKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-api-key`);
+
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
       compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
@@ -54,6 +57,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       BILLING_TABLE_NAME: billingTable.tableName,
+      STRIPE_API_KEY: stripeApiKey,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
     };
 
@@ -73,6 +77,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
         path: "/organizations/{organizationId}/billing-portal-url",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getBillingPortalUrlHandler,
+        restricted: true,
       },
     ];
 

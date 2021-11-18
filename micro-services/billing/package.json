@@ -30,7 +30,6 @@
     "@aws-cdk/assert": "~1.114.0",
     "@aws-cdk/aws-apigatewayv2": "~1.114.0",
     "@aws-cdk/aws-apigatewayv2-integrations": "~1.114.0",
-    "@aws-cdk/aws-certificatemanager": "~1.114.0",
     "@aws-cdk/aws-dynamodb": "~1.114.0",
     "@aws-cdk/aws-iam": "~1.114.0",
     "@aws-cdk/aws-lambda": "~1.114.0",
@@ -61,7 +60,6 @@
   "dependencies": {
     "@yac/util": "0.1.0",
     "aws-sdk": "^2.783.0",
-    "googleapis": "^91.0.0",
     "inversify": "^5.0.1",
     "reflect-metadata": "^0.1.13",
     "runtypes": "^6.3.1",
