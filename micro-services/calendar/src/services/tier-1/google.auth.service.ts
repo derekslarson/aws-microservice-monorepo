@@ -15,7 +15,7 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
     @inject(TYPES.GoogleCredentialsRepositoryInterface) private googleCredentialsRepository: GoogleCredentialsRepositoryInterface,
-    @inject(TYPES.AuthFlowAttemptRepositoryInterface) private authFlowAttempt: AuthFlowAttemptRepositoryInterface,
+    @inject(TYPES.AuthFlowAttemptRepositoryInterface) private authFlowAttemptRepository: AuthFlowAttemptRepositoryInterface,
     @inject(TYPES.GoogleOAuth2ClientFactory) private googleOAuth2ClientFactory: GoogleOAuth2ClientFactory,
     @inject(TYPES.EnvConfigInterface) private config: GoogleAuthServiceServiceConfig,
     @inject(TYPES.JwtFactory) jwtFactory: JwtFactory,
@@ -42,7 +42,7 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
         state,
       });
 
-      await this.authFlowAttempt.createAuthFlowAttempt({ authFlowAttempt: { userId, state, redirectUri } });
+      await this.authFlowAttemptRepository.createAuthFlowAttempt({ authFlowAttempt: { userId, state, redirectUri } });
 
       return { authUri };
     } catch (error: unknown) {
@@ -61,7 +61,7 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
       const { oAuth2Client } = this.getOAuth2ClientWithoutCredentials();
 
       const [ { authFlowAttempt }, { tokens } ] = await Promise.all([
-        this.authFlowAttempt.getAuthFlowAttempt({ state }),
+        this.authFlowAttemptRepository.getAuthFlowAttempt({ state }),
         oAuth2Client.getToken(authorizationCode),
       ]);
 
@@ -84,7 +84,7 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
 
       await Promise.all([
         this.googleCredentialsRepository.upsertGoogleCredentials({ googleCredentials }),
-        this.authFlowAttempt.deleteAuthFlowAttempt({ state }),
+        this.authFlowAttemptRepository.deleteAuthFlowAttempt({ state }),
       ]);
 
       return { redirectUri: authFlowAttempt.redirectUri };

@@ -8,6 +8,7 @@ const TYPES = {
 
   // Tier 1 Services
   GoogleAuthServiceInterface: Symbol.for("GoogleAuthServiceInterface"),
+  GoogleSettingsServiceInterface: Symbol.for("GoogleSettingsServiceInterface"),
 
   // Tier 2 Services
   GoogleCalendarServiceInterface: Symbol.for("GoogleCalendarServiceInterface"),
@@ -15,6 +16,7 @@ const TYPES = {
   // Repositories
   AuthFlowAttemptRepositoryInterface: Symbol.for("AuthFlowAttemptRepositoryInterface"),
   GoogleCredentialsRepositoryInterface: Symbol.for("GoogleCredentialsRepositoryInterface"),
+  GoogleSettingsRepositoryInterface: Symbol.for("GoogleSettingsRepositoryInterface"),
 
   // Factories
   GoogleCalendarFactory: Symbol.for("GoogleCalendarFactory"),
