@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { BadRequestError, IdServiceInterface, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
+import { BadRequestError, IdServiceInterface, Jwt, JwtFactory, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
 import { Auth } from "googleapis";
 import { TYPES } from "../../inversion-of-control/types";
 import { GoogleCredentials, GoogleCredentialsRepositoryInterface } from "../../repositories/google.credentials.dynamo.repository";
@@ -9,6 +9,8 @@ import { AuthFlowAttemptRepositoryInterface } from "../../repositories/authFlowA
 
 @injectable()
 export class GoogleAuthService implements GoogleAuthServiceInterface {
+  private jwt: Jwt;
+
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
@@ -16,7 +18,10 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
     @inject(TYPES.AuthFlowAttemptRepositoryInterface) private authFlowAttempt: AuthFlowAttemptRepositoryInterface,
     @inject(TYPES.GoogleOAuth2ClientFactory) private googleOAuth2ClientFactory: GoogleOAuth2ClientFactory,
     @inject(TYPES.EnvConfigInterface) private config: GoogleAuthServiceServiceConfig,
-  ) {}
+    @inject(TYPES.JwtFactory) jwtFactory: JwtFactory,
+  ) {
+    this.jwt = jwtFactory();
+  }
 
   public async initiateAccessFlow(params: InitiateAccessFlowInput): Promise<InitiateAccessFlowOutput> {
     try {
@@ -28,8 +33,10 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
 
       const { oAuth2Client } = this.getOAuth2ClientWithoutCredentials();
 
+      const scopeWithOpenId = scope.includes("email") ? scope : [ ...scope, "email" ];
+
       const authUri = oAuth2Client.generateAuthUrl({
-        scope,
+        scope: scopeWithOpenId,
         access_type: "offline",
         prompt: "consent",
         state,
@@ -58,14 +65,18 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
         oAuth2Client.getToken(authorizationCode),
       ]);
 
-      if (!tokens.access_token || !tokens.refresh_token || !tokens.expiry_date || !tokens.token_type || !tokens.scope) {
+      if (!tokens.access_token || !tokens.refresh_token || !tokens.id_token || !tokens.expiry_date || !tokens.token_type || !tokens.scope) {
         throw new Error(`Google response malformed:\n${JSON.stringify(tokens, null, 2)}`);
       }
+
+      const { email } = this.jwt.decode(tokens.id_token) as { email: string; };
 
       const googleCredentials: GoogleCredentials = {
         userId: authFlowAttempt.userId,
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
+        idToken: tokens.id_token,
+        email,
         expiryDate: tokens.expiry_date,
         tokenType: tokens.token_type,
         scope: tokens.scope,
@@ -97,6 +108,7 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
       const googleCredentialsSnakeCase: Auth.Credentials = {
         access_token: googleCredentials.accessToken,
         refresh_token: googleCredentials.refreshToken,
+        id_token: googleCredentials.idToken,
         token_type: googleCredentials.tokenType,
         expiry_date: googleCredentials.expiryDate,
         scope: googleCredentials.scope,

@@ -21,10 +21,12 @@ export class GoogleCredentialsDynamoRepository extends BaseDynamoRepositoryV2<Go
 
       const { googleCredentials } = params;
 
+      const sk: Sk = `${EntityType.GoogleCredentials}-${googleCredentials.email}`;
+
       const googleCredentialsEntity: RawGoogleCredentials = {
         entityType: EntityType.GoogleCredentials,
         pk: googleCredentials.userId,
-        sk: EntityType.GoogleCredentials,
+        sk,
         ...googleCredentials,
       };
 
@@ -121,15 +123,19 @@ export interface GoogleCredentials {
   userId: UserId;
   accessToken: string;
   refreshToken: string;
+  idToken: string;
+  email: string;
   tokenType: string;
   expiryDate: number;
   scope: string;
 }
 
+// `${EntityType.GoogleCredentials}-${email}`
+type Sk = `${EntityType.GoogleCredentials}-${string}`;
 export interface RawGoogleCredentials extends GoogleCredentials {
   entityType: EntityType.GoogleCredentials;
   pk: UserId;
-  sk: EntityType.GoogleCredentials;
+  sk: Sk;
 }
 
 export interface CreateGoogleCredentialsInput {
