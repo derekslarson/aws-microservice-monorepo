@@ -27,3 +27,5 @@ export * from "./src/test-support";
 export * from "./src/types";
 
 export * from "./src/util";
+
+export * from "./src/runtypes";
