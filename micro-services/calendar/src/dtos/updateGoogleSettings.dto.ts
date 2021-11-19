@@ -3,5 +3,5 @@ import { UserIdRuntype } from "@yac/util";
 
 export const UpdateGoogleSettingsDto = Record({
   pathParameters: Record({ userId: UserIdRuntype }),
-  body: Record({ defaultCalendarId: Optional(String) }),
+  body: Record({ defaultCalendarId: Optional(String), defaultAccountId: Optional(String) }),
 });

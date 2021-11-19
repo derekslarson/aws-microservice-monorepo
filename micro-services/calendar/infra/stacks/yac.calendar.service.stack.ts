@@ -89,6 +89,28 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const getGoogleAccountsHandler = new Lambda.Function(this, `GetGoogleAccountsHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getGoogleAccounts"),
+      handler: "getGoogleAccounts.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getGoogleSettingsHandler = new Lambda.Function(this, `GetGoogleSettingsHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getGoogleSettings"),
+      handler: "getGoogleSettings.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const updateGoogleSettingsHandler = new Lambda.Function(this, `UpdateGoogleSettingsHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/updateGoogleSettings"),
@@ -111,6 +133,18 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/google/events",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getGoogleEventsHandler,
+        restricted: true,
+      },
+      {
+        path: "/users/{userId}/google/accounts",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getGoogleAccountsHandler,
+        restricted: true,
+      },
+      {
+        path: "/users/{userId}/google/settings",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getGoogleSettingsHandler,
         restricted: true,
       },
       {

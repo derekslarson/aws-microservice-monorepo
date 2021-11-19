@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, UserId } from "@yac/util";
 import { TYPES } from "../../inversion-of-control/types";
-import { GoogleSettingsRepositoryInterface } from "../../repositories/google.settings.dynamo.repository";
+import { GoogleSettings, GoogleSettingsRepositoryInterface } from "../../repositories/google.settings.dynamo.repository";
 
 @injectable()
 export class GoogleSettingsService implements GoogleSettingsServiceInterface {
@@ -9,6 +9,22 @@ export class GoogleSettingsService implements GoogleSettingsServiceInterface {
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.GoogleSettingsRepositoryInterface) private googleSettingsRepository: GoogleSettingsRepositoryInterface,
   ) {}
+
+  public async getSettings(params: GetSettingsInput): Promise<GetSettingsOutput> {
+    try {
+      this.loggerService.trace("getSettings called", { params }, this.constructor.name);
+
+      const { userId } = params;
+
+      const { googleSettings } = await this.googleSettingsRepository.getGoogleSettings({ userId });
+
+      return { googleSettings };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getSettings", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 
   public async updateSettings(params: UpdateSettingsInput): Promise<UpdateSettingsOutput> {
     try {
@@ -27,11 +43,13 @@ export class GoogleSettingsService implements GoogleSettingsServiceInterface {
 }
 
 export interface GoogleSettingsServiceInterface {
+  getSettings(params: GetSettingsInput): Promise<GetSettingsOutput>;
   updateSettings(params: UpdateSettingsInput): Promise<UpdateSettingsOutput>;
 }
 
 export interface UpdateSettingsUpdates {
   defaultCalendarId?: string;
+  defaultAccountId?: string;
 }
 
 export interface UpdateSettingsInput {
@@ -40,3 +58,11 @@ export interface UpdateSettingsInput {
 }
 
 export type UpdateSettingsOutput = void;
+
+export interface GetSettingsInput {
+  userId: UserId;
+}
+
+export interface GetSettingsOutput {
+  googleSettings: GoogleSettings;
+}
