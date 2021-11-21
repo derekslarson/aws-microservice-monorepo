@@ -83,6 +83,12 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       sortKey: { name: "gsi1sk", type: DynamoDB.AttributeType.STRING },
     });
 
+    authTable.addGlobalSecondaryIndex({
+      indexName: GlobalSecondaryIndex.One,
+      partitionKey: { name: "gsi2pk", type: DynamoDB.AttributeType.STRING },
+      sortKey: { name: "gsi2sk", type: DynamoDB.AttributeType.STRING },
+    });
+
     const authSecret = new SecretsManager.Secret(this, `AuthSecret_${id}`);
 
     // id.yac.com Deployment Resources
@@ -205,7 +211,10 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       autoVerify: { email: true, phone: true },
       signInAliases: { username: true, email: true, phone: true },
       removalPolicy: CDK.RemovalPolicy.DESTROY,
-      customAttributes: { authChallenge: new Cognito.StringAttribute({ mutable: true }) },
+      customAttributes: {
+        authChallenge: new Cognito.StringAttribute({ mutable: true }),
+        yacUserId: new Cognito.StringAttribute({ mutable: true }),
+      },
       lambdaTriggers: {
         preSignUp: preSignUpHandler,
         postConfirmation: postConfirmationHandler,
@@ -397,7 +406,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement, sendTextPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, sendEmailPolicyStatement, sendTextPolicyStatement, authTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -408,7 +417,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, getAuthSecretPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, getAuthSecretPolicyStatement, authTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -419,7 +428,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, authTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -441,7 +450,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, authTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 

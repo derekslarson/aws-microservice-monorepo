@@ -1,9 +1,8 @@
 import { inject, injectable } from "inversify";
-import { BadRequestError, IdServiceInterface, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
+import { BadRequestError, GoogleOAuth2Client, GoogleOAuth2ClientFactory, IdServiceInterface, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
 import { Auth } from "googleapis";
 import { TYPES } from "../../inversion-of-control/types";
 import { GoogleCredentials, GoogleCredentialsRepositoryInterface } from "../../repositories/google.credentials.dynamo.repository";
-import { GoogleOAuth2Client, GoogleOAuth2ClientFactory } from "../../factories/google.oAuth2Client.factory";
 import { EnvConfigInterface } from "../../config/env.config";
 import { AuthFlowAttemptRepositoryInterface } from "../../repositories/authFlowAttempt.dynamo.repository";
 

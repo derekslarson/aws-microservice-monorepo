@@ -25,9 +25,9 @@ export class AuthenticationController extends BaseController implements Authenti
 
       const { body } = this.validationServiceV2.validate({ dto: LoginDto, request });
 
-      const { session } = await this.authenticationService.login(body);
+      await this.authenticationService.login(body);
 
-      const responseBody: AuthServiceLoginResponseBody = { session };
+      const responseBody: AuthServiceLoginResponseBody = { session: "" };
 
       return this.generateSuccessResponse(responseBody);
     } catch (error: unknown) {

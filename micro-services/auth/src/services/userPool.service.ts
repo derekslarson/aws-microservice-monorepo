@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { AWSError, CognitoIdentityServiceProvider, SecretsManager } from "aws-sdk";
-import { BadRequestError, Crypto, CryptoFactory, HttpRequestServiceInterface, LoggerServiceInterface, SecretsManagerFactory } from "@yac/util";
+import { BadRequestError, Crypto, CryptoFactory, HttpRequestServiceInterface, LoggerServiceInterface, SecretsManagerFactory, UserId } from "@yac/util";
 import { UserType } from "aws-sdk/clients/cognitoidentityserviceprovider";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
@@ -70,7 +70,12 @@ export class UserPoolService implements UserPoolServiceInterface {
         SecretHash: userPoolClientSecretHash,
         Username: id,
         Password: authSecret,
-        UserAttributes: [],
+        UserAttributes: [
+          {
+            Name: "custom:yacUserId",
+            Value: id,
+          },
+        ],
       };
 
       if (email) {
@@ -94,6 +99,35 @@ export class UserPoolService implements UserPoolServiceInterface {
       }
 
       this.loggerService.error("Error in createUser", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async addYacUserIdToUser(params: AddYacUserIdToUserInput): Promise<AddYacUserIdToUserOutput> {
+    try {
+      this.loggerService.trace("addYacUserIdToUser called", { params }, this.constructor.name);
+
+      const { yacUserId, username } = params;
+
+      if (!this.userPoolId) {
+        throw new BadRequestError("userPoolId not set");
+      }
+
+      const updateUserAttributesParams: CognitoIdentityServiceProvider.Types.AdminUpdateUserAttributesRequest = {
+        UserPoolId: this.userPoolId,
+        Username: username,
+        UserAttributes: [
+          {
+            Name: "custom:yacUserId",
+            Value: yacUserId,
+          },
+        ],
+      };
+
+      await this.cognito.adminUpdateUserAttributes(updateUserAttributesParams).promise();
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addYacUserIdToUser", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -321,6 +355,7 @@ export type UserPoolServiceConfigInterface = Pick<EnvConfigInterface, "apiDomain
 export interface UserPoolServiceInterface {
   userPoolId?: string;
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
+  addYacUserIdToUser(params: AddYacUserIdToUserInput): Promise<AddYacUserIdToUserOutput>;
   getUsersByEmail(params: GetUsersByEmailInput): Promise<GetUsersByEmailOutput>;
   initiateCustomAuthFlow(params: InitiateCustomAuthFlowInput): Promise<InitiateCustomAuthFlowOutput>;
   completeCustomAuthFlow(params: CompleteCustomAuthFlowInput): Promise<CompleteCustomAuthFlowOutput>;
@@ -334,6 +369,13 @@ export interface CreateUserInput {
 }
 
 export type CreateUserOutput = void;
+
+export interface AddYacUserIdToUserInput {
+  yacUserId: UserId;
+  username: string;
+}
+
+export type AddYacUserIdToUserOutput = void;
 
 export interface UpdateUserInput {
   username: string;

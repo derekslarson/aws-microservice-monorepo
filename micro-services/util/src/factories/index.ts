@@ -14,3 +14,4 @@ export * from "./crypto.factory";
 export * from "./fs.factory";
 export * from "./path.factory";
 export * from "./jwksClient.factory";
+export * from "./google.oAuth2ClientFactory";

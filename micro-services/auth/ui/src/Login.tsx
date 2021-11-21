@@ -94,10 +94,15 @@ const Login: React.FC<ILoginProps> = () => {
           method: "POST",
           body: JSON.stringify(phone
             ? { 
-              phone
+              phone,
+              clientId: query.client_id,
+              ...(query.state && {  state: query.state }),,
+
             }
             : {
-              email
+              email,
+              clientId: query.client_id,
+              ...(query.state && {  state: query.state }),
             })
         }
       ).catch((e) => e.response)

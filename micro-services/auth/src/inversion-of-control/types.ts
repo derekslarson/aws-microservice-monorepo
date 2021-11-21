@@ -20,9 +20,14 @@ const TYPES = {
 
   ExternalProviderUserSignedUpSnsServiceInterface: Symbol.for("ExternalProviderUserSignedUpSnsServiceInterface"),
 
+  AuthFlowAttemptRepositoryInterface: Symbol.for("AuthFlowAttemptRepositoryInterface"),
+  ClientRepositoryInterface: Symbol.for("ClientRepositoryInterface"),
+  UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
+
   ExternalProviderUserMappingRepositoryInterface: Symbol.for("ExternalProviderUserMappingRepositoryInterface"),
 
   CognitoFactory: Symbol.for("CognitoFactory"),
+  CsrfFactory: Symbol.for("CsrfFactory"),
   SesFactory: Symbol.for("SesFactory"),
 };
 

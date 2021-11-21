@@ -1,10 +1,9 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, AuthServiceDeleteClientResponseBody, ValidationServiceV2Interface } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { ClientServiceInterface } from "../services/client.service";
-import { DeleteClientDto } from "../dtos/deleteClient.dto";
 import { CreateClientDto } from "../dtos/createClient.dto";
 
 @injectable()
@@ -23,16 +22,9 @@ export class ClientController extends BaseController implements ClientController
 
       const { body: { name, redirectUri, type, scopes } } = this.validationService.validate({ dto: CreateClientDto, request });
 
-      const { clientId, clientSecret } = await this.clientService.createClient({ name, redirectUri, type, scopes });
+      const { client } = await this.clientService.createClient({ name, redirectUri, type, scopes });
 
-      const response = {
-        clientId,
-        clientSecret,
-        name,
-        type,
-        redirectUri,
-        scopes,
-      };
+      const response = { client };
 
       return this.generateSuccessResponse(response);
     } catch (error: unknown) {
@@ -41,30 +33,8 @@ export class ClientController extends BaseController implements ClientController
       return this.generateErrorResponse(error);
     }
   }
-
-  public async deleteClient(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("deleteClient called", { request }, this.constructor.name);
-
-      const {
-        pathParameters: { clientId },
-        headers: { "client-secret": clientSecret },
-      } = this.validationService.validate({ dto: DeleteClientDto, request });
-
-      await this.clientService.deleteClient({ clientId, clientSecret });
-
-      const response: AuthServiceDeleteClientResponseBody = { message: "Client deleted." };
-
-      return this.generateSuccessResponse(response);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in deleteClient", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
-  }
 }
 
 export interface ClientControllerInterface {
   createClient(request: Request): Promise<Response>;
-  deleteClient(request: Request): Promise<Response>;
 }

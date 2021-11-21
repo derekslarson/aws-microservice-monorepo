@@ -44,10 +44,16 @@ export class UserCreatedProcessorService implements SnsProcessorServiceInterface
 
         const externalProviderUsers = users.filter((user) => user.UserStatus === "EXTERNAL_PROVIDER");
 
-        await Promise.all(externalProviderUsers.map((externalProviderUser) => this.externalProviderMappingService.createExternalProviderUserMapping({
-          externalProviderId: externalProviderUser.Username as string,
-          userId: id,
-        })));
+        await Promise.all<unknown>([
+          ...externalProviderUsers.map((externalProviderUser) => this.externalProviderMappingService.createExternalProviderUserMapping({
+            externalProviderId: externalProviderUser.Username as string,
+            userId: id,
+          })),
+          ...externalProviderUsers.map((externalProviderUser) => this.userPoolService.addYacUserIdToUser({
+            username: externalProviderUser.Username as string,
+            yacUserId: id,
+          })),
+        ]);
       }
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);

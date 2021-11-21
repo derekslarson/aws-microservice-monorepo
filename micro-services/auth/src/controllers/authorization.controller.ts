@@ -38,7 +38,7 @@ export class AuthorizationController extends BaseController implements Authoriza
 
       const { client } = await this.clientService.getClient({ clientId });
 
-      if (!client.ClientSecret && (!codeChallenge || !codeChallengeMethod || !state)) {
+      if (!client.secret && (!codeChallenge || !codeChallengeMethod || !state)) {
         throw new BadRequestError("code_challenge required");
       }
 

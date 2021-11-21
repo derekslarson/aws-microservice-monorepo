@@ -7,7 +7,10 @@ export const envConfig: EnvConfigInterface = {
   apiDomain: process.env.API_DOMAIN || "",
   bucketNames: {},
   tableNames: { auth: process.env.AUTH_TABLE_NAME || "" },
-  globalSecondaryIndexNames: { one: process.env.GSI_ONE_INDEX_NAME || "" },
+  globalSecondaryIndexNames: {
+    one: process.env.GSI_ONE_INDEX_NAME || "",
+    two: process.env.GSI_TWO_INDEX_NAME || "",
+  },
   snsTopicArns: {
     userCreated: process.env.USER_CREATED_SNS_TOPIC_ARN || "",
     externalProviderUserSignedUp: process.env.EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN || "",
@@ -33,6 +36,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   };
   globalSecondaryIndexNames: {
     one: string;
+    two: string;
   }
   snsTopicArns: {
     userCreated: string;

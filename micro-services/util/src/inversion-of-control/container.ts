@@ -34,6 +34,7 @@ import { fsFactory, FsFactory } from "../factories/fs.factory";
 import { pathFactory, PathFactory } from "../factories/path.factory";
 import { jwksClientFactory, JwksClientFactory } from "../factories/jwksClient.factory";
 import { TokenVerificationService, TokenVerificationServiceInterface } from "../services/tokenVerification.service";
+import { googleOAuth2ClientFactory, GoogleOAuth2ClientFactory } from "../factories/google.oAuth2ClientFactory";
 
 const coreContainerModule = new ContainerModule((bind) => {
   try {
@@ -59,6 +60,7 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<CryptoFactory>(TYPES.CryptoFactory).toFactory(() => cryptoFactory);
     bind<DocumentClientFactory>(TYPES.DocumentClientFactory).toFactory(() => documentClientFactory);
     bind<ErrorSerializerFactory>(TYPES.ErrorSerializerFactory).toFactory(() => errorSerializerFactory);
+    bind<GoogleOAuth2ClientFactory>(TYPES.GoogleOAuth2ClientFactory).toFactory(() => googleOAuth2ClientFactory);
     bind<FsFactory>(TYPES.FsFactory).toFactory(() => fsFactory);
     bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
     bind<JwksClientFactory>(TYPES.JwksClientFactory).toFactory(() => jwksClientFactory);

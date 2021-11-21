@@ -11,7 +11,7 @@ const baseProps = {
   session: String,
   clientId: String,
   redirectUri: RedirectUri,
-  state: Optional(String),
+  state: String,
   codeChallengeMethod: Optional(Literal("S256")),
   codeChallenge: Optional(String),
   scope: Optional(String),

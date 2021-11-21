@@ -19,6 +19,10 @@ import { ExternalProviderUserMappingDynamoRepository, ExternalProviderUserMappin
 import { ExternalProviderUserMappingService, ExternalProviderUserMappingServiceInterface } from "../services/externalProviderUserMapping.service";
 import { ExternalProviderUserSignedUpSnsService, ExternalProviderUserSignedUpSnsServiceInterface } from "../sns-services/externalProviderUserSignedUp.sns.service";
 import { UserPoolService, UserPoolServiceInterface } from "../services/userPool.service";
+import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
+import { ClientDynamoRepository, ClientRepositoryInterface } from "../repositories/client.dynamo.repository";
+import { AuthFlowAttemptDynamoRepository, AuthFlowAttemptRepositoryInterface } from "../repositories/authFlowAttempt.dynamo.repository";
+import { csrfFactory, CsrfFactory } from "../factories/csrf.factory";
 
 const container = new Container();
 
@@ -42,9 +46,14 @@ try {
 
   container.bind<SnsProcessorServiceInterface>(TYPES.UserCreatedProcessorServiceInterface).to(UserCreatedProcessorService);
 
+  container.bind<AuthFlowAttemptRepositoryInterface>(TYPES.AuthFlowAttemptRepositoryInterface).to(AuthFlowAttemptDynamoRepository);
+  container.bind<ClientRepositoryInterface>(TYPES.ClientRepositoryInterface).to(ClientDynamoRepository);
+  container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);
+
   container.bind<ExternalProviderUserMappingRepositoryInterface>(TYPES.ExternalProviderUserMappingRepositoryInterface).to(ExternalProviderUserMappingDynamoRepository);
 
   container.bind<CognitoFactory>(TYPES.CognitoFactory).toFactory(() => cognitoFactory);
+  container.bind<CsrfFactory>(TYPES.CsrfFactory).toFactory(() => csrfFactory);
   container.bind<SesFactory>(TYPES.SesFactory).toFactory(() => sesFactory);
 
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
