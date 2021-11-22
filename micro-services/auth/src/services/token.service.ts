@@ -1,6 +1,6 @@
 /* eslint-disable max-len */
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
+import { ForbiddenError, IdServiceInterface, LoggerServiceInterface, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { Jose, JoseFactory } from "../factories/jose.factory";
 import { EnvConfigInterface } from "../config/env.config";
@@ -34,20 +34,22 @@ export class TokenService implements TokenServiceInterface {
 
       const key = await this.jose.JWK.asKey(keyStore.all({ use: "sig" })[0]);
 
-      const now = Date.now();
+      const now = Date.now().valueOf() / 1000;
 
-      const payload = JSON.stringify({
+      const payload: TokenPayload = {
         client_id: clientId,
         iss: this.apiUrl,
         sub: userId,
         scope,
         nbf: now,
         iat: now,
-        exp: now + (1000 * 60 * 5),
+        exp: now + (60 * 5),
         jti: this.idService.generateId(),
-      });
+      };
 
-      const accessToken = await this.jose.JWS.createSign({ compact: true, fields: { typ: "jwt" } }, key).update(payload).final() as unknown as string;
+      const accessToken = await this.jose.JWS.createSign({ compact: true, fields: { typ: "jwt" } }, key)
+        .update(JSON.stringify(payload))
+        .final() as unknown as string;
 
       return { accessToken, expiryDate: 1 };
     } catch (error: unknown) {
@@ -56,21 +58,67 @@ export class TokenService implements TokenServiceInterface {
       throw error;
     }
   }
+
+  public async verifyAccessToken(params: VerifyAccessTokenInput): Promise<VerifyAccessTokenOutput> {
+    try {
+      this.loggerService.trace("verifyAccessToken called", { params }, this.constructor.name);
+
+      const { token } = params;
+
+      const keyStore = await this.jose.JWK.asKeyStore(JSON.parse(this.keyStoreJson));
+
+      const { payload } = await this.jose.JWS.createVerify(keyStore).verify(token);
+
+      const decodedToken = JSON.parse(payload.toString()) as TokenPayload;
+
+      const now = Date.now().valueOf() / 1000;
+
+      if (decodedToken.exp < now) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      return { decodedToken };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in verifyAccessToken", { error, params }, this.constructor.name);
+
+      throw new ForbiddenError("Forbidden");
+    }
+  }
 }
 
 export type TokenServiceConfigInterface = Pick<EnvConfigInterface, "apiUrl">;
 
 export interface TokenServiceInterface {
   generateAccessToken(params: GenerateAccessTokenInput): Promise<GenerateAccessTokenOutput>;
+  verifyAccessToken(params: VerifyAccessTokenInput): Promise<VerifyAccessTokenOutput>
 }
 
 export interface GenerateAccessTokenInput {
   clientId: string;
-  userId: string;
+  userId: UserId;
   scope: string;
 }
 
 export interface GenerateAccessTokenOutput {
   accessToken: string;
   expiryDate: number;
+}
+
+export interface VerifyAccessTokenInput {
+  token: string;
+}
+
+export interface VerifyAccessTokenOutput {
+  decodedToken: TokenPayload;
+}
+
+export interface TokenPayload {
+  client_id: string;
+  iss: string;
+  sub: UserId;
+  scope: string;
+  nbf: number;
+  iat: number;
+  exp: number;
+  jti: string;
 }
