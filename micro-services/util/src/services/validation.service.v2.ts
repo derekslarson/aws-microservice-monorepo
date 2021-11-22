@@ -50,24 +50,38 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
         jwtId = userId;
       }
 
-      let parsedBody: unknown;
+      let body: Record<string, unknown> | undefined;
 
-      try {
-        parsedBody = request.body && JSON.parse(request.body) as unknown;
-      } catch (error: unknown) {
-        throw new ValidationError({
-          success: false,
-          code: Failcode.VALUE_INCORRECT,
-          message: "Error parsing body.",
-          details: { body: "Malformed JSON" },
-        });
+      if (request.body) {
+        try {
+          if (request.headers["content-type"] === "application/x-www-form-urlencoded") {
+            const urlEncodedBody: string = request.isBase64Encoded ? Buffer.from(request.body, "base64").toString() : request.body;
+            const parsedBody: Record<string, unknown> = {};
+
+            urlEncodedBody.split("&").forEach((keyValuePair) => {
+              const [ key, value ] = keyValuePair.split("=");
+              parsedBody[key] = decodeURIComponent(value);
+            });
+
+            body = parsedBody;
+          } else {
+            body = JSON.parse(request.body) as Record<string, unknown>;
+          }
+        } catch (error: unknown) {
+          throw new ValidationError({
+            success: false,
+            code: Failcode.VALUE_INCORRECT,
+            message: "Error parsing body.",
+            details: { body: "Malformed" },
+          });
+        }
       }
 
       const parsedRequest = {
         pathParameters: {},
         queryStringParameters: {},
         ...request,
-        body: parsedBody,
+        body,
       };
 
       const validatedRequest = dto.check(parsedRequest);

@@ -1,17 +1,23 @@
-import { Record, Union, String } from "runtypes";
+import { Record, Union, String, Array } from "runtypes";
 import { Email } from "../runtypes/email.runtype";
 import { Phone } from "../runtypes/phone.runtype";
 
-const EmailLogin = Record({
+const baseProps = {
   clientId: String,
   state: String,
+};
+
+const EmailLogin = Record({
+  ...baseProps,
   email: Email,
 });
 
 const PhoneLogin = Record({
-  clientId: String,
-  state: String,
+  ...baseProps,
   phone: Phone,
 });
 
-export const LoginDto = Record({ body: Union(EmailLogin, PhoneLogin) });
+export const LoginDto = Record({
+  cookies: Array(String),
+  body: Union(EmailLogin, PhoneLogin),
+});

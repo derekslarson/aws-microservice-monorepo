@@ -92,11 +92,12 @@ const Login: React.FC<ILoginProps> = () => {
         url.toString(),
         {
           method: "POST",
+          credentials: "include",
           body: JSON.stringify(phone
             ? { 
               phone,
               clientId: query.client_id,
-              ...(query.state && {  state: query.state }),,
+              ...(query.state && {  state: query.state }),
 
             }
             : {

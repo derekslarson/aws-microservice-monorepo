@@ -3,16 +3,16 @@ import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-l
 import { LoggerServiceInterface, generateInternalServerErrorResponse } from "@yac/util";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
-import { AuthenticationControllerInterface } from "../controllers/authentication.controller";
+import { AuthControllerInterface } from "../controllers/auth.controller";
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-  const authenticationController = container.get<AuthenticationControllerInterface>(TYPES.AuthenticationControllerInterface);
+  const authController = container.get<AuthControllerInterface>(TYPES.AuthControllerInterface);
   const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
   try {
     loggerService.trace("confirm called", { event }, "confirm handler");
 
-    const response = await authenticationController.confirm(event);
+    const response = await authController.confirm(event);
 
     return response;
   } catch (error: unknown) {

@@ -1,18 +1,21 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, UserId } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
 
 @injectable()
 export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<AuthFlowAttempt> implements AuthFlowAttemptRepositoryInterface {
+  private gsiOneIndexName: string;
+
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: AuthFlowAttemptRepositoryConfig,
+    @inject(TYPES.EnvConfigInterface) config: AuthFlowAttemptRepositoryConfig,
   ) {
-    super(documentClientFactory, envConfig.tableNames.auth, loggerService);
+    super(documentClientFactory, config.tableNames.auth, loggerService);
+    this.gsiOneIndexName = config.globalSecondaryIndexNames.one;
   }
 
   public async createAuthFlowAttempt(params: CreateAuthFlowAttemptInput): Promise<CreateAuthFlowAttemptOutput> {
@@ -24,7 +27,8 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
       const authFlowAttemptEntity: RawAuthFlowAttempt = {
         entityType: EntityType.AuthFlowAttempt,
         pk: authFlowAttempt.clientId,
-        sk: authFlowAttempt.state,
+        sk: authFlowAttempt.xsrfToken,
+        ...(authFlowAttempt.authorizationCode && { gsi1pk: authFlowAttempt.clientId, gsi1sk: authFlowAttempt.authorizationCode }),
         ...authFlowAttempt,
       };
 
@@ -46,9 +50,40 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
     try {
       this.loggerService.trace("getAuthFlowAttempt called", { params }, this.constructor.name);
 
-      const { state } = params;
+      const { clientId, xsrfToken } = params;
 
-      const authFlowAttempt = await this.get<AuthFlowAttempt>({ Key: { pk: state, sk: state } }, "Auth Flow Attempt");
+      const authFlowAttempt = await this.get({ Key: { pk: clientId, sk: xsrfToken } }, "Auth Flow Attempt");
+
+      return { authFlowAttempt };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getAuthFlowAttempt", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getAuthFlowAttemptByAuthorizationCode(params: GetAuthFlowAttemptByAuthorizationCodeInput): Promise<GetAuthFlowAttemptByAuthorizationCodeOutput> {
+    try {
+      this.loggerService.trace("getAuthFlowAttempt called", { params }, this.constructor.name);
+
+      const { clientId, authorizationCode } = params;
+
+      const { Items: [ authFlowAttempt ] } = await this.query({
+        KeyConditionExpression: "#gsi1pk = :clientId AND #gsi1sk = :authorizationCode",
+        IndexName: this.gsiOneIndexName,
+        ExpressionAttributeNames: {
+          "#gsi1pk": "gsi1pk",
+          "#gsi1sk": "gsi1sk",
+        },
+        ExpressionAttributeValues: {
+          ":clientId": clientId,
+          ":authorizationCode": authorizationCode,
+        },
+      });
+
+      if (!authFlowAttempt) {
+        throw new NotFoundError("Auth Flow Attempt not found.");
+      }
 
       return { authFlowAttempt };
     } catch (error: unknown) {
@@ -62,9 +97,18 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
     try {
       this.loggerService.trace("updateAuthFlowAttempt called", { params }, this.constructor.name);
 
-      const { clientId, state, updates } = params;
+      const { clientId, xsrfToken, updates } = params;
 
-      const authFlowAttempt = await this.partialUpdate(clientId, state, updates);
+      type RawUpdates = UpdateAuthFlowAttemptUpdates & { gsi1pk?: string; gsi1sk?: string; };
+
+      const rawUpdates: RawUpdates = { ...updates };
+
+      if (updates.authorizationCode) {
+        rawUpdates.gsi1pk = clientId;
+        rawUpdates.gsi1sk = updates.authorizationCode;
+      }
+
+      const authFlowAttempt = await this.partialUpdate(clientId, xsrfToken, rawUpdates);
 
       return { authFlowAttempt };
     } catch (error: unknown) {
@@ -78,11 +122,11 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
     try {
       this.loggerService.trace("deleteAuthFlowAttempt called", { params }, this.constructor.name);
 
-      const { state } = params;
+      const { clientId, xsrfToken } = params;
 
       await this.documentClient.delete({
         TableName: this.tableName,
-        Key: { pk: state, sk: state },
+        Key: { pk: clientId, sk: xsrfToken },
       }).promise();
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteAuthFlowAttempt", { error, params }, this.constructor.name);
@@ -95,17 +139,19 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
 export interface AuthFlowAttemptRepositoryInterface {
   createAuthFlowAttempt(params: CreateAuthFlowAttemptInput): Promise<CreateAuthFlowAttemptOutput>;
   getAuthFlowAttempt(params: GetAuthFlowAttemptInput): Promise<GetAuthFlowAttemptOutput>;
+  getAuthFlowAttemptByAuthorizationCode(params: GetAuthFlowAttemptByAuthorizationCodeInput): Promise<GetAuthFlowAttemptByAuthorizationCodeOutput>;
   updateAuthFlowAttempt(params: UpdateAuthFlowAttemptInput): Promise<UpdateAuthFlowAttemptOutput>;
   deleteAuthFlowAttempt(params: DeleteAuthFlowAttemptInput): Promise<DeleteAuthFlowAttemptOutput>;
 }
 
-type AuthFlowAttemptRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
+type AuthFlowAttemptRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
 export interface AuthFlowAttempt {
   clientId: string;
-  state: string;
+  xsrfToken: string;
   responseType: string;
   secret: string;
+  state?: string;
   userId?: UserId;
   codeChallenge?: string;
   codeChallengeMethod?: string;
@@ -119,8 +165,12 @@ export interface RawAuthFlowAttempt extends AuthFlowAttempt {
   entityType: EntityType.AuthFlowAttempt;
   // clientId
   pk: string;
-  // state
+  // xsrfToken
   sk: string;
+  // clientId
+  gsi1pk?: string;
+  // authorizationCode
+  gsi1sk?: string;
 }
 
 export interface CreateAuthFlowAttemptInput {
@@ -133,23 +183,33 @@ export interface CreateAuthFlowAttemptOutput {
 
 export interface GetAuthFlowAttemptInput {
   clientId: string;
-  state: string;
+  xsrfToken: string;
 }
 
 export interface GetAuthFlowAttemptOutput {
   authFlowAttempt: AuthFlowAttempt;
 }
 
+export interface GetAuthFlowAttemptByAuthorizationCodeInput {
+  clientId: string;
+  authorizationCode: string;
+}
+
+export interface GetAuthFlowAttemptByAuthorizationCodeOutput {
+  authFlowAttempt: AuthFlowAttempt;
+}
+
+export interface UpdateAuthFlowAttemptUpdates {
+  userId?: UserId;
+  confirmationCode?: string;
+  confirmationCodeCreatedAt?: string;
+  authorizationCode?: string;
+  authorizationCodeCreatedAt?: string;
+}
 export interface UpdateAuthFlowAttemptInput {
   clientId: string;
-  state: string;
-  updates: {
-    userId?: UserId;
-    confirmationCode?: string;
-    confirmationCodeCreatedAt?: string;
-    authorizationCode?: string;
-    authorizationCodeCreatedAt?: string;
-  }
+  xsrfToken: string;
+  updates: UpdateAuthFlowAttemptUpdates;
 }
 
 export interface UpdateAuthFlowAttemptOutput {
@@ -157,7 +217,8 @@ export interface UpdateAuthFlowAttemptOutput {
 }
 
 export interface DeleteAuthFlowAttemptInput {
-  state: string;
+  clientId: string;
+  xsrfToken: string;
 }
 
 export type DeleteAuthFlowAttemptOutput = void;

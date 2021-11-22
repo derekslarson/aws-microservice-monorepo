@@ -28,8 +28,6 @@ import {
   AuthServiceConfirmMethod,
   AuthServiceCreateClientPath,
   AuthServiceCreateClientMethod,
-  AuthServiceDeleteClientPath,
-  AuthServiceDeleteClientMethod,
   AuthServiceOauth2AuthorizePath,
   AuthServiceOauth2AuthorizeMethod,
 } from "@yac/util";
@@ -84,7 +82,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     });
 
     authTable.addGlobalSecondaryIndex({
-      indexName: GlobalSecondaryIndex.One,
+      indexName: GlobalSecondaryIndex.Two,
       partitionKey: { name: "gsi2pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "gsi2sk", type: DynamoDB.AttributeType.STRING },
     });
@@ -361,6 +359,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       STACK_PREFIX: stackPrefix,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Info}`,
       API_DOMAIN: `https://${this.httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`,
+      API_URL: this.httpApi.apiURL,
       USER_POOL_ID: userPool.userPoolId,
       USER_POOL_DOMAIN: userPoolDomainUrl,
       YAC_USER_POOL_CLIENT_ID: yacUserPoolClient.userPoolClientId,
@@ -371,6 +370,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN: externalProviderUserSignedUpSnsTopicArn,
       AUTH_TABLE_NAME: authTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
+      GSI_TWO_INDEX_NAME: GlobalSecondaryIndex.Two,
     };
 
     // Handlers
@@ -432,21 +432,21 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const deleteClientHandler = new Lambda.Function(this, `DeleteClientHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/deleteClient"),
-      handler: "deleteClient.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      memorySize: 2048,
-      initialPolicy: [ ...basePolicy, userPoolPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
     const oauth2AuthorizeHandler = new Lambda.Function(this, `Oauth2AuthorizeHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/oauth2Authorize"),
       handler: "oauth2Authorize.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, userPoolPolicyStatement, authTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const oauth2TokenHandler = new Lambda.Function(this, `Oauth2TokenHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/oauth2Token"),
+      handler: "oauth2Token.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -472,34 +472,28 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: createClientHandler,
     };
 
-    const deleteClientRoute: RouteProps<AuthServiceDeleteClientPath, AuthServiceDeleteClientMethod> = {
-      path: "/oauth2/clients/{clientId}",
-      method: ApiGatewayV2.HttpMethod.DELETE,
-      handler: deleteClientHandler,
-    };
-
     const oauth2AuthorizeRoute: RouteProps<AuthServiceOauth2AuthorizePath, AuthServiceOauth2AuthorizeMethod> = {
       path: "/oauth2/authorize",
       method: ApiGatewayV2.HttpMethod.GET,
       handler: oauth2AuthorizeHandler,
     };
 
+    const oauth2TokenRoute: RouteProps = {
+      path: "/oauth2/token",
+      method: ApiGatewayV2.HttpMethod.POST,
+      handler: oauth2TokenHandler,
+    };
+
     const routes: RouteProps<string, ApiGatewayV2.HttpMethod>[] = [
       loginRoute,
       confirmRoute,
       createClientRoute,
-      deleteClientRoute,
       oauth2AuthorizeRoute,
+      oauth2TokenRoute,
     ];
 
     // Proxy Routes
-    const proxyRoutes: ProxyRouteProps[] = [
-      {
-        proxyUrl: `${userPoolDomainUrl}/oauth2/token`,
-        path: "/oauth2/token",
-        method: ApiGatewayV2.HttpMethod.POST,
-      },
-    ];
+    const proxyRoutes: ProxyRouteProps[] = [];
 
     routes.forEach((route) => this.httpApi.addRoute(route));
     proxyRoutes.forEach((route) => this.httpApi.addProxyRoute(route));

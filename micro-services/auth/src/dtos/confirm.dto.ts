@@ -4,8 +4,6 @@ import { Email } from "../runtypes/email.runtype";
 import { Phone } from "../runtypes/phone.runtype";
 import { RedirectUri } from "../runtypes/redirectUri.runtype";
 
-// eslint-disable-next-line max-classes-per-file
-
 const baseProps = {
   confirmationCode: String,
   session: String,

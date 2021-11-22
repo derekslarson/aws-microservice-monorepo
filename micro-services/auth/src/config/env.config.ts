@@ -5,6 +5,7 @@ export const envConfig: EnvConfigInterface = {
   authSecretId: process.env.AUTH_SECRET_ID || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
   apiDomain: process.env.API_DOMAIN || "",
+  apiUrl: process.env.API_URL || "",
   bucketNames: {},
   tableNames: { auth: process.env.AUTH_TABLE_NAME || "" },
   globalSecondaryIndexNames: {
@@ -29,6 +30,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   jwksUri: string;
   authSecretId: string;
   apiDomain: string;
+  apiUrl: string;
   mailSender: string;
   authUI: string;
   tableNames: {

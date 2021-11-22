@@ -4,15 +4,14 @@ const TYPES = {
   ...CORE_TYPES,
   EnvConfigInterface: Symbol.for("EnvConfigInterface"),
 
-  AuthenticationControllerInterface: Symbol.for("AuthenticationControllerInterface"),
-  AuthorizationControllerInterface: Symbol.for("AuthorizationControllerInterface"),
+  AuthControllerInterface: Symbol.for("AuthControllerInterface"),
   ClientControllerInterface: Symbol.for("ClientControllerInterface"),
 
-  AuthenticationServiceInterface: Symbol.for("AuthenticationServiceInterface"),
-  AuthorizationServiceInterface: Symbol.for("AuthorizationServiceInterface"),
+  AuthServiceInterface: Symbol.for("AuthServiceInterface"),
   ClientServiceInterface: Symbol.for("ClientServiceInterface"),
   ExternalProviderUserMappingServiceInterface: Symbol.for("ExternalProviderUserMappingServiceInterface"),
   MailServiceInterface: Symbol.for("MailServiceInterface"),
+  TokenServiceInterface: Symbol.for("TokenServiceInterface"),
   UserPoolServiceInterface: Symbol.for("UserPoolServiceInterface"),
 
   ExternalProviderUserMappingFoundProcessorServiceInterface: Symbol.for("ExternalProviderUserMappingFoundProcessorServiceInterface"),
@@ -28,6 +27,7 @@ const TYPES = {
 
   CognitoFactory: Symbol.for("CognitoFactory"),
   CsrfFactory: Symbol.for("CsrfFactory"),
+  JoseFactory: Symbol.for("JoseFactory"),
   SesFactory: Symbol.for("SesFactory"),
 };
 

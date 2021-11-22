@@ -1,7 +1,7 @@
 import { Record, Optional, String, Literal, Union } from "runtypes";
 import { RedirectUri } from "../runtypes/redirectUri.runtype";
 
-export const AuthorizeDto = Record({
+export const BeginAuthFlowDto = Record({
   queryStringParameters: Record({
     client_id: String,
     response_type: Union(Literal("code"), Literal("token")),
