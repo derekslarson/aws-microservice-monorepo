@@ -89,6 +89,17 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const updateGoogleSettingsHandler = new Lambda.Function(this, `UpdateGoogleSettingsHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateGoogleSettings"),
+      handler: "updateGoogleSettings.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const routes: RouteProps[] = [
       {
         path: "/users/{userId}/google/access",
@@ -100,6 +111,12 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/google/events",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getGoogleEventsHandler,
+        restricted: true,
+      },
+      {
+        path: "/users/{userId}/google/settings",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateGoogleSettingsHandler,
         restricted: true,
       },
       {

@@ -1,11 +1,12 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, UserId, ValidationServiceV2Interface } from "@yac/util";
+import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { InitiateGoogleAccessFlowDto } from "../dtos/initiateGoogleAccessFlow.dto";
 import { CompleteGoogleAccessFlowDto } from "../dtos/completeGoogleAccessFlow.dto";
-import { GoogleCalendarServiceInterface } from "../services/tier-2/google.calendar.service";
+import { GoogleCalendarServiceInterface, GetEventsOutput } from "../services/tier-2/google.calendar.service";
 import { GetGoogleEventsDto } from "../dtos/getGoogleEvents.dto";
+import { UpdateGoogleSettingsDto } from "../dtos/updateGoogleSettings.dto";
 
 @injectable()
 export class CalendarController extends BaseController implements CalendarControllerInterface {
@@ -31,9 +32,11 @@ export class CalendarController extends BaseController implements CalendarContro
         throw new ForbiddenError("Forbidden");
       }
 
-      const { authUri } = await this.googleCalendarService.initiateAccessFlow({ userId: userId as UserId, redirectUri });
+      const { authUri } = await this.googleCalendarService.initiateAccessFlow({ userId, redirectUri });
 
-      return this.generateSuccessResponse({ authUri });
+      const responseBody: InitiateAccessFlowResponseBody = { authUri };
+
+      return this.generateSuccessResponse(responseBody);
     } catch (error: unknown) {
       this.loggerService.error("Error in initiateGoogleAccessFlow", { error, request }, this.constructor.name);
 
@@ -71,11 +74,40 @@ export class CalendarController extends BaseController implements CalendarContro
         throw new ForbiddenError("Forbidden");
       }
       const limitNumber = limit ? parseInt(limit, 10) : undefined;
-      const { events, lastEvaluatedKey } = await this.googleCalendarService.getEvents({ userId: userId as UserId, limit: limitNumber, exclusiveStartKey });
+      const { events, lastEvaluatedKey } = await this.googleCalendarService.getEvents({ userId: userId, limit: limitNumber, exclusiveStartKey });
 
-      return this.generateSuccessResponse({ lastEvaluatedKey, events });
+      const responseBody: GetGoogleEventsResponseBody = { lastEvaluatedKey, events };
+
+      return this.generateSuccessResponse(responseBody);
+
     } catch (error: unknown) {
       this.loggerService.error("Error in getGoogleEvents", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async updateGoogleSettings(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("updateGoogleSettings called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { userId },
+        body,
+      } = this.validationService.validate({ dto: UpdateGoogleSettingsDto, request, getUserIdFromJwt: true });
+
+      if (jwtId !== userId) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      await this.googleCalendarService.updateSettings({ userId, updates: body });
+
+      const responseBody: UpdateGoogleSettingsResponseBody = { message: "Settings updated." };
+
+      return this.generateSuccessResponse(responseBody);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateGoogleSettings", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -86,4 +118,18 @@ export interface CalendarControllerInterface {
   initiateGoogleAccessFlow(request: Request): Promise<Response>;
   completeGoogleAccessFlow(request: Request): Promise<Response>;
   getGoogleEvents(request: Request): Promise<Response>;
+  updateGoogleSettings(request: Request): Promise<Response>;
+}
+
+export interface InitiateAccessFlowResponseBody {
+  authUri: string;
+}
+
+export interface GetGoogleEventsResponseBody {
+  events: GetEventsOutput["events"];
+  lastEvaluatedKey: GetEventsOutput["lastEvaluatedKey"];
+}
+
+export interface UpdateGoogleSettingsResponseBody {
+  message: "Settings updated.";
 }

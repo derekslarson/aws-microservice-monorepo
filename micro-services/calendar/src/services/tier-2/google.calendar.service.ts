@@ -4,12 +4,14 @@ import { calendar_v3 } from "googleapis";
 import { TYPES } from "../../inversion-of-control/types";
 import { GoogleAuthServiceInterface } from "../tier-1/google.auth.service";
 import { GoogleCalendarFactory } from "../../factories/google.calendar.factory";
+import { GoogleSettingsServiceInterface, UpdateSettingsUpdates } from "../tier-1/google.settings.service";
 
 @injectable()
 export class GoogleCalendarService implements GoogleCalendarServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.GoogleAuthServiceInterface) private googleAuthService: GoogleAuthServiceInterface,
+    @inject(TYPES.GoogleSettingsServiceInterface) private googleSettingsService: GoogleSettingsServiceInterface,
     @inject(TYPES.GoogleCalendarFactory) private googleCalendarFactory: GoogleCalendarFactory,
   ) {
   }
@@ -78,12 +80,27 @@ export class GoogleCalendarService implements GoogleCalendarServiceInterface {
       throw error;
     }
   }
+
+  public async updateSettings(params: UpdateSettingsInput): Promise<UpdateSettingsOutput> {
+    try {
+      this.loggerService.trace("updateSettings called", { params }, this.constructor.name);
+
+      const { userId, updates } = params;
+
+      await this.googleSettingsService.updateSettings({ userId, updates });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateSettings", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface GoogleCalendarServiceInterface {
   initiateAccessFlow(params: InitiateAccessFlowInput): Promise<InitiateAccessFlowOutput>;
   completeAccessFlow(params: CompleteAccessFlowInput): Promise<CompleteAccessFlowOutput>;
   getEvents(params: GetEventsInput): Promise<GetEventsOutput>;
+  updateSettings(params: UpdateSettingsInput): Promise<UpdateSettingsOutput>;
 }
 
 export interface InitiateAccessFlowInput {
@@ -114,3 +131,10 @@ export interface GetEventsOutput {
   events: calendar_v3.Schema$Event[];
   lastEvaluatedKey?: calendar_v3.Schema$Events["nextPageToken"];
 }
+
+export interface UpdateSettingsInput {
+  userId: UserId;
+  updates: UpdateSettingsUpdates;
+}
+
+export type UpdateSettingsOutput = void;

@@ -79,7 +79,7 @@ export class GoogleCredentialsDynamoRepository extends BaseDynamoRepositoryV2<Go
 
       const { googleCredentials } = params;
 
-      await this.partialUpdate(googleCredentials.userId, EntityType.GoogleCredentials, googleCredentials);
+      await this.partialUpdate<GoogleCredentials & { entityType: EntityType.GoogleCredentials }>(googleCredentials.userId, EntityType.GoogleCredentials, { ...googleCredentials, entityType: EntityType.GoogleCredentials });
 
       return { googleCredentials };
     } catch (error: unknown) {
