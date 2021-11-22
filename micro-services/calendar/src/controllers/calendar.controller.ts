@@ -74,12 +74,11 @@ export class CalendarController extends BaseController implements CalendarContro
         throw new ForbiddenError("Forbidden");
       }
       const limitNumber = limit ? parseInt(limit, 10) : undefined;
-      const { events, lastEvaluatedKey } = await this.googleCalendarService.getEvents({ userId: userId, limit: limitNumber, exclusiveStartKey });
+      const { events, lastEvaluatedKey } = await this.googleCalendarService.getEvents({ userId, limit: limitNumber, exclusiveStartKey });
 
       const responseBody: GetGoogleEventsResponseBody = { lastEvaluatedKey, events };
 
       return this.generateSuccessResponse(responseBody);
-
     } catch (error: unknown) {
       this.loggerService.error("Error in getGoogleEvents", { error, request }, this.constructor.name);
 
