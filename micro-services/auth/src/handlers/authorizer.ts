@@ -6,9 +6,11 @@ import { LoggerServiceInterface } from "@yac/util";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 import { TokenServiceInterface } from "../services/token.service";
+import { SessionRepositoryInterface } from "../repositories/session.dyanmo.repository";
 
 const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 const tokenService = container.get<TokenServiceInterface>(TYPES.TokenServiceInterface);
+const sessionRepository = container.get<SessionRepositoryInterface>(TYPES.SessionRepositoryInterface);
 
 export const handler = async (event: APIGatewayRequestAuthorizerEvent): Promise<{ isAuthorized: boolean; context: Record<string, any>; }> => {
   try {
@@ -26,9 +28,12 @@ export const handler = async (event: APIGatewayRequestAuthorizerEvent): Promise<
       throw new Error(`Invalid authorization token - ${tokenString} does not match "Bearer .*"`);
     }
 
-    const [ , token ] = match;
+    const [ , accessToken ] = match;
 
-    const { decodedToken: { sub: userId, scope } } = await tokenService.verifyAccessToken({ token });
+    const { decodedToken: { cid: clientId, sid: sessionId, sub: userId, scope } } = await tokenService.verifyAccessToken({ accessToken });
+
+    // Check if access token has been revoked
+    await sessionRepository.getSession({ clientId, sessionId });
 
     const scopes = scope ? scope.split(" ") : [];
 

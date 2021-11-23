@@ -3,4 +3,5 @@ export enum EntityType {
   User = "USER",
   ExternalProviderUserMapping = "EXTERNAL_PROVIDER_USER_MAPPING",
   AuthFlowAttempt = "AUTH_FLOW_ATTEMPT",
+  Session = "SESSION",
 }

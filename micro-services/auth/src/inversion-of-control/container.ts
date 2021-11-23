@@ -20,6 +20,8 @@ import { AuthService, AuthServiceInterface } from "../services/auth.service";
 import { AuthController, AuthControllerInterface } from "../controllers/auth.controller";
 import { joseFactory, JoseFactory } from "../factories/jose.factory";
 import { TokenService, TokenServiceInterface } from "../services/token.service";
+import { SessionDynamoRepository, SessionRepositoryInterface } from "../repositories/session.dyanmo.repository";
+import { pkceChallengeFactory, PkceChallengeFactory } from "../factories/pkceChallenge.factory";
 
 const container = new Container();
 
@@ -44,6 +46,7 @@ try {
 
   container.bind<AuthFlowAttemptRepositoryInterface>(TYPES.AuthFlowAttemptRepositoryInterface).to(AuthFlowAttemptDynamoRepository);
   container.bind<ClientRepositoryInterface>(TYPES.ClientRepositoryInterface).to(ClientDynamoRepository);
+  container.bind<SessionRepositoryInterface>(TYPES.SessionRepositoryInterface).to(SessionDynamoRepository);
   container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);
 
   container.bind<ExternalProviderUserMappingRepositoryInterface>(TYPES.ExternalProviderUserMappingRepositoryInterface).to(ExternalProviderUserMappingDynamoRepository);
@@ -51,6 +54,7 @@ try {
   container.bind<CognitoFactory>(TYPES.CognitoFactory).toFactory(() => cognitoFactory);
   container.bind<CsrfFactory>(TYPES.CsrfFactory).toFactory(() => csrfFactory);
   container.bind<JoseFactory>(TYPES.JoseFactory).toFactory(() => joseFactory);
+  container.bind<PkceChallengeFactory>(TYPES.PkceChallengeFactory).toFactory(() => pkceChallengeFactory);
   container.bind<SesFactory>(TYPES.SesFactory).toFactory(() => sesFactory);
 
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([

@@ -28,22 +28,24 @@ export class TokenService implements TokenServiceInterface {
     try {
       this.loggerService.trace("generateAccessToken called", { params }, this.constructor.name);
 
-      const { clientId, userId, scope } = params;
+      const { clientId, sessionId, userId, scope } = params;
 
       const keyStore = await this.jose.JWK.asKeyStore(JSON.parse(this.keyStoreJson));
 
       const key = await this.jose.JWK.asKey(keyStore.all({ use: "sig" })[0]);
 
-      const now = Date.now().valueOf() / 1000;
+      const now = Math.round(Date.now().valueOf() / 1000);
+      const expiresIn = 60 * 10;
 
-      const payload: TokenPayload = {
-        client_id: clientId,
+      const payload: AccessTokenPayload = {
+        sid: sessionId,
+        cid: clientId,
         iss: this.apiUrl,
         sub: userId,
         scope,
         nbf: now,
         iat: now,
-        exp: now + (60 * 5),
+        exp: now + expiresIn,
         jti: this.idService.generateId(),
       };
 
@@ -51,7 +53,9 @@ export class TokenService implements TokenServiceInterface {
         .update(JSON.stringify(payload))
         .final() as unknown as string;
 
-      return { accessToken, expiryDate: 1 };
+      const refreshToken = `${this.idService.generateId()}${this.idService.generateId()}${this.idService.generateId()}`;
+
+      return { tokenType: "Bearer", accessToken, expiresIn, refreshToken };
     } catch (error: unknown) {
       this.loggerService.error("Error in generateAccessToken", { error, params }, this.constructor.name);
 
@@ -63,15 +67,15 @@ export class TokenService implements TokenServiceInterface {
     try {
       this.loggerService.trace("verifyAccessToken called", { params }, this.constructor.name);
 
-      const { token } = params;
+      const { accessToken } = params;
 
       const keyStore = await this.jose.JWK.asKeyStore(JSON.parse(this.keyStoreJson));
 
-      const { payload } = await this.jose.JWS.createVerify(keyStore).verify(token);
+      const { payload } = await this.jose.JWS.createVerify(keyStore).verify(accessToken);
 
-      const decodedToken = JSON.parse(payload.toString()) as TokenPayload;
+      const decodedToken = JSON.parse(payload.toString()) as AccessTokenPayload;
 
-      const now = Date.now().valueOf() / 1000;
+      const now = Math.round(Date.now().valueOf() / 1000);
 
       if (decodedToken.exp < now) {
         throw new ForbiddenError("Forbidden");
@@ -95,30 +99,42 @@ export interface TokenServiceInterface {
 
 export interface GenerateAccessTokenInput {
   clientId: string;
+  sessionId: string;
   userId: UserId;
   scope: string;
 }
 
 export interface GenerateAccessTokenOutput {
+  tokenType: "Bearer";
   accessToken: string;
-  expiryDate: number;
+  expiresIn: number;
+  refreshToken: string;
 }
 
 export interface VerifyAccessTokenInput {
-  token: string;
+  accessToken: string;
 }
 
 export interface VerifyAccessTokenOutput {
-  decodedToken: TokenPayload;
+  decodedToken: AccessTokenPayload;
 }
 
-export interface TokenPayload {
-  client_id: string;
+export interface AccessTokenPayload {
+  // clientId
+  cid: string;
+  // sessionId
+  sid: string;
+  // issuer
   iss: string;
+  // userId
   sub: UserId;
   scope: string;
+  // not before date (seconds since 1970)
   nbf: number;
+  // issued at date (seconds since 1970)
   iat: number;
+  // expiry date (seconds since 1970)
   exp: number;
+  // jwtId
   jti: string;
 }

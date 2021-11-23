@@ -21,6 +21,7 @@ const TYPES = {
 
   AuthFlowAttemptRepositoryInterface: Symbol.for("AuthFlowAttemptRepositoryInterface"),
   ClientRepositoryInterface: Symbol.for("ClientRepositoryInterface"),
+  SessionRepositoryInterface: Symbol.for("SessionRepositoryInterface"),
   UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
 
   ExternalProviderUserMappingRepositoryInterface: Symbol.for("ExternalProviderUserMappingRepositoryInterface"),
@@ -28,6 +29,7 @@ const TYPES = {
   CognitoFactory: Symbol.for("CognitoFactory"),
   CsrfFactory: Symbol.for("CsrfFactory"),
   JoseFactory: Symbol.for("JoseFactory"),
+  PkceChallengeFactory: Symbol.for("PkceChallengeFactory"),
   SesFactory: Symbol.for("SesFactory"),
 };
 

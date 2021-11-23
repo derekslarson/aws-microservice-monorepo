@@ -1,15 +1,15 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BadRequestError, BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
+import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
 
 import { TYPES } from "../inversion-of-control/types";
 import { BeginAuthFlowDto } from "../dtos/beginAuthFlow.dto";
 import { GetTokenDto } from "../dtos/getToken.dto";
 import { AuthServiceInterface } from "../services/auth.service";
-import { ClientServiceInterface } from "../services/client.service";
 import { LoginDto } from "../dtos/login.dto";
 import { ConfirmDto } from "../dtos/confirm.dto";
+import { DeleteSessionDto } from "../dtos/deleteSession.dto";
 
 @injectable()
 export class AuthController extends BaseController implements AuthControllerInterface {
@@ -17,7 +17,6 @@ export class AuthController extends BaseController implements AuthControllerInte
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.AuthServiceInterface) private authService: AuthServiceInterface,
-    @inject(TYPES.ClientServiceInterface) private clientService: ClientServiceInterface,
   ) {
     super();
   }
@@ -81,12 +80,6 @@ export class AuthController extends BaseController implements AuthControllerInte
         },
       } = this.validationService.validate({ dto: BeginAuthFlowDto, request });
 
-      const { client } = await this.clientService.getClient({ clientId });
-
-      if (!client.secret && (!codeChallenge || !codeChallengeMethod || !state)) {
-        throw new BadRequestError("code_challenge & state required");
-      }
-
       const { location, cookies } = await this.authService.beginAuthFlow({
         host: request.headers.host as string,
         clientId,
@@ -116,26 +109,53 @@ export class AuthController extends BaseController implements AuthControllerInte
           client_id: clientId,
           grant_type: grantType,
           redirect_uri: redirectUri,
-          code,
+          code: authorizationCode,
           code_verifier: codeVerifier,
-          scope,
+          refresh_token: refreshTokenParam,
         },
       } = this.validationService.validate({ dto: GetTokenDto, request });
 
-      const { client } = await this.clientService.getClient({ clientId });
-
-      const { accessToken } = await this.authService.getToken({
+      const { tokenType, expiresIn, accessToken, refreshToken, idToken } = await this.authService.getToken({
         clientId,
         grantType,
         redirectUri,
-        authorizationCode: code,
+        authorizationCode,
         codeVerifier,
-        scope: scope || client.scopes.join(" "),
+        refreshToken: refreshTokenParam,
       });
 
-      return this.generateSuccessResponse({ access_token: accessToken });
+      const responseBody = {
+        token_type: tokenType,
+        access_token: accessToken,
+        expires_in: expiresIn,
+        refresh_token: refreshToken,
+        id_token: idToken,
+      };
+
+      return this.generateSuccessResponse(responseBody);
     } catch (error: unknown) {
       this.loggerService.error("Error in getToken", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async deleteSession(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("deleteSession called", { request }, this.constructor.name);
+
+      const {
+        body: {
+          client_id: clientId,
+          token: refreshToken,
+        },
+      } = this.validationService.validate({ dto: DeleteSessionDto, request });
+
+      await this.authService.deleteSession({ clientId, refreshToken });
+
+      return this.generateSuccessResponse({ message: "Revoked" });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deleteSession", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -166,4 +186,5 @@ export interface AuthControllerInterface {
   confirm(request: Request): Promise<Response>;
   beginAuthFlow(request: Request): Promise<Response>;
   getToken(request: Request): Promise<Response>;
+  deleteSession(request: Request): Promise<Response>
 }

@@ -24,13 +24,21 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
 
       const { authFlowAttempt } = params;
 
+      const sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${authFlowAttempt.xsrfToken}`;
+
       const authFlowAttemptEntity: RawAuthFlowAttempt = {
         entityType: EntityType.AuthFlowAttempt,
         pk: authFlowAttempt.clientId,
-        sk: authFlowAttempt.xsrfToken,
-        ...(authFlowAttempt.authorizationCode && { gsi1pk: authFlowAttempt.clientId, gsi1sk: authFlowAttempt.authorizationCode }),
+        sk,
         ...authFlowAttempt,
       };
+
+      if (authFlowAttempt.authorizationCode) {
+        const gsi1sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${authFlowAttempt.authorizationCode}`;
+
+        authFlowAttemptEntity.gsi1pk = authFlowAttempt.clientId;
+        authFlowAttemptEntity.gsi1sk = gsi1sk;
+      }
 
       await this.documentClient.put({
         TableName: this.tableName,
@@ -52,7 +60,9 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
 
       const { clientId, xsrfToken } = params;
 
-      const authFlowAttempt = await this.get({ Key: { pk: clientId, sk: xsrfToken } }, "Auth Flow Attempt");
+      const sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${xsrfToken}`;
+
+      const authFlowAttempt = await this.get({ Key: { pk: clientId, sk } }, "Auth Flow Attempt");
 
       return { authFlowAttempt };
     } catch (error: unknown) {
@@ -68,8 +78,10 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
 
       const { clientId, authorizationCode } = params;
 
+      const gsi1sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${authorizationCode}`;
+
       const { Items: [ authFlowAttempt ] } = await this.query({
-        KeyConditionExpression: "#gsi1pk = :clientId AND #gsi1sk = :authorizationCode",
+        KeyConditionExpression: "#gsi1pk = :clientId AND #gsi1sk = :gsi1sk",
         IndexName: this.gsiOneIndexName,
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
@@ -77,7 +89,7 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
         },
         ExpressionAttributeValues: {
           ":clientId": clientId,
-          ":authorizationCode": authorizationCode,
+          ":gsi1sk": gsi1sk,
         },
       });
 
@@ -99,16 +111,20 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
 
       const { clientId, xsrfToken, updates } = params;
 
+      const sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${xsrfToken}`;
+
       type RawUpdates = UpdateAuthFlowAttemptUpdates & { gsi1pk?: string; gsi1sk?: string; };
 
       const rawUpdates: RawUpdates = { ...updates };
 
       if (updates.authorizationCode) {
+        const gsi1sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${updates.authorizationCode}`;
+
         rawUpdates.gsi1pk = clientId;
-        rawUpdates.gsi1sk = updates.authorizationCode;
+        rawUpdates.gsi1sk = gsi1sk;
       }
 
-      const authFlowAttempt = await this.partialUpdate(clientId, xsrfToken, rawUpdates);
+      const authFlowAttempt = await this.partialUpdate(clientId, sk, rawUpdates);
 
       return { authFlowAttempt };
     } catch (error: unknown) {
@@ -124,9 +140,11 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
 
       const { clientId, xsrfToken } = params;
 
+      const sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${xsrfToken}`;
+
       await this.documentClient.delete({
         TableName: this.tableName,
-        Key: { pk: clientId, sk: xsrfToken },
+        Key: { pk: clientId, sk },
       }).promise();
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteAuthFlowAttempt", { error, params }, this.constructor.name);
@@ -151,6 +169,8 @@ export interface AuthFlowAttempt {
   xsrfToken: string;
   responseType: string;
   secret: string;
+  scope: string;
+  redirectUri: string;
   state?: string;
   userId?: UserId;
   codeChallenge?: string;
@@ -161,16 +181,17 @@ export interface AuthFlowAttempt {
   authorizationCodeCreatedAt?: string;
 }
 
+type SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${string}`;
 export interface RawAuthFlowAttempt extends AuthFlowAttempt {
   entityType: EntityType.AuthFlowAttempt;
   // clientId
   pk: string;
-  // xsrfToken
-  sk: string;
+  // `${EntityType.AuthFlowAttempt}-${xsrfToken}`
+  sk: SkAndGsi1sk;
   // clientId
   gsi1pk?: string;
-  // authorizationCode
-  gsi1sk?: string;
+  // `${EntityType.AuthFlowAttempt}-${authorizationCode}`
+  gsi1sk?: SkAndGsi1sk;
 }
 
 export interface CreateAuthFlowAttemptInput {
