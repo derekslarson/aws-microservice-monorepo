@@ -8,8 +8,11 @@ import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as S3 from "@aws-cdk/aws-s3";
 import * as SNS from "@aws-cdk/aws-sns";
+import * as SNSSubscriptions from "@aws-cdk/aws-sns-subscriptions";
+import * as SQS from "@aws-cdk/aws-sqs";
 import * as EC2 from "@aws-cdk/aws-ec2";
 import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
+
 import {
   Environment,
   generateExportNames,
@@ -73,6 +76,10 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `RawMessageS3Bucket_${id}`, rawMessageS3BucketArn);
     const enhancedMessageS3Bucket = S3.Bucket.fromBucketArn(this, `EnhancedMessageS3Bucket_${id}`, enhancedMessageS3BucketArn);
     const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket-${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
+
+    // SNS Topics
+    const messageTranscodedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn);
+    const messageTranscribedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscribedSnsTopic_${id}`, messageTranscribedSnsTopicArn);
 
     // Secrets
     const messageUploadTokenSecret = SecretsManager.Secret.fromSecretCompleteArn(this, `MessageUploadTokenSecret_${id}`, messageUploadTokenSecretArn);
@@ -293,6 +300,11 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       MESSAGE_UPLOAD_TOKEN_SECRET_ID: messageUploadTokenSecret.secretArn,
     };
 
+    // SQS Queues
+    const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`);
+    messageTranscodedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    messageTranscribedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+
     // Dynamo Stream Handler
     new Lambda.Function(this, `CoreTableChanged_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
@@ -345,20 +357,18 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       ],
     });
 
-    // SNS Event Handler
-    new Lambda.Function(this, `SnsEventHandler_${id}`, {
+    // SQS Event Handler
+    new Lambda.Function(this, `SqsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
-      handler: "snsEvent.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
+      handler: "sqsEvent.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MessageTranscribedSnsTopic_${id}`, messageTranscribedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `ExternalProviderUserSignedUpSnsTopic_${id}`, externalProviderUserSignedUpSnsTopicArn)),
+        new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
       ],
     });
 
@@ -557,6 +567,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/createGroup"),
       handler: "createGroup.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const updateGroupHandler = new Lambda.Function(this, `UpdateGroup_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateGroup"),
+      handler: "updateGroup.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -989,6 +1010,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/users/{userId}/groups",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createGroupHandler,
+        restricted: true,
+      },
+      {
+        path: "/groups/{groupId}",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: updateGroupHandler,
         restricted: true,
       },
       {

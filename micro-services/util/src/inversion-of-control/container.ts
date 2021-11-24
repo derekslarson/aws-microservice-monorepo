@@ -2,6 +2,7 @@ import { Container, ContainerModule } from "inversify";
 import { TYPES } from "./types";
 
 import { SnsEventController, SnsEventControllerInterface } from "../controllers/snsEvent.controller";
+import { SqsEventController, SqsEventControllerInterface } from "../controllers/sqsEvent.controller";
 
 import { IdService, IdServiceInterface } from "../services/id.service";
 import { HttpRequestService, HttpRequestServiceInterface } from "../services/http.request.service";
@@ -40,6 +41,7 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<DynamoStreamControllerInterface>(TYPES.DynamoStreamControllerInterface).to(DynamoStreamController);
     bind<S3EventControllerInterface>(TYPES.S3EventControllerInterface).to(S3EventController);
     bind<SnsEventControllerInterface>(TYPES.SnsEventControllerInterface).to(SnsEventController);
+    bind<SqsEventControllerInterface>(TYPES.SqsEventControllerInterface).to(SqsEventController);
 
     bind<HttpRequestServiceInterface>(TYPES.HttpRequestServiceInterface).to(HttpRequestService);
     bind<IdServiceInterface>(TYPES.IdServiceInterface).to(IdService);
