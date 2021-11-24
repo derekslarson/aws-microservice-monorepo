@@ -1,6 +1,6 @@
 import { Record, String } from "runtypes";
 
-export const DeleteSessionDto = Record({
+export const RevokeTokensDto = Record({
   body: Record({
     client_id: String,
     token: String,

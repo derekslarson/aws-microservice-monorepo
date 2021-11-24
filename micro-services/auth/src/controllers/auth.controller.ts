@@ -10,9 +10,10 @@ import { GetTokenDto } from "../dtos/getToken.dto";
 import { AuthServiceInterface } from "../services/tier-2/auth.service";
 import { LoginDto } from "../dtos/login.dto";
 import { ConfirmDto } from "../dtos/confirm.dto";
-import { DeleteSessionDto } from "../dtos/deleteSession.dto";
+import { RevokeTokensDto } from "../dtos/revokeTokens.dto";
 import { OAuth2Error } from "../errors/oAuth2.error";
 import { OAuth2ErrorType } from "../enums/oAuth2ErrorType.enum";
+import { CompleteExternalProviderAuthFlowDto } from "../dtos/completeExternalProviderAuthFlow.dto";
 
 @injectable()
 export class AuthController extends BaseController implements AuthControllerInterface {
@@ -75,7 +76,7 @@ export class AuthController extends BaseController implements AuthControllerInte
           redirect_uri: redirectUri,
           code_challenge: codeChallenge,
           code_challenge_method: codeChallengeMethod,
-          identity_provider: identityProvider,
+          external_provider: externalProvider,
           state,
           scope,
         },
@@ -87,7 +88,7 @@ export class AuthController extends BaseController implements AuthControllerInte
         redirectUri,
         codeChallenge,
         codeChallengeMethod,
-        identityProvider,
+        externalProvider,
         state,
         scope,
       });
@@ -149,7 +150,7 @@ export class AuthController extends BaseController implements AuthControllerInte
           client_id: clientId,
           token: refreshToken,
         },
-      } = this.validationService.validate({ dto: DeleteSessionDto, request });
+      } = this.validationService.validate({ dto: RevokeTokensDto, request });
 
       await this.authService.revokeTokens({ clientId, refreshToken });
 
@@ -161,22 +162,19 @@ export class AuthController extends BaseController implements AuthControllerInte
     }
   }
 
-  private parseCookies(cookies: string[] = []): Record<string, string> {
+  public async completeExternalProviderAuthFlow(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("parseCookies called", { cookies }, this.constructor.name);
+      this.loggerService.trace("completeExternalProviderAuthFlow called", { request }, this.constructor.name);
 
-      const cookieObject = cookies.reduce((acc: Record<string, string>, cookie: string) => {
-        const [ key, value ] = cookie.split("=");
-        acc[key] = value;
+      const { queryStringParameters: { code, state } } = this.validationService.validate({ dto: CompleteExternalProviderAuthFlowDto, request });
 
-        return acc;
-      }, {});
+      const { location } = await this.authService.completeExternalProviderAuthFlow({ authorizationCode: code, state });
 
-      return cookieObject;
+      return this.generateSeeOtherResponse(location);
     } catch (error: unknown) {
-      this.loggerService.error("Error in parseCookies", { error, cookies }, this.constructor.name);
+      this.loggerService.error("Error in completeExternalProviderAuthFlow", { error, request }, this.constructor.name);
 
-      throw error;
+      return this.generateErrorResponse(error);
     }
   }
 
@@ -199,12 +197,32 @@ export class AuthController extends BaseController implements AuthControllerInte
       headers: { ...(error.redirectUri && { Location: error.redirectUri }) },
     };
   }
+
+  private parseCookies(cookies: string[] = []): Record<string, string> {
+    try {
+      this.loggerService.trace("parseCookies called", { cookies }, this.constructor.name);
+
+      const cookieObject = cookies.reduce((acc: Record<string, string>, cookie: string) => {
+        const [ key, value ] = cookie.split("=");
+        acc[key] = value;
+
+        return acc;
+      }, {});
+
+      return cookieObject;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in parseCookies", { error, cookies }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface AuthControllerInterface {
   login(request: Request): Promise<Response>;
   confirm(request: Request): Promise<Response>;
   beginAuthFlow(request: Request): Promise<Response>;
+  completeExternalProviderAuthFlow(request: Request): Promise<Response>
   getToken(request: Request): Promise<Response>;
   revokeTokens(request: Request): Promise<Response>
 }

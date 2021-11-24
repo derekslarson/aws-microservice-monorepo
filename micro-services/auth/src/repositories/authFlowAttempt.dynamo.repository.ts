@@ -26,10 +26,14 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
 
       const sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${authFlowAttempt.xsrfToken}`;
 
+      // auto delete item after two minutes
+      const ttl = (Date.now().valueOf() / 1000) + (60 * 2);
+
       const authFlowAttemptEntity: RawAuthFlowAttempt = {
         entityType: EntityType.AuthFlowAttempt,
         pk: authFlowAttempt.clientId,
         sk,
+        ttl,
         ...authFlowAttempt,
       };
 
@@ -42,7 +46,7 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
 
       await this.documentClient.put({
         TableName: this.tableName,
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
+        ConditionExpression: "attribute_not_exists(pk)",
         Item: authFlowAttemptEntity,
       }).promise();
 
@@ -188,6 +192,8 @@ export interface RawAuthFlowAttempt extends AuthFlowAttempt {
   pk: string;
   // `${EntityType.AuthFlowAttempt}-${xsrfToken}`
   sk: SkAndGsi1sk;
+  // time-to-live attribute (deletion date in unix seconds)
+  ttl: number;
   // clientId
   gsi1pk?: string;
   // `${EntityType.AuthFlowAttempt}-${authorizationCode}`

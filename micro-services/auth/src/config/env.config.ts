@@ -11,6 +11,11 @@ export const envConfig: EnvConfigInterface = {
   snsTopicArns: {},
   mailSender: process.env.MAIL_SENDER || "",
   authUI: process.env.YAC_AUTH_UI || "",
+  googleClient: {
+    id: process.env.GOOGLE_CLIENT_ID || "",
+    secret: process.env.GOOGLE_CLIENT_SECRET || "",
+    redirectUri: process.env.GOOGLE_CLIENT_REDIRECT_URI || "",
+  },
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
@@ -24,5 +29,10 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   };
   globalSecondaryIndexNames: {
     one: string;
+  };
+  googleClient: {
+    id: string;
+    secret: string;
+    redirectUri: string;
   }
 }

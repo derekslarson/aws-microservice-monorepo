@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { Crypto, CryptoFactory, ForbiddenError, IdServiceInterface, LoggerServiceInterface, NotFoundError, SmsServiceInterface } from "@yac/util";
+import { Crypto, CryptoFactory, ForbiddenError, GoogleOAuth2ClientFactory, IdServiceInterface, Jwt, JwtFactory, LoggerServiceInterface, NotFoundError, SmsServiceInterface } from "@yac/util";
 import { TYPES } from "../../inversion-of-control/types";
 import { MailServiceInterface } from "../tier-1/mail.service";
 import { AuthFlowAttempt, AuthFlowAttemptRepositoryInterface, UpdateAuthFlowAttemptUpdates } from "../../repositories/authFlowAttempt.dynamo.repository";
@@ -14,6 +14,8 @@ import { PkceChallenge, PkceChallengeFactory } from "../../factories/pkceChallen
 import { OAuth2Error } from "../../errors/oAuth2.error";
 import { OAuth2ErrorType } from "../../enums/oAuth2ErrorType.enum";
 import { Client } from "../../repositories/client.dynamo.repository";
+import { ExternalProviderAuthFlowAttempt, ExternalProviderAuthFlowAttemptRepositoryInterface } from "../../repositories/externalProvider.AuthFlowAttempt.dynamo.repository";
+import { ExternalProvider } from "../../enums/externalProvider.enum";
 
 @injectable()
 export class AuthService implements AuthServiceInterface {
@@ -25,6 +27,10 @@ export class AuthService implements AuthServiceInterface {
 
   private pkceChallenge: PkceChallenge;
 
+  private jwt: Jwt;
+
+  private googleClient: AuthServiceConfigInterface["googleClient"];
+
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MailServiceInterface) private mailService: MailServiceInterface,
@@ -34,15 +40,20 @@ export class AuthService implements AuthServiceInterface {
     @inject(TYPES.TokenServiceInterface) private tokenService: TokenServiceInterface,
     @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
     @inject(TYPES.AuthFlowAttemptRepositoryInterface) private authFlowAttemptRepository: AuthFlowAttemptRepositoryInterface,
-    @inject(TYPES.EnvConfigInterface) config: AuthServiceConfigInterface,
+    @inject(TYPES.ExternalProviderAuthFlowAttemptRepositoryInterface) private externalProviderAuthFlowAttemptRepository: ExternalProviderAuthFlowAttemptRepositoryInterface,
+    @inject(TYPES.GoogleOAuth2ClientFactory) private googleOAuth2ClientFactory: GoogleOAuth2ClientFactory,
     @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
     @inject(TYPES.CsrfFactory) csrfFactory: CsrfFactory,
     @inject(TYPES.PkceChallengeFactory) pkceChallengeFactory: PkceChallengeFactory,
+    @inject(TYPES.JwtFactory) jwtFactory: JwtFactory,
+    @inject(TYPES.EnvConfigInterface) config: AuthServiceConfigInterface,
   ) {
     this.authUiUrl = config.authUI;
+    this.googleClient = config.googleClient;
     this.crypto = cryptoFactory();
     this.csrf = csrfFactory();
     this.pkceChallenge = pkceChallengeFactory();
+    this.jwt = jwtFactory();
   }
 
   public async login(params: LoginInput): Promise<LoginOutput> {
@@ -131,7 +142,7 @@ export class AuthService implements AuthServiceInterface {
     try {
       this.loggerService.trace("beginAuthFlow called", { params }, this.constructor.name);
 
-      const { clientId, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope } = params;
+      const { clientId, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope, externalProvider } = params;
 
       let client: Client;
 
@@ -159,32 +170,73 @@ export class AuthService implements AuthServiceInterface {
         }
       }
 
-      const secret = state || this.csrf.secretSync();
-      const xsrfToken = this.csrf.create(secret);
+      if (externalProvider) {
+        const { location, cookies } = await this.beginExternalProviderAuthFlow({ externalProvider, client, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope });
+
+        return { location, cookies };
+      }
+
+      const { location, cookies } = await this.beginInternalAuthFlow({ client, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope });
+
+      return { location, cookies };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in beginAuthFlow", { error, params }, this.constructor.name);
+
+      if (error instanceof OAuth2Error) {
+        throw error;
+      }
+
+      throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
+    }
+  }
+
+  public async completeExternalProviderAuthFlow(params: CompleteExternalProviderAuthFlowInput): Promise<CompleteExternalProviderAuthFlowOutput> {
+    try {
+      this.loggerService.trace("completeExternalProviderAuthFlow called", { params }, this.constructor.name);
+
+      const { authorizationCode: externalProviderAuthorizationCode, state } = params;
+
+      const oAuth2Client = this.googleOAuth2ClientFactory(this.googleClient.id, this.googleClient.secret, this.googleClient.redirectUri);
+
+      const [ { externalProviderAuthFlowAttempt }, { tokens } ] = await Promise.all([
+        this.externalProviderAuthFlowAttemptRepository.getExternalProviderAuthFlowAttempt({ state }),
+        oAuth2Client.getToken(externalProviderAuthorizationCode),
+      ]);
+
+      if (!tokens.id_token) {
+        throw new Error("External Provider response missing id_token");
+      }
+
+      const { email } = this.jwt.decode(tokens.id_token) as { email: string; name?: string; };
+
+      const { user } = await this.getOrCreateUser({ email });
+
+      const authorizationCode = this.idService.generateId();
+
+      await this.externalProviderAuthFlowAttemptRepository.deleteExternalProviderAuthFlowAttempt({ state });
 
       const authFlowAttempt: AuthFlowAttempt = {
-        clientId,
-        xsrfToken,
-        secret,
-        responseType,
-        redirectUri,
-        scope: scope || client.scopes.join(" "),
-        state,
-        codeChallenge,
-        codeChallengeMethod,
+        clientId: externalProviderAuthFlowAttempt.clientId,
+        xsrfToken: this.idService.generateId(),
+        secret: this.idService.generateId(),
+        userId: user.id,
+        authorizationCode,
+        authorizationCodeCreatedAt: new Date().toISOString(),
+        responseType: externalProviderAuthFlowAttempt.responseType,
+        redirectUri: externalProviderAuthFlowAttempt.redirectUri,
+        scope: externalProviderAuthFlowAttempt.scope,
+        state: externalProviderAuthFlowAttempt.initialState,
+        codeChallenge: externalProviderAuthFlowAttempt.codeChallenge,
+        codeChallengeMethod: externalProviderAuthFlowAttempt.codeChallengeMethod,
       };
 
       await this.authFlowAttemptRepository.createAuthFlowAttempt({ authFlowAttempt });
 
-      const optionalQueryParams = { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod, scope, state };
-      const optionalQueryString = Object.entries(optionalQueryParams).reduce((acc, [ key, value ]) => (value ? `${acc}&${key}=${value}` : acc), "");
+      const location = `${externalProviderAuthFlowAttempt.redirectUri}?code=${authorizationCode}${externalProviderAuthFlowAttempt.initialState ? `&state=${externalProviderAuthFlowAttempt.initialState}` : ""}`;
 
-      const location = `${this.authUiUrl}?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}${optionalQueryString}`;
-      const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`;
-
-      return { location, cookies: [ xsrfTokenCookie ] };
+      return { location };
     } catch (error: unknown) {
-      this.loggerService.error("Error in beginAuthFlow", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in completeExternalProviderAuthFlow", { error, params }, this.constructor.name);
 
       if (error instanceof OAuth2Error) {
         throw error;
@@ -241,6 +293,89 @@ export class AuthService implements AuthServiceInterface {
       await this.tokenService.revokeTokens({ clientId, refreshToken });
     } catch (error: unknown) {
       this.loggerService.error("Error in revokeTokens", { error, params }, this.constructor.name);
+
+      if (error instanceof OAuth2Error) {
+        throw error;
+      }
+
+      throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
+    }
+  }
+
+  private async beginInternalAuthFlow(params: BeginInternalAuthFlowInput): Promise<BeginInternalAuthFlowOutput> {
+    try {
+      this.loggerService.trace("beginInternalAuthFlow called", { params }, this.constructor.name);
+
+      const { client, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope } = params;
+
+      const secret = state || this.csrf.secretSync();
+      const xsrfToken = this.csrf.create(secret);
+
+      const authFlowAttempt: AuthFlowAttempt = {
+        clientId: client.id,
+        xsrfToken,
+        secret,
+        responseType,
+        redirectUri,
+        scope: scope || client.scopes.join(" "),
+        state,
+        codeChallenge,
+        codeChallengeMethod,
+      };
+
+      await this.authFlowAttemptRepository.createAuthFlowAttempt({ authFlowAttempt });
+
+      const optionalQueryParams = { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod, scope, state };
+      const optionalQueryString = Object.entries(optionalQueryParams).reduce((acc, [ key, value ]) => (value ? `${acc}&${key}=${value}` : acc), "");
+
+      const location = `${this.authUiUrl}?client_id=${client.id}&redirect_uri=${redirectUri}&response_type=${responseType}${optionalQueryString}`;
+      const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`;
+
+      return { location, cookies: [ xsrfTokenCookie ] };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in beginInternalAuthFlow", { error, params }, this.constructor.name);
+
+      if (error instanceof OAuth2Error) {
+        throw error;
+      }
+
+      throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
+    }
+  }
+
+  private async beginExternalProviderAuthFlow(params: BeginExternalProviderAuthFlowInput): Promise<BeginExternalProviderAuthFlowOutput> {
+    try {
+      this.loggerService.trace("beginExternalProviderAuthFlow called", { params }, this.constructor.name);
+
+      const { externalProvider, client, state: initialState, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope } = params;
+
+      const state = this.idService.generateId();
+
+      const externalProviderAuthFlowAttempt: ExternalProviderAuthFlowAttempt = {
+        state,
+        externalProvider,
+        clientId: client.id,
+        responseType,
+        redirectUri,
+        scope: scope || client.scopes.join(" "),
+        initialState,
+        codeChallenge,
+        codeChallengeMethod,
+      };
+
+      await this.externalProviderAuthFlowAttemptRepository.createExternalProviderAuthFlowAttempt({ externalProviderAuthFlowAttempt });
+
+      if (externalProvider === ExternalProvider.Slack) {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "external_provider slack not supported at this time", redirectUri);
+      }
+
+      const oAuth2Client = this.googleOAuth2ClientFactory(this.googleClient.id, this.googleClient.secret, this.googleClient.redirectUri);
+
+      const location = oAuth2Client.generateAuthUrl({ scope: [ "openid", "email" ], state });
+
+      return { location, cookies: [] };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in beginExternalProviderAuthFlow", { error, params }, this.constructor.name);
 
       if (error instanceof OAuth2Error) {
         throw error;
@@ -352,11 +487,12 @@ export interface AuthServiceInterface {
   login(params: LoginInput): Promise<LoginOutput>;
   confirm(params: ConfirmInput): Promise<ConfirmOutput>;
   beginAuthFlow(params: BeginAuthFlowInput): Promise<BeginAuthFlowOutput>;
+  completeExternalProviderAuthFlow(params: CompleteExternalProviderAuthFlowInput): Promise<CompleteExternalProviderAuthFlowOutput>
   getToken(params: GetTokenInput): Promise<GetTokenOutput>;
   revokeTokens(params: RevokeTokensInput): Promise<RevokeTokensOutput>;
 }
 
-export type AuthServiceConfigInterface = Pick<EnvConfigInterface, "authUI">;
+export type AuthServiceConfigInterface = Pick<EnvConfigInterface, "authUI" | "googleClient">;
 
 interface BaseLoginInput {
   clientId: string;
@@ -408,12 +544,21 @@ export interface BeginAuthFlowInput {
   scope?: string;
   codeChallenge?: string;
   codeChallengeMethod?: string;
-  identityProvider?: string;
+  externalProvider?: ExternalProvider;
 }
 
 export interface BeginAuthFlowOutput {
   location: string;
   cookies: string[];
+}
+
+export interface CompleteExternalProviderAuthFlowInput {
+  authorizationCode: string;
+  state: string;
+}
+
+export interface CompleteExternalProviderAuthFlowOutput {
+  location: string;
 }
 
 export interface GetTokenInput {
@@ -439,6 +584,37 @@ export interface RevokeTokensInput {
 }
 
 export type RevokeTokensOutput = void;
+
+interface BeginInternalAuthFlowInput {
+  client: Client;
+  responseType: string;
+  redirectUri: string;
+  state?: string;
+  scope?: string;
+  codeChallenge?: string;
+  codeChallengeMethod?: string;
+}
+
+interface BeginInternalAuthFlowOutput {
+  location: string;
+  cookies: string[];
+}
+
+interface BeginExternalProviderAuthFlowInput {
+  externalProvider: ExternalProvider;
+  client: Client;
+  responseType: string;
+  redirectUri: string;
+  state?: string;
+  scope?: string;
+  codeChallenge?: string;
+  codeChallengeMethod?: string;
+}
+
+interface BeginExternalProviderAuthFlowOutput {
+  location: string;
+  cookies: string[];
+}
 
 interface HandleAuthorizationCodeGrantInput {
   clientId: string;

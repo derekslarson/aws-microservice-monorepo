@@ -259,13 +259,13 @@ const Login: React.FC<ILoginProps> = () => {
   }
 
   const redirectToGoogleAuth = () => {    
-    const redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.OAUTH2_AUTHORIZE_PATH}?identity_provider=Google&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}&scope=${query.scope}&code_challenge=${query.code_challenge}&code_challenge_method=${query.code_challenge_method}&state=${query.state}`;
+    const redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.OAUTH2_AUTHORIZE_PATH}?external_provider=google&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}&scope=${query.scope}&code_challenge=${query.code_challenge}&code_challenge_method=${query.code_challenge_method}&state=${query.state}`;
 
     window.location.href = redirectLocation
   }
 
   const redirectToSlackAuth = () => {    
-    const redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.OAUTH2_AUTHORIZE_PATH}?identity_provider=Slack&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}&scope=${query.scope}&code_challenge=${query.code_challenge}&code_challenge_method=${query.code_challenge_method}&state=${query.state}`;
+    const redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.OAUTH2_AUTHORIZE_PATH}?external_provider=slack&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}&scope=${query.scope}&code_challenge=${query.code_challenge}&code_challenge_method=${query.code_challenge_method}&state=${query.state}`;
 
     window.location.href = redirectLocation
   }

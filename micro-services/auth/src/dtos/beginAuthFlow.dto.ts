@@ -1,4 +1,5 @@
 import { Record, Optional, String, Literal, Union } from "runtypes";
+import { ExternalProvider } from "../enums/externalProvider.enum";
 import { RedirectUri } from "../runtypes/redirectUri.runtype";
 
 export const BeginAuthFlowDto = Record({
@@ -10,6 +11,6 @@ export const BeginAuthFlowDto = Record({
     code_challenge_method: Optional(Literal("S256")),
     code_challenge: Optional(String),
     scope: Optional(String),
-    identity_provider: Optional(Union(Literal("Google"), Literal("Slack"))),
+    external_provider: Optional(Union(Literal(ExternalProvider.Google), Literal(ExternalProvider.Slack))),
   }),
 });

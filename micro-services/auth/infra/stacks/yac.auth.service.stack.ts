@@ -4,6 +4,7 @@ import * as Lambda from "@aws-cdk/aws-lambda";
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as SNS from "@aws-cdk/aws-sns";
+import * as SSM from "@aws-cdk/aws-ssm";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as S3 from "@aws-cdk/aws-s3";
 import * as CloudFront from "@aws-cdk/aws-cloudfront";
@@ -49,8 +50,9 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const ExportNames = generateExportNames(stackPrefix);
 
     // Manually Set SSM Parameters for the external provider app clients
-    // const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`);
-    // const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`);
+    const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`);
+    const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`);
+    const googleClientRedirectUri = `${this.httpApi.apiURL}/oauth2/idpresponse`;
     // const slackClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-id`);
     // const slackClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-secret`);
 
@@ -69,6 +71,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
       removalPolicy: CDK.RemovalPolicy.DESTROY,
+      timeToLiveAttribute: "ttl",
     });
 
     authTable.addGlobalSecondaryIndex({
@@ -152,6 +155,9 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN: externalProviderUserSignedUpSnsTopicArn,
       AUTH_TABLE_NAME: authTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
+      GOOGLE_CLIENT_ID: googleClientId,
+      GOOGLE_CLIENT_SECRET: googleClientSecret,
+      GOOGLE_CLIENT_REDIRECT_URI: googleClientRedirectUri,
     };
 
     // Handlers
@@ -260,6 +266,17 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const oauth2IdpResponseHandler = new Lambda.Function(this, `Oauth2IdpResponseHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/oauth2IdpResponse"),
+      handler: "oauth2IdpResponse.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const loginRoute: RouteProps<AuthServiceLoginPath, AuthServiceLoginMethod> = {
       path: "/login",
       method: ApiGatewayV2.HttpMethod.POST,
@@ -296,6 +313,12 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: oauth2RevokeHandler,
     };
 
+    const oauth2IdpResponseRoute: RouteProps = {
+      path: "/oauth2/idpresponse",
+      method: ApiGatewayV2.HttpMethod.GET,
+      handler: oauth2IdpResponseHandler,
+    };
+
     const oauth2UserInfoRoute: RouteProps = {
       path: "/oauth2/userinfo",
       method: ApiGatewayV2.HttpMethod.GET,
@@ -311,6 +334,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       oauth2TokenRoute,
       oauth2RevokeRoute,
       oauth2UserInfoRoute,
+      oauth2IdpResponseRoute,
     ];
 
     // Proxy Routes
