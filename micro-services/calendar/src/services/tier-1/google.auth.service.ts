@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { BadRequestError, GoogleOAuth2Client, GoogleOAuth2ClientFactory, IdServiceInterface, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
+import { BadRequestError, GoogleOAuth2Client, GoogleOAuth2ClientFactory, IdServiceInterface, Jwt, JwtFactory, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
 import { Auth } from "googleapis";
 import { TYPES } from "../../inversion-of-control/types";
 import { GoogleCredentials, GoogleCredentialsRepositoryInterface } from "../../repositories/google.credentials.dynamo.repository";
@@ -8,6 +8,8 @@ import { AuthFlowAttemptRepositoryInterface } from "../../repositories/authFlowA
 
 @injectable()
 export class GoogleAuthService implements GoogleAuthServiceInterface {
+  private jwt: Jwt;
+
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
@@ -15,7 +17,10 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
     @inject(TYPES.AuthFlowAttemptRepositoryInterface) private authFlowAttemptRepository: AuthFlowAttemptRepositoryInterface,
     @inject(TYPES.GoogleOAuth2ClientFactory) private googleOAuth2ClientFactory: GoogleOAuth2ClientFactory,
     @inject(TYPES.EnvConfigInterface) private config: GoogleAuthServiceServiceConfig,
-  ) {}
+    @inject(TYPES.JwtFactory) jwtFactory: JwtFactory,
+  ) {
+    this.jwt = jwtFactory();
+  }
 
   public async initiateAccessFlow(params: InitiateAccessFlowInput): Promise<InitiateAccessFlowOutput> {
     try {
@@ -27,8 +32,11 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
 
       const { oAuth2Client } = this.getOAuth2ClientWithoutCredentials();
 
+      const scopeWithEmail = scope.includes("email") ? scope : [ ...scope, "email" ];
+      const scopeWithOpenId = scopeWithEmail.includes("openid") ? scopeWithEmail : [ ...scopeWithEmail, "openid" ];
+
       const authUri = oAuth2Client.generateAuthUrl({
-        scope,
+        scope: scopeWithOpenId,
         access_type: "offline",
         prompt: "consent",
         state,
@@ -57,14 +65,19 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
         oAuth2Client.getToken(authorizationCode),
       ]);
 
-      if (!tokens.access_token || !tokens.refresh_token || !tokens.expiry_date || !tokens.token_type || !tokens.scope) {
+      if (!tokens.access_token || !tokens.refresh_token || !tokens.id_token || !tokens.expiry_date || !tokens.token_type || !tokens.scope) {
         throw new Error(`Google response malformed:\n${JSON.stringify(tokens, null, 2)}`);
       }
+
+      const { sub: accountId, email } = this.jwt.decode(tokens.id_token) as { sub: string; email: string; };
 
       const googleCredentials: GoogleCredentials = {
         userId: authFlowAttempt.userId,
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
+        idToken: tokens.id_token,
+        accountId,
+        email,
         expiryDate: tokens.expiry_date,
         tokenType: tokens.token_type,
         scope: tokens.scope,
@@ -87,15 +100,16 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
     try {
       this.loggerService.trace("getOAuth2Client called", { params }, this.constructor.name);
 
-      const { userId } = params;
+      const { userId, accountId } = params;
 
       const { oAuth2Client } = this.getOAuth2ClientWithoutCredentials();
 
-      const { googleCredentials } = await this.googleCredentialsRepository.getGoogleCredentials({ userId });
+      const { googleCredentials } = await this.googleCredentialsRepository.getGoogleCredentials({ userId, accountId });
 
       const googleCredentialsSnakeCase: Auth.Credentials = {
         access_token: googleCredentials.accessToken,
         refresh_token: googleCredentials.refreshToken,
+        id_token: googleCredentials.idToken,
         token_type: googleCredentials.tokenType,
         expiry_date: googleCredentials.expiryDate,
         scope: googleCredentials.scope,
@@ -113,7 +127,7 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
         const expiryDate = oAuth2Client.credentials.expiry_date as number;
         const refreshToken = oAuth2Client.credentials.refresh_token as string;
 
-        await this.googleCredentialsRepository.updateGoogleCredentials({ userId, updates: { accessToken: freshAccesToken, refreshToken, expiryDate } });
+        await this.googleCredentialsRepository.updateGoogleCredentials({ userId, accountId, updates: { accessToken: freshAccesToken, refreshToken, expiryDate } });
       }
 
       return { oAuth2Client };
@@ -123,6 +137,24 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
       }
 
       this.loggerService.error("Error in getOAuth2Client", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getAccounts(params: GetAccountsInput): Promise<GetAccountsOutput> {
+    try {
+      this.loggerService.trace("getAccounts called", { params }, this.constructor.name);
+
+      const { userId } = params;
+
+      const { googleCredentials } = await this.googleCredentialsRepository.getGoogleCredentialsByUserId({ userId });
+
+      const accounts = googleCredentials.map(({ accountId, email }) => ({ id: accountId, email }));
+
+      return { accounts };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getAccounts", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -147,6 +179,7 @@ export interface GoogleAuthServiceInterface {
   initiateAccessFlow(params: InitiateAccessFlowInput): Promise<InitiateAccessFlowOutput>;
   completeAccessFlow(params: CompleteAccessFlowInput): Promise<CompleteAccessFlowOutput>;
   getOAuth2Client(params: GetOAuth2ClientInput): Promise<GetOAuth2ClientOutput>;
+  getAccounts(params: GetAccountsInput): Promise<GetAccountsOutput>;
 }
 
 type GoogleAuthServiceServiceConfig = Pick<EnvConfigInterface, "googleClient">;
@@ -172,10 +205,23 @@ export interface CompleteAccessFlowOutput {
 
 export interface GetOAuth2ClientInput {
   userId: UserId;
+  accountId: string;
 }
 
 export interface GetOAuth2ClientOutput {
   oAuth2Client: GoogleOAuth2Client;
+}
+
+export interface GetAccountsInput {
+  userId: UserId;
+}
+
+export interface Account {
+  id: string;
+  email: string;
+}
+export interface GetAccountsOutput {
+  accounts: Account[];
 }
 
 export interface GetOAuth2ClientWithoutCredentialsOutput {

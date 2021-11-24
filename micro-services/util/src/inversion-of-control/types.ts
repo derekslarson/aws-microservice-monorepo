@@ -4,6 +4,7 @@ const TYPES = {
   DynamoStreamControllerInterface: Symbol.for("DynamoStreamControllerInterface"),
   S3EventControllerInterface: Symbol.for("S3EventControllerInterface"),
   SnsEventControllerInterface: Symbol.for("SnsEventControllerInterface"),
+  SqsEventControllerInterface: Symbol.for("SqsEventControllerInterface"),
 
   HttpRequestServiceInterface: Symbol.for("HttpRequestServiceInterface"),
   IdServiceInterface: Symbol.for("IdServiceInterface"),
