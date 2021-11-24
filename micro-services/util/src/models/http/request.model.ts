@@ -6,7 +6,7 @@ export type Request = Omit<APIGatewayProxyEventV2, "requestContext"> & {
     authorizer?: Omit<APIGatewayProxyEventV2["requestContext"]["authorizer"], "jwt"> & {
       lambda?: {
         userId: UserId;
-        scopes: string[];
+        scope: string;
       }
     }
   }

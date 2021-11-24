@@ -111,7 +111,7 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
         authorizerName: `LambdaAuthorizer_${id}`,
         handler: props.authorizerHandler,
         resultsCacheTtl: Duration.minutes(10),
-        responseTypes: [ ApiGatewayV2Authorizers.HttpLambdaResponseType.SIMPLE ],
+        responseTypes: [ ApiGatewayV2Authorizers.HttpLambdaResponseType.IAM ],
       });
     } catch (error) {
       console.log(`${new Date().toISOString()} : Error in HttpApi.addAuthorizer:\n`, error);

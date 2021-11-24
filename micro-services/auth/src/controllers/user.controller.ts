@@ -19,15 +19,15 @@ export class UserController extends BaseController implements UserControllerInte
       this.loggerService.trace("getUserInfo called", { request }, this.constructor.name);
 
       const userId = request.requestContext.authorizer?.lambda?.userId;
-      const scopes = request.requestContext.authorizer?.lambda?.scopes;
+      const scope = request.requestContext.authorizer?.lambda?.scope;
 
-      if (!userId || !scopes) {
+      if (!userId || !scope) {
         throw new UnauthorizedError("Unauthorized");
       }
 
       const { user } = await this.userRepository.getUser({ id: userId });
 
-      const scopesSet = new Set(scopes);
+      const scopesSet = new Set(scope.split(" "));
 
       const response: Record<string, string | number> = { sub: user.id };
 

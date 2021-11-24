@@ -48,7 +48,7 @@
     "@aws-cdk/aws-ssm": "~1.114.0",
     "@aws-cdk/core": "~1.114.0",
     "@aws-cdk/custom-resources": "~1.114.0",
-    "@types/aws-lambda": "^8.10.72",
+    "@types/aws-lambda": "^8.10.85",
     "@types/elasticsearch": "^5.0.37",
     "@types/jasmine": "^3.6.4",
     "@types/jsonwebtoken": "^8.5.0",

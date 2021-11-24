@@ -22,7 +22,8 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
       const { dto, request, getUserIdFromJwt, scopes = [] } = params;
 
       if (scopes.length) {
-        const tokenScopesSet = new Set(request.requestContext.authorizer?.lambda?.scopes || []);
+        const tokenScopes = (request.requestContext.authorizer?.lambda?.scope || request.requestContext.authorizer?.scope || "").split(" ");
+        const tokenScopesSet = new Set(tokenScopes);
 
         let authorized = false;
 
@@ -41,7 +42,7 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
       let jwtId: `user-${string}` | undefined;
 
       if (getUserIdFromJwt) {
-        const userId = request.requestContext.authorizer?.lambda?.userId;
+        const userId = request.requestContext.authorizer?.lambda?.userId || request.requestContext.authorizer?.userId;
 
         if (!userId) {
           throw new ForbiddenError("Forbidden");
@@ -111,9 +112,11 @@ export interface ValidationServiceV2Interface {
 type RequestWithAuthorizerContext = Request & {
   requestContext: {
     authorizer?: {
+      userId?: UserId;
+      scope?: string;
       lambda?: {
         userId?: UserId;
-        scopes?: string[];
+        scope?: string;
       }
     }
   }
