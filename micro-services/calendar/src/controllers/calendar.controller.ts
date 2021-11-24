@@ -4,9 +4,11 @@ import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Respon
 import { TYPES } from "../inversion-of-control/types";
 import { InitiateGoogleAccessFlowDto } from "../dtos/initiateGoogleAccessFlow.dto";
 import { CompleteGoogleAccessFlowDto } from "../dtos/completeGoogleAccessFlow.dto";
-import { GoogleCalendarServiceInterface, GetEventsOutput } from "../services/tier-2/google.calendar.service";
+import { GoogleCalendarServiceInterface, GetAccountsOutput, GetEventsOutput, GetSettingsOutput } from "../services/tier-2/google.calendar.service";
 import { GetGoogleEventsDto } from "../dtos/getGoogleEvents.dto";
 import { UpdateGoogleSettingsDto } from "../dtos/updateGoogleSettings.dto";
+import { GetGoogleAccountsDto } from "../dtos/getGoogleAccounts.dto";
+import { GetGoogleSettingsDto } from "../dtos/getGoogleSettings.dto";
 
 @injectable()
 export class CalendarController extends BaseController implements CalendarControllerInterface {
@@ -85,6 +87,56 @@ export class CalendarController extends BaseController implements CalendarContro
     }
   }
 
+  public async getGoogleAccounts(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getGoogleAccounts called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { userId },
+      } = this.validationService.validate({ dto: GetGoogleAccountsDto, request, getUserIdFromJwt: true });
+
+      if (jwtId !== userId) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { accounts } = await this.googleCalendarService.getAccounts({ userId });
+
+      const responseBody: GetGoogleAccountsResponseBody = { accounts };
+
+      return this.generateSuccessResponse(responseBody);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGoogleAccounts", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async getGoogleSettings(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getGoogleSettings called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { userId },
+      } = this.validationService.validate({ dto: GetGoogleSettingsDto, request, getUserIdFromJwt: true });
+
+      if (jwtId !== userId) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { settings } = await this.googleCalendarService.getSettings({ userId });
+
+      const responseBody: GetGoogleSettingsResponseBody = { settings };
+
+      return this.generateSuccessResponse(responseBody);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGoogleSettings", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
   public async updateGoogleSettings(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("updateGoogleSettings called", { request }, this.constructor.name);
@@ -116,6 +168,8 @@ export interface CalendarControllerInterface {
   initiateGoogleAccessFlow(request: Request): Promise<Response>;
   completeGoogleAccessFlow(request: Request): Promise<Response>;
   getGoogleEvents(request: Request): Promise<Response>;
+  getGoogleAccounts(request: Request): Promise<Response>;
+  getGoogleSettings(request: Request): Promise<Response>;
   updateGoogleSettings(request: Request): Promise<Response>;
 }
 
@@ -125,6 +179,12 @@ export interface InitiateAccessFlowResponseBody {
 
 export interface GetGoogleEventsResponseBody {
   events: GetEventsOutput["events"];
+}
+export interface GetGoogleAccountsResponseBody {
+  accounts: GetAccountsOutput["accounts"];
+}
+export interface GetGoogleSettingsResponseBody {
+  settings: GetSettingsOutput["settings"];
 }
 
 export interface UpdateGoogleSettingsResponseBody {
