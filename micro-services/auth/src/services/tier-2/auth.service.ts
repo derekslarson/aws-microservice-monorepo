@@ -224,7 +224,11 @@ export class AuthService implements AuthServiceInterface {
     } catch (error: unknown) {
       this.loggerService.error("Error in getToken", { error, params }, this.constructor.name);
 
-      throw error;
+      if (error instanceof OAuth2Error) {
+        throw error;
+      }
+
+      throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
     }
   }
 
@@ -238,7 +242,11 @@ export class AuthService implements AuthServiceInterface {
     } catch (error: unknown) {
       this.loggerService.error("Error in revokeTokens", { error, params }, this.constructor.name);
 
-      throw error;
+      if (error instanceof OAuth2Error) {
+        throw error;
+      }
+
+      throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
     }
   }
 
