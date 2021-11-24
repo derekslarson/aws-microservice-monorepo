@@ -1,18 +1,11 @@
 /* eslint-disable max-classes-per-file */
-import { Record, Union, String, Array, Optional, Literal } from "runtypes";
+import { Record, Union, String, Array } from "runtypes";
 import { Email } from "../runtypes/email.runtype";
 import { Phone } from "../runtypes/phone.runtype";
-import { RedirectUri } from "../runtypes/redirectUri.runtype";
 
 const baseProps = {
   confirmationCode: String,
-  session: String,
   clientId: String,
-  redirectUri: RedirectUri,
-  state: String,
-  codeChallengeMethod: Optional(Literal("S256")),
-  codeChallenge: Optional(String),
-  scope: Optional(String),
 };
 
 const EmailConfirmBody = Record({

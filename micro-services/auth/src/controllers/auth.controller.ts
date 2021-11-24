@@ -31,9 +31,7 @@ export class AuthController extends BaseController implements AuthControllerInte
 
       await this.authService.login({ ...body, xsrfToken });
 
-      const responseBody = { session: "" };
-
-      return this.generateSuccessResponse(responseBody);
+      return this.generateSuccessResponse({ message: "Confirmation code sent" });
     } catch (error: unknown) {
       this.loggerService.error("Error in login", { error, request }, this.constructor.name);
 

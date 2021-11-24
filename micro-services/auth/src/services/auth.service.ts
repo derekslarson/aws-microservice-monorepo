@@ -1,11 +1,11 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BadRequestError, Crypto, CryptoFactory, ForbiddenError, IdServiceInterface, LoggerServiceInterface, SmsServiceInterface } from "@yac/util";
+import { BadRequestError, Crypto, CryptoFactory, ForbiddenError, IdServiceInterface, LoggerServiceInterface, NotFoundError, SmsServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { MailServiceInterface } from "./mail.service";
 import { AuthFlowAttempt, AuthFlowAttemptRepositoryInterface, UpdateAuthFlowAttemptUpdates } from "../repositories/authFlowAttempt.dynamo.repository";
 import { Csrf, CsrfFactory } from "../factories/csrf.factory";
-import { UserRepositoryInterface } from "../repositories/user.dynamo.repository";
+import { User, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
 import { EnvConfigInterface } from "../config/env.config";
 import { TokenServiceInterface } from "./token.service";
 import { Session, SessionRepositoryInterface, UpdateSessionUpdates } from "../repositories/session.dyanmo.repository";
@@ -58,14 +58,12 @@ export class AuthService implements AuthServiceInterface {
         throw new ForbiddenError("Forbidden");
       }
 
-      const confirmationCode = this.crypto.randomDigits(6).join("");
-
-      const { user } = this.isEmailLoginInput(params)
-        ? await this.userRepository.getUserByEmail({ email: params.email })
-        : await this.userRepository.getUserByPhone({ phone: params.phone });
+      const { user } = await this.getOrCreateUser(params);
 
       // Verify that auth flow attempt exists so upsert doesn't occur
       await this.authFlowAttemptRepository.getAuthFlowAttempt({ clientId, xsrfToken });
+
+      const confirmationCode = this.crypto.randomDigits(6).join("");
 
       const authFlowAttemptUpdates: UpdateAuthFlowAttemptUpdates = {
         userId: user.id,
@@ -79,7 +77,7 @@ export class AuthService implements AuthServiceInterface {
         updates: authFlowAttemptUpdates,
       });
 
-      if (this.isEmailLoginInput(params)) {
+      if ("email" in params) {
         await this.mailService.sendConfirmationCode(params.email, confirmationCode);
       } else {
         await this.smsService.publish({ phoneNumber: params.phone, message: `Your Yac login code is ${confirmationCode}` });
@@ -95,13 +93,9 @@ export class AuthService implements AuthServiceInterface {
     try {
       this.loggerService.trace("confirm called", { params }, this.constructor.name);
 
-      const { clientId, confirmationCode, xsrfToken, redirectUri } = params;
+      const { clientId, confirmationCode, xsrfToken } = params;
 
       const { authFlowAttempt } = await this.authFlowAttemptRepository.getAuthFlowAttempt({ clientId, xsrfToken });
-
-      if (redirectUri !== authFlowAttempt.redirectUri) {
-        throw new ForbiddenError("Forbidden");
-      }
 
       const xsrfTokenIsValid = this.csrf.verify(authFlowAttempt.secret, xsrfToken);
 
@@ -173,10 +167,10 @@ export class AuthService implements AuthServiceInterface {
 
       await this.authFlowAttemptRepository.createAuthFlowAttempt({ authFlowAttempt });
 
-      const optionalQueryParams = { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod, scope };
+      const optionalQueryParams = { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod, scope, state };
       const optionalQueryString = Object.entries(optionalQueryParams).reduce((acc, [ key, value ]) => (value ? `${acc}&${key}=${value}` : acc), "");
 
-      const location = `${this.authUiUrl}?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&state=${state || secret}${optionalQueryString}`;
+      const location = `${this.authUiUrl}?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}${optionalQueryString}`;
       const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Domain=${host}; Secure; HttpOnly; SameSite=Lax`;
 
       return { location, cookies: [ xsrfTokenCookie ] };
@@ -321,13 +315,30 @@ export class AuthService implements AuthServiceInterface {
     }
   }
 
-  private isEmailLoginInput(input: LoginInput): input is EmailLoginInput {
+  private async getOrCreateUser(params: GetOrCreateUserInput): Promise<GetOrCreateUserOutput> {
     try {
-      this.loggerService.trace("isEmailLoginInput called", { input }, this.constructor.name);
+      this.loggerService.trace("getOrCreateUser called", { params }, this.constructor.name);
 
-      return "email" in input;
+      let user: User;
+
+      try {
+        ({ user } = "email" in params ? await this.userRepository.getUserByEmail({ email: params.email }) : await this.userRepository.getUserByPhone({ phone: params.phone }));
+      } catch (error) {
+        if (!(error instanceof NotFoundError)) {
+          throw error;
+        }
+
+        const userEntity: User = {
+          id: `user-${this.idService.generateId()}`,
+          ...("email" in params ? { email: params.email } : { phone: params.phone }),
+        };
+
+        ({ user } = await this.userRepository.createUser({ user: userEntity }));
+      }
+
+      return { user };
     } catch (error: unknown) {
-      this.loggerService.error("Error in isEmailLoginInput", { error, input }, this.constructor.name);
+      this.loggerService.error("Error in getOrCreateUser", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -346,7 +357,6 @@ export type AuthServiceConfigInterface = Pick<EnvConfigInterface, "authUI">;
 
 interface BaseLoginInput {
   clientId: string;
-  state: string;
   xsrfToken: string;
 }
 
@@ -363,9 +373,7 @@ export type LoginOutput = void;
 
 export interface BaseConfirmInput {
   clientId: string;
-  state: string;
   confirmationCode: string;
-  redirectUri: string;
   xsrfToken: string;
 }
 interface EmailConfirmInput extends BaseConfirmInput {
@@ -455,4 +463,9 @@ interface HandleRefreshTokenGrantOutput {
   expiresIn: number;
   tokenType: "Bearer";
   idToken?: string;
+}
+
+type GetOrCreateUserInput = { email: string; } | { phone: string; };
+interface GetOrCreateUserOutput {
+  user: User;
 }

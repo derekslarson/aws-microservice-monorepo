@@ -2,10 +2,7 @@ import { Record, Union, String, Array } from "runtypes";
 import { Email } from "../runtypes/email.runtype";
 import { Phone } from "../runtypes/phone.runtype";
 
-const baseProps = {
-  clientId: String,
-  state: String,
-};
+const baseProps = { clientId: String };
 
 const EmailLogin = Record({
   ...baseProps,

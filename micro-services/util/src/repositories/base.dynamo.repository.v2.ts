@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import DynamoDB from "aws-sdk/clients/dynamodb";
 import { injectable, unmanaged } from "inversify";
+import { AWSError } from "aws-sdk/lib/error";
 import { LoggerServiceInterface } from "../services/logger.service";
 import { DocumentClientFactory } from "../factories/documentClient.factory";
 import { RecursivePartial } from "../types/recursivePartial.type";
@@ -42,7 +43,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
-  protected async get<U extends T = T>(params: Omit<DynamoDB.DocumentClient.GetItemInput, "TableName">, entityType = "Entity"): Promise<CleansedEntity<U>> {
+  protected async get<U = T>(params: Omit<DynamoDB.DocumentClient.GetItemInput, "TableName">, entityType = "Entity"): Promise<CleansedEntity<U>> {
     try {
       this.loggerService.trace("get called", { params }, this.constructor.name);
 
@@ -55,7 +56,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
         throw new NotFoundError(`${entityType} not found.`);
       }
 
-      return this.cleanse(Item as RawEntity<U>);
+      return this.cleanse<U>(Item as RawEntity<U>);
     } catch (error: unknown) {
       this.loggerService.error("Error in get", { error, params }, this.constructor.name);
 
@@ -183,7 +184,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
-  protected cleanse<U extends T = T>(item: RawEntity<U>): CleansedEntity<U> {
+  protected cleanse<U = T>(item: RawEntity<U>): CleansedEntity<U> {
     try {
       this.loggerService.trace("cleanse called", { item }, this.constructor.name);
 
@@ -260,6 +261,18 @@ export abstract class BaseDynamoRepositoryV2<T> {
       return Object.prototype.toString.call(key) === "[object Object]";
     } catch (error: unknown) {
       this.loggerService.error("Error in isDyanmoKey", { error, key }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  protected isAwsError(potentialAwsError: unknown): potentialAwsError is AWSError {
+    try {
+      this.loggerService.trace("isAwsError called", { potentialAwsError }, this.constructor.name);
+
+      return typeof potentialAwsError === "object" && potentialAwsError != null && "code" in potentialAwsError;
+    } catch (error: unknown) {
+      this.loggerService.error("Error in isAwsError", { error, potentialAwsError }, this.constructor.name);
 
       throw error;
     }

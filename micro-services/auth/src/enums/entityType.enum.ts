@@ -1,7 +1,9 @@
 export enum EntityType {
   Client = "CLIENT",
   User = "USER",
-  ExternalProviderUserMapping = "EXTERNAL_PROVIDER_USER_MAPPING",
+  UserUniqueEmail = "USER_UNIQUE_EMAIL",
+  UserUniquePhone = "USER_UNIQUE_PHONE",
+  UserUniqueUsername = "USER_UNIQUE_USERNAME",
   AuthFlowAttempt = "AUTH_FLOW_ATTEMPT",
   Session = "SESSION",
 }

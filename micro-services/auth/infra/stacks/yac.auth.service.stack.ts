@@ -3,8 +3,6 @@ import * as CDK from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as IAM from "@aws-cdk/aws-iam";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
 import * as SNS from "@aws-cdk/aws-sns";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as S3 from "@aws-cdk/aws-s3";
@@ -79,14 +77,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       sortKey: { name: "gsi1sk", type: DynamoDB.AttributeType.STRING },
     });
 
-    authTable.addGlobalSecondaryIndex({
-      indexName: GlobalSecondaryIndex.Two,
-      partitionKey: { name: "gsi2pk", type: DynamoDB.AttributeType.STRING },
-      sortKey: { name: "gsi2sk", type: DynamoDB.AttributeType.STRING },
-    });
-
-    const authSecret = new SecretsManager.Secret(this, `AuthSecret_${id}`);
-
     // id.yac.com Deployment Resources
     const websiteBucket = new S3.Bucket(this, `IdYacComS3Bucket_${id}`, {
       websiteIndexDocument: "index.html",
@@ -123,19 +113,17 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       destinationBucket: websiteBucket,
     });
 
-    // User Pool Lambda Policies
-
-    const authTableFullAccessPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "dynamodb:*" ],
-      resources: [ authTable.tableArn, `${authTable.tableArn}/*` ],
-    });
-
     // const externalProviderUserSignedUpSnsPublishPolicyStatement = new IAM.PolicyStatement({
     //   actions: [ "SNS:Publish" ],
     //   resources: [ externalProviderUserSignedUpSnsTopicArn ],
     // });
 
     // Policies
+    const authTableFullAccessPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "dynamodb:*" ],
+      resources: [ authTable.tableArn, `${authTable.tableArn}/*` ],
+    });
+
     const sendEmailPolicyStatement = new IAM.PolicyStatement({
       actions: [ "ses:SendEmail", "ses:SendRawEmail" ],
       resources: [ "*" ],
@@ -148,17 +136,11 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       notResources: [ "arn:aws:sns:*:*:*" ],
     });
 
-    const getAuthSecretPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "secretsmanager:GetSecretValue" ],
-      resources: [ authSecret.secretArn ],
-    });
-
     const basePolicy: IAM.PolicyStatement[] = [];
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       JWKS_URI: `https://cognito-idp.${this.region}.amazonaws.com/test/.well-known/jwks.json`,
-      AUTH_SECRET_ID: authSecret.secretArn,
       ENVIRONMENT: environment,
       STACK_PREFIX: stackPrefix,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Info}`,
@@ -170,7 +152,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN: externalProviderUserSignedUpSnsTopicArn,
       AUTH_TABLE_NAME: authTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
-      GSI_TWO_INDEX_NAME: GlobalSecondaryIndex.Two,
     };
 
     // Handlers
@@ -181,7 +162,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, getAuthSecretPolicyStatement, authTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserCreatedSnsTopic_${id}`, userCreatedSnsTopicArn)),
@@ -217,7 +198,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, getAuthSecretPolicyStatement, authTableFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
     });
 
@@ -315,11 +296,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     routes.forEach((route) => this.httpApi.addRoute(route));
     proxyRoutes.forEach((route) => this.httpApi.addProxyRoute(route));
-
-    new SSM.StringParameter(this, `AuthSecretIdSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/auth-secret-id`,
-      stringValue: authSecret.secretArn,
-    });
 
     new CDK.CfnOutput(this, `AuthorizerHandlerFunctionArnExport_${id}`, {
       exportName: ExportNames.AuthorizerHandlerFunctionArn,

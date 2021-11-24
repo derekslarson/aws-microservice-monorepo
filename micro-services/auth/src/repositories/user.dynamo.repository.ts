@@ -1,27 +1,25 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, UserId } from "@yac/util";
+import { DocumentClient } from "aws-sdk/clients/dynamodb";
+import { Failcode, ValidationError } from "runtypes";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
 
 @injectable()
 export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implements UserRepositoryInterface {
-  private gsiOneIndexName: string;
-
-  private gsiTwoIndexName: string;
-
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
     @inject(TYPES.EnvConfigInterface) config: UserRepositoryConfig,
   ) {
     super(documentClientFactory, config.tableNames.auth, loggerService);
-    this.gsiOneIndexName = config.globalSecondaryIndexNames.one;
-    this.gsiTwoIndexName = config.globalSecondaryIndexNames.two;
   }
 
   public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
+    const transactionItemsForErrorHandling: string[] = [];
+
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
@@ -32,18 +30,99 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
         pk: user.id,
         sk: EntityType.User,
         ...user,
-        ...(user.email && { gsi1pk: user.email, gsi1sk: EntityType.User }),
-        ...(user.phone && { gsi2pk: user.phone, gsi2sk: EntityType.User }),
       };
 
-      await this.documentClient.put({
-        TableName: this.tableName,
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
-        Item: userEntity,
-      }).promise();
+      const transactWriteInput: DocumentClient.TransactWriteItemsInput = {
+        TransactItems: [
+          {
+            Put: {
+              TableName: this.tableName,
+              ConditionExpression: "attribute_not_exists(pk)",
+              Item: userEntity,
+            },
+          },
+        ],
+      };
+
+      if (user.username) {
+        const uniqueUsernameEntity: RawUniqueUsername = {
+          entityType: EntityType.UserUniqueUsername,
+          pk: user.username,
+          sk: EntityType.UserUniqueUsername,
+          userId: user.id,
+          username: user.username,
+        };
+
+        transactWriteInput.TransactItems.push({
+          Put: {
+            TableName: this.tableName,
+            ConditionExpression: "attribute_not_exists(pk)",
+            Item: uniqueUsernameEntity,
+          },
+        });
+
+        transactionItemsForErrorHandling.push("username");
+      }
+
+      if (user.email) {
+        const uniqueEmailEntity: RawUniqueEmail = {
+          entityType: EntityType.UserUniqueEmail,
+          pk: user.email,
+          sk: EntityType.UserUniqueEmail,
+          userId: user.id,
+          email: user.email,
+        };
+
+        transactWriteInput.TransactItems.push({
+          Put: {
+            TableName: this.tableName,
+            ConditionExpression: "attribute_not_exists(pk)",
+            Item: uniqueEmailEntity,
+          },
+        });
+
+        transactionItemsForErrorHandling.push("email");
+      }
+
+      if (user.phone) {
+        const uniquePhoneEntity: RawUniquePhone = {
+          entityType: EntityType.UserUniquePhone,
+          pk: user.phone,
+          sk: EntityType.UserUniquePhone,
+          userId: user.id,
+          phone: user.phone,
+        };
+
+        transactWriteInput.TransactItems.push({
+          Put: {
+            TableName: this.tableName,
+            ConditionExpression: "attribute_not_exists(pk)",
+            Item: uniquePhoneEntity,
+          },
+        });
+
+        transactionItemsForErrorHandling.push("phone");
+      }
+
+      await this.documentClient.transactWrite(transactWriteInput).promise();
 
       return { user };
     } catch (error: unknown) {
+      if (this.isAwsError(error) && error.code === "TransactionCanceledException") {
+        const transactionResults = error.message.slice(error.message.indexOf("[") + 1, error.message.indexOf("]")).split(", ").slice(1);
+
+        const uniqueCheckFailureProps = transactionResults.map((result, i) => result !== "None" && transactionItemsForErrorHandling[i]).filter((item) => !!item) as string[];
+
+        const validationErrorBody = uniqueCheckFailureProps.reduce((acc, val) => ({ ...acc, [val]: "Not unique." }), {});
+
+        throw new ValidationError({
+          success: false,
+          code: Failcode.VALUE_INCORRECT,
+          message: "Error validating body.",
+          details: { body: validationErrorBody },
+        });
+      }
+
       this.loggerService.error("Error in createUser", { error, params }, this.constructor.name);
 
       throw error;
@@ -72,22 +151,9 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
 
       const { email } = params;
 
-      const { Items: [ user ] } = await this.query({
-        IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :email AND #gsi1sk = :userEntityType",
-        ExpressionAttributeNames: {
-          "#gsi1pk": "gsi1pk",
-          "#gsi1sk": "gsi1sk",
-        },
-        ExpressionAttributeValues: {
-          ":email": email,
-          ":userEntityType": EntityType.User,
-        },
-      });
+      const uniqueEmailEntity = await this.get<UniqueEmail>({ Key: { pk: email, sk: EntityType.UserUniqueEmail } }, "User");
 
-      if (!user) {
-        throw new NotFoundError("User not found.");
-      }
+      const user = await this.get({ Key: { pk: uniqueEmailEntity.userId, sk: EntityType.User } }, "User");
 
       return { user };
     } catch (error: unknown) {
@@ -103,22 +169,9 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
 
       const { phone } = params;
 
-      const { Items: [ user ] } = await this.query({
-        IndexName: this.gsiTwoIndexName,
-        KeyConditionExpression: "#gsi2pk = :phone AND #gsi2sk = :userEntityType",
-        ExpressionAttributeNames: {
-          "#gsi2pk": "gsi2pk",
-          "#gsi2sk": "gsi2sk",
-        },
-        ExpressionAttributeValues: {
-          ":phone": phone,
-          ":userEntityType": EntityType.User,
-        },
-      });
+      const uniquePhoneEntity = await this.get<UniquePhone>({ Key: { pk: phone, sk: EntityType.UserUniquePhone } }, "User");
 
-      if (!user) {
-        throw new NotFoundError("User not found.");
-      }
+      const user = await this.get({ Key: { pk: uniquePhoneEntity.userId, sk: EntityType.User } }, "User");
 
       return { user };
     } catch (error: unknown) {
@@ -174,21 +227,15 @@ type UserRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecon
 
 export interface User {
   id: UserId;
+  name?: string;
+  username?: string;
   email?: string;
   phone?: string;
-  name?: string;
 }
-
 export interface RawUser extends User {
   entityType: EntityType.User;
   pk: UserId;
   sk: EntityType.User;
-  // email
-  gsi1pk?: string;
-  gsi1sk?: EntityType.User;
-  // phone
-  gsi2pk?: string;
-  gsi2sk?: EntityType.User;
 }
 
 export interface CreateUserInput {
@@ -237,3 +284,39 @@ export interface DeleteUserInput {
 }
 
 export type DeleteUserOutput = void;
+
+interface UniqueEmail {
+  userId: UserId;
+  email: string;
+}
+
+interface RawUniqueEmail extends UniqueEmail {
+  // email
+  pk: string;
+  sk: EntityType.UserUniqueEmail;
+  entityType: EntityType.UserUniqueEmail;
+}
+
+interface UniquePhone {
+  userId: UserId;
+  phone: string;
+}
+
+interface RawUniquePhone extends UniquePhone {
+  // phone
+  pk: string;
+  sk: EntityType.UserUniquePhone;
+  entityType: EntityType.UserUniquePhone;
+}
+
+interface UniqueUsername {
+  userId: UserId;
+  username: string;
+}
+
+interface RawUniqueUsername extends UniqueUsername {
+  // username
+  pk: string;
+  sk: EntityType.UserUniqueUsername;
+  entityType: EntityType.UserUniqueUsername;
+}

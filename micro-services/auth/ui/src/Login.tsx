@@ -295,7 +295,7 @@ const Login: React.FC<ILoginProps> = () => {
       </button>
       <span>or</span>
       <span className={'login__form-description'}>
-        Use your Yac account email address or phone number
+        Use your email address or phone number
       </span>
       <Input
         name={'email'}
@@ -417,18 +417,6 @@ const Login: React.FC<ILoginProps> = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <span
-        style={{
-          textAlign: 'center',
-          maxWidth: '80%'
-        }}
-      >
-        Don't have a Yac account.
-        <a aria-label={'Go to Yac'} href={'https://app.yac.com/create'}>
-          Click Here
-        </a>
-      </span>
     </div>
   )
 }
