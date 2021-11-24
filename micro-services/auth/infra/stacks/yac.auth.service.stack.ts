@@ -180,6 +180,9 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    // Since the authorizer couldn't be added in the super call (authorizerHandler didn't exist yet) we need to add it here
+    this.httpApi.addAuthorizer(this, id, { authorizerHandler });
+
     const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/login"),
@@ -246,6 +249,17 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const oauth2UserInfoHandler = new Lambda.Function(this, `Oauth2UserInfoHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/oauth2UserInfo"),
+      handler: "oauth2UserInfo.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const loginRoute: RouteProps<AuthServiceLoginPath, AuthServiceLoginMethod> = {
       path: "/login",
       method: ApiGatewayV2.HttpMethod.POST,
@@ -282,6 +296,13 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: oauth2RevokeHandler,
     };
 
+    const oauth2UserInfoRoute: RouteProps = {
+      path: "/oauth2/userinfo",
+      method: ApiGatewayV2.HttpMethod.GET,
+      handler: oauth2UserInfoHandler,
+      restricted: true,
+    };
+
     const routes: RouteProps<string, ApiGatewayV2.HttpMethod>[] = [
       loginRoute,
       confirmRoute,
@@ -289,6 +310,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       oauth2AuthorizeRoute,
       oauth2TokenRoute,
       oauth2RevokeRoute,
+      oauth2UserInfoRoute,
     ];
 
     // Proxy Routes

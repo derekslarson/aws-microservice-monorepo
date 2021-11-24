@@ -4,6 +4,7 @@ import { ForbiddenError, IdServiceInterface, LoggerServiceInterface, UserId } fr
 import { TYPES } from "../inversion-of-control/types";
 import { Jose, JoseFactory } from "../factories/jose.factory";
 import { EnvConfigInterface } from "../config/env.config";
+import { SessionRepositoryInterface } from "../repositories/session.dyanmo.repository";
 
 @injectable()
 export class TokenService implements TokenServiceInterface {
@@ -16,6 +17,7 @@ export class TokenService implements TokenServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
+    @inject(TYPES.SessionRepositoryInterface) private sessionRepository: SessionRepositoryInterface,
     @inject(TYPES.EnvConfigInterface) config: EnvConfigInterface,
     @inject(TYPES.JoseFactory) joseFactory: JoseFactory,
   ) {
@@ -80,6 +82,9 @@ export class TokenService implements TokenServiceInterface {
       if (decodedToken.exp < now) {
         throw new ForbiddenError("Forbidden");
       }
+
+      // Check if access token has been revoked
+      await this.sessionRepository.getSession({ clientId: decodedToken.cid, sessionId: decodedToken.sid });
 
       return { decodedToken };
     } catch (error: unknown) {

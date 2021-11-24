@@ -2,17 +2,15 @@
 /* eslint-disable @typescript-eslint/require-await */
 import "reflect-metadata";
 import { APIGatewayRequestAuthorizerEvent } from "aws-lambda";
-import { LoggerServiceInterface } from "@yac/util";
+import { LoggerServiceInterface, UserId } from "@yac/util";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 import { TokenServiceInterface } from "../services/token.service";
-import { SessionRepositoryInterface } from "../repositories/session.dyanmo.repository";
 
 const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 const tokenService = container.get<TokenServiceInterface>(TYPES.TokenServiceInterface);
-const sessionRepository = container.get<SessionRepositoryInterface>(TYPES.SessionRepositoryInterface);
 
-export const handler = async (event: APIGatewayRequestAuthorizerEvent): Promise<{ isAuthorized: boolean; context: Record<string, any>; }> => {
+export const handler = async (event: APIGatewayRequestAuthorizerEvent): Promise<{ isAuthorized: boolean; context: { userId?: UserId; scopes?: string[]; }; }> => {
   try {
     loggerService.trace("authorizer called", { event }, "authorizer handler");
 
@@ -30,10 +28,7 @@ export const handler = async (event: APIGatewayRequestAuthorizerEvent): Promise<
 
     const [ , accessToken ] = match;
 
-    const { decodedToken: { cid: clientId, sid: sessionId, sub: userId, scope } } = await tokenService.verifyAccessToken({ accessToken });
-
-    // Check if access token has been revoked
-    await sessionRepository.getSession({ clientId, sessionId });
+    const { decodedToken: { sub: userId, scope } } = await tokenService.verifyAccessToken({ accessToken });
 
     const scopes = scope ? scope.split(" ") : [];
 

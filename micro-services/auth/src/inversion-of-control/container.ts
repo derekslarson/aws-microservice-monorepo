@@ -16,6 +16,7 @@ import { joseFactory, JoseFactory } from "../factories/jose.factory";
 import { TokenService, TokenServiceInterface } from "../services/token.service";
 import { SessionDynamoRepository, SessionRepositoryInterface } from "../repositories/session.dyanmo.repository";
 import { pkceChallengeFactory, PkceChallengeFactory } from "../factories/pkceChallenge.factory";
+import { UserController, UserControllerInterface } from "../controllers/user.controller";
 
 const container = new Container();
 
@@ -26,6 +27,7 @@ try {
 
   container.bind<AuthControllerInterface>(TYPES.AuthControllerInterface).to(AuthController);
   container.bind<ClientControllerInterface>(TYPES.ClientControllerInterface).to(ClientController);
+  container.bind<UserControllerInterface>(TYPES.UserControllerInterface).to(UserController);
 
   container.bind<AuthServiceInterface>(TYPES.AuthServiceInterface).to(AuthService);
   container.bind<ClientServiceInterface>(TYPES.ClientServiceInterface).to(ClientService);

@@ -6,6 +6,7 @@ const TYPES = {
 
   AuthControllerInterface: Symbol.for("AuthControllerInterface"),
   ClientControllerInterface: Symbol.for("ClientControllerInterface"),
+  UserControllerInterface: Symbol.for("UserControllerInterface"),
 
   AuthServiceInterface: Symbol.for("AuthServiceInterface"),
   ClientServiceInterface: Symbol.for("ClientServiceInterface"),
