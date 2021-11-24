@@ -12,7 +12,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
   try {
     loggerService.trace("oauth2Revoke called", { event }, "oauth2Revoke handler");
 
-    const response = await authController.deleteSession(event);
+    const response = await authController.revokeTokens(event);
 
     return response;
   } catch (error: unknown) {

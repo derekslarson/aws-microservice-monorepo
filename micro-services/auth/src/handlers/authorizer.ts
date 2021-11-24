@@ -5,7 +5,7 @@ import { APIGatewayRequestAuthorizerEvent } from "aws-lambda";
 import { LoggerServiceInterface, UserId } from "@yac/util";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
-import { TokenServiceInterface } from "../services/token.service";
+import { TokenServiceInterface } from "../services/tier-1/token.service";
 
 const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 const tokenService = container.get<TokenServiceInterface>(TYPES.TokenServiceInterface);

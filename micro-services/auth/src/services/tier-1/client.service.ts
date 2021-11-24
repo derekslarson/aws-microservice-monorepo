@@ -1,8 +1,9 @@
 import { inject, injectable } from "inversify";
 import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
-import { TYPES } from "../inversion-of-control/types";
-import { ClientType } from "../enums/clientType.enum";
-import { Client, ClientRepositoryInterface } from "../repositories/client.dynamo.repository";
+import { Failcode, ValidationError } from "runtypes";
+import { TYPES } from "../../inversion-of-control/types";
+import { ClientType } from "../../enums/clientType.enum";
+import { Client, ClientRepositoryInterface } from "../../repositories/client.dynamo.repository";
 
 @injectable()
 export class ClientService implements ClientServiceInterface {
@@ -16,7 +17,54 @@ export class ClientService implements ClientServiceInterface {
     try {
       this.loggerService.trace("createClient called", { params }, this.constructor.name);
 
+      const allowedScopesSet = new Set([
+        "openid",
+        "email",
+        "profile",
+        "yac/user.read",
+        "yac/user.write",
+        "yac/user.delete",
+        "yac/friend.read",
+        "yac/friend.write",
+        "yac/friend.delete",
+        "yac/team.read",
+        "yac/team.write",
+        "yac/team.delete",
+        "yac/team_member.read",
+        "yac/team_member.write",
+        "yac/team_member.delete",
+        "yac/group.read",
+        "yac/group.write",
+        "yac/group.delete",
+        "yac/group_member.read",
+        "yac/group_member.write",
+        "yac/group_member.delete",
+        "yac/meeting.read",
+        "yac/meeting.write",
+        "yac/meeting.delete",
+        "yac/meeting_member.read",
+        "yac/meeting_member.write",
+        "yac/meeting_member.delete",
+        "yac/message.read",
+        "yac/message.write",
+        "yac/message.delete",
+        "yac/conversation.read",
+        "yac/conversation.write",
+        "yac/conversation.delete",
+      ]);
+
       const { name, redirectUri, type, scopes } = params;
+
+      const invalidScopes = scopes.filter((scope) => !allowedScopesSet.has(scope));
+
+      if (invalidScopes.length) {
+        throw new ValidationError({
+          success: false,
+          code: Failcode.VALUE_INCORRECT,
+          message: "Error validating body.",
+          details: { body: { scopes: `Invalid scopes requested: ${invalidScopes.join(", ")}.` } },
+        });
+      }
 
       const client: Client = {
         id: this.idService.generateId(),

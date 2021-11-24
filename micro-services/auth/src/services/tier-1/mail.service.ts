@@ -1,9 +1,9 @@
 import { inject, injectable } from "inversify";
 import { SES } from "aws-sdk";
 import { LoggerServiceInterface } from "@yac/util";
-import { SesFactory } from "../factories/ses.factory";
-import { TYPES } from "../inversion-of-control/types";
-import { EnvConfigInterface } from "../config/env.config";
+import { SesFactory } from "../../factories/ses.factory";
+import { TYPES } from "../../inversion-of-control/types";
+import { EnvConfigInterface } from "../../config/env.config";
 
 @injectable()
 export class MailService implements MailServiceInterface {

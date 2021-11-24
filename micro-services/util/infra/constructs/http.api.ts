@@ -110,7 +110,7 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
       this.authorizer = new ApiGatewayV2Authorizers.HttpLambdaAuthorizer({
         authorizerName: `LambdaAuthorizer_${id}`,
         handler: props.authorizerHandler,
-        resultsCacheTtl: Duration.hours(1),
+        resultsCacheTtl: Duration.minutes(10),
         responseTypes: [ ApiGatewayV2Authorizers.HttpLambdaResponseType.SIMPLE ],
       });
     } catch (error) {

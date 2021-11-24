@@ -1,15 +1,18 @@
+/* eslint-disable no-nested-ternary */
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
+import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, StatusCode, ValidationServiceV2Interface } from "@yac/util";
 
 import { TYPES } from "../inversion-of-control/types";
 import { BeginAuthFlowDto } from "../dtos/beginAuthFlow.dto";
 import { GetTokenDto } from "../dtos/getToken.dto";
-import { AuthServiceInterface } from "../services/auth.service";
+import { AuthServiceInterface } from "../services/tier-2/auth.service";
 import { LoginDto } from "../dtos/login.dto";
 import { ConfirmDto } from "../dtos/confirm.dto";
 import { DeleteSessionDto } from "../dtos/deleteSession.dto";
+import { OAuth2Error } from "../errors/oAuth2.error";
+import { OAuth2ErrorType } from "../enums/oAuth2ErrorType.enum";
 
 @injectable()
 export class AuthController extends BaseController implements AuthControllerInterface {
@@ -79,7 +82,6 @@ export class AuthController extends BaseController implements AuthControllerInte
       } = this.validationService.validate({ dto: BeginAuthFlowDto, request });
 
       const { location, cookies } = await this.authService.beginAuthFlow({
-        host: request.headers.host as string,
         clientId,
         responseType,
         redirectUri,
@@ -138,9 +140,9 @@ export class AuthController extends BaseController implements AuthControllerInte
     }
   }
 
-  public async deleteSession(request: Request): Promise<Response> {
+  public async revokeTokens(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("deleteSession called", { request }, this.constructor.name);
+      this.loggerService.trace("revokeTokens called", { request }, this.constructor.name);
 
       const {
         body: {
@@ -149,11 +151,11 @@ export class AuthController extends BaseController implements AuthControllerInte
         },
       } = this.validationService.validate({ dto: DeleteSessionDto, request });
 
-      await this.authService.deleteSession({ clientId, refreshToken });
+      await this.authService.revokeTokens({ clientId, refreshToken });
 
       return this.generateSuccessResponse({ message: "Revoked" });
     } catch (error: unknown) {
-      this.loggerService.error("Error in deleteSession", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in revokeTokens", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -177,6 +179,26 @@ export class AuthController extends BaseController implements AuthControllerInte
       throw error;
     }
   }
+
+  protected override generateErrorResponse(error: unknown): Response {
+    if (error instanceof OAuth2Error) {
+      return this.generateOAuth2ErrorResponse(error);
+    }
+
+    return super.generateErrorResponse(error);
+  }
+
+  private generateOAuth2ErrorResponse(error: OAuth2Error): OAuth2ErrorResponse {
+    const statusCode = error.redirectUri ? StatusCode.SeeOther
+      : error.error === OAuth2ErrorType.InvalidRequest || error.error === OAuth2ErrorType.InvalidScope ? StatusCode.BadRequest
+        : StatusCode.Unauthorized;
+
+    return {
+      statusCode,
+      body: JSON.stringify({ error: error.error, error_description: error.errorDescription }),
+      headers: { ...(error.redirectUri && { Location: error.redirectUri }) },
+    };
+  }
 }
 
 export interface AuthControllerInterface {
@@ -184,5 +206,12 @@ export interface AuthControllerInterface {
   confirm(request: Request): Promise<Response>;
   beginAuthFlow(request: Request): Promise<Response>;
   getToken(request: Request): Promise<Response>;
-  deleteSession(request: Request): Promise<Response>
+  revokeTokens(request: Request): Promise<Response>
+}
+
+export interface OAuth2ErrorResponse extends Response {
+  statusCode: StatusCode.SeeOther | StatusCode.BadRequest | StatusCode.Unauthorized;
+  headers: {
+    Location?: string;
+  }
 }

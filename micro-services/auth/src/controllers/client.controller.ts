@@ -3,7 +3,7 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { ClientServiceInterface } from "../services/client.service";
+import { ClientServiceInterface } from "../services/tier-1/client.service";
 import { CreateClientDto } from "../dtos/createClient.dto";
 
 @injectable()

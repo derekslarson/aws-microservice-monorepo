@@ -6,7 +6,7 @@ export const BeginAuthFlowDto = Record({
     client_id: String,
     response_type: Union(Literal("code"), Literal("token")),
     redirect_uri: RedirectUri,
-    state: String,
+    state: Optional(String),
     code_challenge_method: Optional(Literal("S256")),
     code_challenge: Optional(String),
     scope: Optional(String),

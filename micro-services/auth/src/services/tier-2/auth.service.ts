@@ -1,17 +1,19 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BadRequestError, Crypto, CryptoFactory, ForbiddenError, IdServiceInterface, LoggerServiceInterface, NotFoundError, SmsServiceInterface } from "@yac/util";
-import { TYPES } from "../inversion-of-control/types";
-import { MailServiceInterface } from "./mail.service";
-import { AuthFlowAttempt, AuthFlowAttemptRepositoryInterface, UpdateAuthFlowAttemptUpdates } from "../repositories/authFlowAttempt.dynamo.repository";
-import { Csrf, CsrfFactory } from "../factories/csrf.factory";
-import { User, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
-import { EnvConfigInterface } from "../config/env.config";
-import { TokenServiceInterface } from "./token.service";
-import { Session, SessionRepositoryInterface, UpdateSessionUpdates } from "../repositories/session.dyanmo.repository";
-import { ClientServiceInterface } from "./client.service";
-import { GrantType } from "../enums/grantType.enum";
-import { PkceChallenge, PkceChallengeFactory } from "../factories/pkceChallenge.factory";
+import { Crypto, CryptoFactory, ForbiddenError, IdServiceInterface, LoggerServiceInterface, NotFoundError, SmsServiceInterface } from "@yac/util";
+import { TYPES } from "../../inversion-of-control/types";
+import { MailServiceInterface } from "../tier-1/mail.service";
+import { AuthFlowAttempt, AuthFlowAttemptRepositoryInterface, UpdateAuthFlowAttemptUpdates } from "../../repositories/authFlowAttempt.dynamo.repository";
+import { Csrf, CsrfFactory } from "../../factories/csrf.factory";
+import { User, UserRepositoryInterface } from "../../repositories/user.dynamo.repository";
+import { EnvConfigInterface } from "../../config/env.config";
+import { TokenServiceInterface } from "../tier-1/token.service";
+import { ClientServiceInterface } from "../tier-1/client.service";
+import { GrantType } from "../../enums/grantType.enum";
+import { PkceChallenge, PkceChallengeFactory } from "../../factories/pkceChallenge.factory";
+import { OAuth2Error } from "../../errors/oAuth2.error";
+import { OAuth2ErrorType } from "../../enums/oAuth2ErrorType.enum";
+import { Client } from "../../repositories/client.dynamo.repository";
 
 @injectable()
 export class AuthService implements AuthServiceInterface {
@@ -32,7 +34,6 @@ export class AuthService implements AuthServiceInterface {
     @inject(TYPES.TokenServiceInterface) private tokenService: TokenServiceInterface,
     @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
     @inject(TYPES.AuthFlowAttemptRepositoryInterface) private authFlowAttemptRepository: AuthFlowAttemptRepositoryInterface,
-    @inject(TYPES.SessionRepositoryInterface) private sessionRepository: SessionRepositoryInterface,
     @inject(TYPES.EnvConfigInterface) config: AuthServiceConfigInterface,
     @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
     @inject(TYPES.CsrfFactory) csrfFactory: CsrfFactory,
@@ -50,18 +51,16 @@ export class AuthService implements AuthServiceInterface {
 
       const { clientId, xsrfToken } = params;
 
-      const { authFlowAttempt } = await this.authFlowAttemptRepository.getAuthFlowAttempt({ clientId, xsrfToken });
+      const [ { authFlowAttempt }, { user } ] = await Promise.all([
+        this.authFlowAttemptRepository.getAuthFlowAttempt({ clientId, xsrfToken }),
+        this.getOrCreateUser(params),
+      ]);
 
       const xsrfTokenIsValid = this.csrf.verify(authFlowAttempt.secret, xsrfToken);
 
       if (!xsrfTokenIsValid) {
-        throw new ForbiddenError("Forbidden");
+        throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
       }
-
-      const { user } = await this.getOrCreateUser(params);
-
-      // Verify that auth flow attempt exists so upsert doesn't occur
-      await this.authFlowAttemptRepository.getAuthFlowAttempt({ clientId, xsrfToken });
 
       const confirmationCode = this.crypto.randomDigits(6).join("");
 
@@ -85,7 +84,11 @@ export class AuthService implements AuthServiceInterface {
     } catch (error: unknown) {
       this.loggerService.error("Error in login", { error, params }, this.constructor.name);
 
-      throw error;
+      if (error instanceof OAuth2Error) {
+        throw error;
+      }
+
+      throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
     }
   }
 
@@ -128,25 +131,31 @@ export class AuthService implements AuthServiceInterface {
     try {
       this.loggerService.trace("beginAuthFlow called", { params }, this.constructor.name);
 
-      const { host, clientId, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope } = params;
+      const { clientId, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope } = params;
 
-      const { client } = await this.clientService.getClient({ clientId });
+      let client: Client;
 
-      if (!client.secret && (!codeChallenge || !codeChallengeMethod)) {
-        throw new BadRequestError("code_challenge & code_challenge_method required for public clients");
+      try {
+        ({ client } = await this.clientService.getClient({ clientId }));
+      } catch (error) {
+        throw new OAuth2Error(OAuth2ErrorType.UnauthorizedClient);
       }
 
       if (redirectUri !== client.redirectUri) {
-        throw new ForbiddenError("Forbidden");
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "redirect_uri mismatch");
+      }
+
+      if (!client.secret && (!codeChallenge || !codeChallengeMethod)) {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "code_challenge & code_challenge_method required for public clients", redirectUri, state);
       }
 
       if (scope) {
         const requestedScopes = scope.split(" ");
         const clientScopesSet = new Set(client.scopes);
-        const invalidScopeRequested = requestedScopes.some((requestedScope) => !clientScopesSet.has(requestedScope));
+        const invalidScopes = requestedScopes.filter((requestedScope) => !clientScopesSet.has(requestedScope));
 
-        if (invalidScopeRequested) {
-          throw new ForbiddenError("Forbidden");
+        if (invalidScopes.length) {
+          throw new OAuth2Error(OAuth2ErrorType.InvalidScope, `Invalid scope requested: ${invalidScopes.join(", ")}.`, redirectUri, state);
         }
       }
 
@@ -171,13 +180,17 @@ export class AuthService implements AuthServiceInterface {
       const optionalQueryString = Object.entries(optionalQueryParams).reduce((acc, [ key, value ]) => (value ? `${acc}&${key}=${value}` : acc), "");
 
       const location = `${this.authUiUrl}?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}${optionalQueryString}`;
-      const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Domain=${host}; Secure; HttpOnly; SameSite=Lax`;
+      const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`;
 
       return { location, cookies: [ xsrfTokenCookie ] };
     } catch (error: unknown) {
       this.loggerService.error("Error in beginAuthFlow", { error, params }, this.constructor.name);
 
-      throw error;
+      if (error instanceof OAuth2Error) {
+        throw error;
+      }
+
+      throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
     }
   }
 
@@ -189,11 +202,11 @@ export class AuthService implements AuthServiceInterface {
 
       if (grantType === GrantType.AuthorizationCode) {
         if (!authorizationCode) {
-          throw new BadRequestError("code required for authorization_code grant type.");
+          throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "code required for authorization_code grant type");
         }
 
         if (!redirectUri) {
-          throw new BadRequestError("redirect_uri required for authorization_code grant type.");
+          throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "redirect_uri required for authorization_code grant type");
         }
 
         const { tokenType, accessToken, refreshToken, expiresIn } = await this.handleAuthorizationCodeGrant({ clientId, authorizationCode, redirectUri, codeVerifier });
@@ -202,7 +215,7 @@ export class AuthService implements AuthServiceInterface {
       }
 
       if (!refreshTokenParam) {
-        throw new BadRequestError("refresh_token required for refresh_token grant type.");
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "refresh_token required for refresh_token grant type.");
       }
 
       const { tokenType, accessToken, expiresIn } = await this.handleRefreshTokenGrant({ clientId, refreshToken: refreshTokenParam });
@@ -215,17 +228,15 @@ export class AuthService implements AuthServiceInterface {
     }
   }
 
-  public async deleteSession(params: DeleteSessionInput): Promise<DeleteSessionOutput> {
+  public async revokeTokens(params: RevokeTokensInput): Promise<RevokeTokensOutput> {
     try {
-      this.loggerService.trace("deleteSession called", { params }, this.constructor.name);
+      this.loggerService.trace("revokeTokens called", { params }, this.constructor.name);
 
       const { clientId, refreshToken } = params;
 
-      const { session } = await this.sessionRepository.getSessionByRefreshToken({ clientId, refreshToken });
-
-      await this.sessionRepository.deleteSession({ clientId, sessionId: session.sessionId });
+      await this.tokenService.revokeTokens({ clientId, refreshToken });
     } catch (error: unknown) {
-      this.loggerService.error("Error in deleteSession", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in revokeTokens", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -240,46 +251,40 @@ export class AuthService implements AuthServiceInterface {
       const { authFlowAttempt } = await this.authFlowAttemptRepository.getAuthFlowAttemptByAuthorizationCode({ clientId, authorizationCode });
 
       if (authFlowAttempt.redirectUri !== redirectUri) {
-        throw new ForbiddenError("Forbidden");
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "redirect_uri mismatch");
       }
 
       if (authFlowAttempt.codeChallenge) {
         if (!codeVerifier) {
-          throw new ForbiddenError("Forbidden");
+          throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "code_verifier required", redirectUri);
         }
 
         const codeChallengeVerified = this.pkceChallenge.verifyChallenge(codeVerifier, authFlowAttempt.codeChallenge);
 
         if (!codeChallengeVerified) {
-          throw new ForbiddenError("Forbidden");
+          await this.authFlowAttemptRepository.deleteAuthFlowAttempt({ clientId, xsrfToken: authFlowAttempt.xsrfToken });
+
+          throw new OAuth2Error(OAuth2ErrorType.AccessDenied, "Access Denied", redirectUri);
         }
       }
 
       if (!authFlowAttempt.userId) {
-        throw new Error("Malformed Auth Flow Attempt.");
+        await this.authFlowAttemptRepository.deleteAuthFlowAttempt({ clientId, xsrfToken: authFlowAttempt.xsrfToken });
+
+        throw new OAuth2Error(OAuth2ErrorType.ServerError);
       }
 
-      const sessionId = this.idService.generateId();
+      // Check if authorization code is older than 60 secods
+      if (!authFlowAttempt.authorizationCodeCreatedAt || (new Date(authFlowAttempt.authorizationCodeCreatedAt).getTime() + (1000 * 60)) < Date.now().valueOf()) {
+        await this.authFlowAttemptRepository.deleteAuthFlowAttempt({ clientId, xsrfToken: authFlowAttempt.xsrfToken });
+
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "code expired", redirectUri);
+      }
 
       const [ { tokenType, accessToken, expiresIn, refreshToken } ] = await Promise.all([
-        this.tokenService.generateAccessToken({ clientId, sessionId, userId: authFlowAttempt.userId, scope: authFlowAttempt.scope }),
+        this.tokenService.generateAccessAndRefreshTokens({ clientId, userId: authFlowAttempt.userId, scope: authFlowAttempt.scope }),
         this.authFlowAttemptRepository.deleteAuthFlowAttempt({ clientId, xsrfToken: authFlowAttempt.xsrfToken }),
       ]);
-
-      const now = new Date().toISOString();
-
-      const session: Session = {
-        clientId,
-        sessionId,
-        refreshToken,
-        createdAt: now,
-        refreshTokenCreatedAt: now,
-        refreshTokenExpiresAt: new Date(Date.now() + (1000 * 60 * 60 * 24 * 30 * 6)).toISOString(),
-        userId: authFlowAttempt.userId,
-        scope: authFlowAttempt.scope,
-      };
-
-      await this.sessionRepository.createSession({ session });
 
       return { tokenType, accessToken, expiresIn, refreshToken };
     } catch (error: unknown) {
@@ -295,17 +300,7 @@ export class AuthService implements AuthServiceInterface {
 
       const { clientId, refreshToken } = params;
 
-      const { session } = await this.sessionRepository.getSessionByRefreshToken({ clientId, refreshToken });
-
-      if (new Date(session.refreshTokenExpiresAt).getTime() < Date.now().valueOf()) {
-        throw new ForbiddenError("Forbidden");
-      }
-
-      const { tokenType, accessToken, expiresIn } = await this.tokenService.generateAccessToken({ clientId, sessionId: session.sessionId, userId: session.userId, scope: session.scope });
-
-      const sessionUpdates: UpdateSessionUpdates = { refreshTokenExpiresAt: new Date(Date.now() + (1000 * 60 * 60 * 24 * 30 * 6)).toISOString() };
-
-      await this.sessionRepository.updateSession({ clientId, sessionId: session.sessionId, updates: sessionUpdates });
+      const { tokenType, accessToken, expiresIn } = await this.tokenService.refreshAccessToken({ clientId, refreshToken });
 
       return { tokenType, accessToken, expiresIn };
     } catch (error: unknown) {
@@ -350,7 +345,7 @@ export interface AuthServiceInterface {
   confirm(params: ConfirmInput): Promise<ConfirmOutput>;
   beginAuthFlow(params: BeginAuthFlowInput): Promise<BeginAuthFlowOutput>;
   getToken(params: GetTokenInput): Promise<GetTokenOutput>;
-  deleteSession(params: DeleteSessionInput): Promise<DeleteSessionOutput>;
+  revokeTokens(params: RevokeTokensInput): Promise<RevokeTokensOutput>;
 }
 
 export type AuthServiceConfigInterface = Pick<EnvConfigInterface, "authUI">;
@@ -398,7 +393,6 @@ interface ConfirmSuccessOutput {
 export type ConfirmOutput = ConfirmFailureOutput | ConfirmSuccessOutput;
 
 export interface BeginAuthFlowInput {
-  host: string;
   clientId: string;
   responseType: string;
   redirectUri: string;
@@ -431,12 +425,12 @@ export interface GetTokenOutput {
   idToken?: string;
 }
 
-export interface DeleteSessionInput {
+export interface RevokeTokensInput {
   clientId: string;
   refreshToken: string;
 }
 
-export type DeleteSessionOutput = void;
+export type RevokeTokensOutput = void;
 
 interface HandleAuthorizationCodeGrantInput {
   clientId: string;
