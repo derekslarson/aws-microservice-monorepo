@@ -10,14 +10,14 @@ const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceI
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
-    loggerService.trace("oauth2Authorize called", { event }, "oauth2Authorize handler");
+    loggerService.trace("getPublicJwks called", { event }, "getPublicJwks handler");
 
-    const response = await authController.beginAuthFlow(event);
+    const response = await authController.getPublicJwks(event);
 
     return response;
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
-    loggerService.error("Catastrophic error in oauth2Authorize handler", { error, event }, "oauth2Authorize handler");
+    loggerService.error("Catastrophic error in getPublicJwks handler", { error, event }, "getPublicJwks handler");
 
     return generateInternalServerErrorResponse(error);
   }

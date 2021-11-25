@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, UserId } from "@yac/util";
-import { DocumentClient } from "aws-sdk/clients/dynamodb";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, TransactItemType, TransactWriteInput, UserId } from "@yac/util";
 import { Failcode, ValidationError } from "runtypes";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
@@ -18,8 +17,6 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
   }
 
   public async createUser(params: CreateUserInput): Promise<CreateUserOutput> {
-    const transactionItemsForErrorHandling: string[] = [];
-
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
@@ -32,14 +29,13 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
         ...user,
       };
 
-      const transactWriteInput: DocumentClient.TransactWriteItemsInput = {
+      const transactWriteInput: TransactWriteInput = {
         TransactItems: [
           {
-            Put: {
-              TableName: this.tableName,
-              ConditionExpression: "attribute_not_exists(pk)",
-              Item: userEntity,
-            },
+            id: "user",
+            type: TransactItemType.Put,
+            ConditionExpression: "attribute_not_exists(pk)",
+            Item: userEntity,
           },
         ],
       };
@@ -54,14 +50,11 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
         };
 
         transactWriteInput.TransactItems.push({
-          Put: {
-            TableName: this.tableName,
-            ConditionExpression: "attribute_not_exists(pk)",
-            Item: uniqueUsernameEntity,
-          },
+          id: "username",
+          type: TransactItemType.Put,
+          ConditionExpression: "attribute_not_exists(pk)",
+          Item: uniqueUsernameEntity,
         });
-
-        transactionItemsForErrorHandling.push("username");
       }
 
       if (user.email) {
@@ -74,14 +67,11 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
         };
 
         transactWriteInput.TransactItems.push({
-          Put: {
-            TableName: this.tableName,
-            ConditionExpression: "attribute_not_exists(pk)",
-            Item: uniqueEmailEntity,
-          },
+          id: "email",
+          type: TransactItemType.Put,
+          ConditionExpression: "attribute_not_exists(pk)",
+          Item: uniqueEmailEntity,
         });
-
-        transactionItemsForErrorHandling.push("email");
       }
 
       if (user.phone) {
@@ -94,35 +84,29 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
         };
 
         transactWriteInput.TransactItems.push({
-          Put: {
-            TableName: this.tableName,
-            ConditionExpression: "attribute_not_exists(pk)",
-            Item: uniquePhoneEntity,
-          },
+          id: "phone",
+          type: TransactItemType.Put,
+          ConditionExpression: "attribute_not_exists(pk)",
+          Item: uniquePhoneEntity,
         });
-
-        transactionItemsForErrorHandling.push("phone");
       }
 
-      await this.documentClient.transactWrite(transactWriteInput).promise();
+      const transactWriteOutput = await this.transactWrite(transactWriteInput);
 
-      return { user };
+      if (transactWriteOutput.success) {
+        return { user };
+      }
+
+      const failureIdsWithoutUser = transactWriteOutput.failureIds.filter((id) => id !== "user");
+      const validationErrorBody = failureIdsWithoutUser.reduce((acc, val) => ({ ...acc, [val]: "Not unique." }), {});
+
+      throw new ValidationError({
+        success: false,
+        code: Failcode.VALUE_INCORRECT,
+        message: "Error validating body.",
+        details: { body: validationErrorBody },
+      });
     } catch (error: unknown) {
-      if (this.isAwsError(error) && error.code === "TransactionCanceledException") {
-        const transactionResults = error.message.slice(error.message.indexOf("[") + 1, error.message.indexOf("]")).split(", ").slice(1);
-
-        const uniqueCheckFailureProps = transactionResults.map((result, i) => result !== "None" && transactionItemsForErrorHandling[i]).filter((item) => !!item) as string[];
-
-        const validationErrorBody = uniqueCheckFailureProps.reduce((acc, val) => ({ ...acc, [val]: "Not unique." }), {});
-
-        throw new ValidationError({
-          success: false,
-          code: Failcode.VALUE_INCORRECT,
-          message: "Error validating body.",
-          details: { body: validationErrorBody },
-        });
-      }
-
       this.loggerService.error("Error in createUser", { error, params }, this.constructor.name);
 
       throw error;
@@ -227,6 +211,7 @@ type UserRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecon
 
 export interface User {
   id: UserId;
+  createdAt: string;
   name?: string;
   username?: string;
   email?: string;

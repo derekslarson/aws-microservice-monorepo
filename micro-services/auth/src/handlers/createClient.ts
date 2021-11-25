@@ -5,10 +5,10 @@ import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 import { ClientControllerInterface } from "../controllers/client.controller";
 
-export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-  const clientController = container.get<ClientControllerInterface>(TYPES.ClientControllerInterface);
-  const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
+const clientController = container.get<ClientControllerInterface>(TYPES.ClientControllerInterface);
+const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
+export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
     loggerService.trace("createClient called", { event }, "createClient handler");
 

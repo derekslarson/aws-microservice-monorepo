@@ -7,4 +7,5 @@ export enum EntityType {
   AuthFlowAttempt = "AUTH_FLOW_ATTEMPT",
   ExternalProviderAuthFlowAttempt = "EXTERNAL_PROVIDER_AUTH_FLOW_ATTEMPT",
   Session = "SESSION",
+  Jwks = "JWKS",
 }

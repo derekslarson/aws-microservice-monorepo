@@ -178,6 +178,20 @@ export class AuthController extends BaseController implements AuthControllerInte
     }
   }
 
+  public async getPublicJwks(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getPublicJwks called", { request }, this.constructor.name);
+
+      const { jwks } = await this.authService.getPublicJwks();
+
+      return this.generateSuccessResponse(jwks);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in completeExternalProviderAuthFlow", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
   protected override generateErrorResponse(error: unknown): Response {
     if (error instanceof OAuth2Error) {
       return this.generateOAuth2ErrorResponse(error);
@@ -224,7 +238,8 @@ export interface AuthControllerInterface {
   beginAuthFlow(request: Request): Promise<Response>;
   completeExternalProviderAuthFlow(request: Request): Promise<Response>
   getToken(request: Request): Promise<Response>;
-  revokeTokens(request: Request): Promise<Response>
+  revokeTokens(request: Request): Promise<Response>;
+  getPublicJwks(request: Request): Promise<Response>;
 }
 
 export interface OAuth2ErrorResponse extends Response {

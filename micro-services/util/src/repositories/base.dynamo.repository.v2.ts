@@ -9,6 +9,7 @@ import { RawEntity } from "../types/raw.entity.type";
 import { CleansedEntity } from "../types/cleansed.entity.type";
 import { NotFoundError } from "../errors/notFound.error";
 import { BadRequestError } from "../errors";
+import { TransactItemType } from "../enums";
 
 @injectable()
 export abstract class BaseDynamoRepositoryV2<T> {
@@ -21,6 +22,58 @@ export abstract class BaseDynamoRepositoryV2<T> {
   ) {
     this.tableName = tableName;
     this.documentClient = documentClientFactory();
+  }
+
+  protected async transactWrite(params: TransactWriteInput): Promise<TransactWriteOutput> {
+    try {
+      this.loggerService.trace("transactWrite called", { params }, this.constructor.name);
+
+      const { TransactItems, ...restOfParams } = params;
+
+      const transactItemIds: string[] = [];
+      const dynamoTransactWriteInput: DynamoDB.DocumentClient.TransactWriteItemsInput = { ...restOfParams, TransactItems: [] };
+
+      TransactItems.forEach((writeItem) => {
+        const { id, type, ...restOfTransactItem } = writeItem;
+
+        const transactItem: DynamoDB.DocumentClient.TransactWriteItem = {
+          [type]: {
+            TableName: this.tableName,
+            ...restOfTransactItem,
+          },
+        };
+
+        transactItemIds.push(id);
+        dynamoTransactWriteInput.TransactItems.push(transactItem);
+      });
+
+      let successResponse: DynamoDB.DocumentClient.TransactWriteItemsOutput | undefined;
+      const failureIds: string[] = [];
+
+      try {
+        successResponse = await this.documentClient.transactWrite(dynamoTransactWriteInput).promise();
+      } catch (error) {
+        if (this.isAwsError(error) && error.code === "TransactionCanceledException") {
+          const transactionResults = error.message.slice(error.message.indexOf("[") + 1, error.message.indexOf("]")).split(", ").slice(1);
+
+          if (transactionResults.some((result) => result === "TransactionConflict")) {
+            return this.backoff({ func: () => this.transactWrite(params), successFunc: (res) => res.success });
+          }
+
+          failureIds.push(...transactionResults.map((result, i) => result === "ConditionalCheckFailed" && transactItemIds[i]).filter((id) => !!id) as string[]);
+        }
+      }
+
+      if (successResponse) {
+        return { ...successResponse, success: true };
+      }
+
+      return { success: false, failureIds };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in transactWrite", { error, params }, this.constructor.name);
+
+      throw error;
+    }
   }
 
   protected async partialUpdate<U extends T = T>(pk: string, sk: string, update: RecursivePartial<CleansedEntity<U>>): Promise<CleansedEntity<U>> {
@@ -278,6 +331,33 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
+  protected async backoff<U>(params: BackoffInput<U>): Promise<BackoffOutput<U>> {
+    const { func, successFunc, maxBackoff = 4000, currentBackoff = 500 } = params;
+
+    try {
+      this.loggerService.trace("backoff called", { params }, this.constructor.name);
+      const response = await func();
+
+      if (successFunc(response)) {
+        return response;
+      }
+
+      throw new Error("Success func failed");
+    } catch (error: unknown) {
+      if (currentBackoff <= maxBackoff) {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(this.backoff({ func, successFunc, maxBackoff, currentBackoff: currentBackoff * 2 }));
+          }, currentBackoff);
+        });
+      }
+
+      this.loggerService.error(`Error in backoff. maxBackoff of ${maxBackoff}ms already reached.\n`, { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   private generatePartialUpdateItemInput(
     pk: string,
     sk: string,
@@ -334,3 +414,41 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 }
+
+interface BaseTransactItem {
+  type: TransactItemType;
+  id: string;
+}
+
+type ConditionCheckTransactItem = BaseTransactItem & Omit<DynamoDB.DocumentClient.ConditionCheck, "TableName"> & {
+  type: TransactItemType.ConditionCheck;
+};
+
+type PutTransactItem = BaseTransactItem & Omit<DynamoDB.DocumentClient.Put, "TableName"> & {
+  type: TransactItemType.Put;
+};
+
+type UpdateTransactItem = BaseTransactItem & Omit<DynamoDB.DocumentClient.Update, "TableName"> & {
+  type: TransactItemType.Update;
+};
+
+type DeleteTransactItem = BaseTransactItem & Omit<DynamoDB.DocumentClient.Delete, "TableName"> & {
+  type: TransactItemType.Delete;
+};
+
+export type TransactItem = ConditionCheckTransactItem | PutTransactItem | UpdateTransactItem | DeleteTransactItem;
+
+export type TransactWriteInput = Omit<DynamoDB.DocumentClient.TransactWriteItemsInput, "TransactItems"> & {
+  TransactItems: TransactItem[];
+};
+
+export type TransactWriteOutput = (DynamoDB.DocumentClient.TransactWriteItemsOutput & { success: true; }) | { success: false; failureIds: string[]; };
+
+export interface BackoffInput<T> {
+  func: (...args: unknown[]) => Promise<T>;
+  successFunc: (res: T) => boolean;
+  maxBackoff?: number;
+  currentBackoff?: number;
+}
+
+export type BackoffOutput<T> = T;

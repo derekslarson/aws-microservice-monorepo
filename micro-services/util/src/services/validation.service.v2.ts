@@ -7,7 +7,6 @@ import { LoggerServiceInterface } from "./logger.service";
 import { Request } from "../models/http/request.model";
 import { ForbiddenError } from "../errors";
 import { ValidatedRequest } from "../types/validatedRequest.type";
-import { UserId } from "../types/userId.type";
 
 @injectable()
 export class ValidationServiceV2 implements ValidationServiceV2Interface {
@@ -21,8 +20,17 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
 
       const { dto, request, getUserIdFromJwt, scopes = [] } = params;
 
+      // This is necessary due to the difference in requestContext.authorizer
+      // structure in the responses from http and websocket authorizers
+      const jwtId = request.requestContext.authorizer?.lambda?.userId || request.requestContext.authorizer?.userId;
+      const jwtScope = request.requestContext.authorizer?.lambda?.scope || request.requestContext.authorizer?.scope;
+
+      if (getUserIdFromJwt && (!jwtId || !jwtScope)) {
+        throw new ForbiddenError("Forbidden");
+      }
+
       if (scopes.length) {
-        const tokenScopes = (request.requestContext.authorizer?.lambda?.scope || request.requestContext.authorizer?.scope || "").split(" ");
+        const tokenScopes = (jwtScope || "").split(" ");
         const tokenScopesSet = new Set(tokenScopes);
 
         let authorized = false;
@@ -39,20 +47,7 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
         }
       }
 
-      let jwtId: `user-${string}` | undefined;
-
-      if (getUserIdFromJwt) {
-        const userId = request.requestContext.authorizer?.lambda?.userId || request.requestContext.authorizer?.userId;
-
-        if (!userId) {
-          throw new ForbiddenError("Forbidden");
-        }
-
-        jwtId = userId;
-      }
-
       let body: Record<string, unknown> | undefined;
-
       if (request.body) {
         try {
           if (request.headers["content-type"] === "application/x-www-form-urlencoded") {
@@ -87,9 +82,8 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
 
       const validatedRequest = dto.check(parsedRequest);
 
-      if (jwtId) {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return { ...validatedRequest, jwtId } as ValidateOutput<T, U>;
+      if (jwtId && jwtScope) {
+        return { ...validatedRequest, jwtId, jwtScope };
       }
 
       return validatedRequest as ValidateOutput<T, U>;
@@ -109,24 +103,11 @@ export interface ValidationServiceV2Interface {
   validate<T extends ValidatedRequest, U extends boolean>(params: ValidateInput<T, U>): ValidateOutput<T, U>
 }
 
-type RequestWithAuthorizerContext = Request & {
-  requestContext: {
-    authorizer?: {
-      userId?: UserId;
-      scope?: string;
-      lambda?: {
-        userId?: UserId;
-        scope?: string;
-      }
-    }
-  }
-};
-
 export interface ValidateInput<T extends ValidatedRequest, U extends boolean> {
   dto: Runtype<T>;
-  request: RequestWithAuthorizerContext;
+  request: Request;
   getUserIdFromJwt?: U;
   scopes?: string[];
 }
 
-export type ValidateOutput<T extends ValidatedRequest, U extends boolean> = U extends true ? (T & { jwtId: `user-${string}`; }) : T;
+export type ValidateOutput<T extends ValidatedRequest, U extends boolean> = U extends true ? (T & { jwtId: `user-${string}`; jwtScope: string; }) : T;

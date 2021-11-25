@@ -1,10 +1,14 @@
+/* eslint-disable max-len */
 /* eslint-disable no-new */
 import * as CDK from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
+import * as CustomResources from "@aws-cdk/custom-resources";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as SNS from "@aws-cdk/aws-sns";
 import * as SSM from "@aws-cdk/aws-ssm";
+import * as Events from "@aws-cdk/aws-events";
+import * as EventsTargets from "@aws-cdk/aws-events-targets";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as S3 from "@aws-cdk/aws-s3";
 import * as CloudFront from "@aws-cdk/aws-cloudfront";
@@ -277,6 +281,50 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const getPublicJwksHandler = new Lambda.Function(this, `GetPublicJwksHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getPublicJwks"),
+      handler: "getPublicJwks.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const rotateJwksHandler = new Lambda.Function(this, `RotateJwksHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/rotateJwks"),
+      handler: "rotateJwks.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const rule = new Events.Rule(this, `RotateJwksChronRule_${id}`, { schedule: Events.Schedule.rate(CDK.Duration.minutes(10)) });
+    rule.addTarget(new EventsTargets.LambdaFunction(rotateJwksHandler));
+
+    new CustomResources.AwsCustomResource(this, `AddJwksToAuthTable_${id}`, {
+      resourceType: "Custom::AddJwksToAuthTable",
+      onCreate: {
+        region: this.region,
+        service: "Lambda",
+        action: "invoke",
+        parameters: { FunctionName: rotateJwksHandler.functionName },
+        physicalResourceId: CustomResources.PhysicalResourceId.of(`AddJwksToAuthTable_${id}`),
+      },
+      policy: {
+        statements: [
+          new IAM.PolicyStatement({
+            actions: [ "lambda:InvokeFunction" ],
+            resources: [ rotateJwksHandler.functionArn ],
+          }),
+        ],
+      },
+    });
+
     const loginRoute: RouteProps<AuthServiceLoginPath, AuthServiceLoginMethod> = {
       path: "/login",
       method: ApiGatewayV2.HttpMethod.POST,
@@ -326,6 +374,12 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       restricted: true,
     };
 
+    const getPublicJwksRoute: RouteProps = {
+      path: "/.well-known/jwks.json",
+      method: ApiGatewayV2.HttpMethod.GET,
+      handler: getPublicJwksHandler,
+    };
+
     const routes: RouteProps<string, ApiGatewayV2.HttpMethod>[] = [
       loginRoute,
       confirmRoute,
@@ -335,6 +389,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       oauth2RevokeRoute,
       oauth2UserInfoRoute,
       oauth2IdpResponseRoute,
+      getPublicJwksRoute,
     ];
 
     // Proxy Routes

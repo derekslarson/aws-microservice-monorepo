@@ -1,14 +1,16 @@
 // eslint-disable-next-line max-classes-per-file
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, UnauthorizedError } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface } from "../repositories/user.dynamo.repository";
+import { GetUserInfoDto } from "../dtos/getUserInfo.dto";
 
 @injectable()
 export class UserController extends BaseController implements UserControllerInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
   ) {
     super();
@@ -18,12 +20,7 @@ export class UserController extends BaseController implements UserControllerInte
     try {
       this.loggerService.trace("getUserInfo called", { request }, this.constructor.name);
 
-      const userId = request.requestContext.authorizer?.lambda?.userId;
-      const scope = request.requestContext.authorizer?.lambda?.scope;
-
-      if (!userId || !scope) {
-        throw new UnauthorizedError("Unauthorized");
-      }
+      const { jwtId: userId, jwtScope: scope } = this.validationService.validate({ request, dto: GetUserInfoDto, getUserIdFromJwt: true });
 
       const { user } = await this.userRepository.getUser({ id: userId });
 

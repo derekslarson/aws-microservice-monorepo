@@ -18,6 +18,7 @@ import { SessionDynamoRepository, SessionRepositoryInterface } from "../reposito
 import { pkceChallengeFactory, PkceChallengeFactory } from "../factories/pkceChallenge.factory";
 import { UserController, UserControllerInterface } from "../controllers/user.controller";
 import { ExternalProviderAuthFlowAttemptDynamoRepository, ExternalProviderAuthFlowAttemptRepositoryInterface } from "../repositories/externalProvider.AuthFlowAttempt.dynamo.repository";
+import { JwksDynamoRepository, JwksRepositoryInterface } from "../repositories/jwks.dynamo.repository";
 
 const container = new Container();
 
@@ -38,6 +39,7 @@ try {
   container.bind<AuthFlowAttemptRepositoryInterface>(TYPES.AuthFlowAttemptRepositoryInterface).to(AuthFlowAttemptDynamoRepository);
   container.bind<ClientRepositoryInterface>(TYPES.ClientRepositoryInterface).to(ClientDynamoRepository);
   container.bind<ExternalProviderAuthFlowAttemptRepositoryInterface>(TYPES.ExternalProviderAuthFlowAttemptRepositoryInterface).to(ExternalProviderAuthFlowAttemptDynamoRepository);
+  container.bind<JwksRepositoryInterface>(TYPES.JwksRepositoryInterface).to(JwksDynamoRepository);
   container.bind<SessionRepositoryInterface>(TYPES.SessionRepositoryInterface).to(SessionDynamoRepository);
   container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);
 

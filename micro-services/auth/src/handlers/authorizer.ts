@@ -42,10 +42,7 @@ export const handler = async (event: APIGatewayRequestAuthorizerEvent): Promise<
           },
         ],
       },
-      context: {
-        userId,
-        scope,
-      },
+      context: { userId, scope },
     };
   } catch (error: unknown) {
     loggerService.error("Error in authorizer handler", { error, event }, "authorizer handler");

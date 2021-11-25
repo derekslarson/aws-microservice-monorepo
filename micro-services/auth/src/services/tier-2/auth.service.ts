@@ -7,7 +7,7 @@ import { AuthFlowAttempt, AuthFlowAttemptRepositoryInterface, UpdateAuthFlowAtte
 import { Csrf, CsrfFactory } from "../../factories/csrf.factory";
 import { User, UserRepositoryInterface } from "../../repositories/user.dynamo.repository";
 import { EnvConfigInterface } from "../../config/env.config";
-import { TokenServiceInterface } from "../tier-1/token.service";
+import { TokenServiceInterface, GetPublicJwksOutput as TokenServiceGetPublicJwksOutput } from "../tier-1/token.service";
 import { ClientServiceInterface } from "../tier-1/client.service";
 import { GrantType } from "../../enums/grantType.enum";
 import { PkceChallenge, PkceChallengeFactory } from "../../factories/pkceChallenge.factory";
@@ -302,6 +302,20 @@ export class AuthService implements AuthServiceInterface {
     }
   }
 
+  public async getPublicJwks(): Promise<GetPublicJwksOutput> {
+    try {
+      this.loggerService.trace("getPublicJwks called", { }, this.constructor.name);
+
+      const { jwks } = await this.tokenService.getPublicJwks();
+
+      return { jwks };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getPublicJwks", { error }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   private async beginInternalAuthFlow(params: BeginInternalAuthFlowInput): Promise<BeginInternalAuthFlowOutput> {
     try {
       this.loggerService.trace("beginInternalAuthFlow called", { params }, this.constructor.name);
@@ -468,6 +482,7 @@ export class AuthService implements AuthServiceInterface {
 
         const userEntity: User = {
           id: `user-${this.idService.generateId()}`,
+          createdAt: new Date().toISOString(),
           ...("email" in params ? { email: params.email } : { phone: params.phone }),
         };
 
@@ -490,6 +505,7 @@ export interface AuthServiceInterface {
   completeExternalProviderAuthFlow(params: CompleteExternalProviderAuthFlowInput): Promise<CompleteExternalProviderAuthFlowOutput>
   getToken(params: GetTokenInput): Promise<GetTokenOutput>;
   revokeTokens(params: RevokeTokensInput): Promise<RevokeTokensOutput>;
+  getPublicJwks(): Promise<GetPublicJwksOutput>;
 }
 
 export type AuthServiceConfigInterface = Pick<EnvConfigInterface, "authUI" | "googleClient">;
@@ -584,6 +600,10 @@ export interface RevokeTokensInput {
 }
 
 export type RevokeTokensOutput = void;
+
+export interface GetPublicJwksOutput {
+  jwks: TokenServiceGetPublicJwksOutput["jwks"]
+}
 
 interface BeginInternalAuthFlowInput {
   client: Client;
