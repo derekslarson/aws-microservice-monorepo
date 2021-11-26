@@ -1,16 +1,17 @@
-import { Record, Optional, String, Literal, Union } from "runtypes";
-import { ExternalProvider } from "../enums/externalProvider.enum";
-import { RedirectUri } from "../runtypes/redirectUri.runtype";
+import { Record, Optional, String } from "runtypes";
 
+// We need to make every param optional and simply a string, because the OAuth2 spec requires
+// a specific error response that runtypes doesn't return. We will manually validate each param
+// in the controller and throw the appropriate error format
 export const BeginAuthFlowDto = Record({
   queryStringParameters: Record({
-    client_id: String,
-    response_type: Union(Literal("code"), Literal("token")),
-    redirect_uri: RedirectUri,
+    client_id: Optional(String),
+    response_type: Optional(String),
+    redirect_uri: Optional(String),
     state: Optional(String),
-    code_challenge_method: Optional(Literal("S256")),
+    code_challenge_method: Optional(String),
     code_challenge: Optional(String),
     scope: Optional(String),
-    external_provider: Optional(Union(Literal(ExternalProvider.Google), Literal(ExternalProvider.Slack))),
+    external_provider: Optional(String),
   }),
 });

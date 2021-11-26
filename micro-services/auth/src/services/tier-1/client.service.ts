@@ -75,7 +75,7 @@ export class ClientService implements ClientServiceInterface {
         createdAt: new Date().toISOString(),
       };
 
-      if (type === ClientType.Private) {
+      if (type === ClientType.Confidential) {
         client.secret = this.idService.generateId();
       }
 

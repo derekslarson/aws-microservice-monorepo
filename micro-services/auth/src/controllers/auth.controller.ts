@@ -3,7 +3,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, StatusCode, ValidationServiceV2Interface } from "@yac/util";
-
 import { TYPES } from "../inversion-of-control/types";
 import { BeginAuthFlowDto } from "../dtos/beginAuthFlow.dto";
 import { GetTokenDto } from "../dtos/getToken.dto";
@@ -14,6 +13,10 @@ import { RevokeTokensDto } from "../dtos/revokeTokens.dto";
 import { OAuth2Error } from "../errors/oAuth2.error";
 import { OAuth2ErrorType } from "../enums/oAuth2ErrorType.enum";
 import { CompleteExternalProviderAuthFlowDto } from "../dtos/completeExternalProviderAuthFlow.dto";
+import { ClientServiceInterface, GetClientOutput } from "../services/tier-1/client.service";
+import { GrantType } from "../enums/grantType.enum";
+import { ClientType } from "../enums/clientType.enum";
+import { ExternalProvider } from "../enums/externalProvider.enum";
 
 @injectable()
 export class AuthController extends BaseController implements AuthControllerInterface {
@@ -21,6 +24,7 @@ export class AuthController extends BaseController implements AuthControllerInte
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.AuthServiceInterface) private authService: AuthServiceInterface,
+    @inject(TYPES.ClientServiceInterface) private clientService: ClientServiceInterface,
   ) {
     super();
   }
@@ -82,8 +86,57 @@ export class AuthController extends BaseController implements AuthControllerInte
         },
       } = this.validationService.validate({ dto: BeginAuthFlowDto, request });
 
+      // We made every param in the dto optional and simply a string, because the OAuth2 spec requires
+      // requires a specific error response that runtypes doesn't return. Here we manually validate
+      // each param and throw the appropriate error format
+      if (!clientId) {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "client_id required");
+      }
+
+      if (!responseType) {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "response_type required");
+      }
+
+      if (responseType !== "code") {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "Invalid response_type");
+      }
+
+      if (codeChallengeMethod && codeChallengeMethod !== "S256") {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "Invalid code_challenge_method");
+      }
+
+      if ((!codeChallengeMethod && codeChallenge) || (codeChallengeMethod && !codeChallenge)) {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "code_challenge & code_challenge_method are mutually inclusive");
+      }
+
+      if (externalProvider !== undefined && externalProvider !== ExternalProvider.Google) {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "Invalid external_provider", redirectUri);
+      }
+
+      const { client } = await this.clientService.getClient({ clientId }).catch(() => {
+        throw new OAuth2Error(OAuth2ErrorType.UnauthorizedClient);
+      });
+
+      if (redirectUri !== client.redirectUri) {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "redirect_uri mismatch");
+      }
+
+      if (!client.secret && (!codeChallenge || !codeChallengeMethod)) {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "code_challenge & code_challenge_method required for public clients", redirectUri, state);
+      }
+
+      if (scope) {
+        const requestedScopes = scope.split(" ");
+        const clientScopesSet = new Set(client.scopes);
+        const invalidScopes = requestedScopes.filter((requestedScope) => !clientScopesSet.has(requestedScope));
+
+        if (invalidScopes.length) {
+          throw new OAuth2Error(OAuth2ErrorType.InvalidScope, `Invalid scope requested: ${invalidScopes.join(", ")}.`, redirectUri, state);
+        }
+      }
+
       const { location, cookies } = await this.authService.beginAuthFlow({
-        clientId,
+        client,
         responseType,
         redirectUri,
         codeChallenge,
@@ -106,6 +159,7 @@ export class AuthController extends BaseController implements AuthControllerInte
       this.loggerService.trace("getToken called", { request }, this.constructor.name);
 
       const {
+        headers: { authorization },
         body: {
           client_id: clientId,
           grant_type: grantType,
@@ -116,24 +170,79 @@ export class AuthController extends BaseController implements AuthControllerInte
         },
       } = this.validationService.validate({ dto: GetTokenDto, request });
 
-      const { tokenType, expiresIn, accessToken, refreshToken, idToken } = await this.authService.getToken({
-        clientId,
-        grantType,
-        redirectUri,
-        authorizationCode,
-        codeVerifier,
-        refreshToken: refreshTokenParam,
-      });
+      // We made every param in the dto optional and simply a string, because the OAuth2 spec requires
+      // requires a specific error response that runtypes doesn't return. Here we manually validate
+      // each param and throw the appropriate error format
 
-      const responseBody = {
-        token_type: tokenType,
-        access_token: accessToken,
-        expires_in: expiresIn,
-        refresh_token: refreshToken,
-        id_token: idToken,
-      };
+      let client: GetClientOutput["client"];
+      // if client is confidential, it is expected to pass `Basic ${base64(clientId:clientSecret)}` as the 'authorization' header
+      // instead of passing 'client_id' in thebody, so we need to decode the header value, fetch the client using the decoded clientId,
+      // and verify that the clientSecret is correct
+      if (authorization) {
+        if (!authorization.startsWith("Basic ")) {
+          throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
+        }
 
-      return this.generateSuccessResponse(responseBody);
+        const [ authClientId, authClientSecret ] = Buffer.from(authorization.replace("Basic ", ""), "base64").toString("ascii").split(":");
+
+        if (!authClientId || !authClientSecret) {
+          throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
+        }
+
+        ({ client } = await this.clientService.getClient({ clientId: authClientId }).catch(() => {
+          throw new OAuth2Error(OAuth2ErrorType.UnauthorizedClient);
+        }));
+
+        if (client.secret !== authClientSecret) {
+          throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
+        }
+      } else {
+        // if the 'authorization' header isn't present, than the client is presumably public, so it is expected to pass
+        // the 'clientId' in the body. If it is in the body, we need to fetch the client with it and verify that it is public
+        if (!clientId) {
+          throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "client_id required");
+        }
+
+        ({ client } = await this.clientService.getClient({ clientId }).catch(() => {
+          throw new OAuth2Error(OAuth2ErrorType.UnauthorizedClient);
+        }));
+
+        if (client.type === ClientType.Confidential) {
+          throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
+        }
+      }
+
+      if (!grantType) {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "grant_type required");
+      }
+
+      if (grantType !== GrantType.AuthorizationCode && grantType !== GrantType.RefreshToken) {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "Invalid grant_type");
+      }
+
+      // authorization_code grant
+      if (grantType === GrantType.AuthorizationCode) {
+        if (!authorizationCode) {
+          throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "code required for authorization_code grant type");
+        }
+
+        if (!redirectUri) {
+          throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "redirect_uri required for authorization_code grant type");
+        }
+
+        const { tokenType, accessToken, refreshToken, expiresIn, idToken } = await this.authService.handleAuthorizationCodeGrant({ clientId: client.id, authorizationCode, redirectUri, codeVerifier });
+
+        return this.generateSuccessResponse({ token_type: tokenType, access_token: accessToken, expires_in: expiresIn, refresh_token: refreshToken, id_token: idToken });
+      }
+
+      // refresh_token grant
+      if (!refreshTokenParam) {
+        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "refresh_token required for refresh_token grant type.");
+      }
+
+      const { tokenType, accessToken, expiresIn } = await this.authService.handleRefreshTokenGrant({ clientId: client.id, refreshToken: refreshTokenParam });
+
+      return this.generateSuccessResponse({ token_type: tokenType, access_token: accessToken, expires_in: expiresIn });
     } catch (error: unknown) {
       this.loggerService.error("Error in getToken", { error, request }, this.constructor.name);
 
