@@ -15,7 +15,6 @@ const TYPES = {
 
   AuthFlowAttemptRepositoryInterface: Symbol.for("AuthFlowAttemptRepositoryInterface"),
   ClientRepositoryInterface: Symbol.for("ClientRepositoryInterface"),
-  ExternalProviderAuthFlowAttemptRepositoryInterface: Symbol.for("ExternalProviderAuthFlowAttemptRepositoryInterface"),
   JwksRepositoryInterface: Symbol.for("JwksRepositoryInterface"),
   SessionRepositoryInterface: Symbol.for("SessionRepositoryInterface"),
   UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),

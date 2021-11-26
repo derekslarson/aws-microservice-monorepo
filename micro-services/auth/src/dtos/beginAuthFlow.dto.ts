@@ -12,6 +12,5 @@ export const BeginAuthFlowDto = Record({
     code_challenge_method: Optional(String),
     code_challenge: Optional(String),
     scope: Optional(String),
-    external_provider: Optional(String),
   }),
 });

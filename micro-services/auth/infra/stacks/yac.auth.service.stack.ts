@@ -204,6 +204,17 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const loginViaExternalProviderHandler = new Lambda.Function(this, `LoginViaExternalProviderHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/loginViaExternalProvider"),
+      handler: "loginViaExternalProvider.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/confirm"),
@@ -331,6 +342,12 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: loginHandler,
     };
 
+    const loginViaExternalProviderRoute: RouteProps = {
+      path: "/login/idp",
+      method: ApiGatewayV2.HttpMethod.GET,
+      handler: loginViaExternalProviderHandler,
+    };
+
     const confirmRoute: RouteProps<AuthServiceConfirmPath, AuthServiceConfirmMethod> = {
       path: "/confirm",
       method: ApiGatewayV2.HttpMethod.POST,
@@ -382,6 +399,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const routes: RouteProps<string, ApiGatewayV2.HttpMethod>[] = [
       loginRoute,
+      loginViaExternalProviderRoute,
       confirmRoute,
       createClientRoute,
       oauth2AuthorizeRoute,

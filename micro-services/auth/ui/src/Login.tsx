@@ -34,6 +34,7 @@ const variants = {
 const CONFIG: IEnvConfig = {
   BASE_URL: new URL(`https://${process.env.REACT_APP_ENVIRONMENT}.yacchat.com/auth`),
   SIGN_IN_PATH: "/login",
+  SIGN_IN_EXTERNAL_PROVIDER_PATH: "/login/idp",
   SIGN_UP_PATH: "sign-up",
   AUTHENTICATE_PATH: "/confirm",
   OAUTH2_AUTHORIZE_PATH: "/oauth2/authorize"
@@ -93,18 +94,7 @@ const Login: React.FC<ILoginProps> = () => {
         {
           method: "POST",
           credentials: "include",
-          body: JSON.stringify(phone
-            ? { 
-              phone,
-              clientId: query.client_id,
-              ...(query.state && {  state: query.state }),
-
-            }
-            : {
-              email,
-              clientId: query.client_id,
-              ...(query.state && {  state: query.state }),
-            })
+          body: JSON.stringify(phone ? { phone } : { email })
         }
       ).catch((e) => e.response)
         const json = await res.json();
@@ -150,30 +140,11 @@ const Login: React.FC<ILoginProps> = () => {
     try {
       const url = new URL([CONFIG.BASE_URL.pathname, CONFIG.AUTHENTICATE_PATH].join("/"), CONFIG.BASE_URL.origin);
       const res: Response = await fetch(
-          url.toString() + `?client_id=${query.client_id}&redirect_uri=${query.redirect_uri}`,
+          url.toString(),
           {
             method: "POST",
             credentials: "include",
-            body: JSON.stringify((data as IManualAuthenticate).email ? {
-              confirmationCode: otp,
-              email: (data as IManualAuthenticate).email,
-              phone: (data as IManualAuthenticate).phone,
-              clientId: query.client_id,
-              redirectUri: query.redirect_uri,
-              session: request.data.session,
-              ...(query.code_challenge && { codeChallenge: query.code_challenge }),
-              ...(query.code_challenge_method && { codeChallengeMethod: query.code_challenge_method }),
-              ...(query.state && {  state: query.state }),
-              ...(query.scope && {  scope: query.scope })
-            } : {
-              session: (data as ITokenAuthenticate).token,
-              clientId: query.client_id,
-              redirectUri: query.redirect_uri,
-              ...(query.code_challenge && { codeChallenge: query.code_challenge }),
-              ...(query.code_challenge_method && { codeChallengeMethod: query.code_challenge_method }),
-              ...(query.state && { state: query.state }),
-              ...(query.scope && { scope: query.scope })
-            })
+            body: JSON.stringify({ confirmationCode: otp })
           }
         )
         .catch((err) => {
@@ -259,23 +230,7 @@ const Login: React.FC<ILoginProps> = () => {
   }
 
   const redirectToExternalProviderAuth = (externalProvider: "slack" | "google") => {    
-    let redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.OAUTH2_AUTHORIZE_PATH}?external_provider=${externalProvider}&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}`;
-
-    if (query.scope) {
-      redirectLocation += `&scope=${query.scope}`
-    }
-
-    if (query.code_challenge) {
-      redirectLocation += `&code_challenge=${query.code_challenge}`
-    }
-
-    if (query.code_challenge_method) {
-      redirectLocation += `&code_challenge_method=${query.code_challenge_method}`
-    }
-
-    if (query.state) {
-      redirectLocation += `&state=${query.state}`
-    }
+    let redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.SIGN_IN_EXTERNAL_PROVIDER_PATH}?external_provider=${externalProvider}`;
 
     window.location.href = redirectLocation
   }
@@ -306,7 +261,7 @@ const Login: React.FC<ILoginProps> = () => {
       </button>
       <span>or</span>
       <span className={'login__form-description'}>
-        Use your email address or phone number
+        use your email address or phone number
       </span>
       <Input
         name={'email'}
@@ -457,6 +412,7 @@ interface ILoader {
 interface IEnvConfig {
   BASE_URL: URL,
   SIGN_IN_PATH: string,
+  SIGN_IN_EXTERNAL_PROVIDER_PATH: string,
   SIGN_UP_PATH: string,
   AUTHENTICATE_PATH: string,
   OAUTH2_AUTHORIZE_PATH: string

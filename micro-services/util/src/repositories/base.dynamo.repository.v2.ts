@@ -76,11 +76,11 @@ export abstract class BaseDynamoRepositoryV2<T> {
     }
   }
 
-  protected async partialUpdate<U extends T = T>(pk: string, sk: string, update: RecursivePartial<CleansedEntity<U>>): Promise<CleansedEntity<U>> {
+  protected async partialUpdate<U extends T = T>(pk: string, sk: string, update: RecursivePartial<CleansedEntity<U>>, preventUpsert?: boolean): Promise<CleansedEntity<U>> {
     try {
       this.loggerService.trace("partialUpdate called", { update }, this.constructor.name);
 
-      const updateItemInput = this.generatePartialUpdateItemInput(pk, sk, update);
+      const updateItemInput = this.generatePartialUpdateItemInput(pk, sk, update, preventUpsert);
 
       const { Attributes } = await this.documentClient.update(updateItemInput).promise();
 
@@ -362,6 +362,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
     pk: string,
     sk: string,
     rootLevelOrNestedObject: Record<string, unknown>,
+    preventUpsert?: boolean,
     previousUpdateItemInput?: DynamoDB.DocumentClient.UpdateItemInput,
     previousExpressionAttributePath?: string,
   ): DynamoDB.DocumentClient.UpdateItemInput {
@@ -371,6 +372,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
       const baseUpdateItemInput: DynamoDB.DocumentClient.UpdateItemInput = {
         TableName: this.tableName,
         Key: { pk, sk },
+        ...(preventUpsert && { ConditionExpression: "attribute_exists(pk)" }),
         UpdateExpression: "SET",
         ExpressionAttributeNames: {},
         ExpressionAttributeValues: {},
@@ -389,7 +391,7 @@ export abstract class BaseDynamoRepositoryV2<T> {
         };
 
         if (typeof value === "object" && !Array.isArray(value) && value !== null) {
-          return this.generatePartialUpdateItemInput(pk, sk, value as Record<string, unknown>, updateItemInput, expressionAttributePath);
+          return this.generatePartialUpdateItemInput(pk, sk, value as Record<string, unknown>, preventUpsert, updateItemInput, expressionAttributePath);
         }
 
         updateItemInput.ExpressionAttributeValues = {

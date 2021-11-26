@@ -16,7 +16,7 @@ import { CompleteExternalProviderAuthFlowDto } from "../dtos/completeExternalPro
 import { ClientServiceInterface, GetClientOutput } from "../services/tier-1/client.service";
 import { GrantType } from "../enums/grantType.enum";
 import { ClientType } from "../enums/clientType.enum";
-import { ExternalProvider } from "../enums/externalProvider.enum";
+import { LoginViaExternalProviderDto } from "../dtos/loginViaExternalProvider.dto";
 
 @injectable()
 export class AuthController extends BaseController implements AuthControllerInterface {
@@ -27,46 +27,6 @@ export class AuthController extends BaseController implements AuthControllerInte
     @inject(TYPES.ClientServiceInterface) private clientService: ClientServiceInterface,
   ) {
     super();
-  }
-
-  public async login(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("login called", { request }, this.constructor.name);
-
-      const { cookies, body } = this.validationService.validate({ dto: LoginDto, request });
-      const parsedCookies = this.parseCookies(cookies);
-      const xsrfToken = parsedCookies["XSRF-TOKEN"];
-
-      await this.authService.login({ ...body, xsrfToken });
-
-      return this.generateSuccessResponse({ message: "Confirmation code sent" });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in login", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
-  }
-
-  public async confirm(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("confirm called", { request }, this.constructor.name);
-
-      const { cookies, body } = this.validationService.validate({ dto: ConfirmDto, request });
-      const parsedCookies = this.parseCookies(cookies);
-      const xsrfToken = parsedCookies["XSRF-TOKEN"];
-
-      if (!xsrfToken) {
-        throw new ForbiddenError("Forbidden");
-      }
-
-      const confirmResponse = await this.authService.confirm({ ...body, xsrfToken });
-
-      return this.generateSuccessResponse(confirmResponse);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in confirm", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
   }
 
   public async beginAuthFlow(request: Request): Promise<Response> {
@@ -80,7 +40,6 @@ export class AuthController extends BaseController implements AuthControllerInte
           redirect_uri: redirectUri,
           code_challenge: codeChallenge,
           code_challenge_method: codeChallengeMethod,
-          external_provider: externalProvider,
           state,
           scope,
         },
@@ -107,10 +66,6 @@ export class AuthController extends BaseController implements AuthControllerInte
 
       if ((!codeChallengeMethod && codeChallenge) || (codeChallengeMethod && !codeChallenge)) {
         throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "code_challenge & code_challenge_method are mutually inclusive");
-      }
-
-      if (externalProvider !== undefined && externalProvider !== ExternalProvider.Google) {
-        throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "Invalid external_provider", redirectUri);
       }
 
       const { client } = await this.clientService.getClient({ clientId }).catch(() => {
@@ -141,7 +96,6 @@ export class AuthController extends BaseController implements AuthControllerInte
         redirectUri,
         codeChallenge,
         codeChallengeMethod,
-        externalProvider,
         state,
         scope,
       });
@@ -149,6 +103,86 @@ export class AuthController extends BaseController implements AuthControllerInte
       return this.generateSeeOtherResponse(location, {}, cookies);
     } catch (error: unknown) {
       this.loggerService.error("Error in beginAuthFlow", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async login(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("login called", { request }, this.constructor.name);
+
+      const { cookies, body } = this.validationService.validate({ dto: LoginDto, request });
+      const parsedCookies = this.parseCookies(cookies);
+      const xsrfToken = parsedCookies["XSRF-TOKEN"];
+
+      await this.authService.login({ ...body, xsrfToken });
+
+      return this.generateSuccessResponse({ message: "Confirmation code sent" });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in login", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async confirm(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("confirm called", { request }, this.constructor.name);
+
+      const { cookies, body: { confirmationCode } } = this.validationService.validate({ dto: ConfirmDto, request });
+      const parsedCookies = this.parseCookies(cookies);
+      const xsrfToken = parsedCookies["XSRF-TOKEN"];
+
+      if (!xsrfToken) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { authorizationCode, cookies: newCookies } = await this.authService.confirm({ confirmationCode, xsrfToken });
+
+      return this.generateSuccessResponse({ authorizationCode }, {}, newCookies);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in confirm", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async loginViaExternalProvider(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("loginViaExternalProvider called", { request }, this.constructor.name);
+
+      const {
+        cookies,
+        queryStringParameters: { external_provider: externalProvider },
+      } = this.validationService.validate({ dto: LoginViaExternalProviderDto, request });
+
+      const parsedCookies = this.parseCookies(cookies);
+      const xsrfToken = parsedCookies["XSRF-TOKEN"];
+
+      const { location } = await this.authService.loginViaExternalProvider({ externalProvider, xsrfToken });
+
+      return this.generateSeeOtherResponse(location);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in loginViaExternalProvider", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async completeExternalProviderAuthFlow(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("completeExternalProviderAuthFlow called", { request }, this.constructor.name);
+
+      const { cookies, queryStringParameters: { code, state } } = this.validationService.validate({ dto: CompleteExternalProviderAuthFlowDto, request });
+      const parsedCookies = this.parseCookies(cookies);
+      const xsrfToken = parsedCookies["XSRF-TOKEN"];
+
+      const { location, cookies: newCookies } = await this.authService.completeExternalProviderAuthFlow({ authorizationCode: code, state, xsrfToken });
+
+      return this.generateSeeOtherResponse(location, {}, newCookies);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in completeExternalProviderAuthFlow", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -271,22 +305,6 @@ export class AuthController extends BaseController implements AuthControllerInte
     }
   }
 
-  public async completeExternalProviderAuthFlow(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("completeExternalProviderAuthFlow called", { request }, this.constructor.name);
-
-      const { queryStringParameters: { code, state } } = this.validationService.validate({ dto: CompleteExternalProviderAuthFlowDto, request });
-
-      const { location } = await this.authService.completeExternalProviderAuthFlow({ authorizationCode: code, state });
-
-      return this.generateSeeOtherResponse(location);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in completeExternalProviderAuthFlow", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
-  }
-
   public async getPublicJwks(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("getPublicJwks called", { request }, this.constructor.name);
@@ -342,9 +360,10 @@ export class AuthController extends BaseController implements AuthControllerInte
 }
 
 export interface AuthControllerInterface {
+  beginAuthFlow(request: Request): Promise<Response>;
   login(request: Request): Promise<Response>;
   confirm(request: Request): Promise<Response>;
-  beginAuthFlow(request: Request): Promise<Response>;
+  loginViaExternalProvider(request: Request): Promise<Response>;
   completeExternalProviderAuthFlow(request: Request): Promise<Response>
   getToken(request: Request): Promise<Response>;
   revokeTokens(request: Request): Promise<Response>;

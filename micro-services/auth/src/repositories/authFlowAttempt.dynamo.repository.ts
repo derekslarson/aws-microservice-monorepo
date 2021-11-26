@@ -24,24 +24,20 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
 
       const { authFlowAttempt } = params;
 
-      const sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${authFlowAttempt.xsrfToken}`;
-
       // auto delete item after two minutes
       const ttl = (Date.now().valueOf() / 1000) + (60 * 2);
 
       const authFlowAttemptEntity: RawAuthFlowAttempt = {
         entityType: EntityType.AuthFlowAttempt,
-        pk: authFlowAttempt.clientId,
-        sk,
+        pk: authFlowAttempt.xsrfToken,
+        sk: EntityType.AuthFlowAttempt,
         ttl,
         ...authFlowAttempt,
       };
 
       if (authFlowAttempt.authorizationCode) {
-        const gsi1sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${authFlowAttempt.authorizationCode}`;
-
-        authFlowAttemptEntity.gsi1pk = authFlowAttempt.clientId;
-        authFlowAttemptEntity.gsi1sk = gsi1sk;
+        authFlowAttemptEntity.gsi1pk = authFlowAttempt.authorizationCode;
+        authFlowAttemptEntity.gsi1sk = EntityType.AuthFlowAttempt;
       }
 
       await this.documentClient.put({
@@ -62,11 +58,9 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
     try {
       this.loggerService.trace("getAuthFlowAttempt called", { params }, this.constructor.name);
 
-      const { clientId, xsrfToken } = params;
+      const { xsrfToken } = params;
 
-      const sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${xsrfToken}`;
-
-      const authFlowAttempt = await this.get({ Key: { pk: clientId, sk } }, "Auth Flow Attempt");
+      const authFlowAttempt = await this.get({ Key: { pk: xsrfToken, sk: EntityType.AuthFlowAttempt } }, "Auth Flow Attempt");
 
       return { authFlowAttempt };
     } catch (error: unknown) {
@@ -80,20 +74,18 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
     try {
       this.loggerService.trace("getAuthFlowAttempt called", { params }, this.constructor.name);
 
-      const { clientId, authorizationCode } = params;
-
-      const gsi1sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${authorizationCode}`;
+      const { authorizationCode } = params;
 
       const { Items: [ authFlowAttempt ] } = await this.query({
-        KeyConditionExpression: "#gsi1pk = :clientId AND #gsi1sk = :gsi1sk",
+        KeyConditionExpression: "#gsi1pk = :authorizationCode AND #gsi1sk = :authFlowAttempt",
         IndexName: this.gsiOneIndexName,
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
           "#gsi1sk": "gsi1sk",
         },
         ExpressionAttributeValues: {
-          ":clientId": clientId,
-          ":gsi1sk": gsi1sk,
+          ":authorizationCode": authorizationCode,
+          ":authFlowAttempt": EntityType.AuthFlowAttempt,
         },
       });
 
@@ -113,22 +105,18 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
     try {
       this.loggerService.trace("updateAuthFlowAttempt called", { params }, this.constructor.name);
 
-      const { clientId, xsrfToken, updates } = params;
-
-      const sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${xsrfToken}`;
+      const { xsrfToken, updates } = params;
 
       type RawUpdates = UpdateAuthFlowAttemptUpdates & { gsi1pk?: string; gsi1sk?: string; };
 
       const rawUpdates: RawUpdates = { ...updates };
 
       if (updates.authorizationCode) {
-        const gsi1sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${updates.authorizationCode}`;
-
-        rawUpdates.gsi1pk = clientId;
-        rawUpdates.gsi1sk = gsi1sk;
+        rawUpdates.gsi1pk = updates.authorizationCode;
+        rawUpdates.gsi1sk = EntityType.AuthFlowAttempt;
       }
 
-      const authFlowAttempt = await this.partialUpdate(clientId, sk, rawUpdates);
+      const authFlowAttempt = await this.partialUpdate(xsrfToken, EntityType.AuthFlowAttempt, rawUpdates, true);
 
       return { authFlowAttempt };
     } catch (error: unknown) {
@@ -142,13 +130,11 @@ export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<Auth
     try {
       this.loggerService.trace("deleteAuthFlowAttempt called", { params }, this.constructor.name);
 
-      const { clientId, xsrfToken } = params;
-
-      const sk: SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${xsrfToken}`;
+      const { xsrfToken } = params;
 
       await this.documentClient.delete({
         TableName: this.tableName,
-        Key: { pk: clientId, sk },
+        Key: { pk: xsrfToken, sk: EntityType.AuthFlowAttempt },
       }).promise();
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteAuthFlowAttempt", { error, params }, this.constructor.name);
@@ -176,6 +162,7 @@ export interface AuthFlowAttempt {
   scope: string;
   redirectUri: string;
   state?: string;
+  externalProviderState?: string;
   userId?: UserId;
   codeChallenge?: string;
   codeChallengeMethod?: string;
@@ -184,20 +171,18 @@ export interface AuthFlowAttempt {
   authorizationCode?: string;
   authorizationCodeCreatedAt?: string;
 }
-
-type SkAndGsi1sk = `${EntityType.AuthFlowAttempt}-${string}`;
 export interface RawAuthFlowAttempt extends AuthFlowAttempt {
   entityType: EntityType.AuthFlowAttempt;
-  // clientId
+  // xsrfToken
   pk: string;
-  // `${EntityType.AuthFlowAttempt}-${xsrfToken}`
-  sk: SkAndGsi1sk;
+  // EntityType.AuthFlowAttempt`
+  sk: EntityType.AuthFlowAttempt;
   // time-to-live attribute (deletion date in unix seconds)
   ttl: number;
-  // clientId
+  // authorizationCode
   gsi1pk?: string;
-  // `${EntityType.AuthFlowAttempt}-${authorizationCode}`
-  gsi1sk?: SkAndGsi1sk;
+  // EntityType.AuthFlowAttempt
+  gsi1sk?: EntityType.AuthFlowAttempt;
 }
 
 export interface CreateAuthFlowAttemptInput {
@@ -209,7 +194,6 @@ export interface CreateAuthFlowAttemptOutput {
 }
 
 export interface GetAuthFlowAttemptInput {
-  clientId: string;
   xsrfToken: string;
 }
 
@@ -218,7 +202,6 @@ export interface GetAuthFlowAttemptOutput {
 }
 
 export interface GetAuthFlowAttemptByAuthorizationCodeInput {
-  clientId: string;
   authorizationCode: string;
 }
 
@@ -232,9 +215,9 @@ export interface UpdateAuthFlowAttemptUpdates {
   confirmationCodeCreatedAt?: string;
   authorizationCode?: string;
   authorizationCodeCreatedAt?: string;
+  externalProviderState?: string;
 }
 export interface UpdateAuthFlowAttemptInput {
-  clientId: string;
   xsrfToken: string;
   updates: UpdateAuthFlowAttemptUpdates;
 }
@@ -244,7 +227,6 @@ export interface UpdateAuthFlowAttemptOutput {
 }
 
 export interface DeleteAuthFlowAttemptInput {
-  clientId: string;
   xsrfToken: string;
 }
 

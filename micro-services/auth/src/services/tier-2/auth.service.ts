@@ -12,7 +12,6 @@ import { PkceChallenge, PkceChallengeFactory } from "../../factories/pkceChallen
 import { OAuth2Error } from "../../errors/oAuth2.error";
 import { OAuth2ErrorType } from "../../enums/oAuth2ErrorType.enum";
 import { Client } from "../../repositories/client.dynamo.repository";
-import { ExternalProviderAuthFlowAttempt, ExternalProviderAuthFlowAttemptRepositoryInterface } from "../../repositories/externalProvider.AuthFlowAttempt.dynamo.repository";
 import { ExternalProvider } from "../../enums/externalProvider.enum";
 
 @injectable()
@@ -37,7 +36,6 @@ export class AuthService implements AuthServiceInterface {
     @inject(TYPES.TokenServiceInterface) private tokenService: TokenServiceInterface,
     @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
     @inject(TYPES.AuthFlowAttemptRepositoryInterface) private authFlowAttemptRepository: AuthFlowAttemptRepositoryInterface,
-    @inject(TYPES.ExternalProviderAuthFlowAttemptRepositoryInterface) private externalProviderAuthFlowAttemptRepository: ExternalProviderAuthFlowAttemptRepositoryInterface,
     @inject(TYPES.GoogleOAuth2ClientFactory) private googleOAuth2ClientFactory: GoogleOAuth2ClientFactory,
     @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
     @inject(TYPES.CsrfFactory) csrfFactory: CsrfFactory,
@@ -53,14 +51,55 @@ export class AuthService implements AuthServiceInterface {
     this.jwt = jwtFactory();
   }
 
+  public async beginAuthFlow(params: BeginAuthFlowInput): Promise<BeginAuthFlowOutput> {
+    try {
+      this.loggerService.trace("beginAuthFlow called", { params }, this.constructor.name);
+
+      const { client, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope } = params;
+
+      const secret = state || this.csrf.secretSync();
+      const xsrfToken = this.csrf.create(secret);
+
+      const authFlowAttempt: AuthFlowAttempt = {
+        xsrfToken,
+        clientId: client.id,
+        secret,
+        responseType,
+        redirectUri,
+        scope: scope || client.scopes.join(" "),
+        state,
+        codeChallenge,
+        codeChallengeMethod,
+      };
+
+      await this.authFlowAttemptRepository.createAuthFlowAttempt({ authFlowAttempt });
+
+      const optionalQueryParams = { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod, scope, state };
+      const optionalQueryString = Object.entries(optionalQueryParams).reduce((acc, [ key, value ]) => (value ? `${acc}&${key}=${value}` : acc), "");
+
+      const location = `${this.authUiUrl}?client_id=${client.id}&redirect_uri=${redirectUri}&response_type=${responseType}${optionalQueryString}`;
+      const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax; Expires=${new Date(Date.now().valueOf() + (1000 * 60 * 2)).toUTCString()}`;
+
+      return { location, cookies: [ xsrfTokenCookie ] };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in beginAuthFlow", { error, params }, this.constructor.name);
+
+      if (error instanceof OAuth2Error) {
+        throw error;
+      }
+
+      throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
+    }
+  }
+
   public async login(params: LoginInput): Promise<LoginOutput> {
     try {
       this.loggerService.trace("login called", { params }, this.constructor.name);
 
-      const { clientId, xsrfToken } = params;
+      const { xsrfToken } = params;
 
       const [ { authFlowAttempt }, { user } ] = await Promise.all([
-        this.authFlowAttemptRepository.getAuthFlowAttempt({ clientId, xsrfToken }),
+        this.authFlowAttemptRepository.getAuthFlowAttempt({ xsrfToken }),
         this.getOrCreateUser(params),
       ]);
 
@@ -79,7 +118,6 @@ export class AuthService implements AuthServiceInterface {
       };
 
       await this.authFlowAttemptRepository.updateAuthFlowAttempt({
-        clientId,
         xsrfToken,
         updates: authFlowAttemptUpdates,
       });
@@ -104,9 +142,9 @@ export class AuthService implements AuthServiceInterface {
     try {
       this.loggerService.trace("confirm called", { params }, this.constructor.name);
 
-      const { clientId, confirmationCode, xsrfToken } = params;
+      const { confirmationCode, xsrfToken } = params;
 
-      const { authFlowAttempt } = await this.authFlowAttemptRepository.getAuthFlowAttempt({ clientId, xsrfToken });
+      const { authFlowAttempt } = await this.authFlowAttemptRepository.getAuthFlowAttempt({ xsrfToken });
 
       const xsrfTokenIsValid = this.csrf.verify(authFlowAttempt.secret, xsrfToken);
 
@@ -117,7 +155,6 @@ export class AuthService implements AuthServiceInterface {
       const authorizationCode = this.idService.generateId();
 
       await this.authFlowAttemptRepository.updateAuthFlowAttempt({
-        clientId,
         xsrfToken,
         updates: {
           confirmationCode: "",
@@ -127,7 +164,9 @@ export class AuthService implements AuthServiceInterface {
         },
       });
 
-      return { confirmed: true, authorizationCode };
+      const xsrfTokenDeletionCookie = "XSRF-TOKEN=; Path=/; Secure; HttpOnly; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+      return { authorizationCode, cookies: [ xsrfTokenDeletionCookie ] };
     } catch (error: unknown) {
       this.loggerService.error("Error in confirm", { error, params }, this.constructor.name);
 
@@ -135,23 +174,27 @@ export class AuthService implements AuthServiceInterface {
     }
   }
 
-  public async beginAuthFlow(params: BeginAuthFlowInput): Promise<BeginAuthFlowOutput> {
+  public async loginViaExternalProvider(params: LoginViaExternalProviderInput): Promise<LoginViaExternalProviderOutput> {
     try {
-      this.loggerService.trace("beginAuthFlow called", { params }, this.constructor.name);
+      this.loggerService.trace("loginViaExternalProvider called", { params }, this.constructor.name);
 
-      const { client, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope, externalProvider } = params;
+      const { xsrfToken, externalProvider } = params;
 
-      if (externalProvider) {
-        const { location, cookies } = await this.beginExternalProviderAuthFlow({ externalProvider, client, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope });
-
-        return { location, cookies };
+      if (externalProvider === ExternalProvider.Slack) {
+        throw new Error("Slack not available at this time.");
       }
 
-      const { location, cookies } = await this.beginInternalAuthFlow({ client, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope });
+      const externalProviderState = this.idService.generateId();
 
-      return { location, cookies };
+      await this.authFlowAttemptRepository.updateAuthFlowAttempt({ xsrfToken, updates: { externalProviderState } });
+
+      const oAuth2Client = this.googleOAuth2ClientFactory(this.googleClient.id, this.googleClient.secret, this.googleClient.redirectUri);
+
+      const location = oAuth2Client.generateAuthUrl({ scope: [ "openid", "email" ], state: externalProviderState });
+
+      return { location };
     } catch (error: unknown) {
-      this.loggerService.error("Error in beginAuthFlow", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in loginViaExternalProvider", { error, params }, this.constructor.name);
 
       if (error instanceof OAuth2Error) {
         throw error;
@@ -165,14 +208,18 @@ export class AuthService implements AuthServiceInterface {
     try {
       this.loggerService.trace("completeExternalProviderAuthFlow called", { params }, this.constructor.name);
 
-      const { authorizationCode: externalProviderAuthorizationCode, state } = params;
+      const { authorizationCode: externalProviderAuthorizationCode, xsrfToken, state } = params;
 
       const oAuth2Client = this.googleOAuth2ClientFactory(this.googleClient.id, this.googleClient.secret, this.googleClient.redirectUri);
 
-      const [ { externalProviderAuthFlowAttempt }, { tokens } ] = await Promise.all([
-        this.externalProviderAuthFlowAttemptRepository.getExternalProviderAuthFlowAttempt({ state }),
+      const [ { authFlowAttempt }, { tokens } ] = await Promise.all([
+        this.authFlowAttemptRepository.getAuthFlowAttempt({ xsrfToken }),
         oAuth2Client.getToken(externalProviderAuthorizationCode),
       ]);
+
+      if (authFlowAttempt.externalProviderState !== state) {
+        throw new Error("State mismatch");
+      }
 
       if (!tokens.id_token) {
         throw new Error("External Provider response missing id_token");
@@ -184,28 +231,19 @@ export class AuthService implements AuthServiceInterface {
 
       const authorizationCode = this.idService.generateId();
 
-      await this.externalProviderAuthFlowAttemptRepository.deleteExternalProviderAuthFlowAttempt({ state });
-
-      const authFlowAttempt: AuthFlowAttempt = {
-        clientId: externalProviderAuthFlowAttempt.clientId,
-        xsrfToken: this.idService.generateId(),
-        secret: this.idService.generateId(),
+      const authFlowAttemptUpdates: UpdateAuthFlowAttemptUpdates = {
         userId: user.id,
         authorizationCode,
         authorizationCodeCreatedAt: new Date().toISOString(),
-        responseType: externalProviderAuthFlowAttempt.responseType,
-        redirectUri: externalProviderAuthFlowAttempt.redirectUri,
-        scope: externalProviderAuthFlowAttempt.scope,
-        state: externalProviderAuthFlowAttempt.initialState,
-        codeChallenge: externalProviderAuthFlowAttempt.codeChallenge,
-        codeChallengeMethod: externalProviderAuthFlowAttempt.codeChallengeMethod,
+        externalProviderState: "",
       };
 
-      await this.authFlowAttemptRepository.createAuthFlowAttempt({ authFlowAttempt });
+      await this.authFlowAttemptRepository.updateAuthFlowAttempt({ xsrfToken, updates: authFlowAttemptUpdates });
 
-      const location = `${externalProviderAuthFlowAttempt.redirectUri}?code=${authorizationCode}${externalProviderAuthFlowAttempt.initialState ? `&state=${externalProviderAuthFlowAttempt.initialState}` : ""}`;
+      const location = `${authFlowAttempt.redirectUri}?code=${authorizationCode}${authFlowAttempt.state ? `&state=${authFlowAttempt.state}` : ""}`;
+      const xsrfTokenDeletionCookie = "XSRF-TOKEN=; Path=/; Secure; HttpOnly; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
-      return { location };
+      return { location, cookies: [ xsrfTokenDeletionCookie ] };
     } catch (error: unknown) {
       this.loggerService.error("Error in completeExternalProviderAuthFlow", { error, params }, this.constructor.name);
 
@@ -223,7 +261,7 @@ export class AuthService implements AuthServiceInterface {
 
       const { clientId, authorizationCode, redirectUri, codeVerifier } = params;
 
-      const { authFlowAttempt } = await this.authFlowAttemptRepository.getAuthFlowAttemptByAuthorizationCode({ clientId, authorizationCode });
+      const { authFlowAttempt } = await this.authFlowAttemptRepository.getAuthFlowAttemptByAuthorizationCode({ authorizationCode });
 
       if (authFlowAttempt.redirectUri !== redirectUri) {
         throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "redirect_uri mismatch");
@@ -237,28 +275,28 @@ export class AuthService implements AuthServiceInterface {
         const codeChallengeVerified = this.pkceChallenge.verifyChallenge(codeVerifier, authFlowAttempt.codeChallenge);
 
         if (!codeChallengeVerified) {
-          await this.authFlowAttemptRepository.deleteAuthFlowAttempt({ clientId, xsrfToken: authFlowAttempt.xsrfToken });
+          await this.authFlowAttemptRepository.deleteAuthFlowAttempt({ xsrfToken: authFlowAttempt.xsrfToken });
 
           throw new OAuth2Error(OAuth2ErrorType.AccessDenied, "Access Denied", redirectUri);
         }
       }
 
       if (!authFlowAttempt.userId) {
-        await this.authFlowAttemptRepository.deleteAuthFlowAttempt({ clientId, xsrfToken: authFlowAttempt.xsrfToken });
+        await this.authFlowAttemptRepository.deleteAuthFlowAttempt({ xsrfToken: authFlowAttempt.xsrfToken });
 
         throw new OAuth2Error(OAuth2ErrorType.ServerError);
       }
 
       // Check if authorization code is older than 60 secods
       if (!authFlowAttempt.authorizationCodeCreatedAt || (new Date(authFlowAttempt.authorizationCodeCreatedAt).getTime() + (1000 * 60)) < Date.now().valueOf()) {
-        await this.authFlowAttemptRepository.deleteAuthFlowAttempt({ clientId, xsrfToken: authFlowAttempt.xsrfToken });
+        await this.authFlowAttemptRepository.deleteAuthFlowAttempt({ xsrfToken: authFlowAttempt.xsrfToken });
 
         throw new OAuth2Error(OAuth2ErrorType.InvalidRequest, "code expired", redirectUri);
       }
 
       const [ { tokenType, accessToken, expiresIn, refreshToken } ] = await Promise.all([
         this.tokenService.generateAccessAndRefreshTokens({ clientId, userId: authFlowAttempt.userId, scope: authFlowAttempt.scope }),
-        this.authFlowAttemptRepository.deleteAuthFlowAttempt({ clientId, xsrfToken: authFlowAttempt.xsrfToken }),
+        this.authFlowAttemptRepository.deleteAuthFlowAttempt({ xsrfToken: authFlowAttempt.xsrfToken }),
       ]);
 
       return { tokenType, accessToken, expiresIn, refreshToken };
@@ -317,85 +355,6 @@ export class AuthService implements AuthServiceInterface {
     }
   }
 
-  private async beginInternalAuthFlow(params: BeginInternalAuthFlowInput): Promise<BeginInternalAuthFlowOutput> {
-    try {
-      this.loggerService.trace("beginInternalAuthFlow called", { params }, this.constructor.name);
-
-      const { client, state, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope } = params;
-
-      const secret = state || this.csrf.secretSync();
-      const xsrfToken = this.csrf.create(secret);
-
-      const authFlowAttempt: AuthFlowAttempt = {
-        clientId: client.id,
-        xsrfToken,
-        secret,
-        responseType,
-        redirectUri,
-        scope: scope || client.scopes.join(" "),
-        state,
-        codeChallenge,
-        codeChallengeMethod,
-      };
-
-      await this.authFlowAttemptRepository.createAuthFlowAttempt({ authFlowAttempt });
-
-      const optionalQueryParams = { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod, scope, state };
-      const optionalQueryString = Object.entries(optionalQueryParams).reduce((acc, [ key, value ]) => (value ? `${acc}&${key}=${value}` : acc), "");
-
-      const location = `${this.authUiUrl}?client_id=${client.id}&redirect_uri=${redirectUri}&response_type=${responseType}${optionalQueryString}`;
-      const xsrfTokenCookie = `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`;
-
-      return { location, cookies: [ xsrfTokenCookie ] };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in beginInternalAuthFlow", { error, params }, this.constructor.name);
-
-      if (error instanceof OAuth2Error) {
-        throw error;
-      }
-
-      throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
-    }
-  }
-
-  private async beginExternalProviderAuthFlow(params: BeginExternalProviderAuthFlowInput): Promise<BeginExternalProviderAuthFlowOutput> {
-    try {
-      this.loggerService.trace("beginExternalProviderAuthFlow called", { params }, this.constructor.name);
-
-      const { externalProvider, client, state: initialState, codeChallenge, codeChallengeMethod, responseType, redirectUri, scope } = params;
-
-      const state = this.idService.generateId();
-
-      const externalProviderAuthFlowAttempt: ExternalProviderAuthFlowAttempt = {
-        state,
-        externalProvider,
-        clientId: client.id,
-        responseType,
-        redirectUri,
-        scope: scope || client.scopes.join(" "),
-        initialState,
-        codeChallenge,
-        codeChallengeMethod,
-      };
-
-      await this.externalProviderAuthFlowAttemptRepository.createExternalProviderAuthFlowAttempt({ externalProviderAuthFlowAttempt });
-
-      const oAuth2Client = this.googleOAuth2ClientFactory(this.googleClient.id, this.googleClient.secret, this.googleClient.redirectUri);
-
-      const location = oAuth2Client.generateAuthUrl({ scope: [ "openid", "email" ], state });
-
-      return { location, cookies: [] };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in beginExternalProviderAuthFlow", { error, params }, this.constructor.name);
-
-      if (error instanceof OAuth2Error) {
-        throw error;
-      }
-
-      throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
-    }
-  }
-
   private async getOrCreateUser(params: GetOrCreateUserInput): Promise<GetOrCreateUserOutput> {
     try {
       this.loggerService.trace("getOrCreateUser called", { params }, this.constructor.name);
@@ -428,9 +387,10 @@ export class AuthService implements AuthServiceInterface {
 }
 
 export interface AuthServiceInterface {
+  beginAuthFlow(params: BeginAuthFlowInput): Promise<BeginAuthFlowOutput>;
   login(params: LoginInput): Promise<LoginOutput>;
   confirm(params: ConfirmInput): Promise<ConfirmOutput>;
-  beginAuthFlow(params: BeginAuthFlowInput): Promise<BeginAuthFlowOutput>;
+  loginViaExternalProvider(params: LoginViaExternalProviderInput): Promise<LoginViaExternalProviderOutput>
   completeExternalProviderAuthFlow(params: CompleteExternalProviderAuthFlowInput): Promise<CompleteExternalProviderAuthFlowOutput>
   handleAuthorizationCodeGrant(params: HandleAuthorizationCodeGrantInput): Promise<HandleAuthorizationCodeGrantOutput>;
   handleRefreshTokenGrant(params: HandleRefreshTokenGrantInput): Promise<HandleRefreshTokenGrantOutput>;
@@ -441,7 +401,6 @@ export interface AuthServiceInterface {
 export type AuthServiceConfigInterface = Pick<EnvConfigInterface, "authUI" | "googleClient">;
 
 interface BaseLoginInput {
-  clientId: string;
   xsrfToken: string;
 }
 
@@ -456,31 +415,23 @@ interface PhoneLoginInput extends BaseLoginInput {
 export type LoginInput = EmailLoginInput | PhoneLoginInput;
 export type LoginOutput = void;
 
-export interface BaseConfirmInput {
-  clientId: string;
+export interface LoginViaExternalProviderInput {
+  externalProvider: ExternalProvider;
+  xsrfToken: string;
+}
+
+export interface LoginViaExternalProviderOutput {
+  location: string;
+}
+
+export interface ConfirmInput {
   confirmationCode: string;
   xsrfToken: string;
 }
-interface EmailConfirmInput extends BaseConfirmInput {
-  email: string;
-}
-
-interface PhoneConfirmInput extends BaseConfirmInput {
-  phone: string;
-}
-
-export type ConfirmInput = EmailConfirmInput | PhoneConfirmInput;
-
-interface ConfirmFailureOutput {
-  confirmed: false;
-  session: string;
-}
-interface ConfirmSuccessOutput {
-  confirmed: true;
+export interface ConfirmOutput {
   authorizationCode: string;
+  cookies: string[];
 }
-
-export type ConfirmOutput = ConfirmFailureOutput | ConfirmSuccessOutput;
 
 export interface BeginAuthFlowInput {
   client: Client;
@@ -490,7 +441,6 @@ export interface BeginAuthFlowInput {
   scope?: string;
   codeChallenge?: string;
   codeChallengeMethod?: string;
-  externalProvider?: ExternalProvider.Google;
 }
 
 export interface BeginAuthFlowOutput {
@@ -499,12 +449,14 @@ export interface BeginAuthFlowOutput {
 }
 
 export interface CompleteExternalProviderAuthFlowInput {
+  xsrfToken: string;
   authorizationCode: string;
   state: string;
 }
 
 export interface CompleteExternalProviderAuthFlowOutput {
   location: string;
+  cookies: string[];
 }
 export interface RevokeTokensInput {
   clientId: string;
@@ -515,37 +467,6 @@ export type RevokeTokensOutput = void;
 
 export interface GetPublicJwksOutput {
   jwks: TokenServiceGetPublicJwksOutput["jwks"]
-}
-
-interface BeginInternalAuthFlowInput {
-  client: Client;
-  responseType: string;
-  redirectUri: string;
-  state?: string;
-  scope?: string;
-  codeChallenge?: string;
-  codeChallengeMethod?: string;
-}
-
-interface BeginInternalAuthFlowOutput {
-  location: string;
-  cookies: string[];
-}
-
-interface BeginExternalProviderAuthFlowInput {
-  externalProvider: ExternalProvider.Google;
-  client: Client;
-  responseType: string;
-  redirectUri: string;
-  state?: string;
-  scope?: string;
-  codeChallenge?: string;
-  codeChallengeMethod?: string;
-}
-
-interface BeginExternalProviderAuthFlowOutput {
-  location: string;
-  cookies: string[];
 }
 
 interface HandleAuthorizationCodeGrantInput {
