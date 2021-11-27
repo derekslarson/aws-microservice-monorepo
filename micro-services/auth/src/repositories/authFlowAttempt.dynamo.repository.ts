@@ -4,6 +4,7 @@ import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, 
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
+import { ExternalProvider } from "../enums/externalProvider.enum";
 
 @injectable()
 export class AuthFlowAttemptDynamoRepository extends BaseDynamoRepositoryV2<AuthFlowAttempt> implements AuthFlowAttemptRepositoryInterface {
@@ -162,8 +163,9 @@ export interface AuthFlowAttempt {
   scope: string;
   redirectUri: string;
   state?: string;
-  externalProviderState?: string;
   userId?: UserId;
+  externalProvider?: ExternalProvider;
+  externalProviderState?: string;
   codeChallenge?: string;
   codeChallengeMethod?: string;
   confirmationCode?: string;
@@ -215,6 +217,7 @@ export interface UpdateAuthFlowAttemptUpdates {
   confirmationCodeCreatedAt?: string;
   authorizationCode?: string;
   authorizationCodeCreatedAt?: string;
+  externalProvider?: ExternalProvider;
   externalProviderState?: string;
 }
 export interface UpdateAuthFlowAttemptInput {

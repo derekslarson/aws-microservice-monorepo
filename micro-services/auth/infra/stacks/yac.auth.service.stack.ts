@@ -57,8 +57,9 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`);
     const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`);
     const googleClientRedirectUri = `${this.httpApi.apiURL}/oauth2/idpresponse`;
-    // const slackClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-id`);
-    // const slackClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-secret`);
+    const slackClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-id`);
+    const slackClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-secret`);
+    const slackClientRedirectUri = `${this.httpApi.apiURL}/oauth2/idpresponse`;
 
     const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
     const externalProviderUserSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.ExternalProviderUserSignedUpSnsTopicArn);
@@ -162,6 +163,9 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       GOOGLE_CLIENT_ID: googleClientId,
       GOOGLE_CLIENT_SECRET: googleClientSecret,
       GOOGLE_CLIENT_REDIRECT_URI: googleClientRedirectUri,
+      SLACK_CLIENT_ID: slackClientId,
+      SLACK_CLIENT_SECRET: slackClientSecret,
+      SLACK_CLIENT_REDIRECT_URI: slackClientRedirectUri,
     };
 
     // Handlers

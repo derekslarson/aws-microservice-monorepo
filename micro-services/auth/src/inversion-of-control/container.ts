@@ -18,6 +18,7 @@ import { SessionDynamoRepository, SessionRepositoryInterface } from "../reposito
 import { pkceChallengeFactory, PkceChallengeFactory } from "../factories/pkceChallenge.factory";
 import { UserController, UserControllerInterface } from "../controllers/user.controller";
 import { JwksDynamoRepository, JwksRepositoryInterface } from "../repositories/jwks.dynamo.repository";
+import { slackOAuth2ClientFactory, SlackOAuth2ClientFactory } from "../factories/slackOAuth2Client.factory";
 
 const container = new Container();
 
@@ -45,6 +46,7 @@ try {
   container.bind<JoseFactory>(TYPES.JoseFactory).toFactory(() => joseFactory);
   container.bind<PkceChallengeFactory>(TYPES.PkceChallengeFactory).toFactory(() => pkceChallengeFactory);
   container.bind<SesFactory>(TYPES.SesFactory).toFactory(() => sesFactory);
+  container.bind<SlackOAuth2ClientFactory>(TYPES.SlackOAuth2ClientFactory).toFactory(() => slackOAuth2ClientFactory);
 
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([]);
 } catch (error: unknown) {

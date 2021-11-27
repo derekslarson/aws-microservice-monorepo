@@ -75,6 +75,7 @@
     "webpack-cli": "^4.5.0"
   },
   "dependencies": {
+    "@slack/web-api": "^6.5.1",
     "@yac/util": "0.1.0",
     "aws-sdk": "^2.783.0",
     "axios": "^0.21.1",

@@ -16,6 +16,11 @@ export const envConfig: EnvConfigInterface = {
     secret: process.env.GOOGLE_CLIENT_SECRET || "",
     redirectUri: process.env.GOOGLE_CLIENT_REDIRECT_URI || "",
   },
+  slackClient: {
+    id: process.env.SLACK_CLIENT_ID || "",
+    secret: process.env.SLACK_CLIENT_SECRET || "",
+    redirectUri: process.env.SLACK_CLIENT_REDIRECT_URI || "",
+  },
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
@@ -31,6 +36,11 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     one: string;
   };
   googleClient: {
+    id: string;
+    secret: string;
+    redirectUri: string;
+  };
+  slackClient: {
     id: string;
     secret: string;
     redirectUri: string;

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { Crypto, CryptoFactory, GoogleOAuth2ClientFactory, IdServiceInterface, Jwt, JwtFactory, LoggerServiceInterface, NotFoundError, SmsServiceInterface } from "@yac/util";
+import { Crypto, CryptoFactory, GoogleOAuth2Client, GoogleOAuth2ClientFactory, IdServiceInterface, Jwt, JwtFactory, LoggerServiceInterface, NotFoundError, SmsServiceInterface } from "@yac/util";
 import { TYPES } from "../../inversion-of-control/types";
 import { MailServiceInterface } from "../tier-1/mail.service";
 import { AuthFlowAttempt, AuthFlowAttemptRepositoryInterface, UpdateAuthFlowAttemptUpdates } from "../../repositories/authFlowAttempt.dynamo.repository";
@@ -13,6 +13,7 @@ import { OAuth2Error } from "../../errors/oAuth2.error";
 import { OAuth2ErrorType } from "../../enums/oAuth2ErrorType.enum";
 import { Client } from "../../repositories/client.dynamo.repository";
 import { ExternalProvider } from "../../enums/externalProvider.enum";
+import { SlackOAuth2Client, SlackOAuth2ClientFactory } from "../../factories/slackOAuth2Client.factory";
 
 @injectable()
 export class AuthService implements AuthServiceInterface {
@@ -26,7 +27,9 @@ export class AuthService implements AuthServiceInterface {
 
   private jwt: Jwt;
 
-  private googleClient: AuthServiceConfigInterface["googleClient"];
+  private googleOAuth2Client: GoogleOAuth2Client;
+
+  private slackOAuth2Client: SlackOAuth2Client;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
@@ -36,7 +39,8 @@ export class AuthService implements AuthServiceInterface {
     @inject(TYPES.TokenServiceInterface) private tokenService: TokenServiceInterface,
     @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
     @inject(TYPES.AuthFlowAttemptRepositoryInterface) private authFlowAttemptRepository: AuthFlowAttemptRepositoryInterface,
-    @inject(TYPES.GoogleOAuth2ClientFactory) private googleOAuth2ClientFactory: GoogleOAuth2ClientFactory,
+    @inject(TYPES.GoogleOAuth2ClientFactory) googleOAuth2ClientFactory: GoogleOAuth2ClientFactory,
+    @inject(TYPES.SlackOAuth2ClientFactory) slackOAuth2ClientFactory: SlackOAuth2ClientFactory,
     @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
     @inject(TYPES.CsrfFactory) csrfFactory: CsrfFactory,
     @inject(TYPES.PkceChallengeFactory) pkceChallengeFactory: PkceChallengeFactory,
@@ -44,7 +48,8 @@ export class AuthService implements AuthServiceInterface {
     @inject(TYPES.EnvConfigInterface) config: AuthServiceConfigInterface,
   ) {
     this.authUiUrl = config.authUI;
-    this.googleClient = config.googleClient;
+    this.googleOAuth2Client = googleOAuth2ClientFactory(config.googleClient.id, config.googleClient.secret, config.googleClient.redirectUri);
+    this.slackOAuth2Client = slackOAuth2ClientFactory(config.slackClient.id, config.slackClient.secret, config.slackClient.redirectUri);
     this.crypto = cryptoFactory();
     this.csrf = csrfFactory();
     this.pkceChallenge = pkceChallengeFactory();
@@ -180,17 +185,13 @@ export class AuthService implements AuthServiceInterface {
 
       const { xsrfToken, externalProvider } = params;
 
-      if (externalProvider === ExternalProvider.Slack) {
-        throw new Error("Slack not available at this time.");
-      }
-
       const externalProviderState = this.idService.generateId();
 
-      await this.authFlowAttemptRepository.updateAuthFlowAttempt({ xsrfToken, updates: { externalProviderState } });
+      const externalProviderClient = externalProvider === ExternalProvider.Slack ? this.slackOAuth2Client : this.googleOAuth2Client;
 
-      const oAuth2Client = this.googleOAuth2ClientFactory(this.googleClient.id, this.googleClient.secret, this.googleClient.redirectUri);
+      const location = externalProviderClient.generateAuthUrl({ scope: [ "openid", "email", "profile" ], state: externalProviderState });
 
-      const location = oAuth2Client.generateAuthUrl({ scope: [ "openid", "email" ], state: externalProviderState });
+      await this.authFlowAttemptRepository.updateAuthFlowAttempt({ xsrfToken, updates: { externalProvider, externalProviderState } });
 
       return { location };
     } catch (error: unknown) {
@@ -210,24 +211,29 @@ export class AuthService implements AuthServiceInterface {
 
       const { authorizationCode: externalProviderAuthorizationCode, xsrfToken, state } = params;
 
-      const oAuth2Client = this.googleOAuth2ClientFactory(this.googleClient.id, this.googleClient.secret, this.googleClient.redirectUri);
+      const { authFlowAttempt } = await this.authFlowAttemptRepository.getAuthFlowAttempt({ xsrfToken });
 
-      const [ { authFlowAttempt }, { tokens } ] = await Promise.all([
-        this.authFlowAttemptRepository.getAuthFlowAttempt({ xsrfToken }),
-        oAuth2Client.getToken(externalProviderAuthorizationCode),
-      ]);
+      if (!authFlowAttempt.externalProvider) {
+        await this.authFlowAttemptRepository.deleteAuthFlowAttempt({ xsrfToken });
+
+        throw new OAuth2Error(OAuth2ErrorType.AccessDenied);
+      }
 
       if (authFlowAttempt.externalProviderState !== state) {
         throw new Error("State mismatch");
       }
 
+      const externalProviderClient = authFlowAttempt.externalProvider === ExternalProvider.Slack ? this.slackOAuth2Client : this.googleOAuth2Client;
+
+      const { tokens } = await externalProviderClient.getToken(externalProviderAuthorizationCode);
+
       if (!tokens.id_token) {
         throw new Error("External Provider response missing id_token");
       }
 
-      const { email } = this.jwt.decode(tokens.id_token) as { email: string; name?: string; };
+      const decodedIdToken = this.jwt.decode(tokens.id_token) as { email: string; name?: string; };
 
-      const { user } = await this.getOrCreateUser({ email });
+      const { user } = await this.getOrCreateUser({ email: decodedIdToken.email });
 
       const authorizationCode = this.idService.generateId();
 
@@ -398,7 +404,7 @@ export interface AuthServiceInterface {
   getPublicJwks(): Promise<GetPublicJwksOutput>;
 }
 
-export type AuthServiceConfigInterface = Pick<EnvConfigInterface, "authUI" | "googleClient">;
+export type AuthServiceConfigInterface = Pick<EnvConfigInterface, "authUI" | "googleClient" | "slackClient">;
 
 interface BaseLoginInput {
   xsrfToken: string;

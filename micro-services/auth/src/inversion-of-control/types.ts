@@ -24,6 +24,7 @@ const TYPES = {
   JoseFactory: Symbol.for("JoseFactory"),
   PkceChallengeFactory: Symbol.for("PkceChallengeFactory"),
   SesFactory: Symbol.for("SesFactory"),
+  SlackOAuth2ClientFactory: Symbol.for("SlackOAuth2ClientFactory"),
 };
 
 export { TYPES };
