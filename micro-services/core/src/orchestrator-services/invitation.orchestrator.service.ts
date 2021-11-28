@@ -88,6 +88,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
                 type: PendingInvitationType.Team,
                 invitingEntityId: teamId,
                 emailOrPhone: invitation.email || invitation.phone as string,
+                role: invitation.role,
               },
             });
           } else {
@@ -130,6 +131,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
                 type: PendingInvitationType.Group,
                 invitingEntityId: groupId,
                 emailOrPhone: invitation.email || invitation.phone as string,
+                role: invitation.role,
               },
             });
           } else {
@@ -172,6 +174,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
                 type: PendingInvitationType.Meeting,
                 invitingEntityId: meetingId,
                 emailOrPhone: invitation.email || invitation.phone as string,
+                role: invitation.role,
               },
             });
           } else {

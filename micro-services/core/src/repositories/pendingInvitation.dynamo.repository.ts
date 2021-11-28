@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, GroupId, LoggerServiceInterface, MeetingId, TeamId, UserId } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, GroupId, LoggerServiceInterface, MeetingId, Role, TeamId, UserId } from "@yac/util";
 
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
@@ -107,6 +107,7 @@ export interface PendingInvitation<T extends PendingInvitationType | void = void
   emailOrPhone: string;
   type: T;
   invitingEntityId: InvitingEntityId<T>;
+  role?: Role;
 }
 
 type Sk<T extends PendingInvitationType> = `${EntityType.PendingInvitation}-${InvitingEntityId<T>}`;
