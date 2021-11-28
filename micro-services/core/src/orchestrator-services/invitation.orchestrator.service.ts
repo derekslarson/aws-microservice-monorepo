@@ -11,7 +11,7 @@ import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.me
 import { UserId } from "../types/userId.type";
 import { FriendshipMediatorServiceInterface } from "../mediator-services/friendship.mediator.service";
 import { GetUserByEmailInput, GetUserByPhoneInput } from "../repositories/user.dynamo.repository";
-import { PendingInvitation, PendingInvitationRepositoryInterface } from "../repositories/pendingInvitation.dynamo.repository";
+import { PendingInvitationRepositoryInterface } from "../repositories/pendingInvitation.dynamo.repository";
 import { PendingInvitationType } from "../enums/pendingInvitationType.enum";
 
 @injectable()
@@ -36,13 +36,11 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
         try {
           const { user } = await this.getUserIfExists(invitation);
 
-          if (user) {
-            await this.friendshipMediatorService.createFriendship({ userIds: [ user.id, userId ], createdBy: userId });
-
-            return { success: true, invitation };
+          if (!user && invitation.username) {
+            return { success: false, invitation };
           }
 
-          if (invitation.email || invitation.phone) {
+          if (!user) {
             await this.pendingInvitationRepository.createPendingInvitation({
               pendingInvitation: {
                 type: PendingInvitationType.Friend,
@@ -50,11 +48,11 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
                 emailOrPhone: invitation.email || invitation.phone as string,
               },
             });
-
-            return { success: true, invitation };
+          } else {
+            await this.friendshipMediatorService.createFriendship({ userIds: [ user.id, userId ], createdBy: userId });
           }
 
-          return { success: false, invitation };
+          return { success: true, invitation };
         } catch (error) {
           return { success: false, invitation };
         }
@@ -80,10 +78,20 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
         try {
           const { user } = await this.getUserIfExists(invitation);
 
-          if (user) {
-            await this.teamMediatorService.addUserToTeam({ teamId, userId: user.id, role: invitation.role });
+          if (!user && invitation.username) {
+            return { success: false, invitation };
+          }
+
+          if (!user) {
+            await this.pendingInvitationRepository.createPendingInvitation({
+              pendingInvitation: {
+                type: PendingInvitationType.Team,
+                invitingEntityId: teamId,
+                emailOrPhone: invitation.email || invitation.phone as string,
+              },
+            });
           } else {
-            await this.createPendingInvitiation({ type: "team", invitingEntityId: teamId, invitation });
+            await this.teamMediatorService.addUserToTeam({ teamId, userId: user.id, role: invitation.role });
           }
 
           return { success: true, invitation };
@@ -112,10 +120,20 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
         try {
           const { user } = await this.getUserIfExists(invitation);
 
-          if (user) {
-            await this.groupMediatorService.addUserToGroup({ groupId, userId: user.id, role: invitation.role });
+          if (!user && invitation.username) {
+            return { success: false, invitation };
+          }
+
+          if (!user) {
+            await this.pendingInvitationRepository.createPendingInvitation({
+              pendingInvitation: {
+                type: PendingInvitationType.Group,
+                invitingEntityId: groupId,
+                emailOrPhone: invitation.email || invitation.phone as string,
+              },
+            });
           } else {
-            await this.createPendingInvitiation({ type: "group", invitingEntityId: groupId, invitation });
+            await this.groupMediatorService.addUserToGroup({ groupId, userId: user.id, role: invitation.role });
           }
 
           return { success: true, invitation };
@@ -144,10 +162,20 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
         try {
           const { user } = await this.getUserIfExists(invitation);
 
-          if (user) {
-            await this.meetingMediatorService.addUserToMeeting({ meetingId, userId: user.id, role: invitation.role });
+          if (!user && invitation.username) {
+            return { success: false, invitation };
+          }
+
+          if (!user) {
+            await this.pendingInvitationRepository.createPendingInvitation({
+              pendingInvitation: {
+                type: PendingInvitationType.Meeting,
+                invitingEntityId: meetingId,
+                emailOrPhone: invitation.email || invitation.phone as string,
+              },
+            });
           } else {
-            await this.createPendingInvitiation({ type: "meeting", invitingEntityId: meetingId, invitation });
+            await this.meetingMediatorService.addUserToMeeting({ meetingId, userId: user.id, role: invitation.role });
           }
 
           return { success: true, invitation };
