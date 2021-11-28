@@ -13,6 +13,10 @@ const TYPES = {
   MailServiceInterface: Symbol.for("MailServiceInterface"),
   TokenServiceInterface: Symbol.for("TokenServiceInterface"),
 
+  UserCreatedSnsServiceInterface: Symbol.for("UserCreatedSnsServiceInterface"),
+
+  UserCreatedDynamoProcessorServiceInterface: Symbol.for("UserCreatedDynamoProcessorServiceInterface"),
+
   AuthFlowAttemptRepositoryInterface: Symbol.for("AuthFlowAttemptRepositoryInterface"),
   ClientRepositoryInterface: Symbol.for("ClientRepositoryInterface"),
   JwksRepositoryInterface: Symbol.for("JwksRepositoryInterface"),

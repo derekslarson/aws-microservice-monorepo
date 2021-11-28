@@ -6,6 +6,6 @@ export interface User {
   email?: string;
   phone?: string;
   username?: string;
-  realName?: string;
+  name?: string;
   bio?: string;
 }

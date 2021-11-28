@@ -373,17 +373,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     // HTTP Event Handlers
-    const createUserHandler = new Lambda.Function(this, `CreateUser_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/createUser"),
-      handler: "createUser.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
     const updateUserHandler = new Lambda.Function(this, `UpdateUser${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/updateUser"),
@@ -896,11 +885,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     const userRoutes: RouteProps[] = [
-      {
-        path: "/users",
-        method: ApiGatewayV2.HttpMethod.POST,
-        handler: createUserHandler,
-      },
       {
         path: "/users/{userId}",
         method: ApiGatewayV2.HttpMethod.PATCH,

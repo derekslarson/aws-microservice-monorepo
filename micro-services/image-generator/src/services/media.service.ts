@@ -34,7 +34,7 @@ export class MediaService implements MediaServiceInterface {
 
       const messageChecksumData: MediaChecksumInterface = {
         senderUsername: yacMessage.usernameFrom,
-        senderRealName: yacMessage.profileNameFrom,
+        sendername: yacMessage.profileNameFrom,
         senderImage: yacMessage.profileImageFrom,
       };
       const databaseEntry = await this.mediaRepository.create(this.derivePrimaryKey(messageId, isGroup), this.getChecksum(messageChecksumData), bannerbearRequest.uid);
@@ -133,7 +133,7 @@ export class MediaService implements MediaServiceInterface {
 interface MediaChecksumInterface {
   senderUsername: string,
   senderImage: string,
-  senderRealName: string
+  sendername: string
 }
 
 export interface MediaServiceInterface {

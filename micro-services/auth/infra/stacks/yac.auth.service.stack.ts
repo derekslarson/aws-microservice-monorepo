@@ -121,11 +121,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       destinationBucket: websiteBucket,
     });
 
-    // const externalProviderUserSignedUpSnsPublishPolicyStatement = new IAM.PolicyStatement({
-    //   actions: [ "SNS:Publish" ],
-    //   resources: [ externalProviderUserSignedUpSnsTopicArn ],
-    // });
-
     // Policies
     const authTableFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "dynamodb:*" ],
@@ -135,6 +130,11 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const sendEmailPolicyStatement = new IAM.PolicyStatement({
       actions: [ "ses:SendEmail", "ses:SendRawEmail" ],
       resources: [ "*" ],
+    });
+
+    const userCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ userCreatedSnsTopicArn ],
     });
 
     // Because we can't reference a resource for a phone number to allow,
@@ -169,6 +169,21 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     };
 
     // Handlers
+
+    new Lambda.Function(this, `AuthTableEventHandler_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/authTableEvent"),
+      handler: "authTableEvent.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement, userCreatedSnsPublishPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+      events: [
+        new LambdaEventSources.DynamoEventSource(authTable, { startingPosition: Lambda.StartingPosition.LATEST }),
+      ],
+    });
+
     new Lambda.Function(this, `SnsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),

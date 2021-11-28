@@ -68,7 +68,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -98,7 +98,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -146,7 +146,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -186,7 +186,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,

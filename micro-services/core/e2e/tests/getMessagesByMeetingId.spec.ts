@@ -74,7 +74,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: user.realName,
+                  name: user.name,
                   bio: user.bio,
                   username: user.username,
                   id: user.id,
@@ -104,7 +104,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -153,7 +153,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: user.realName,
+                  name: user.name,
                   bio: user.bio,
                   username: user.username,
                   id: user.id,
@@ -194,7 +194,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,

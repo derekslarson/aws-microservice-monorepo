@@ -64,7 +64,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
               {
                 id: messageTwo.id,
                 to: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -73,7 +73,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: user.realName,
+                  name: user.name,
                   bio: user.bio,
                   username: user.username,
                   id: user.id,
@@ -94,7 +94,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
               {
                 id: message.id,
                 to: {
-                  realName: user.realName,
+                  name: user.name,
                   bio: user.bio,
                   username: user.username,
                   id: user.id,
@@ -103,7 +103,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -143,7 +143,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
               {
                 id: messageTwo.id,
                 to: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -152,7 +152,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: user.realName,
+                  name: user.name,
                   bio: user.bio,
                   username: user.username,
                   id: user.id,
@@ -184,7 +184,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
               {
                 id: message.id,
                 to: {
-                  realName: user.realName,
+                  name: user.name,
                   bio: user.bio,
                   username: user.username,
                   id: user.id,
@@ -193,7 +193,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,

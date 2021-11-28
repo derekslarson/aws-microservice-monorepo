@@ -72,7 +72,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
               image: jasmine.stringMatching(URL_REGEX),
             },
             from: {
-              realName: user.realName,
+              name: user.name,
               bio: user.bio,
               username: user.username,
               id: user.id,

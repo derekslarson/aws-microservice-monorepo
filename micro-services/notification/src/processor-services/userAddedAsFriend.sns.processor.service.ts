@@ -39,7 +39,7 @@ export class UserAddedAsFriendSnsProcessorService implements SnsProcessorService
 
       const { message: { addingUser, addedUser } } = record;
 
-      const addingUserName = addingUser.realName || addingUser.username || addingUser.email || addingUser.phone as string;
+      const addingUserName = addingUser.name || addingUser.username || addingUser.email || addingUser.phone as string;
 
       await Promise.allSettled([
         this.pushNotificationMediatorService.sendPushNotification({

@@ -8,7 +8,7 @@ export const envConfig: EnvConfigInterface = {
   bucketNames: {},
   tableNames: { auth: process.env.AUTH_TABLE_NAME || "" },
   globalSecondaryIndexNames: { one: process.env.GSI_ONE_INDEX_NAME || "" },
-  snsTopicArns: {},
+  snsTopicArns: { userCreated: process.env.USER_CREATED_SNS_TOPIC_ARN || "" },
   mailSender: process.env.MAIL_SENDER || "",
   authUI: process.env.YAC_AUTH_UI || "",
   googleClient: {
@@ -32,6 +32,9 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   tableNames: {
     auth: string;
   };
+  snsTopicArns: {
+    userCreated: string;
+  }
   globalSecondaryIndexNames: {
     one: string;
   };

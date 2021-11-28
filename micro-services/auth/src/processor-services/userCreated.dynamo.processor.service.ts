@@ -6,26 +6,24 @@ import { EnvConfigInterface } from "../config/env.config";
 import { RawUser } from "../repositories/user.dynamo.repository";
 import { EntityType } from "../enums/entityType.enum";
 import { UserCreatedSnsServiceInterface } from "../sns-services/userCreated.sns.service";
-import { UserServiceInterface } from "../entity-services/user.service";
 
 @injectable()
 export class UserCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
-  private coreTableName: string;
+  private authTableName: string;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserCreatedSnsServiceInterface) private userCreatedSnsService: UserCreatedSnsServiceInterface,
-    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
-    this.coreTableName = envConfig.tableNames.core;
+    this.authTableName = envConfig.tableNames.auth;
   }
 
   public determineRecordSupport(record: DynamoProcessorServiceRecord): boolean {
     try {
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
-      const isCoreTable = record.tableName === this.coreTableName;
+      const isCoreTable = record.tableName === this.authTableName;
       const isUser = record.newImage.entityType === EntityType.User;
       const isCreation = record.eventName === "INSERT";
 
@@ -43,7 +41,7 @@ export class UserCreatedDynamoProcessorService implements DynamoProcessorService
 
       const { newImage: user } = record;
 
-      await this.userService.indexUserForSearch({ user });
+      await this.userCreatedSnsService.sendMessage({ id: user.id, email: user.email, phone: user.phone, name: user.name });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 
@@ -54,6 +52,6 @@ export class UserCreatedDynamoProcessorService implements DynamoProcessorService
 
 export interface UserCreatedDynamoProcessorServiceConfigInterface {
   tableNames: {
-    core: EnvConfigInterface["tableNames"]["core"];
+    auth: EnvConfigInterface["tableNames"]["auth"];
   }
 }

@@ -13,8 +13,8 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
   const accessToken = process.env.accessToken as string;
 
   describe("under normal conditions", () => {
-    describe("when passed both 'bio' and 'realName' value", () => {
-      const body = { bio: generateRandomString(5), realName: generateRandomString(5) };
+    describe("when passed both 'bio' and 'name' value", () => {
+      const body = { bio: generateRandomString(5), name: generateRandomString(5) };
 
       it("returns a valid response", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
@@ -54,7 +54,7 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
         const headers = {};
-        const body = { realName: generateRandomString(5), bio: generateRandomString(5) };
+        const body = { name: generateRandomString(5), bio: generateRandomString(5) };
 
         try {
           await axios.patch(`${baseUrl}/users/${userId}`, body, { headers });
@@ -70,7 +70,7 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
     describe("when an id of a user other than the one in the auth token is passed in", () => {
       it("throws a 403 error", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
-        const body = { realName: generateRandomString(5), bio: generateRandomString(5) };
+        const body = { name: generateRandomString(5), bio: generateRandomString(5) };
 
         try {
           await axios.patch(`${baseUrl}/users/${mockUserId}`, body, { headers });
@@ -86,7 +86,7 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
     describe("when passed invalid parameters", () => {
       it("throws a 400 error with a valid structure", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
-        const body = { realName: false, bio: true };
+        const body = { name: false, bio: true };
 
         try {
           await axios.patch(`${baseUrl}/users/test`, body, { headers });
@@ -99,7 +99,7 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
             message: "Error validating request",
             validationErrors: {
               pathParameters: { userId: "Failed constraint check for string: Must be a user id" },
-              body: { realName: "Expected string, but was boolean", bio: "Expected string, but was boolean" },
+              body: { name: "Expected string, but was boolean", bio: "Expected string, but was boolean" },
             },
           });
         }

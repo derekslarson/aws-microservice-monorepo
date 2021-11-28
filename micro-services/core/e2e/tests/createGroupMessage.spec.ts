@@ -70,7 +70,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
               image: jasmine.stringMatching(URL_REGEX),
             },
             from: {
-              realName: user.realName,
+              name: user.name,
               bio: user.bio,
               username: user.username,
               id: user.id,

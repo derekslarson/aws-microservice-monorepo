@@ -18,7 +18,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
   const baseUrl = process.env.baseUrl as string;
 
   describe("under normal conditions", () => {
-    const searchParamNameRealName = "one";
+    const searchParamNamename = "one";
     const searchParamUserName = "two";
     const searchParamEmail = "three";
     const searchParamPhone = generateRandomPhone();
@@ -46,7 +46,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
       ([ { user }, { user: otherUser } ] = await Promise.all([
         createRandomUser(),
         createUser({
-          realName: `${generateRandomString(10)} ${searchParamNameRealName}`,
+          name: `${generateRandomString(10)} ${searchParamNamename}`,
           bio: `${generateRandomString(10)}`,
           email: `${generateRandomString(10)}${searchParamEmail}@test.com`,
           username: `${generateRandomString(10)}-${searchParamUserName}`,
@@ -56,7 +56,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
 
       ([ { accessToken }, { conversation: meeting }, { conversation: meetingTwo }, { conversation: group }, { conversation: friendship } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createMeetingConversation({ createdBy: user.id, name: `${generateRandomString(5)} ${searchParamNameRealName}`, dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
+        createMeetingConversation({ createdBy: user.id, name: `${generateRandomString(5)} ${searchParamNamename}`, dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
         createMeetingConversation({ createdBy: otherUser.id, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
         createGroupConversation({ createdBy: otherUser.id, name: generateRandomString(5) }),
         createFriendConversation({ userId: user.id, friendId: otherUser.id }),
@@ -86,7 +86,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
             conversations: [
               {
                 id: otherUser.id,
-                realName: otherUser.realName,
+                name: otherUser.name,
                 bio: otherUser.bio,
                 username: otherUser.username,
                 email: otherUser.email,
@@ -120,7 +120,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                     image: jasmine.stringMatching(URL_REGEX),
                   },
                   from: {
-                    realName: otherUser.realName,
+                    name: otherUser.name,
                     bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
@@ -183,7 +183,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
             conversations: [
               {
                 id: otherUser.id,
-                realName: otherUser.realName,
+                name: otherUser.name,
                 bio: otherUser.bio,
                 username: otherUser.username,
                 email: otherUser.email,
@@ -219,7 +219,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                     image: jasmine.stringMatching(URL_REGEX),
                   },
                   from: {
-                    realName: otherUser.realName,
+                    name: otherUser.name,
                     bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
@@ -291,7 +291,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
             conversations: [
               {
                 id: otherUser.id,
-                realName: otherUser.realName,
+                name: otherUser.name,
                 bio: otherUser.bio,
                 username: otherUser.username,
                 email: otherUser.email,
@@ -346,7 +346,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                     image: jasmine.stringMatching(URL_REGEX),
                   },
                   from: {
-                    realName: otherUser.realName,
+                    name: otherUser.name,
                     bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
@@ -493,7 +493,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                     image: jasmine.stringMatching(URL_REGEX),
                   },
                   from: {
-                    realName: otherUser.realName,
+                    name: otherUser.name,
                     bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
@@ -517,9 +517,9 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
     });
 
     describe("when passed a 'searchTerm' query param", () => {
-      describe("when passed a term that is in a user's realName and meeting's name", () => {
+      describe("when passed a term that is in a user's name and meeting's name", () => {
         it("returns a valid response", async () => {
-          const params = { searchTerm: searchParamNameRealName };
+          const params = { searchTerm: searchParamNamename };
           const headers = { Authorization: `Bearer ${accessToken}` };
 
           try {
@@ -531,7 +531,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               conversations: jasmine.arrayContaining([
                 {
                   id: otherUser.id,
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,
@@ -576,7 +576,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               conversations: [
                 {
                   id: otherUser.id,
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,
@@ -608,7 +608,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               conversations: [
                 {
                   id: otherUser.id,
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,
@@ -640,7 +640,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               conversations: [
                 {
                   id: otherUser.id,
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   email: otherUser.email,

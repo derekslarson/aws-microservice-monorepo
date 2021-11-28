@@ -14,7 +14,6 @@ import { MessageService, MessageServiceInterface } from "../entity-services/mess
 import { PendingMessageService, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
 import { TeamService, TeamServiceInterface } from "../entity-services/team.service";
 import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } from "../entity-services/teamUserRelationship.service";
-import { UniquePropertyService, UniquePropertyServiceInterface } from "../entity-services/uniqueProperty.service";
 import { UserService, UserServiceInterface } from "../entity-services/user.service";
 import { identiconFactory, IdenticonFactory } from "../factories/identicon.factory";
 import { ConversationMediatorService, ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
@@ -48,7 +47,6 @@ import { MessageDynamoRepository, MessageRepositoryInterface } from "../reposito
 import { PendingMessageDynamoRepository, PendingMessageRepositoryInterface } from "../repositories/pendingMessage.dynamo.repository";
 import { TeamDynamoRepository, TeamRepositoryInterface } from "../repositories/team.dynamo.repository";
 import { TeamUserRelationshipDynamoRepository, TeamUserRelationshipRepositoryInterface } from "../repositories/teamUserRelationship.dynamo.repository";
-import { UniquePropertyDynamoRepository, UniquePropertyRepositoryInterface } from "../repositories/uniqueProperty.dynamo.repository";
 import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
 import { MeetingCreatedSnsService, MeetingCreatedSnsServiceInterface } from "../sns-services/meetingCreated.sns.service";
 import { FriendMessageCreatedSnsService, FriendMessageCreatedSnsServiceInterface } from "../sns-services/friendMessageCreated.sns.service";
@@ -77,7 +75,8 @@ import { MessageTranscribedSnsProcessorService } from "../processor-services/mes
 import { aws4Factory, Aws4Factory } from "../factories/aws4.factory";
 import { UserGroupMeetingSearchService, UserGroupMeetingSearchServiceInterface } from "../entity-services/userGroupMeeting.search.service";
 import { OpenSearchRepository, SearchRepositoryInterface } from "../repositories/openSearch.repository";
-import { ExternalProviderUserSignedUpSnsProcessorService } from "../processor-services/externalProviderUserSignedUp.sns.processor.service";
+import { UserCreatedSnsProcessorService } from "../processor-services/userCreated.sns.processor.service";
+import { PendingInvitationDynamoRepository, PendingInvitationRepositoryInterface } from "../repositories/pendingInvitation.dynamo.repository";
 
 const container = new Container();
 
@@ -114,7 +113,7 @@ try {
   // SNS Processor Services
   container.bind<SnsProcessorServiceInterface>(TYPES.MessageTranscodedSnsProcessorServiceInterface).to(MessageTranscodedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.MessageTranscribedSnsProcessorServiceInterface).to(MessageTranscribedSnsProcessorService);
-  container.bind<SnsProcessorServiceInterface>(TYPES.ExternalProviderUserSignedUpSnsProcessorServiceInterface).to(ExternalProviderUserSignedUpSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.UserCreatedSnsProcessorServiceInterface).to(UserCreatedSnsProcessorService);
 
   // Dynamo Processor Services
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserCreatedDynamoProcessorServiceInterface).to(UserCreatedDynamoProcessorService);
@@ -163,7 +162,6 @@ try {
   container.bind<PendingMessageServiceInterface>(TYPES.PendingMessageServiceInterface).to(PendingMessageService);
   container.bind<TeamServiceInterface>(TYPES.TeamServiceInterface).to(TeamService);
   container.bind<TeamUserRelationshipServiceInterface>(TYPES.TeamUserRelationshipServiceInterface).to(TeamUserRelationshipService);
-  container.bind<UniquePropertyServiceInterface>(TYPES.UniquePropertyServiceInterface).to(UniquePropertyService);
   container.bind<UserServiceInterface>(TYPES.UserServiceInterface).to(UserService);
   container.bind<UserGroupMeetingSearchServiceInterface>(TYPES.UserGroupMeetingSearchServiceInterface).to(UserGroupMeetingSearchService);
 
@@ -173,10 +171,10 @@ try {
   container.bind<ImageFileRepositoryInterface>(TYPES.ImageFileRepositoryInterface).to(ImageS3Repository);
   container.bind<MessageRepositoryInterface>(TYPES.MessageRepositoryInterface).to(MessageDynamoRepository);
   container.bind<PendingMessageRepositoryInterface>(TYPES.PendingMessageRepositoryInterface).to(PendingMessageDynamoRepository);
+  container.bind<PendingInvitationRepositoryInterface>(TYPES.PendingInvitationRepositoryInterface).to(PendingInvitationDynamoRepository);
   container.bind<TeamRepositoryInterface>(TYPES.TeamRepositoryInterface).to(TeamDynamoRepository);
   container.bind<SearchRepositoryInterface>(TYPES.SearchRepositoryInterface).to(OpenSearchRepository);
   container.bind<TeamUserRelationshipRepositoryInterface>(TYPES.TeamUserRelationshipRepositoryInterface).to(TeamUserRelationshipDynamoRepository);
-  container.bind<UniquePropertyRepositoryInterface>(TYPES.UniquePropertyRepositoryInterface).to(UniquePropertyDynamoRepository);
   container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);
 
   // Factories
@@ -187,7 +185,7 @@ try {
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
     container.get(TYPES.MessageTranscodedSnsProcessorServiceInterface),
     container.get(TYPES.MessageTranscribedSnsProcessorServiceInterface),
-    container.get(TYPES.ExternalProviderUserSignedUpSnsProcessorServiceInterface),
+    container.get(TYPES.UserCreatedSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([

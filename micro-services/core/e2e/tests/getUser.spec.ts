@@ -30,7 +30,7 @@ describe("GET /users/{userId} (Get User)", () => {
             email: user.email,
             username: user.username,
             phone: user.phone,
-            realName: user.realName,
+            name: user.name,
             bio: user.bio,
             image: jasmine.stringMatching(URL_REGEX),
           },

@@ -21,7 +21,7 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
   const mockUser: User = {
     id: mockUserIdOne,
     image: "mock-image",
-    realName: "mock-realName",
+    name: "mock-name",
   };
 
   const mockMeeting: Meeting = {
@@ -97,7 +97,7 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
         webSocketMediatorService.sendMessage.and.returnValue(Promise.resolve());
       });
 
-      describe("when from.realName is defined", () => {
+      describe("when from.name is defined", () => {
         it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
           await meetingMessageCreatedSnsProcessorService.processRecord(mockRecord);
 
@@ -106,12 +106,12 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
             userId: mockUserIdTwo,
             event: PushNotificationEvent.MeetingMessageCreated,
             title: "New Message Received",
-            body: `Message from ${mockUser.realName as string} in ${mockMeeting.name}`,
+            body: `Message from ${mockUser.name as string} in ${mockMeeting.name}`,
           });
         });
       });
 
-      describe("when from.realName isn't defined, but from.username is", () => {
+      describe("when from.name isn't defined, but from.username is", () => {
         const mockRecordTwo = {
           ...mockRecord,
           message: {
@@ -138,7 +138,7 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
         });
       });
 
-      describe("when from.realName and from.username aren't defined, but from.email is", () => {
+      describe("when from.name and from.username aren't defined, but from.email is", () => {
         const mockRecordTwo = {
           ...mockRecord,
           message: {
@@ -165,7 +165,7 @@ describe("MeetingMessageCreatedSnsProcessorService", () => {
         });
       });
 
-      describe("when from.realName, from.username and from.email aren't defined, but from.phone is", () => {
+      describe("when from.name, from.username and from.email aren't defined, but from.phone is", () => {
         const mockRecordTwo = {
           ...mockRecord,
           message: {

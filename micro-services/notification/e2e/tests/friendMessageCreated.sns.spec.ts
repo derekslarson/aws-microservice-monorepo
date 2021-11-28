@@ -63,7 +63,7 @@ describe("Friend Message Created SNS Topic", () => {
               from: {
                 id: userTwoId,
                 image: "test-image-two",
-                realName: "User Two",
+                name: "User Two",
               },
               type: "friend",
               createdAt: new Date().toISOString(),
@@ -132,7 +132,7 @@ describe("Friend Message Created SNS Topic", () => {
               from: {
                 id: userTwoId,
                 image: "test-image-two",
-                realName: "User Two",
+                name: "User Two",
               },
               type: "friend",
               createdAt: new Date().toISOString(),

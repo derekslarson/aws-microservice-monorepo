@@ -1,8 +1,8 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Role } from "@yac/util";
+import { LoggerServiceInterface, NotFoundError, Role } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamId } from "../types/teamId.type";
-import { GetOrCreateUserByEmailInput, GetOrCreateUserByPhoneInput, GetUserByUsernameInput, User, UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
+import { GetUserByUsernameInput, User, UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GroupId } from "../types/groupId.type";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
@@ -10,6 +10,9 @@ import { MeetingId } from "../types/meetingId.type";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { UserId } from "../types/userId.type";
 import { FriendshipMediatorServiceInterface } from "../mediator-services/friendship.mediator.service";
+import { GetUserByEmailInput, GetUserByPhoneInput } from "../repositories/user.dynamo.repository";
+import { PendingInvitation, PendingInvitationRepositoryInterface } from "../repositories/pendingInvitation.dynamo.repository";
+import { PendingInvitationType } from "../enums/pendingInvitationType.enum";
 
 @injectable()
 export class InvitationOrchestratorService implements InvitationOrchestratorServiceInterface {
@@ -20,6 +23,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
     @inject(TYPES.FriendshipMediatorServiceInterface) private friendshipMediatorService: FriendshipMediatorServiceInterface,
+    @inject(TYPES.PendingInvitationRepositoryInterface) private pendingInvitationRepository: PendingInvitationRepositoryInterface,
   ) {}
 
   public async addUsersAsFriends(params: AddUsersAsFriendsInput): Promise<AddUsersAsFriendsOutput> {
@@ -28,15 +32,35 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { userId, users: invitations } = params;
 
-      const settledInvitations = await Promise.allSettled(invitations.map(async (invitation) => {
-        const { user } = await this.getOrCreateUser(invitation);
+      const settledInvitations = await Promise.all(invitations.map(async (invitation) => {
+        try {
+          const { user } = await this.getUserIfExists(invitation);
 
-        await this.friendshipMediatorService.createFriendship({ userIds: [ user.id, userId ], createdBy: userId });
+          if (user) {
+            await this.friendshipMediatorService.createFriendship({ userIds: [ user.id, userId ], createdBy: userId });
 
-        return { user };
+            return { success: true, invitation };
+          }
+
+          if (invitation.email || invitation.phone) {
+            await this.pendingInvitationRepository.createPendingInvitation({
+              pendingInvitation: {
+                type: PendingInvitationType.Friend,
+                invitingEntityId: userId,
+                emailOrPhone: invitation.email || invitation.phone as string,
+              },
+            });
+
+            return { success: true, invitation };
+          }
+
+          return { success: false, invitation };
+        } catch (error) {
+          return { success: false, invitation };
+        }
       }));
 
-      const { successes, failures } = this.mapSettledInvitationsToResponse({ invitations, settledInvitations });
+      const { successes, failures } = this.mapSettledInvitationsToResponse({ settledInvitations });
 
       return { successes, failures };
     } catch (error: unknown) {
@@ -52,15 +76,23 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { teamId, users: invitations } = params;
 
-      const settledInvitations = await Promise.allSettled(invitations.map(async (invitation) => {
-        const { user } = await this.getOrCreateUser(invitation);
+      const settledInvitations = await Promise.all(invitations.map(async (invitation) => {
+        try {
+          const { user } = await this.getUserIfExists(invitation);
 
-        await this.teamMediatorService.addUserToTeam({ teamId, userId: user.id, role: invitation.role });
+          if (user) {
+            await this.teamMediatorService.addUserToTeam({ teamId, userId: user.id, role: invitation.role });
+          } else {
+            await this.createPendingInvitiation({ type: "team", invitingEntityId: teamId, invitation });
+          }
 
-        return { user };
+          return { success: true, invitation };
+        } catch (error) {
+          return { success: false, invitation };
+        }
       }));
 
-      const { successes, failures } = this.mapSettledInvitationsToResponse({ invitations, settledInvitations });
+      const { successes, failures } = this.mapSettledInvitationsToResponse({ settledInvitations });
 
       return { successes, failures };
     } catch (error: unknown) {
@@ -76,15 +108,23 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { groupId, users: invitations } = params;
 
-      const settledInvitations = await Promise.allSettled(invitations.map(async (invitation) => {
-        const { user } = await this.getOrCreateUser(invitation);
+      const settledInvitations = await Promise.all(invitations.map(async (invitation) => {
+        try {
+          const { user } = await this.getUserIfExists(invitation);
 
-        await this.groupMediatorService.addUserToGroup({ groupId, userId: user.id, role: invitation.role });
+          if (user) {
+            await this.groupMediatorService.addUserToGroup({ groupId, userId: user.id, role: invitation.role });
+          } else {
+            await this.createPendingInvitiation({ type: "group", invitingEntityId: groupId, invitation });
+          }
 
-        return { user };
+          return { success: true, invitation };
+        } catch (error) {
+          return { success: false, invitation };
+        }
       }));
 
-      const { successes, failures } = this.mapSettledInvitationsToResponse({ invitations, settledInvitations });
+      const { successes, failures } = this.mapSettledInvitationsToResponse({ settledInvitations });
 
       return { successes, failures };
     } catch (error: unknown) {
@@ -100,15 +140,23 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { meetingId, users: invitations } = params;
 
-      const settledInvitations = await Promise.allSettled(invitations.map(async (invitation) => {
-        const { user } = await this.getOrCreateUser(invitation);
+      const settledInvitations = await Promise.all(invitations.map(async (invitation) => {
+        try {
+          const { user } = await this.getUserIfExists(invitation);
 
-        await this.meetingMediatorService.addUserToMeeting({ meetingId, userId: user.id, role: invitation.role });
+          if (user) {
+            await this.meetingMediatorService.addUserToMeeting({ meetingId, userId: user.id, role: invitation.role });
+          } else {
+            await this.createPendingInvitiation({ type: "meeting", invitingEntityId: meetingId, invitation });
+          }
 
-        return { user };
+          return { success: true, invitation };
+        } catch (error) {
+          return { success: false, invitation };
+        }
       }));
 
-      const { successes, failures } = this.mapSettledInvitationsToResponse({ invitations, settledInvitations });
+      const { successes, failures } = this.mapSettledInvitationsToResponse({ settledInvitations });
 
       return { successes, failures };
     } catch (error: unknown) {
@@ -118,19 +166,24 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     }
   }
 
-  private async getOrCreateUser(params: GetOrCreateUserInput): Promise<GetOrCreateUserOutput> {
+  private async getUserIfExists(params: GetUserIfExistsInput): Promise<GetUserIfExistsOutput> {
     try {
       this.loggerService.trace("getOrCreateUser called", { params }, this.constructor.name);
 
-      let user: User;
+      let user: User | undefined;
 
-      if (this.isGetOrCreateUserByEmailInput(params)) {
-        ({ user } = await this.userMediatorService.getOrCreateUserByEmail(params));
-      } else if (this.isGetOrCreateUserByPhoneInput(params)) {
-        ({ user } = await this.userMediatorService.getOrCreateUserByPhone(params));
-      } else {
-        // can't create a user with just username
-        ({ user } = await this.userMediatorService.getUserByUsername(params));
+      try {
+        if ("email" in params) {
+          ({ user } = await this.userMediatorService.getUserByEmail({ email: params.email }));
+        } else if ("phone" in params) {
+          ({ user } = await this.userMediatorService.getUserByPhone({ phone: params.phone }));
+        } else {
+          ({ user } = await this.userMediatorService.getUserByUsername({ username: params.username }));
+        }
+      } catch (error) {
+        if (!(error instanceof NotFoundError)) {
+          throw error;
+        }
       }
 
       return { user };
@@ -141,45 +194,22 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     }
   }
 
-  private isGetOrCreateUserByEmailInput(params: GetOrCreateUserInput): params is GetOrCreateUserByEmailInput {
-    try {
-      this.loggerService.trace("isGetOrCreateUserByEmailInput called", { params }, this.constructor.name);
-
-      return "email" in params;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in isGetOrCreateUserByEmailInput", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  private isGetOrCreateUserByPhoneInput(params: GetOrCreateUserInput): params is GetOrCreateUserByPhoneInput {
-    try {
-      this.loggerService.trace("isGetOrCreateUserByPhoneInput called", { params }, this.constructor.name);
-
-      return "phone" in params;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in isGetOrCreateUserByPhoneInput", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
   private mapSettledInvitationsToResponse<T extends Invitation>(params: MapSettledInvitationsToResponseInput<T>): MapSettledInvitationsToResponseOutput<T> {
     try {
       this.loggerService.trace("mapSettledInvitationsToResponse called", { params }, this.constructor.name);
 
-      const { invitations, settledInvitations } = params;
+      const { settledInvitations } = params;
 
-      const { successes, failures } = settledInvitations.reduce((acc: { successes: User[], failures: T[] }, settledPromise, i) => {
-        if (settledPromise.status === "rejected") {
-          acc.failures.push(invitations[i]);
+      const successes: T[] = [];
+      const failures: T[] = [];
+
+      settledInvitations.forEach((settledInvitation) => {
+        if (settledInvitation.success) {
+          successes.push(settledInvitation.invitation);
         } else {
-          acc.successes.push(settledPromise.value.user);
+          failures.push(settledInvitation.invitation);
         }
-
-        return acc;
-      }, { successes: [], failures: [] });
+      });
 
       return { successes, failures };
     } catch (error: unknown) {
@@ -202,7 +232,7 @@ export interface AddUsersAsFriendsInput {
 }
 
 export interface AddUsersAsFriendsOutput {
-  successes: User[];
+  successes: InvitationWithoutRole[];
   failures: InvitationWithoutRole[];
 }
 
@@ -212,7 +242,7 @@ export interface AddUsersToTeamInput {
 }
 
 export interface AddUsersToTeamOutput {
-  successes: User[];
+  successes: InvitationWithRole[];
   failures: InvitationWithRole[];
 }
 
@@ -222,7 +252,7 @@ export interface AddUsersToGroupInput {
 }
 
 export interface AddUsersToGroupOutput {
-  successes: User[];
+  successes: InvitationWithRole[];
   failures: InvitationWithRole[];
 }
 
@@ -232,22 +262,21 @@ export interface AddUsersToMeetingInput {
 }
 
 export interface AddUsersToMeetingOutput {
-  successes: User[];
+  successes: InvitationWithRole[];
   failures: InvitationWithRole[];
 }
 
-type GetOrCreateUserInput = GetOrCreateUserByEmailInput | GetOrCreateUserByPhoneInput | GetUserByUsernameInput;
+type GetUserIfExistsInput = GetUserByEmailInput | GetUserByPhoneInput | GetUserByUsernameInput;
 
-interface GetOrCreateUserOutput {
-  user: User;
+interface GetUserIfExistsOutput {
+  user?: User;
 }
 
 interface MapSettledInvitationsToResponseInput<T extends Invitation> {
-  invitations: T[];
-  settledInvitations: PromiseSettledResult<{ user: User; }>[]
+  settledInvitations: { success: boolean; invitation: T; }[]
 }
 interface MapSettledInvitationsToResponseOutput<T extends Invitation> {
-  successes: User[];
+  successes: T[];
   failures: T[];
 }
 

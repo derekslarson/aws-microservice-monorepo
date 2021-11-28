@@ -62,7 +62,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           expect(data).toEqual({
             friends: [
               {
-                realName: otherUserB.realName,
+                name: otherUserB.name,
                 bio: otherUserB.bio,
                 username: otherUserB.username,
                 id: otherUserB.id,
@@ -71,7 +71,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
                 image: jasmine.stringMatching(URL_REGEX),
               },
               {
-                realName: otherUserA.realName,
+                name: otherUserA.name,
                 bio: otherUserA.bio,
                 username: otherUserA.username,
                 id: otherUserA.id,
@@ -99,7 +99,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           expect(data).toEqual({
             friends: [
               {
-                realName: otherUserB.realName,
+                name: otherUserB.name,
                 bio: otherUserB.bio,
                 username: otherUserB.username,
                 id: otherUserB.id,
@@ -122,7 +122,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           expect(callTwoData).toEqual({
             friends: [
               {
-                realName: otherUserA.realName,
+                name: otherUserA.name,
                 bio: otherUserA.bio,
                 username: otherUserA.username,
                 id: otherUserA.id,

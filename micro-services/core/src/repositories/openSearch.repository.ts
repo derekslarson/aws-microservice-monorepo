@@ -45,11 +45,11 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
         SELECT *
         FROM ${SearchIndex.User}
         WHERE ( 
-          MATCH_PHRASE(realName, '${searchTerm}')
+          MATCH_PHRASE(name, '${searchTerm}')
           OR MATCH_PHRASE(username, '${searchTerm}')
           OR MATCH_PHRASE(email, '${searchTerm}')
           OR MATCH_PHRASE(phone, '${searchTerm}')
-          OR realName LIKE '%${searchTerm}%'
+          OR name LIKE '%${searchTerm}%'
           OR username LIKE '%${searchTerm}%'
           OR email LIKE '%${searchTerm}%'
           OR phone LIKE '%${searchTerm}%'
@@ -138,12 +138,12 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
         SELECT *
         FROM ${SearchIndex.User}, ${SearchIndex.Group}, ${SearchIndex.Meeting}
         WHERE ( 
-          MATCH_PHRASE(realName, '${searchTerm}')
+          MATCH_PHRASE(name, '${searchTerm}')
           OR MATCH_PHRASE(username, '${searchTerm}')
           OR MATCH_PHRASE(email, '${searchTerm}')
           OR MATCH_PHRASE(phone, '${searchTerm}')
           OR MATCH_PHRASE(name, '${searchTerm}')
-          OR realName LIKE '%${searchTerm}%'
+          OR name LIKE '%${searchTerm}%'
           OR username LIKE '%${searchTerm}%'
           OR email LIKE '%${searchTerm}%'
           OR phone LIKE '%${searchTerm}%'

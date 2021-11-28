@@ -80,7 +80,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                     image: jasmine.stringMatching(URL_REGEX),
                   },
                   from: {
-                    realName: otherUser.realName,
+                    name: otherUser.name,
                     bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
@@ -109,7 +109,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                     image: jasmine.stringMatching(URL_REGEX),
                   },
                   from: {
-                    realName: otherUser.realName,
+                    name: otherUser.name,
                     bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
@@ -159,7 +159,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                     image: jasmine.stringMatching(URL_REGEX),
                   },
                   from: {
-                    realName: otherUser.realName,
+                    name: otherUser.name,
                     bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,

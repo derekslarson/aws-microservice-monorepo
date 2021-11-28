@@ -80,7 +80,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
             {
               id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
               username: otherUser.username,
-              realName: otherUser.realName,
+              name: otherUser.name,
               bio: otherUser.bio,
               email: otherUser.email,
               phone: otherUser.phone,
@@ -390,7 +390,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
                 email: otherUser.email,
                 phone: otherUser.phone,
                 username: otherUser.username,
-                realName: otherUser.realName,
+                name: otherUser.name,
                 bio: otherUser.bio,
                 id: otherUser.id,
                 image: jasmine.stringMatching(URL_REGEX),

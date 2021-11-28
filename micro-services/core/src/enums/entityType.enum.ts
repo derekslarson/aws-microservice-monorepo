@@ -9,5 +9,5 @@ export enum EntityType {
   ConversationUserRelationship = "CONVERSATION_USER_RELATIONSHIP",
   PendingMessage = "PENDING_MESSAGE",
   Message = "MESSAGE",
-  UniqueProperty = "UNIQUE_PROPERTY",
+  PendingInvitation = "PENDING_INVITATION",
 }
