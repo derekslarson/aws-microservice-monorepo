@@ -75,6 +75,22 @@ export interface PendingInvitationServiceInterface {
 
 export type PendingInvitation<T extends PendingInvitationType = PendingInvitationType> = PendingInvitationEntity<T>;
 
+export type CreatePendingInvitationInput<T extends PendingInvitationType> =EmailCreatePendingInvitationInput<T> | PhoneCreatePendingInvitationInput<T>;
+
+export interface CreatePendingInvitationOutput<T extends PendingInvitationType> {
+  pendingInvitation: PendingInvitation<T>;
+}
+
+export type GetPendingInvitationsInput = EmailGetPendingInvitationsInput | PhoneGetPendingInvitationsInput;
+
+export interface GetPendingInvitationsOutput {
+  pendingInvitations: PendingInvitation[];
+}
+
+export type DeletePendingInvitationInput = EmailDeletePendingInvitationInput | PhoneDeletePendingInvitationInput;
+
+export type DeletePendingInvitationOutput = void;
+
 interface BaseCreatePendingInvitationInput<T extends PendingInvitationType> {
   type: T;
   invitingEntityId: InvitingEntityId<T>;
@@ -89,12 +105,6 @@ interface PhoneCreatePendingInvitationInput<T extends PendingInvitationType> ext
   phone: string;
 }
 
-export type CreatePendingInvitationInput<T extends PendingInvitationType> =EmailCreatePendingInvitationInput<T> | PhoneCreatePendingInvitationInput<T>;
-
-export interface CreatePendingInvitationOutput<T extends PendingInvitationType> {
-  pendingInvitation: PendingInvitation<T>;
-}
-
 interface EmailGetPendingInvitationsInput {
   email: string;
 }
@@ -102,13 +112,6 @@ interface EmailGetPendingInvitationsInput {
 interface PhoneGetPendingInvitationsInput {
   phone: string;
 }
-
-export type GetPendingInvitationsInput = EmailGetPendingInvitationsInput | PhoneGetPendingInvitationsInput;
-
-export interface GetPendingInvitationsOutput {
-  pendingInvitations: PendingInvitation[];
-}
-
 interface BaseDeletePendingInvitationInput {
   invitingEntityId: InvitingEntityId;
 }
@@ -120,7 +123,3 @@ interface EmailDeletePendingInvitationInput extends BaseDeletePendingInvitationI
 interface PhoneDeletePendingInvitationInput extends BaseDeletePendingInvitationInput {
   phone: string;
 }
-
-export type DeletePendingInvitationInput = EmailDeletePendingInvitationInput | PhoneDeletePendingInvitationInput;
-
-export type DeletePendingInvitationOutput = void;

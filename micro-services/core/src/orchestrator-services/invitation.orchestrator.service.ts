@@ -32,7 +32,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { userId: invitingUserId, users: invitations } = params;
 
-      const settledInvitations = await Promise.all(invitations.map(async (invitation) => this.handleInvitation({
+      const settledInvitations = await Promise.all(invitations.map((invitation) => this.handleInvitation({
         type: PendingInvitationType.Friend,
         invitingEntityId: invitingUserId,
         invitation,
@@ -55,7 +55,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { teamId, users: invitations } = params;
 
-      const settledInvitations = await Promise.all(invitations.map(async (invitation) => this.handleInvitation({
+      const settledInvitations = await Promise.all(invitations.map((invitation) => this.handleInvitation({
         type: PendingInvitationType.Team,
         invitingEntityId: teamId,
         invitation,
@@ -78,7 +78,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { groupId, users: invitations } = params;
 
-      const settledInvitations = await Promise.all(invitations.map(async (invitation) => this.handleInvitation({
+      const settledInvitations = await Promise.all(invitations.map((invitation) => this.handleInvitation({
         type: PendingInvitationType.Group,
         invitingEntityId: groupId,
         invitation,
@@ -101,7 +101,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { meetingId, users: invitations } = params;
 
-      const settledInvitations = await Promise.all(invitations.map(async (invitation) => this.handleInvitation({
+      const settledInvitations = await Promise.all(invitations.map((invitation) => this.handleInvitation({
         type: PendingInvitationType.Meeting,
         invitingEntityId: meetingId,
         invitation,
