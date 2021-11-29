@@ -82,7 +82,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
 
       const { Items: [ user ] } = await this.query({
         IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :email AND #gsi1sk, :userEntityType",
+        KeyConditionExpression: "#gsi1pk = :email AND #gsi1sk = :userEntityType",
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
           "#gsi1sk": "gsi1sk",
@@ -113,7 +113,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
 
       const { Items: [ user ] } = await this.query({
         IndexName: this.gsiTwoIndexName,
-        KeyConditionExpression: "#gsi2pk = :phone AND #gsi2sk, :userEntityType",
+        KeyConditionExpression: "#gsi2pk = :phone AND #gsi2sk = :userEntityType",
         ExpressionAttributeNames: {
           "#gsi2pk": "gsi2pk",
           "#gsi2sk": "gsi2sk",
@@ -144,7 +144,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
 
       const { Items: [ user ] } = await this.query({
         IndexName: this.gsiThreeIndexName,
-        KeyConditionExpression: "#gsi3pk = :username AND #gsi3sk, :userEntityType",
+        KeyConditionExpression: "#gsi3pk = :username AND #gsi3sk = :userEntityType",
         ExpressionAttributeNames: {
           "#gsi3pk": "gsi3pk",
           "#gsi3sk": "gsi3sk",

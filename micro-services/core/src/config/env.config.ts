@@ -29,7 +29,7 @@ export const envConfig: EnvConfigInterface = {
     meetingMessageUpdated: process.env.MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
     messageTranscoded: process.env.MESSAGE_TRANSCODED_SNS_TOPIC_ARN || "",
     messageTranscribed: process.env.MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN || "",
-    createUserRequest: process.env.CREATE_USER_REQUEST_UP_SNS_TOPIC_ARN || "",
+    createUserRequest: process.env.CREATE_USER_REQUEST_SNS_TOPIC_ARN || "",
   },
   globalSecondaryIndexNames: {
     one: process.env.GSI_ONE_INDEX_NAME || "",

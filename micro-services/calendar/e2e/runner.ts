@@ -5,7 +5,7 @@ import Jasmine from "jasmine";
 import { SpecReporter } from "jasmine-spec-reporter";
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
-import { createRandomCognitoUser, getAccessToken, getSsmParameters, setEnvVars } from "../../../e2e/util";
+import { createRandomAuthServiceUser, getAccessToken, getSsmParameters, setEnvVars } from "../../../e2e/util";
 
 const { argv } = yargs(hideBin(process.argv));
 const { environment } = argv as { environment?: string; };
@@ -30,7 +30,7 @@ const necessaryParams = [
 
   setEnvVars(initialEnvVals);
 
-  const { id: userId } = await createRandomCognitoUser();
+  const { id: userId } = await createRandomAuthServiceUser();
   const { accessToken } = await getAccessToken(userId);
 
   const userEnvVars = {

@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import WebSocket from "ws";
-import { createRandomCognitoUser, getAccessTokenByEmail } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, getAccessTokenByEmail } from "../../../../e2e/util";
 import { getListenerMappingsByUserIdAndType } from "../util";
 import { ListenerType } from "../../src/enums/listenerType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
@@ -15,7 +15,7 @@ describe("WebSocket connect", () => {
 
   beforeAll(async () => {
     // Create user in cognito
-    const { email, id } = await createRandomCognitoUser();
+    const { email, id } = await createRandomAuthServiceUser();
     userId = id;
 
     // Get JWT token

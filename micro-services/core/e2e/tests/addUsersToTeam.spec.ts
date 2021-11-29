@@ -14,7 +14,6 @@ import {
   generateRandomPhone,
   getUserByEmail,
   getUserByPhone,
-  getUniqueProperty,
   deleteSnsEventsByTopicArn,
   getSnsEventsByTopicArn,
 } from "../util";
@@ -99,105 +98,6 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
           failures: [
             { username: randomUsername, role: Role.User },
           ],
-        });
-      } catch (error) {
-        fail(error);
-      }
-    });
-
-    it("creates valid User entities", async () => {
-      const headers = { Authorization: `Bearer ${accessToken}` };
-
-      const request: Static<typeof AddUsersToTeamDto> = {
-        pathParameters: { teamId: team.id },
-        body: {
-          users: [
-            { username: otherUser.username, role: Role.Admin },
-            { email: randomEmail, role: Role.User },
-            { phone: randomPhone, role: Role.Admin },
-            { username: randomUsername, role: Role.User },
-          ],
-        },
-      };
-
-      try {
-        await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
-
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
-        ]);
-
-        expect(userByEmail).toEqual({
-          entityType: EntityType.User,
-          pk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          email: randomEmail,
-          imageMimeType: ImageMimeType.Png,
-        });
-
-        expect(userByPhone).toEqual({
-          entityType: EntityType.User,
-          pk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          phone: randomPhone,
-          imageMimeType: ImageMimeType.Png,
-        });
-      } catch (error) {
-        fail(error);
-      }
-    });
-
-    it("creates valid UniqueProperty entities", async () => {
-      const headers = { Authorization: `Bearer ${accessToken}` };
-
-      const request: Static<typeof AddUsersToTeamDto> = {
-        pathParameters: { teamId: team.id },
-        body: {
-          users: [
-            { username: otherUser.username, role: Role.Admin },
-            { email: randomEmail, role: Role.User },
-            { phone: randomPhone, role: Role.Admin },
-            { username: randomUsername, role: Role.User },
-          ],
-        },
-      };
-
-      try {
-        await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
-
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
-        ]);
-
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
-        }
-
-        const [ { uniqueProperty: uniqueEmail }, { uniqueProperty: uniquePhone } ] = await Promise.all([
-          getUniqueProperty({ property: UniqueProperty.Email, value: randomEmail }),
-          getUniqueProperty({ property: UniqueProperty.Phone, value: randomPhone }),
-        ]);
-
-        expect(uniqueEmail).toEqual({
-          entityType: EntityType.UniqueProperty,
-          pk: UniqueProperty.Email,
-          sk: randomEmail,
-          property: UniqueProperty.Email,
-          value: randomEmail,
-          userId: userByEmail.id,
-        });
-
-        expect(uniquePhone).toEqual({
-          entityType: EntityType.UniqueProperty,
-          pk: UniqueProperty.Phone,
-          sk: randomPhone,
-          property: UniqueProperty.Phone,
-          value: randomPhone,
-          userId: userByPhone.id,
         });
       } catch (error) {
         fail(error);

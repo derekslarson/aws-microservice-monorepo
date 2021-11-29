@@ -1,10 +1,17 @@
+/* eslint-disable no-await-in-loop */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import { CognitoIdentityServiceProvider, DynamoDB, S3, SNS, SSM, TranscribeService, SecretsManager } from "aws-sdk";
 import crypto from "crypto";
-import axios from "axios";
 import ksuid from "ksuid";
 import jwt from "jsonwebtoken";
+import * as jose from "node-jose";
+import { RawUser } from "../micro-services/auth/src/repositories/user.dynamo.repository";
+import { EntityType } from "../micro-services/auth/src/enums/entityType.enum";
+import { MakeRequired, UserId } from "../micro-services/util/src/types";
+import { AccessTokenPayload } from "../micro-services/auth/src/services/tier-1/token.service";
+import { RawSession } from "../micro-services/auth/src/repositories/session.dyanmo.repository";
 
 const ssm = new SSM({ region: "us-east-1" });
 export const s3 = new S3({ region: "us-east-1" });
@@ -98,99 +105,113 @@ export function generateRandomString(length = 8): string {
   return crypto.randomBytes(length / 2).toString("hex");
 }
 
-async function getXsrfToken(): Promise<{ xsrfToken: string }> {
+export async function getAccessToken(userId: UserId): Promise<{ accessToken: string; }> {
   try {
-    const queryParameters = {
-      response_type: "code",
-      client_id: process.env["yac-client-id"],
-      redirect_uri: process.env["yac-client-redirect-uri"],
+    const scope = [
+      "openid",
+      "email",
+      "profile",
+      "yac/user.read",
+      "yac/user.write",
+      "yac/user.delete",
+      "yac/friend.read",
+      "yac/friend.write",
+      "yac/friend.delete",
+      "yac/team.read",
+      "yac/team.write",
+      "yac/team.delete",
+      "yac/team_member.read",
+      "yac/team_member.write",
+      "yac/team_member.delete",
+      "yac/group.read",
+      "yac/group.write",
+      "yac/group.delete",
+      "yac/group_member.read",
+      "yac/group_member.write",
+      "yac/group_member.delete",
+      "yac/meeting.read",
+      "yac/meeting.write",
+      "yac/meeting.delete",
+      "yac/meeting_member.read",
+      "yac/meeting_member.write",
+      "yac/meeting_member.delete",
+      "yac/message.read",
+      "yac/message.write",
+      "yac/message.delete",
+      "yac/conversation.read",
+      "yac/conversation.write",
+      "yac/conversation.delete",
+    ].join(" ");
+
+    const { Item: jwks } = await documentClient.get({
+      TableName: process.env["auth-table-name"] as string,
+      Key: { pk: EntityType.Jwks, sk: EntityType.Jwks },
+    }).promise();
+
+    if (!jwks) {
+      throw new Error("Jwks not found.");
+    }
+
+    const clientId = ksuid.randomSync().toString();
+    const sessionId = ksuid.randomSync().toString();
+
+    const jwksJson = JSON.parse(jwks.jsonString) as { keys: unknown[]; };
+
+    // Reverse array to ensure usage of the most recent key
+    jwksJson.keys.reverse();
+
+    const keyStore = await jose.JWK.asKeyStore(jwksJson);
+
+    const key = await jose.JWK.asKey(keyStore.all({ use: "sig" })[0]);
+
+    const nowSeconds = Math.round(Date.now().valueOf() / 1000);
+    const expiresInSeconds = 60 * 30;
+
+    const payload: AccessTokenPayload = {
+      sid: sessionId,
+      cid: clientId,
+      iss: "https://test.com",
+      sub: userId,
+      scope,
+      nbf: nowSeconds,
+      iat: nowSeconds,
+      exp: nowSeconds + expiresInSeconds,
+      jti: ksuid.randomSync().toString(),
     };
 
-    const authorizeResponse = await axios.get(`${process.env["user-pool-domain-url"] as string}/oauth2/authorize`, { params: queryParameters });
+    const accessToken = await jose.JWS.createSign({ compact: true, fields: { typ: "jwt" } }, key)
+      .update(JSON.stringify(payload))
+      .final() as unknown as string;
 
-    const setCookieHeader = (authorizeResponse.headers as Record<string, string[]>)["set-cookie"];
+    const refreshToken = `${ksuid.randomSync().toString()}${ksuid.randomSync().toString()}${ksuid.randomSync().toString()}`;
 
-    if (!Array.isArray(setCookieHeader)) {
-      throw new Error("Malformed 'set-cookie' header in response.");
-    }
+    const nowIso = new Date().toISOString();
+    const oneHundredEightyDaysFromNowIso = new Date(Date.now() + (1000 * 60 * 60 * 24 * 180)).toISOString();
 
-    const [ xsrfTokenHeader ] = setCookieHeader.filter((header: string) => header.substring(0, 10) === "XSRF-TOKEN");
-
-    const xsrfToken = xsrfTokenHeader.split(";")[0].split("=")[1];
-
-    return { xsrfToken };
-  } catch (error: unknown) {
-    console.log("Error in getXsrfToken:\n", error);
-
-    throw error;
-  }
-}
-
-async function getAuthorizationCode(emailOrId: string, xsrfToken: string, logError?: boolean): Promise<{ authorizationCode: string; }> {
-  try {
-    const { SecretString: authSecret } = await secretsManager.getSecretValue({ SecretId: process.env["auth-secret-id"] as string }).promise();
-
-    if (!authSecret) {
-      throw new Error("Error fetching auth secret");
-    }
-
-    const data = `_csrf=${encodeURIComponent(xsrfToken)}&username=${encodeURIComponent(emailOrId)}&password=${encodeURIComponent(authSecret)}`;
-
-    const queryParameters = {
-      response_type: "code",
-      client_id: process.env["yac-client-id"],
-      redirect_uri: process.env["yac-client-redirect-uri"],
+    const session: RawSession = {
+      entityType: EntityType.Session,
+      pk: clientId,
+      sk: `${EntityType.Session}-${sessionId}`,
+      gsi1pk: clientId,
+      gsi1sk: `${EntityType.Session}-${refreshToken}`,
+      clientId,
+      sessionId,
+      refreshToken,
+      createdAt: nowIso,
+      refreshTokenCreatedAt: nowIso,
+      refreshTokenExpiresAt: oneHundredEightyDaysFromNowIso,
+      userId,
+      scope,
     };
 
-    const headers = {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: `XSRF-TOKEN=${xsrfToken}; Path=/; Secure; HttpOnly; SameSite=Lax`,
-    };
+    await documentClient.put({
+      TableName: process.env["auth-table-name"] as string,
+      Item: session,
+    }).promise();
 
-    const loginResponse = await axios.post(`${process.env["user-pool-domain-url"] as string}/login`, data, {
-      params: queryParameters,
-      headers,
-      validateStatus(status: number) {
-        return status >= 200 && status < 600;
-      },
-      maxRedirects: 0,
-    });
-
-    const redirectPath = (loginResponse.headers as Record<string, string>).location;
-
-    if (!redirectPath) {
-      throw new Error("redirect path missing in response");
-    }
-
-    const authorizationCode = redirectPath.split("code=")[1]?.split("&")[0];
-
-    if (!authorizationCode) {
-      throw new Error("Error fetching authorization code");
-    }
-    return { authorizationCode };
-  } catch (error: unknown) {
-    if (logError ?? true) {
-      console.log("Error in getAuthorizationCode:\n", error);
-    }
-
-    throw error;
-  }
-}
-
-async function getToken(authorizationCode: string): Promise<{ accessToken: string }> {
-  try {
-    const oauth2AuthorizeBody = `grant_type=authorization_code&code=${authorizationCode}&client_id=${process.env["yac-client-id"] as string}&redirect_uri=${process.env["yac-client-redirect-uri"] as string}`;
-
-    const headers = {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: `Basic ${Buffer.from(`${process.env["yac-client-id"] as string}:${process.env["yac-client-secret"] as string}`).toString("base64")}`,
-    };
-
-    const { data } = await axios.post<{ access_token: string; }>(`${process.env["user-pool-domain-url"] as string}/oauth2/token`, oauth2AuthorizeBody, { headers });
-
-    return { accessToken: data.access_token };
-  } catch (error: unknown) {
-    console.log("Error in getTokens:\n", error);
+    return { accessToken };
+  } catch (error) {
+    console.log("Error in getAccessTokenByEmail:\n", error);
 
     throw error;
   }
@@ -198,83 +219,142 @@ async function getToken(authorizationCode: string): Promise<{ accessToken: strin
 
 export async function getAccessTokenByEmail(email: string): Promise<{ accessToken: string; }> {
   try {
-    const { xsrfToken } = await getXsrfToken();
+    const { Item: uniqueEmail } = await documentClient.get({
+      TableName: process.env["auth-table-name"] as string,
+      Key: { pk: email, sk: EntityType.UserUniqueEmail },
+    }).promise();
 
-    const { authorizationCode } = await backoff(
-      () => getAuthorizationCode(email, xsrfToken, false),
-      (res) => !!res.authorizationCode,
-      8000,
-      1000,
-    );
-
-    const { accessToken } = await getToken(authorizationCode);
-
-    return { accessToken };
-  } catch (error) {
-    console.log("Error in getAccessTokenByEmail:\n", error);
-
-    throw error;
-  }
-}
-
-export async function getAccessToken(userId: string): Promise<{ accessToken: string; }> {
-  try {
-    const { xsrfToken } = await getXsrfToken();
-
-    const { authorizationCode } = await backoff(
-      () => getAuthorizationCode(userId, xsrfToken, false),
-      (res) => !!res.authorizationCode,
-      8000,
-      1000,
-    );
-
-    const { accessToken } = await getToken(authorizationCode);
-
-    return { accessToken };
-  } catch (error) {
-    console.log("Error in getAccessTokenByEmail:\n", error);
-
-    throw error;
-  }
-}
-
-function createUserPoolClientSecretHash(username: string): string {
-  const secretHash = crypto.createHmac("SHA256", process.env["yac-client-secret"] as string).update(`${username}${process.env["yac-client-id"] as string}`).digest("base64");
-
-  return secretHash;
-}
-
-export async function createRandomCognitoUser(): Promise<{ id: `user-${string}`, email: string }> {
-  try {
-    const { SecretString: authSecret } = await secretsManager.getSecretValue({ SecretId: process.env["auth-secret-id"] as string }).promise();
-
-    if (!authSecret) {
-      throw new Error("Error fetching auth secret");
+    if (!uniqueEmail) {
+      throw new Error("User not found.");
     }
 
+    const { userId } = uniqueEmail as { userId: UserId; };
+
+    const { Item: user } = await documentClient.get({
+      TableName: process.env["auth-table-name"] as string,
+      Key: { pk: userId, sk: EntityType.User },
+    }).promise();
+
+    const { accessToken } = await getAccessToken((user as RawUser).id);
+
+    return { accessToken };
+  } catch (error) {
+    console.log("Error in getAccessTokenByEmail:\n", error);
+
+    throw error;
+  }
+}
+
+export async function createAuthServiceUser(params: CreateUserInput): Promise<{ user: MakeRequired<RawUser, "email">; }> {
+  try {
+    const { name, username, email, phone } = params;
+
     const id: `user-${string}` = `user-${ksuid.randomSync().string}`;
-    const email = `${generateRandomString(5)}@${generateRandomString(5)}.com`;
 
-    const secretHash = createUserPoolClientSecretHash(id);
+    const userEntity: RawUser = {
+      entityType: EntityType.User,
+      pk: id,
+      sk: EntityType.User,
+      createdAt: new Date().toISOString(),
+      id,
+      email,
+      name,
+      username,
+      phone,
+    };
 
-    const signUpParams: CognitoIdentityServiceProvider.Types.SignUpRequest = {
-      ClientId: process.env["yac-client-id"] as string,
-      SecretHash: secretHash,
-      Username: id,
-      Password: authSecret,
-      UserAttributes: [
+    const transactWriteInput: DynamoDB.DocumentClient.TransactWriteItemsInput = {
+      TransactItems: [
         {
-          Name: "email",
-          Value: email,
+          Put: {
+            TableName: process.env["auth-table-name"] as string,
+            ConditionExpression: "attribute_not_exists(pk)",
+            Item: userEntity,
+          },
+        },
+        {
+          Put: {
+            TableName: process.env["auth-table-name"] as string,
+            ConditionExpression: "attribute_not_exists(pk)",
+            Item: {
+              entityType: EntityType.UserUniqueEmail,
+              pk: email,
+              sk: EntityType.UserUniqueEmail,
+              userId: id,
+              email,
+            },
+          },
         },
       ],
     };
 
-    await cognito.signUp(signUpParams).promise();
+    if (username) {
+      transactWriteInput.TransactItems.push({
+        Put: {
+          TableName: process.env["auth-table-name"] as string,
+          ConditionExpression: "attribute_not_exists(pk)",
+          Item: {
+            entityType: EntityType.UserUniqueUsername,
+            pk: username,
+            sk: EntityType.UserUniqueUsername,
+            userId: id,
+            username,
+          },
+        },
+      });
+    }
 
-    return { id, email };
+    if (phone) {
+      transactWriteInput.TransactItems.push({
+        Put: {
+          TableName: process.env["auth-table-name"] as string,
+          ConditionExpression: "attribute_not_exists(pk)",
+          Item: {
+            entityType: EntityType.UserUniquePhone,
+            pk: phone,
+            sk: EntityType.UserUniquePhone,
+            userId: id,
+            phone,
+          },
+        },
+      });
+    }
+
+    await documentClient.transactWrite(transactWriteInput).promise();
+
+    return { user: userEntity as MakeRequired<RawUser, "email"> };
   } catch (error) {
-    console.log("Error in createRandomCognitoUser:\n", error);
+    console.log("Error in createRandomAuthServiceUser:\n", error);
+
+    throw error;
+  }
+}
+
+export async function createRandomAuthServiceUser(): Promise<MakeRequired<RawUser, "email">> {
+  try {
+    const name = generateRandomString(8);
+
+    let email = `${generateRandomString(5)}@${generateRandomString(5)}.com`;
+
+    let user: MakeRequired<RawUser, "email"> | undefined;
+    let attempts = 1;
+
+    while (!user && attempts < 6) {
+      try {
+        ({ user } = await createAuthServiceUser({ name, email }));
+      } catch (error) {
+        email = `${generateRandomString(5)}@${generateRandomString(5)}.com`;
+        attempts += 1;
+      }
+    }
+
+    if (!user) {
+      throw new Error("Failed to create a random user");
+    }
+
+    return user;
+  } catch (error) {
+    console.log("Error in createRandomAuthServiceUser:\n", error);
 
     throw error;
   }
@@ -305,3 +385,10 @@ export async function wait(ms: number): Promise<void> {
 export const ISO_DATE_REGEX = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})[Z]/;
 
 export const URL_REGEX = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;
+
+export interface CreateUserInput {
+  email: string;
+  name: string;
+  username?: string;
+  phone?: string;
+}

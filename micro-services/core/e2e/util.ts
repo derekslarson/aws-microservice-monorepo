@@ -1,12 +1,12 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-console */
-import { BadRequestError, MakeRequired, Role } from "@yac/util";
+import { MakeRequired, NotFoundError, Role } from "@yac/util";
 import { randomDigits } from "crypto-secure-random-digit";
 import ksuid from "ksuid";
 import { DynamoDB, S3 } from "aws-sdk";
 import identicon from "jdenticon";
 import { DocumentClient } from "aws-sdk/lib/dynamodb/document_client";
-import { documentClient, cognito, s3, generateRandomString } from "../../../e2e/util";
+import { documentClient, s3, generateRandomString } from "../../../e2e/util";
 import { ConversationType as ConversationTypeEnum } from "../src/enums/conversationType.enum";
 import { ConversationType } from "../src/types/conversationType.type";
 import { EntityType } from "../src/enums/entityType.enum";
@@ -28,8 +28,7 @@ import { PendingMessageId } from "../src/types/pendingMessageId.type";
 import { RawPendingMessage } from "../src/repositories/pendingMessage.dynamo.repository";
 import { RawUser } from "../src/repositories/user.dynamo.repository";
 import { ImageMimeType } from "../src/enums/image.mimeType.enum";
-import { UniqueProperty } from "../src/enums/uniqueProperty.enum";
-import { RawUniqueProperty } from "../src/repositories/uniqueProperty.dynamo.repository";
+import { GlobalSecondaryIndex } from "../src/enums/globalSecondaryIndex.enum";
 
 function createDefaultImage(): CreateDefaultImageOutput {
   try {
@@ -64,125 +63,9 @@ export function generateRandomPhone(): string {
   return `+1${randomDigits(10).join("")}`;
 }
 
-export async function getUniqueProperty(params: GetUniquePropertyInput): Promise<GetUniquePropertyOutput> {
-  try {
-    const { property, value } = params;
-
-    const { Item } = await documentClient.get({
-      TableName: process.env["core-table-name"] as string,
-      Key: { pk: property, sk: value },
-    }).promise();
-
-    return { uniqueProperty: Item as RawUniqueProperty | undefined };
-  } catch (error) {
-    console.log("Error in getUniqueProperty:\n", error);
-
-    throw error;
-  }
-}
-
-export async function isUniqueEmail(params: IsUniqueEmailInput): Promise<IsUniqueEmailOutput> {
-  try {
-    const { email } = params;
-
-    const { Item } = await documentClient.get({
-      TableName: process.env["core-table-name"] as string,
-      Key: { pk: UniqueProperty.Email, sk: email },
-    }).promise();
-
-    return { isUniqueEmail: !Item };
-  } catch (error) {
-    console.log("Error in isUniqueEmail:\n", error);
-
-    throw error;
-  }
-}
-
-export async function isUniqueUsername(params: IsUniqueUsernameInput): Promise<IsUniqueUsernameOutput> {
-  try {
-    const { username } = params;
-
-    const { Item } = await documentClient.get({
-      TableName: process.env["core-table-name"] as string,
-      Key: { pk: UniqueProperty.Username, sk: username },
-    }).promise();
-
-    return { isUniqueUsername: !Item };
-  } catch (error) {
-    console.log("Error in isUniqueUsername:\n", error);
-
-    throw error;
-  }
-}
-
-export async function isUniquePhone(params: IsUniquePhoneInput): Promise<IsUniquePhoneOutput> {
-  try {
-    const { phone } = params;
-
-    const { Item } = await documentClient.get({
-      TableName: process.env["core-table-name"] as string,
-      Key: { pk: UniqueProperty.Phone, sk: phone },
-    }).promise();
-
-    return { isUniquePhone: !Item };
-  } catch (error) {
-    console.log("Error in isUniquePhone:\n", error);
-
-    throw error;
-  }
-}
-
-export async function createUniqueProperty(params: CreateUniquePropertyInput): Promise<CreateUniquePropertyOutput> {
-  try {
-    const { property, value, userId } = params;
-
-    const uniqueProperty: RawUniqueProperty = {
-      entityType: EntityType.UniqueProperty,
-      pk: property,
-      sk: value,
-      property,
-      value,
-      userId,
-    };
-
-    await documentClient.put({
-      TableName: process.env["core-table-name"] as string,
-      Item: uniqueProperty,
-    }).promise();
-
-    return { uniqueProperty };
-  } catch (error) {
-    console.log("Error in createTeamUserRelationship:\n", error);
-
-    throw error;
-  }
-}
-
 export async function createUser(params: CreateUserInput): Promise<CreateUserOutput> {
   try {
     const { email, name, username, phone, bio } = params;
-
-    const [
-      { isUniqueEmail: isUniqueEmailVal },
-      { isUniqueUsername: isUniqueUsernameVal },
-      { isUniquePhone: isUniquePhoneVal },
-    ] = await Promise.all([
-      isUniqueEmail({ email }),
-      isUniqueUsername({ username }),
-      phone ? isUniquePhone({ phone }) : Promise.resolve({ isUniquePhone: true }),
-    ]);
-
-    if (!isUniqueEmailVal) {
-      throw new BadRequestError("email is not unique");
-    }
-
-    if (!isUniqueUsernameVal) {
-      throw new BadRequestError("username is not unique");
-    }
-
-    if (!isUniquePhoneVal) {
-      throw new BadRequestError("phone is not unique");
-    }
 
     const { image, mimeType } = createDefaultImage();
 
@@ -192,13 +75,18 @@ export async function createUser(params: CreateUserInput): Promise<CreateUserOut
       entityType: EntityType.User,
       imageMimeType: mimeType,
       pk: userId,
-      sk: userId,
+      sk: EntityType.User,
       id: userId,
       email,
       username,
       phone,
       name,
       bio,
+      gsi1pk: email,
+      gsi1sk: EntityType.User,
+      gsi3pk: username,
+      gsi3sk: EntityType.User,
+      ...(phone && { gsi2pk: phone, gsi2sk: EntityType.User }),
     };
 
     const s3UploadInput: S3.Types.PutObjectRequest = {
@@ -216,9 +104,6 @@ export async function createUser(params: CreateUserInput): Promise<CreateUserOut
     await Promise.all([
       s3.upload(s3UploadInput).promise(),
       documentClient.put(dynamoPutInput).promise(),
-      createUniqueProperty({ property: UniqueProperty.Email, value: email, userId }),
-      createUniqueProperty({ property: UniqueProperty.Username, value: username, userId }),
-      phone ? createUniqueProperty({ property: UniqueProperty.Phone, value: phone, userId }) : null,
     ]);
 
     return { user };
@@ -238,73 +123,25 @@ export async function createRandomUser(): Promise<CreateRandomUserOutput> {
     let username = generateRandomString(8);
     let phone = generateRandomPhone();
 
-    let isUniqueEmailVal: boolean;
-    let isUniqueUsernameVal: boolean;
-    let isUniquePhoneVal: boolean;
+    let user: CreateUserOutput["user"] | undefined;
+    let attempts = 1;
 
-    ([
-      { isUniqueEmail: isUniqueEmailVal },
-      { isUniqueUsername: isUniqueUsernameVal },
-      { isUniquePhone: isUniquePhoneVal },
-    ] = await Promise.all([
-      isUniqueEmail({ email }),
-      isUniqueUsername({ username }),
-      isUniquePhone({ phone }),
-    ]));
-
-    while (!isUniqueEmailVal) {
-      email = generateRandomEmail();
-      ({ isUniqueEmail: isUniqueEmailVal } = await isUniqueEmail({ email }));
+    while (!user && attempts < 6) {
+      try {
+        ({ user } = await createUser({ name, bio, email, username, phone }));
+      } catch (error) {
+        email = generateRandomEmail();
+        username = generateRandomString(8);
+        phone = generateRandomPhone();
+        attempts += 1;
+      }
     }
 
-    while (!isUniqueUsernameVal) {
-      username = generateRandomString(8);
-      ({ isUniqueUsername: isUniqueUsernameVal } = await isUniqueUsername({ username }));
+    if (!user) {
+      throw new Error("Failed to create a random user");
     }
 
-    while (!isUniquePhoneVal) {
-      phone = generateRandomPhone();
-      ({ isUniquePhone: isUniquePhoneVal } = await isUniquePhone({ phone }));
-    }
-
-    const { image, mimeType } = createDefaultImage();
-
-    const userId: UserId = `${KeyPrefix.User}${ksuid.randomSync().string}`;
-
-    const user: MakeRequired<RawUser, "email" | "username" | "name" | "bio"> = {
-      entityType: EntityType.User,
-      imageMimeType: mimeType,
-      pk: userId,
-      sk: userId,
-      id: userId,
-      email,
-      username,
-      phone,
-      name,
-      bio,
-    };
-
-    const s3UploadInput: S3.Types.PutObjectRequest = {
-      Bucket: process.env["image-s3-bucket-name"] as string,
-      Key: `users/${userId}.png`,
-      Body: image,
-      ContentType: mimeType,
-    };
-
-    const dynamoPutInput: DocumentClient.PutItemInput = {
-      TableName: process.env["core-table-name"] as string,
-      Item: user,
-    };
-
-    await Promise.all([
-      s3.upload(s3UploadInput).promise(),
-      documentClient.put(dynamoPutInput).promise(),
-      createUniqueProperty({ property: UniqueProperty.Email, value: email, userId }),
-      createUniqueProperty({ property: UniqueProperty.Username, value: username, userId }),
-      createUniqueProperty({ property: UniqueProperty.Phone, value: phone, userId }),
-    ]);
-
-    return { user };
+    return { user: user as CreateRandomUserOutput["user"] };
   } catch (error) {
     console.log("Error in createRandomUser:\n", error);
 
@@ -318,7 +155,7 @@ export async function getUser(params: GetUserInput): Promise<GetUserOutput> {
 
     const { Item } = await documentClient.get({
       TableName: process.env["core-table-name"] as string,
-      Key: { pk: userId, sk: userId },
+      Key: { pk: userId, sk: EntityType.User },
     }).promise();
 
     const user = Item as RawUser;
@@ -335,25 +172,25 @@ export async function getUserByEmail(params: GetUserByEmailInput): Promise<GetUs
   try {
     const { email } = params;
 
-    let user: MakeRequired<RawUser, "email"> | undefined;
-
-    const { Item } = await documentClient.get({
+    const { Items: [ user ] = [] } = await documentClient.query({
       TableName: process.env["core-table-name"] as string,
-      Key: { pk: UniqueProperty.Email, sk: email },
+      IndexName: GlobalSecondaryIndex.One,
+      KeyConditionExpression: "#gsi1pk = :email AND # :userEntityType",
+      ExpressionAttributeNames: {
+        "#gsi1pk": "gsi1pk",
+        "#gsi1sk": "gsi1sk",
+      },
+      ExpressionAttributeValues: {
+        ":email": email,
+        ":userEntityType": EntityType.User,
+      },
     }).promise();
 
-    const uniqueProperty = Item as RawUniqueProperty;
-
-    if (uniqueProperty) {
-      const { Item: ItemTwo } = await documentClient.get({
-        TableName: process.env["core-table-name"] as string,
-        Key: { pk: uniqueProperty.userId, sk: uniqueProperty.userId },
-      }).promise();
-
-      user = ItemTwo as MakeRequired<RawUser, "email">;
+    if (!user) {
+      throw new NotFoundError("User not found.");
     }
 
-    return { user };
+    return { user: user as MakeRequired<RawUser, "email"> };
   } catch (error) {
     console.log("Error in getUserByEmail:\n", error);
 
@@ -365,25 +202,25 @@ export async function getUserByPhone(params: GetUserByPhoneInput): Promise<GetUs
   try {
     const { phone } = params;
 
-    let user: MakeRequired<RawUser, "phone"> | undefined;
-
-    const { Item } = await documentClient.get({
+    const { Items: [ user ] = [] } = await documentClient.query({
       TableName: process.env["core-table-name"] as string,
-      Key: { pk: UniqueProperty.Phone, sk: phone },
+      IndexName: GlobalSecondaryIndex.One,
+      KeyConditionExpression: "#gsi2pk = :phone AND #gsi2sk, :userEntityType",
+      ExpressionAttributeNames: {
+        "#gsi2pk": "gsi2pk",
+        "#gsi2sk": "gsi2sk",
+      },
+      ExpressionAttributeValues: {
+        ":phone": phone,
+        ":userEntityType": EntityType.User,
+      },
     }).promise();
 
-    const uniqueProperty = Item as RawUniqueProperty;
-
-    if (uniqueProperty) {
-      const { Item: ItemTwo } = await documentClient.get({
-        TableName: process.env["core-table-name"] as string,
-        Key: { pk: uniqueProperty.userId, sk: uniqueProperty.userId },
-      }).promise();
-
-      user = ItemTwo as MakeRequired<RawUser, "phone">;
+    if (!user) {
+      throw new NotFoundError("User not found.");
     }
 
-    return { user };
+    return { user: user as MakeRequired<RawUser, "phone"> };
   } catch (error) {
     console.log("Error in getUserByPhone:\n", error);
 
@@ -395,20 +232,14 @@ export async function deleteUser(id: UserId): Promise<void> {
   try {
     const { Item } = await documentClient.get({
       TableName: process.env["core-table-name"] as string,
-      Key: { pk: id, sk: id },
+      Key: { pk: id, sk: EntityType.User },
     }).promise();
 
     if (Item) {
-      await Promise.all([
-        cognito.adminDeleteUser({
-          UserPoolId: process.env["user-pool-id"] as string,
-          Username: (Item as Record<string, string>).email,
-        }).promise(),
-        documentClient.delete({
-          TableName: process.env["core-table-name"] as string,
-          Key: { pk: id, sk: id },
-        }).promise(),
-      ]);
+      await documentClient.delete({
+        TableName: process.env["core-table-name"] as string,
+        Key: { pk: id, sk: id },
+      }).promise();
     }
   } catch (error) {
     console.log("Error in deleteUser:\n", error);
@@ -899,25 +730,6 @@ export async function deleteSnsEventsByTopicArn(params: DeleteSnsEventsByTopicAr
   }
 }
 
-export interface CreateUniquePropertyInput {
-  property: UniqueProperty;
-  value: string;
-  userId: UserId;
-}
-
-export interface CreateUniquePropertyOutput {
-  uniqueProperty: RawUniqueProperty;
-}
-
-export interface GetUniquePropertyInput {
-  property: UniqueProperty;
-  value: string;
-}
-
-export interface GetUniquePropertyOutput {
-  uniqueProperty?: RawUniqueProperty;
-}
-
 export interface CreateUserInput {
   email: string;
   username: string;
@@ -931,7 +743,7 @@ export interface CreateUserOutput {
 }
 
 export interface CreateRandomUserOutput {
-  user: MakeRequired<RawUser, "email" | "username" | "name" | "bio">;
+  user: MakeRequired<RawUser, "email" | "phone" | "username" | "name" | "bio">;
 }
 
 export interface CreateRandomTeamInput {

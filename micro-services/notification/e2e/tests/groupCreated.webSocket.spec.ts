@@ -3,7 +3,7 @@
 
 import WebSocket from "ws";
 import { GroupCreatedSnsMessage, User } from "@yac/util";
-import { backoff, createRandomCognitoUser, getAccessTokenByEmail, sns } from "../../../../e2e/util";
+import { backoff, createRandomAuthServiceUser, getAccessTokenByEmail, sns } from "../../../../e2e/util";
 import { WebSocketEvent } from "../../src/enums/webSocket.event.enum";
 import { GroupCreatedWebSocketMessage } from "../../src/models/websocket-messages/groupCreated.websocket.message";
 
@@ -36,9 +36,9 @@ describe("Group Created (WebSocket Event)", () => {
   beforeAll(async () => {
     // Create two users in cognito
     const [ { email: emailOne, id: idOne }, { email: emailTwo }, { email: emailThree, id: idThree } ] = await Promise.all([
-      createRandomCognitoUser(),
-      createRandomCognitoUser(),
-      createRandomCognitoUser(),
+      createRandomAuthServiceUser(),
+      createRandomAuthServiceUser(),
+      createRandomAuthServiceUser(),
     ]);
 
     userOneId = idOne as User["id"];
