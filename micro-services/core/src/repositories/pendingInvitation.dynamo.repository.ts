@@ -25,7 +25,7 @@ export class PendingInvitationDynamoRepository extends BaseDynamoRepositoryV2<Pe
 
       const pendingInvitationEntity: RawPendingInvitation<T> = {
         entityType: EntityType.PendingInvitation,
-        pk: pendingInvitation.emailOrPhone,
+        pk: "email" in pendingInvitation ? pendingInvitation.email : pendingInvitation.phone,
         sk: `${EntityType.PendingInvitation}-${pendingInvitation.invitingEntityId}`,
         ...pendingInvitation,
       };
@@ -48,8 +48,6 @@ export class PendingInvitationDynamoRepository extends BaseDynamoRepositoryV2<Pe
     try {
       this.loggerService.trace("getPendingInvitations called", { params }, this.constructor.name);
 
-      const { emailOrPhone } = params;
-
       const { Items: pendingInvitations } = await this.query({
         KeyConditionExpression: "#pk = :emailOrPhone AND begins_with(#sk, :pendingInvitation)",
         ExpressionAttributeNames: {
@@ -57,7 +55,7 @@ export class PendingInvitationDynamoRepository extends BaseDynamoRepositoryV2<Pe
           "#sk": "sk",
         },
         ExpressionAttributeValues: {
-          ":emailOrPhone": emailOrPhone,
+          ":emailOrPhone": "email" in params ? params.email : params.phone,
           ":pendingInvitation": EntityType.PendingInvitation,
         },
       });
@@ -74,11 +72,14 @@ export class PendingInvitationDynamoRepository extends BaseDynamoRepositoryV2<Pe
     try {
       this.loggerService.trace("deletePendingInvitation called", { params }, this.constructor.name);
 
-      const { emailOrPhone, invitingEntityId } = params;
+      const { invitingEntityId } = params;
 
       await this.documentClient.delete({
         TableName: this.tableName,
-        Key: { pk: emailOrPhone, sk: `${EntityType.PendingInvitation}-${invitingEntityId}` },
+        Key: {
+          pk: "email" in params ? params.email : params.phone,
+          sk: `${EntityType.PendingInvitation}-${invitingEntityId}`,
+        },
       }).promise();
     } catch (error: unknown) {
       this.loggerService.error("Error in deletePendingInvitation", { error, params }, this.constructor.name);
@@ -91,33 +92,26 @@ export class PendingInvitationDynamoRepository extends BaseDynamoRepositoryV2<Pe
 export interface PendingInvitationRepositoryInterface {
   createPendingInvitation<T extends PendingInvitationType>(params: CreatePendingInvitationInput<T>): Promise<CreatePendingInvitationOutput<T>>;
   getPendingInvitations(params: GetPendingInvitationsInput): Promise<GetPendingInvitationsOutput>;
-  deletePendingInvitation(params: DeletePendingInvitationInput):DeletePendingInvitationOutput;
+  deletePendingInvitation(params: DeletePendingInvitationInput): Promise<DeletePendingInvitationOutput>;
 }
 
 type PendingInvitationRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
 
-type InvitingEntityId<T extends PendingInvitationType | void = void> =
+export type InvitingEntityId<T extends PendingInvitationType = PendingInvitationType> =
   T extends PendingInvitationType.Friend ? UserId :
     T extends PendingInvitationType.Team ? TeamId :
       T extends PendingInvitationType.Group ? GroupId :
         T extends PendingInvitationType.Meeting ? MeetingId :
           UserId |TeamId | GroupId | MeetingId;
 
-export interface PendingInvitation<T extends PendingInvitationType | void = void> {
-  emailOrPhone: string;
-  type: T;
-  invitingEntityId: InvitingEntityId<T>;
-  role?: Role;
-}
+export type PendingInvitation<T extends PendingInvitationType = PendingInvitationType> = EmailPendingInvitation<T> | PhonePendingInvitation<T>;
 
-type Sk<T extends PendingInvitationType> = `${EntityType.PendingInvitation}-${InvitingEntityId<T>}`;
-
-export interface RawPendingInvitation<T extends PendingInvitationType> extends PendingInvitation<T> {
+export type RawPendingInvitation<T extends PendingInvitationType = PendingInvitationType> = PendingInvitation<T> & {
   entityType: EntityType.PendingInvitation,
   // email | phone
   pk: string;
   sk: Sk<T>;
-}
+};
 
 export interface CreatePendingInvitationInput<T extends PendingInvitationType> {
   pendingInvitation: PendingInvitation<T>;
@@ -127,17 +121,48 @@ export interface CreatePendingInvitationOutput<T extends PendingInvitationType> 
   pendingInvitation: PendingInvitation<T>;
 }
 
-export interface GetPendingInvitationsInput {
-  emailOrPhone: UserId;
-}
+export type GetPendingInvitationsInput = EmailGetPendingInvitationsInput | PhoneGetPendingInvitationsInput;
 
 export interface GetPendingInvitationsOutput {
   pendingInvitations: PendingInvitation[];
 }
 
-export interface DeletePendingInvitationInput {
-  emailOrPhone: UserId;
+export type DeletePendingInvitationInput = EmailDeletePendingInvitationInput | PhoneDeletePendingInvitationInput;
+
+export type DeletePendingInvitationOutput = void;
+
+type Sk<T extends PendingInvitationType> = `${EntityType.PendingInvitation}-${InvitingEntityId<T>}`;
+interface BasePendingInvitation<T extends PendingInvitationType = PendingInvitationType> {
+  type: T;
+  invitingEntityId: InvitingEntityId<T>;
+  createdAt: string;
+  role?: Role;
+}
+
+interface EmailPendingInvitation<T extends PendingInvitationType = PendingInvitationType> extends BasePendingInvitation<T> {
+  email: string;
+}
+
+interface PhonePendingInvitation<T extends PendingInvitationType = PendingInvitationType> extends BasePendingInvitation<T> {
+  phone: string;
+}
+
+interface EmailGetPendingInvitationsInput {
+  email: string;
+}
+
+interface PhoneGetPendingInvitationsInput {
+  phone: string;
+}
+
+interface BaseDeletePendingInvitationInput {
   invitingEntityId: InvitingEntityId;
 }
 
-export type DeletePendingInvitationOutput = void;
+interface EmailDeletePendingInvitationInput extends BaseDeletePendingInvitationInput {
+  email: string;
+}
+
+interface PhoneDeletePendingInvitationInput extends BaseDeletePendingInvitationInput {
+  phone: string;
+}

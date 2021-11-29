@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, WithRole } from "@yac/util";
+import { LoggerServiceInterface, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { UserServiceInterface, CreateUserInput as UserServiceCreateUserInput, User as UserEntity } from "../entity-services/user.service";
+import { UserServiceInterface, User as UserEntity } from "../entity-services/user.service";
 import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";

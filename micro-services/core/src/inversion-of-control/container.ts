@@ -77,6 +77,9 @@ import { UserGroupMeetingSearchService, UserGroupMeetingSearchServiceInterface }
 import { OpenSearchRepository, SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { UserCreatedSnsProcessorService } from "../processor-services/userCreated.sns.processor.service";
 import { PendingInvitationDynamoRepository, PendingInvitationRepositoryInterface } from "../repositories/pendingInvitation.dynamo.repository";
+import { PendingInvitationService, PendingInvitationServiceInterface } from "../entity-services/pendingInvitation.service";
+import { CreateUserRequestSnsService, CreateUserRequestSnsServiceInterface } from "../sns-services/createUserRequest.sns.service";
+import { PendingInvitationCreatedDynamoProcessorService } from "../processor-services/pendingInvitationCreated.dynamo.processor.service";
 
 const container = new Container();
 
@@ -134,6 +137,7 @@ try {
   container.bind<DynamoProcessorServiceInterface>(TYPES.MeetingMessageCreatedDynamoProcessorServiceInterface).to(MeetingMessageCreatedDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.MeetingMessageUpdatedDynamoProcessorServiceInterface).to(MeetingMessageUpdatedDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.MeetingCreatedDynamoProcessorServiceInterface).to(MeetingCreatedDynamoProcessorService);
+  container.bind<DynamoProcessorServiceInterface>(TYPES.PendingInvitationCreatedDynamoProcessorServiceInterface).to(PendingInvitationCreatedDynamoProcessorService);
 
   // SNS Services
   container.bind<UserCreatedSnsServiceInterface>(TYPES.UserCreatedSnsServiceInterface).to(UserCreatedSnsService);
@@ -154,11 +158,13 @@ try {
   container.bind<MeetingMessageCreatedSnsServiceInterface>(TYPES.MeetingMessageCreatedSnsServiceInterface).to(MeetingMessageCreatedSnsService);
   container.bind<MeetingMessageUpdatedSnsServiceInterface>(TYPES.MeetingMessageUpdatedSnsServiceInterface).to(MeetingMessageUpdatedSnsService);
   container.bind<MeetingCreatedSnsServiceInterface>(TYPES.MeetingCreatedSnsServiceInterface).to(MeetingCreatedSnsService);
+  container.bind<CreateUserRequestSnsServiceInterface>(TYPES.CreateUserRequestSnsServiceInterface).to(CreateUserRequestSnsService);
 
   // Entity Services
   container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
   container.bind<ConversationUserRelationshipServiceInterface>(TYPES.ConversationUserRelationshipServiceInterface).to(ConversationUserRelationshipService);
   container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);
+  container.bind<PendingInvitationServiceInterface>(TYPES.PendingInvitationServiceInterface).to(PendingInvitationService);
   container.bind<PendingMessageServiceInterface>(TYPES.PendingMessageServiceInterface).to(PendingMessageService);
   container.bind<TeamServiceInterface>(TYPES.TeamServiceInterface).to(TeamService);
   container.bind<TeamUserRelationshipServiceInterface>(TYPES.TeamUserRelationshipServiceInterface).to(TeamUserRelationshipService);
@@ -211,6 +217,7 @@ try {
     container.get(TYPES.MeetingMessageCreatedDynamoProcessorServiceInterface),
     container.get(TYPES.MeetingMessageUpdatedDynamoProcessorServiceInterface),
     container.get(TYPES.MeetingCreatedDynamoProcessorServiceInterface),
+    container.get(TYPES.PendingInvitationCreatedDynamoProcessorServiceInterface),
   ]);
 } catch (error: unknown) {
   // eslint-disable-next-line no-console

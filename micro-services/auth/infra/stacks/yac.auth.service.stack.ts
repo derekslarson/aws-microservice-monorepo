@@ -62,7 +62,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const slackClientRedirectUri = `${this.httpApi.apiURL}/oauth2/idpresponse`;
 
     const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
-    const externalProviderUserSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.ExternalProviderUserSignedUpSnsTopicArn);
+    const createUserRequestSnsTopicArn = CDK.Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn);
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
@@ -76,6 +76,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
       removalPolicy: CDK.RemovalPolicy.DESTROY,
+      stream: DynamoDB.StreamViewType.NEW_AND_OLD_IMAGES,
       timeToLiveAttribute: "ttl",
     });
 
@@ -157,7 +158,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       MAIL_SENDER: "no-reply@yac.com",
       YAC_AUTH_UI: `https://${authUiCnameRecord.domainName}`,
       USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
-      EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN: externalProviderUserSignedUpSnsTopicArn,
+      CREATE_USER_REQUEST_SNS_TOPIC_ARN: createUserRequestSnsTopicArn,
       AUTH_TABLE_NAME: authTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
       GOOGLE_CLIENT_ID: googleClientId,
@@ -194,7 +195,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserCreatedSnsTopic_${id}`, userCreatedSnsTopicArn)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `CreateUserRequestSnsTopic_${id}`, createUserRequestSnsTopicArn)),
       ],
     });
 

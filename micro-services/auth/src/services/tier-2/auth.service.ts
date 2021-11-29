@@ -5,7 +5,6 @@ import { TYPES } from "../../inversion-of-control/types";
 import { MailServiceInterface } from "../tier-1/mail.service";
 import { AuthFlowAttempt, AuthFlowAttemptRepositoryInterface, UpdateAuthFlowAttemptUpdates } from "../../repositories/authFlowAttempt.dynamo.repository";
 import { Csrf, CsrfFactory } from "../../factories/csrf.factory";
-import { User, UserRepositoryInterface } from "../../repositories/user.dynamo.repository";
 import { EnvConfigInterface } from "../../config/env.config";
 import { TokenServiceInterface, GetPublicJwksOutput as TokenServiceGetPublicJwksOutput } from "../tier-1/token.service";
 import { PkceChallenge, PkceChallengeFactory } from "../../factories/pkceChallenge.factory";
@@ -14,6 +13,7 @@ import { OAuth2ErrorType } from "../../enums/oAuth2ErrorType.enum";
 import { Client } from "../../repositories/client.dynamo.repository";
 import { ExternalProvider } from "../../enums/externalProvider.enum";
 import { SlackOAuth2Client, SlackOAuth2ClientFactory } from "../../factories/slackOAuth2Client.factory";
+import { User, UserServiceInterface } from "../tier-1/user.service";
 
 @injectable()
 export class AuthService implements AuthServiceInterface {
@@ -37,7 +37,7 @@ export class AuthService implements AuthServiceInterface {
     @inject(TYPES.SmsServiceInterface) private smsService: SmsServiceInterface,
     @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
     @inject(TYPES.TokenServiceInterface) private tokenService: TokenServiceInterface,
-    @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.AuthFlowAttemptRepositoryInterface) private authFlowAttemptRepository: AuthFlowAttemptRepositoryInterface,
     @inject(TYPES.GoogleOAuth2ClientFactory) googleOAuth2ClientFactory: GoogleOAuth2ClientFactory,
     @inject(TYPES.SlackOAuth2ClientFactory) slackOAuth2ClientFactory: SlackOAuth2ClientFactory,
@@ -368,19 +368,13 @@ export class AuthService implements AuthServiceInterface {
       let user: User;
 
       try {
-        ({ user } = "email" in params ? await this.userRepository.getUserByEmail({ email: params.email }) : await this.userRepository.getUserByPhone({ phone: params.phone }));
+        ({ user } = "email" in params ? await this.userService.getUserByEmail({ email: params.email }) : await this.userService.getUserByPhone({ phone: params.phone }));
       } catch (error) {
         if (!(error instanceof NotFoundError)) {
           throw error;
         }
 
-        const userEntity: User = {
-          id: `user-${this.idService.generateId()}`,
-          createdAt: new Date().toISOString(),
-          ...("email" in params ? { email: params.email } : { phone: params.phone }),
-        };
-
-        ({ user } = await this.userRepository.createUser({ user: userEntity }));
+        ({ user } = await this.userService.createUser("email" in params ? { email: params.email } : { phone: params.phone }));
       }
 
       return { user };

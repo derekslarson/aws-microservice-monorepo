@@ -63,7 +63,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const meetingMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageUpdatedSnsTopicArn);
     const messageTranscodedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
     const messageTranscribedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn);
-    const externalProviderUserSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.ExternalProviderUserSignedUpSnsTopicArn);
+    const createUserRequestSnsTopicArn = CDK.Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn);
 
     // Secret imports from Util
     const messageUploadTokenSecretArn = CDK.Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
@@ -259,6 +259,10 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       actions: [ "SNS:Publish" ],
       resources: [ meetingMessageUpdatedSnsTopicArn ],
     });
+    const createUserRequestSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ createUserRequestSnsTopicArn ],
+    });
 
     const getMessageUploadTokenSecretPolicyStatement = new IAM.PolicyStatement({
       actions: [ "secretsmanager:GetSecretValue" ],
@@ -292,7 +296,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN: meetingMessageUpdatedSnsTopicArn,
       MESSAGE_TRANSCODED_SNS_TOPIC_ARN: messageTranscodedSnsTopicArn,
       MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN: messageTranscribedSnsTopicArn,
-      EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN: externalProviderUserSignedUpSnsTopicArn,
+      CREATE_USER_REQUEST_SNS_TOPIC_ARN: createUserRequestSnsTopicArn,
       RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
       ENHANCED_MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,
       IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
@@ -334,6 +338,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         groupMessageUpdatedSnsPublishPolicyStatement,
         meetingMessageCreatedSnsPublishPolicyStatement,
         meetingMessageUpdatedSnsPublishPolicyStatement,
+        createUserRequestSnsPublishPolicyStatement,
         openSearchFullAccessPolicyStatement,
       ],
       timeout: CDK.Duration.seconds(15),

@@ -244,6 +244,8 @@ export interface UserServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
   getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput>;
+  getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput>;
+  getUserByUsername(params: GetUserByUsernameInput): Promise<GetUserByUsernameOutput>;
   updateUser(params: UpdateUserInput): Promise<UpdateUserOutput>;
   getUsers(params: GetUsersInput): Promise<GetUsersOutput>;
   getUserImageUploadUrl(params: GetUserImageUploadUrlInput): GetUserImageUploadUrlOutput;

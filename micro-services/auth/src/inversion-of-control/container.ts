@@ -21,6 +21,8 @@ import { JwksDynamoRepository, JwksRepositoryInterface } from "../repositories/j
 import { slackOAuth2ClientFactory, SlackOAuth2ClientFactory } from "../factories/slackOAuth2Client.factory";
 import { UserCreatedSnsService, UserCreatedSnsServiceInterface } from "../sns-services/userCreated.sns.service";
 import { UserCreatedDynamoProcessorService } from "../processor-services/userCreated.dynamo.processor.service";
+import { UserService, UserServiceInterface } from "../services/tier-1/user.service";
+import { CreateUserRequestSnsProcessorService } from "../processor-services/createUserRequest.sns.processor.service";
 
 const container = new Container();
 
@@ -40,12 +42,16 @@ try {
   container.bind<ClientServiceInterface>(TYPES.ClientServiceInterface).to(ClientService);
   container.bind<MailServiceInterface>(TYPES.MailServiceInterface).to(MailService);
   container.bind<TokenServiceInterface>(TYPES.TokenServiceInterface).to(TokenService);
+  container.bind<UserServiceInterface>(TYPES.UserServiceInterface).to(UserService);
 
   // SNS Services
   container.bind<UserCreatedSnsServiceInterface>(TYPES.UserCreatedSnsServiceInterface).to(UserCreatedSnsService);
 
   // Dynamo Processor Services
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserCreatedDynamoProcessorServiceInterface).to(UserCreatedDynamoProcessorService);
+
+  // SNS Processor Services
+  container.bind<SnsProcessorServiceInterface>(TYPES.CreateUserRequestSnsProcessorServiceInterface).to(CreateUserRequestSnsProcessorService);
 
   // Repositories
   container.bind<AuthFlowAttemptRepositoryInterface>(TYPES.AuthFlowAttemptRepositoryInterface).to(AuthFlowAttemptDynamoRepository);
@@ -61,7 +67,9 @@ try {
   container.bind<SesFactory>(TYPES.SesFactory).toFactory(() => sesFactory);
   container.bind<SlackOAuth2ClientFactory>(TYPES.SlackOAuth2ClientFactory).toFactory(() => slackOAuth2ClientFactory);
 
-  container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([]);
+  container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
+    container.get(TYPES.CreateUserRequestSnsProcessorServiceInterface),
+  ]);
 
   container.bind<DynamoProcessorServiceInterface[]>(TYPES.DynamoProcessorServicesInterface).toConstantValue([
     container.get(TYPES.UserCreatedDynamoProcessorServiceInterface),

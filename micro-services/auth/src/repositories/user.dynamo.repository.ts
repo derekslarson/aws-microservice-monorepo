@@ -203,7 +203,7 @@ export interface UserRepositoryInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
   getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput>;
-  getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput>
+  getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput>;
   deleteUser(params: DeleteUserInput): Promise<DeleteUserOutput>;
 }
 
