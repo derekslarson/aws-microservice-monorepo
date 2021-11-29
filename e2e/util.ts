@@ -334,16 +334,15 @@ export async function createRandomAuthServiceUser(): Promise<MakeRequired<RawUse
   try {
     const name = generateRandomString(8);
 
-    let email = `${generateRandomString(5)}@${generateRandomString(5)}.com`;
-
     let user: MakeRequired<RawUser, "email"> | undefined;
     let attempts = 1;
 
     while (!user && attempts < 6) {
+      const email = `${generateRandomString(5)}@${generateRandomString(5)}.com`;
+
       try {
         ({ user } = await createAuthServiceUser({ name, email }));
       } catch (error) {
-        email = `${generateRandomString(5)}@${generateRandomString(5)}.com`;
         attempts += 1;
       }
     }

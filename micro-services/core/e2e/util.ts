@@ -119,20 +119,17 @@ export async function createRandomUser(): Promise<CreateRandomUserOutput> {
     const name = generateRandomString(8);
     const bio = generateRandomString(8);
 
-    let email = generateRandomEmail();
-    let username = generateRandomString(8);
-    let phone = generateRandomPhone();
-
     let user: CreateUserOutput["user"] | undefined;
     let attempts = 1;
 
     while (!user && attempts < 6) {
+      const email = generateRandomEmail();
+      const username = generateRandomString(8);
+      const phone = generateRandomPhone();
+
       try {
         ({ user } = await createUser({ name, bio, email, username, phone }));
       } catch (error) {
-        email = generateRandomEmail();
-        username = generateRandomString(8);
-        phone = generateRandomPhone();
         attempts += 1;
       }
     }
