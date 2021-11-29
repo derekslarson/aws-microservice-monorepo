@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role, WithRole } from "@yac/util";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { createRandomUser, createConversationUserRelationship, createMeetingConversation, CreateRandomUserOutput } from "../util";
 import { User } from "../../src/mediator-services/user.mediator.service";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
@@ -12,13 +12,13 @@ import { ConversationType } from "../../src/enums/conversationType.enum";
 
 describe("GET /meetings/{meetingId}/users (Get Users by Group Id)", () => {
   const baseUrl = process.env.baseUrl as string;
-  let user: CreateRandomUserOutput["user"];
+  let user: CreateRandomAuthServiceUserOutput;
   let accessToken: string;
 
   const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
 
   beforeAll(async () => {
-    ({ user } = await createRandomUser());
+    user = await createRandomAuthServiceUser();
 
     ({ accessToken } = await getAccessTokenByEmail(user.email));
   });
@@ -54,7 +54,6 @@ describe("GET /meetings/{meetingId}/users (Get Users by Group Id)", () => {
                 username: user.username,
                 phone: user.phone,
                 name: user.name,
-                bio: user.bio,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
               },
@@ -93,7 +92,6 @@ describe("GET /meetings/{meetingId}/users (Get Users by Group Id)", () => {
                 username: user.username,
                 phone: user.phone,
                 name: user.name,
-                bio: user.bio,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
               },

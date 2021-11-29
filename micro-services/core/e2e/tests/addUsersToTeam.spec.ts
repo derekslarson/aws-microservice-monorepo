@@ -12,8 +12,6 @@ import {
   CreateRandomUserOutput,
   generateRandomEmail,
   generateRandomPhone,
-  getUserByEmail,
-  getUserByPhone,
   deleteSnsEventsByTopicArn,
   getSnsEventsByTopicArn,
 } from "../util";
@@ -22,8 +20,6 @@ import { backoff, generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { AddUsersToTeamDto } from "../../src/dtos/addUsersToTeam.dto";
-import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
-import { UniqueProperty } from "../../src/enums/uniqueProperty.enum";
 
 describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -75,25 +71,9 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
         expect(data).toEqual({
           message: "Users added to team, but with some failures.",
           successes: jasmine.arrayContaining([
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              username: otherUser.username,
-              name: otherUser.name,
-              bio: otherUser.bio,
-              email: otherUser.email,
-              phone: otherUser.phone,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              email: randomEmail,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              phone: randomPhone,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
+            { username: otherUser.username, role: Role.Admin },
+            { email: randomEmail, role: Role.User },
+            { phone: randomPhone, role: Role.Admin },
           ]),
           failures: [
             { username: randomUsername, role: Role.User },
@@ -122,24 +102,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
       try {
         await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
-        ]);
-
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
-        }
-
-        const [
-          { teamUserRelationship: teamUserRelationshipOtherUser },
-          { teamUserRelationship: teamUserRelationshipUserByEmail },
-          { teamUserRelationship: teamUserRelationshipUserByPhone },
-        ] = await Promise.all([
-          getTeamUserRelationship({ teamId: team.id, userId: otherUser.id }),
-          getTeamUserRelationship({ teamId: team.id, userId: userByEmail.id }),
-          getTeamUserRelationship({ teamId: team.id, userId: userByPhone.id }),
-        ]);
+        const { teamUserRelationship: teamUserRelationshipOtherUser } = await getTeamUserRelationship({ teamId: team.id, userId: otherUser.id });
 
         expect(teamUserRelationshipOtherUser).toEqual({
           entityType: EntityType.TeamUserRelationship,
@@ -150,28 +113,6 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
           role: Role.Admin,
           teamId: team.id,
           userId: otherUser.id,
-        });
-
-        expect(teamUserRelationshipUserByEmail).toEqual({
-          entityType: EntityType.TeamUserRelationship,
-          pk: team.id,
-          sk: userByEmail.id,
-          gsi1pk: userByEmail.id,
-          gsi1sk: team.id,
-          role: Role.User,
-          teamId: team.id,
-          userId: userByEmail.id,
-        });
-
-        expect(teamUserRelationshipUserByPhone).toEqual({
-          entityType: EntityType.TeamUserRelationship,
-          pk: team.id,
-          sk: userByPhone.id,
-          gsi1pk: userByPhone.id,
-          gsi1sk: team.id,
-          role: Role.Admin,
-          teamId: team.id,
-          userId: userByPhone.id,
         });
       } catch (error) {
         fail(error);
@@ -205,56 +146,15 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
       try {
         await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
-        ]);
-
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
-        }
-
         // wait till all the events have been fired
         const { snsEvents } = await backoff(
           () => getSnsEventsByTopicArn<UserAddedToTeamSnsMessage>({ topicArn: userAddedToTeamSnsTopicArn }),
-          (response) => response.snsEvents.length === 3,
+          (response) => response.snsEvents.length === 1,
         );
 
         expect(snsEvents.length).toBe(3);
 
         expect(snsEvents).toEqual(jasmine.arrayContaining([
-          jasmine.objectContaining({
-            message: {
-              teamMemberIds: jasmine.arrayContaining([ userId ]),
-              team: {
-                createdBy: userId,
-                id: team.id,
-                image: jasmine.stringMatching(URL_REGEX),
-                name: team.name,
-              },
-              user: {
-                email: userByEmail.email,
-                id: userByEmail.id,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-            },
-          }),
-          jasmine.objectContaining({
-            message: {
-              teamMemberIds: jasmine.arrayContaining([ userId ]),
-              team: {
-                createdBy: userId,
-                id: team.id,
-                image: jasmine.stringMatching(URL_REGEX),
-                name: team.name,
-              },
-              user: {
-                phone: userByPhone.phone,
-                id: userByPhone.id,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-            },
-          }),
           jasmine.objectContaining({
             message: {
               teamMemberIds: jasmine.arrayContaining([ userId ]),

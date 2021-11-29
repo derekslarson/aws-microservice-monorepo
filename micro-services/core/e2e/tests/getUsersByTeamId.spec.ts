@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role, WithRole } from "@yac/util";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomUser, createRandomTeam, createTeamUserRelationship, CreateRandomUserOutput } from "../util";
 import { User } from "../../src/mediator-services/user.mediator.service";
@@ -11,13 +11,13 @@ import { TeamId } from "../../src/types/teamId.type";
 
 describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
   const baseUrl = process.env.baseUrl as string;
-  let user: CreateRandomUserOutput["user"];
+  let user: CreateRandomAuthServiceUserOutput;
   let accessToken: string;
 
   const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
 
   beforeAll(async () => {
-    ({ user } = await createRandomUser());
+    user = await createRandomAuthServiceUser();
 
     ({ accessToken } = await getAccessTokenByEmail(user.email));
   });
@@ -53,7 +53,6 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
                 username: user.username,
                 phone: user.phone,
                 name: user.name,
-                bio: user.bio,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
               },
@@ -92,7 +91,6 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
                 username: user.username,
                 phone: user.phone,
                 name: user.name,
-                bio: user.bio,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
               },

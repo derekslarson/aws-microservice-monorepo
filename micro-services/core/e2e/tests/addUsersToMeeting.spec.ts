@@ -7,9 +7,7 @@ import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../
 import { AddUsersToMeetingDto } from "../../src/dtos/addUsersToMeeting.dto";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
-import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { UniqueProperty } from "../../src/enums/uniqueProperty.enum";
 import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
 import {
@@ -22,8 +20,6 @@ import {
   generateRandomPhone,
   getConversationUserRelationship,
   getSnsEventsByTopicArn,
-  getUserByEmail,
-  getUserByPhone,
 } from "../util";
 
 describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
@@ -76,25 +72,9 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
         expect(data).toEqual({
           message: "Users added to meeting, but with some failures.",
           successes: jasmine.arrayContaining([
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              username: otherUser.username,
-              name: otherUser.name,
-              bio: otherUser.bio,
-              email: otherUser.email,
-              phone: otherUser.phone,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              email: randomEmail,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              phone: randomPhone,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
+            { username: otherUser.username, role: Role.Admin },
+            { email: randomEmail, role: Role.User },
+            { phone: randomPhone, role: Role.Admin },
           ]),
           failures: [
             { username: randomUsername, role: Role.User },
@@ -123,24 +103,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
       try {
         await axios.post(`${baseUrl}/meetings/${request.pathParameters.meetingId}/users`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
-        ]);
-
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
-        }
-
-        const [
-          { conversationUserRelationship: conversationUserRelationshipOtherUser },
-          { conversationUserRelationship: conversationUserRelationshipUserByEmail },
-          { conversationUserRelationship: conversationUserRelationshipUserByPhone },
-        ] = await Promise.all([
-          getConversationUserRelationship({ conversationId: meeting.id, userId: otherUser.id }),
-          getConversationUserRelationship({ conversationId: meeting.id, userId: userByEmail.id }),
-          getConversationUserRelationship({ conversationId: meeting.id, userId: userByPhone.id }),
-        ]);
+        const { conversationUserRelationship: conversationUserRelationshipOtherUser } = await getConversationUserRelationship({ conversationId: meeting.id, userId: otherUser.id });
 
         expect(conversationUserRelationshipOtherUser).toEqual({
           entityType: EntityType.ConversationUserRelationship,
@@ -157,44 +120,6 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
           dueDate: meeting.dueDate,
           conversationId: meeting.id,
           userId: otherUser.id,
-          updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
-          muted: false,
-        });
-
-        expect(conversationUserRelationshipUserByEmail).toEqual({
-          entityType: EntityType.ConversationUserRelationship,
-          pk: meeting.id,
-          sk: userByEmail.id,
-          gsi1pk: userByEmail.id,
-          gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: userByEmail.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
-          gsi3pk: userByEmail.id,
-          gsi3sk: `${KeyPrefix.Time}${meeting.dueDate}`,
-          dueDate: meeting.dueDate,
-          role: Role.User,
-          type: ConversationType.Meeting,
-          conversationId: meeting.id,
-          userId: userByEmail.id,
-          updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
-          muted: false,
-        });
-
-        expect(conversationUserRelationshipUserByPhone).toEqual({
-          entityType: EntityType.ConversationUserRelationship,
-          pk: meeting.id,
-          sk: userByPhone.id,
-          gsi1pk: userByPhone.id,
-          gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: userByPhone.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
-          gsi3pk: userByPhone.id,
-          gsi3sk: `${KeyPrefix.Time}${meeting.dueDate}`,
-          dueDate: meeting.dueDate,
-          role: Role.Admin,
-          type: ConversationType.Meeting,
-          conversationId: meeting.id,
-          userId: userByPhone.id,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });
@@ -230,62 +155,15 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
       try {
         await axios.post(`${baseUrl}/meetings/${request.pathParameters.meetingId}/users`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
-        ]);
-
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
-        }
-
         // wait till all the events have been fired
         const { snsEvents } = await backoff(
           () => getSnsEventsByTopicArn<UserAddedToMeetingSnsMessage>({ topicArn: userAddedToMeetingSnsTopicArn }),
-          (response) => response.snsEvents.length === 3,
+          (response) => response.snsEvents.length === 1,
         );
 
         expect(snsEvents.length).toBe(3);
 
         expect(snsEvents).toEqual(jasmine.arrayContaining([
-          jasmine.objectContaining({
-            message: {
-              meetingMemberIds: jasmine.arrayContaining([ userId ]),
-              meeting: {
-                createdBy: userId,
-                id: meeting.id,
-                image: jasmine.stringMatching(URL_REGEX),
-                name: meeting.name,
-                dueDate: meeting.dueDate,
-                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
-                type: ConversationType.Meeting,
-              },
-              user: {
-                email: userByEmail.email,
-                id: userByEmail.id,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-            },
-          }),
-          jasmine.objectContaining({
-            message: {
-              meetingMemberIds: jasmine.arrayContaining([ userId ]),
-              meeting: {
-                createdBy: userId,
-                id: meeting.id,
-                image: jasmine.stringMatching(URL_REGEX),
-                name: meeting.name,
-                dueDate: meeting.dueDate,
-                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
-                type: ConversationType.Meeting,
-              },
-              user: {
-                phone: userByPhone.phone,
-                id: userByPhone.id,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-            },
-          }),
           jasmine.objectContaining({
             message: {
               meetingMemberIds: jasmine.arrayContaining([ userId ]),

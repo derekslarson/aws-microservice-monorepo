@@ -442,5 +442,10 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     });
 
     new CDK.CfnOutput(this, `AuthServiceBaseUrlExport_${id}`, { value: this.httpApi.apiURL });
+
+    new SSM.StringParameter(this, `AuthTableNameSsmParameter-${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/auth-table-name`,
+      stringValue: authTable.tableName,
+    });
   }
 }

@@ -1,17 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
-import { createRandomUser, CreateRandomUserOutput } from "../util";
+import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 
 describe("GET /users/{userId} (Get User)", () => {
   const baseUrl = process.env.baseUrl as string;
 
-  let user: CreateRandomUserOutput["user"];
+  let user: CreateRandomAuthServiceUserOutput;
   let accessToken: string;
 
   beforeAll(async () => {
-    ({ user } = await createRandomUser());
+    user = await createRandomAuthServiceUser();
 
     ({ accessToken } = await getAccessTokenByEmail(user.email));
   });
@@ -31,7 +30,6 @@ describe("GET /users/{userId} (Get User)", () => {
             username: user.username,
             phone: user.phone,
             name: user.name,
-            bio: user.bio,
             image: jasmine.stringMatching(URL_REGEX),
           },
         });

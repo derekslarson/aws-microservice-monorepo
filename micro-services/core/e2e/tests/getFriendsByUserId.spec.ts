@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role } from "@yac/util";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { User } from "../../src/mediator-services/user.mediator.service";
 import { createConversationUserRelationship, createFriendConversation, createRandomUser, CreateRandomUserOutput } from "../util";
 import { UserId } from "../../src/types/userId.type";
@@ -25,7 +25,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
 
     beforeAll(async () => {
       // We have to fetch a new base user and access token here to prevent bleed over from other tests
-      const { user } = await createRandomUser();
+      const user = await createRandomAuthServiceUser();
       userId = user.id;
 
       ([ { accessToken }, { user: otherUserA }, { user: otherUserB } ] = await Promise.all([

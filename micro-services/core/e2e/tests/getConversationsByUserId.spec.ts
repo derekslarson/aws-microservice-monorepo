@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Role } from "@yac/util";
 import axios from "axios";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX, wait } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationFetchType } from "../../src/enums/conversationFetchType.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
@@ -12,7 +12,7 @@ import { FriendConversation, GroupConversation, MeetingConversation, RawConversa
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage, createUser, createRandomUser, CreateRandomUserOutput, generateRandomPhone, CreateUserOutput } from "../util";
+import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage, createUser, generateRandomPhone, CreateUserOutput } from "../util";
 
 describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -23,7 +23,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
     const searchParamEmail = "three";
     const searchParamPhone = generateRandomPhone();
 
-    let user: CreateRandomUserOutput["user"];
+    let user: CreateRandomAuthServiceUserOutput;
     let otherUser: CreateUserOutput["user"];
     let accessToken: string;
 
@@ -43,8 +43,8 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
 
     beforeAll(async () => {
       // We have to fetch a new base user and access token here to prevent bleed over from other tests
-      ([ { user }, { user: otherUser } ] = await Promise.all([
-        createRandomUser(),
+      ([ user, { user: otherUser } ] = await Promise.all([
+        createRandomAuthServiceUser(),
         createUser({
           name: `${generateRandomString(10)} ${searchParamNamename}`,
           bio: `${generateRandomString(10)}`,

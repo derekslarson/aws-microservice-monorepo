@@ -5,8 +5,7 @@ import Jasmine from "jasmine";
 import { SpecReporter } from "jasmine-spec-reporter";
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
-import { getAccessTokenByEmail, getSsmParameters, setEnvVars } from "../../../e2e/util";
-import { createRandomUser } from "./util";
+import { createRandomAuthServiceUser, getAccessTokenByEmail, getSsmParameters, setEnvVars } from "../../../e2e/util";
 
 const { argv } = yargs(hideBin(process.argv));
 const { environment } = argv as { environment?: string; };
@@ -16,12 +15,7 @@ if (!environment) {
 }
 
 const necessaryParams = [
-  "auth-secret-id",
-  "user-pool-id",
-  "user-pool-domain-url",
-  "yac-client-id",
-  "yac-client-secret",
-  "yac-client-redirect-uri",
+  "auth-table-name",
   "core-table-name",
   "image-s3-bucket-name",
   "user-added-to-team-sns-topic-arn",
@@ -52,7 +46,7 @@ const necessaryParams = [
 
   setEnvVars(initialEnvVals);
 
-  const { user } = await createRandomUser();
+  const user = await createRandomAuthServiceUser();
 
   const { accessToken } = await getAccessTokenByEmail(user.email);
 

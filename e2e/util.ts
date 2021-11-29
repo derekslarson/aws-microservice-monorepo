@@ -235,6 +235,10 @@ export async function getAccessTokenByEmail(email: string): Promise<{ accessToke
       Key: { pk: userId, sk: EntityType.User },
     }).promise();
 
+    if (!user) {
+      throw new Error("User not found.");
+    }
+
     const { accessToken } = await getAccessToken((user as RawUser).id);
 
     return { accessToken };
@@ -330,7 +334,7 @@ export async function createAuthServiceUser(params: CreateUserInput): Promise<{ 
   }
 }
 
-export async function createRandomAuthServiceUser(): Promise<MakeRequired<RawUser, "email">> {
+export async function createRandomAuthServiceUser(): Promise<CreateRandomAuthServiceUserOutput> {
   try {
     const name = generateRandomString(8);
 
@@ -391,3 +395,5 @@ export interface CreateUserInput {
   username?: string;
   phone?: string;
 }
+
+export type CreateRandomAuthServiceUserOutput = MakeRequired<RawUser, "email">;

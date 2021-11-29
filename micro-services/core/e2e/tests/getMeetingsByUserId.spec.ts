@@ -2,10 +2,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
 import { Role } from "@yac/util";
-import { createRandomUser, createConversationUserRelationship, createMeetingConversation } from "../util";
+import { createConversationUserRelationship, createMeetingConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 
@@ -22,7 +22,7 @@ describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
 
     beforeAll(async () => {
       // We have to fetch a new base user and access token here to prevent bleed over from other tests
-      const { user } = await createRandomUser();
+      const user = await createRandomAuthServiceUser();
       userId = user.id;
 
       ([ { accessToken }, { conversation: meeting }, { conversation: meetingTwo } ] = await Promise.all([

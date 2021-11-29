@@ -13,8 +13,6 @@ import {
   getConversationUserRelationship,
   getSnsEventsByTopicArn,
   getUser,
-  getUserByEmail,
-  getUserByPhone,
 } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
@@ -22,9 +20,7 @@ import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { AddUsersAsFriendsDto } from "../../src/dtos/addUsersAsFriends.dto";
-import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 import { FriendConvoId } from "../../src/types/friendConvoId.type";
-import { UniqueProperty } from "../../src/enums/uniqueProperty.enum";
 
 describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -71,25 +67,9 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
         expect(data).toEqual({
           message: "Users added as friends, but with some failures.",
           successes: jasmine.arrayContaining([
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              username: otherUser.username,
-              name: otherUser.name,
-              bio: otherUser.bio,
-              email: otherUser.email,
-              phone: otherUser.phone,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              email: randomEmail,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              phone: randomPhone,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
+            { username: otherUser.username },
+            { email: randomEmail },
+            { phone: randomPhone },
           ]),
           failures: [
             { username: randomUsername },
@@ -100,7 +80,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       }
     });
 
-    it("creates a valid Conversation entities", async () => {
+    it("creates a valid Conversation entities for the existing users", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       const request: Static<typeof AddUsersAsFriendsDto> = {
@@ -118,27 +98,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       try {
         await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
-        ]);
-
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
-        }
-
-        const userByEmailConversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, userByEmail?.id ].sort().join("-")}`;
-        const userByPhoneConversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, userByPhone?.id ].sort().join("-")}`;
-
-        const [
-          { conversation: usernameInviteConvo },
-          { conversation: emailInviteConvo },
-          { conversation: phoneInviteConvio },
-        ] = await Promise.all([
-          getConversation({ conversationId }),
-          getConversation({ conversationId: userByEmailConversationId }),
-          getConversation({ conversationId: userByPhoneConversationId }),
-        ]);
+        const { conversation: usernameInviteConvo } = await getConversation({ conversationId });
 
         expect(usernameInviteConvo).toEqual({
           entityType: EntityType.FriendConversation,
@@ -149,32 +109,12 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
           createdBy: userId,
         });
-
-        expect(emailInviteConvo).toEqual({
-          entityType: EntityType.FriendConversation,
-          pk: userByEmailConversationId,
-          sk: userByEmailConversationId,
-          id: userByEmailConversationId,
-          type: ConversationType.Friend,
-          createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
-          createdBy: userId,
-        });
-
-        expect(phoneInviteConvio).toEqual({
-          entityType: EntityType.FriendConversation,
-          pk: userByPhoneConversationId,
-          sk: userByPhoneConversationId,
-          id: userByPhoneConversationId,
-          type: ConversationType.Friend,
-          createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
-          createdBy: userId,
-        });
       } catch (error) {
         fail(error);
       }
     });
 
-    it("creates valid ConversationUserRelationship entities", async () => {
+    it("creates valid ConversationUserRelationship entities for the existing users", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       const request: Static<typeof AddUsersAsFriendsDto> = {
@@ -192,32 +132,12 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       try {
         await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
-        ]);
-
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
-        }
-
-        const userByEmailConversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, userByEmail.id ].sort().join("-")}`;
-        const userByPhoneConversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, userByPhone.id ].sort().join("-")}`;
-
         const [
           { conversationUserRelationship: conversationUserRelationshipA },
           { conversationUserRelationship: conversationUserRelationshipB },
-          { conversationUserRelationship: conversationUserRelationshipC },
-          { conversationUserRelationship: conversationUserRelationshipD },
-          { conversationUserRelationship: conversationUserRelationshipE },
-          { conversationUserRelationship: conversationUserRelationshipF },
         ] = await Promise.all([
           getConversationUserRelationship({ conversationId, userId }),
           getConversationUserRelationship({ conversationId, userId: otherUser.id }),
-          getConversationUserRelationship({ conversationId: userByEmailConversationId, userId }),
-          getConversationUserRelationship({ conversationId: userByEmailConversationId, userId: userByEmail.id }),
-          getConversationUserRelationship({ conversationId: userByPhoneConversationId, userId }),
-          getConversationUserRelationship({ conversationId: userByPhoneConversationId, userId: userByPhone.id }),
         ]);
 
         expect(conversationUserRelationshipA).toEqual({
@@ -251,70 +171,6 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });
-
-        expect(conversationUserRelationshipC).toEqual({
-          entityType: EntityType.ConversationUserRelationship,
-          pk: userByEmailConversationId,
-          sk: userId,
-          gsi1pk: userId,
-          gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: userId,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
-          role: Role.Admin,
-          type: ConversationType.Friend,
-          conversationId: userByEmailConversationId,
-          userId,
-          updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
-          muted: false,
-        });
-
-        expect(conversationUserRelationshipD).toEqual({
-          entityType: EntityType.ConversationUserRelationship,
-          pk: userByEmailConversationId,
-          sk: userByEmail.id,
-          gsi1pk: userByEmail.id,
-          gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: userByEmail.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
-          role: Role.Admin,
-          type: ConversationType.Friend,
-          conversationId: userByEmailConversationId,
-          userId: userByEmail.id,
-          updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
-          muted: false,
-        });
-
-        expect(conversationUserRelationshipE).toEqual({
-          entityType: EntityType.ConversationUserRelationship,
-          pk: userByPhoneConversationId,
-          sk: userId,
-          gsi1pk: userId,
-          gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: userId,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
-          role: Role.Admin,
-          type: ConversationType.Friend,
-          conversationId: userByPhoneConversationId,
-          userId,
-          updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
-          muted: false,
-        });
-
-        expect(conversationUserRelationshipF).toEqual({
-          entityType: EntityType.ConversationUserRelationship,
-          pk: userByPhoneConversationId,
-          sk: userByPhone.id,
-          gsi1pk: userByPhone.id,
-          gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: userByPhone.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
-          role: Role.Admin,
-          type: ConversationType.Friend,
-          conversationId: userByPhoneConversationId,
-          userId: userByPhone.id,
-          updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
-          muted: false,
-        });
       } catch (error) {
         fail(error);
       }
@@ -331,9 +187,6 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
         body: {
           users: [
             { username: otherUser.username },
-            { email: randomEmail },
-            { phone: randomPhone },
-            { username: randomUsername },
           ],
         },
       };
@@ -341,59 +194,21 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       try {
         await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
 
-        const [ { user }, { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUser({ userId }),
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
-        ]);
+        const { user } = await getUser({ userId });
 
-        if (!user || !userByEmail || !userByPhone) {
+        if (!user) {
           throw new Error("necessary user records not created");
         }
 
         // wait till all the events have been fired
         const { snsEvents } = await backoff(
           () => getSnsEventsByTopicArn<UserAddedAsFriendSnsMessage>({ topicArn: userAddedAsFriendSnsTopicArn }),
-          (response) => response.snsEvents.length === 3,
+          (response) => response.snsEvents.length === 1,
         );
 
-        expect(snsEvents.length).toBe(3);
+        expect(snsEvents.length).toBe(1);
 
         expect(snsEvents).toEqual(jasmine.arrayContaining([
-          jasmine.objectContaining({
-            message: {
-              addingUser: {
-                id: user.id,
-                email: user.email,
-                username: user.username,
-                phone: user.phone,
-                bio: user.bio,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-              addedUser: {
-                email: userByEmail.email,
-                id: userByEmail.id,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-            },
-          }),
-          jasmine.objectContaining({
-            message: {
-              addingUser: {
-                id: user.id,
-                email: user.email,
-                username: user.username,
-                phone: user.phone,
-                name: user.name,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-              addedUser: {
-                phone: userByPhone.phone,
-                id: userByPhone.id,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-            },
-          }),
           jasmine.objectContaining({
             message: {
               addingUser: {
