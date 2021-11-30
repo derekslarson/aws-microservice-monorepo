@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Role } from "@yac/util";
+import { BadRequestError, LoggerServiceInterface, Role } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { PendingInvitationRepositoryInterface, InvitingEntityId, PendingInvitation as PendingInvitationEntity } from "../repositories/pendingInvitation.dynamo.repository";
 import { PendingInvitationType } from "../enums/pendingInvitationType.enum";
@@ -12,20 +12,24 @@ export class PendingInvitationService implements PendingInvitationServiceInterfa
     @inject(TYPES.PendingInvitationRepositoryInterface) private pendingInvitationRepository: PendingInvitationRepositoryInterface,
   ) {}
 
-  public async createPendingInvitation<T extends PendingInvitationType>(params: CreatePendingInvitationInput<T>): Promise<CreatePendingInvitationOutput<T>> {
+  public async createPendingInvitation(params: CreatePendingInvitationInput): Promise<CreatePendingInvitationOutput> {
     try {
       this.loggerService.trace("createPendingInvitation called", { params }, this.constructor.name);
 
       const { type, invitingEntityId, role } = params;
 
-      const basePendingInvitation: Omit<PendingInvitationEntity<T>, "email" | "phone"> = {
+      if (type !== PendingInvitationType.Friend && !role) {
+        throw new BadRequestError("role is required.");
+      }
+
+      const basePendingInvitation: Omit<PendingInvitationEntity, "email" | "phone"> = {
         type,
         invitingEntityId,
         role,
         createdAt: new Date().toISOString(),
       };
 
-      const pendingInvitation: PendingInvitationEntity<T> = {
+      const pendingInvitation: PendingInvitationEntity = {
         ...basePendingInvitation,
         ...("email" in params ? { email: params.email } : { phone: params.phone }),
       };
@@ -68,17 +72,17 @@ export class PendingInvitationService implements PendingInvitationServiceInterfa
 }
 
 export interface PendingInvitationServiceInterface {
-  createPendingInvitation<T extends PendingInvitationType>(params: CreatePendingInvitationInput<T>): Promise<CreatePendingInvitationOutput<T>>;
+  createPendingInvitation(params: CreatePendingInvitationInput): Promise<CreatePendingInvitationOutput>;
   getPendingInvitations(params: GetPendingInvitationsInput): Promise<GetPendingInvitationsOutput>;
   deletePendingInvitation(params: DeletePendingInvitationInput): Promise<DeletePendingInvitationOutput>;
 }
 
-export type PendingInvitation<T extends PendingInvitationType = PendingInvitationType> = PendingInvitationEntity<T>;
+export type PendingInvitation = PendingInvitationEntity;
 
-export type CreatePendingInvitationInput<T extends PendingInvitationType> =EmailCreatePendingInvitationInput<T> | PhoneCreatePendingInvitationInput<T>;
+export type CreatePendingInvitationInput =EmailCreatePendingInvitationInput | PhoneCreatePendingInvitationInput;
 
-export interface CreatePendingInvitationOutput<T extends PendingInvitationType> {
-  pendingInvitation: PendingInvitation<T>;
+export interface CreatePendingInvitationOutput {
+  pendingInvitation: PendingInvitation;
 }
 
 export type GetPendingInvitationsInput = EmailGetPendingInvitationsInput | PhoneGetPendingInvitationsInput;
@@ -91,17 +95,17 @@ export type DeletePendingInvitationInput = EmailDeletePendingInvitationInput | P
 
 export type DeletePendingInvitationOutput = void;
 
-interface BaseCreatePendingInvitationInput<T extends PendingInvitationType> {
-  type: T;
-  invitingEntityId: InvitingEntityId<T>;
+interface BaseCreatePendingInvitationInput {
+  type: PendingInvitationType;
+  invitingEntityId: InvitingEntityId;
   role?: Role;
 }
 
-interface EmailCreatePendingInvitationInput<T extends PendingInvitationType> extends BaseCreatePendingInvitationInput<T> {
+interface EmailCreatePendingInvitationInput extends BaseCreatePendingInvitationInput {
   email: string;
 }
 
-interface PhoneCreatePendingInvitationInput<T extends PendingInvitationType> extends BaseCreatePendingInvitationInput<T> {
+interface PhoneCreatePendingInvitationInput extends BaseCreatePendingInvitationInput {
   phone: string;
 }
 

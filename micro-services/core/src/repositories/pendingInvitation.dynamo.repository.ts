@@ -17,13 +17,13 @@ export class PendingInvitationDynamoRepository extends BaseDynamoRepositoryV2<Pe
     super(documentClientFactory, envConfig.tableNames.core, loggerService);
   }
 
-  public async createPendingInvitation<T extends PendingInvitationType>(params: CreatePendingInvitationInput<T>): Promise<CreatePendingInvitationOutput<T>> {
+  public async createPendingInvitation(params: CreatePendingInvitationInput): Promise<CreatePendingInvitationOutput> {
     try {
       this.loggerService.trace("createPendingInvitation called", { params }, this.constructor.name);
 
       const { pendingInvitation } = params;
 
-      const pendingInvitationEntity: RawPendingInvitation<T> = {
+      const pendingInvitationEntity: RawPendingInvitation = {
         entityType: EntityType.PendingInvitation,
         pk: "email" in pendingInvitation ? pendingInvitation.email : pendingInvitation.phone,
         sk: `${EntityType.PendingInvitation}-${pendingInvitation.invitingEntityId}`,
@@ -90,35 +90,29 @@ export class PendingInvitationDynamoRepository extends BaseDynamoRepositoryV2<Pe
 }
 
 export interface PendingInvitationRepositoryInterface {
-  createPendingInvitation<T extends PendingInvitationType>(params: CreatePendingInvitationInput<T>): Promise<CreatePendingInvitationOutput<T>>;
+  createPendingInvitation(params: CreatePendingInvitationInput): Promise<CreatePendingInvitationOutput>;
   getPendingInvitations(params: GetPendingInvitationsInput): Promise<GetPendingInvitationsOutput>;
   deletePendingInvitation(params: DeletePendingInvitationInput): Promise<DeletePendingInvitationOutput>;
 }
 
-type PendingInvitationRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
+export type InvitingEntityId = UserId |TeamId | GroupId | MeetingId;
 
-export type InvitingEntityId<T extends PendingInvitationType = PendingInvitationType> =
-  T extends PendingInvitationType.Friend ? UserId :
-    T extends PendingInvitationType.Team ? TeamId :
-      T extends PendingInvitationType.Group ? GroupId :
-        T extends PendingInvitationType.Meeting ? MeetingId :
-          UserId |TeamId | GroupId | MeetingId;
+export type PendingInvitation = EmailPendingInvitation | PhonePendingInvitation;
 
-export type PendingInvitation<T extends PendingInvitationType = PendingInvitationType> = EmailPendingInvitation<T> | PhonePendingInvitation<T>;
-
-export type RawPendingInvitation<T extends PendingInvitationType = PendingInvitationType> = PendingInvitation<T> & {
+export type RawPendingInvitation = PendingInvitation & {
   entityType: EntityType.PendingInvitation,
   // email | phone
   pk: string;
-  sk: Sk<T>;
+  // `${EntityType.PendingInvitation}-${InvitingEntityId}`
+  sk: Sk;
 };
 
-export interface CreatePendingInvitationInput<T extends PendingInvitationType> {
-  pendingInvitation: PendingInvitation<T>;
+export interface CreatePendingInvitationInput {
+  pendingInvitation: PendingInvitation;
 }
 
-export interface CreatePendingInvitationOutput<T extends PendingInvitationType> {
-  pendingInvitation: PendingInvitation<T>;
+export interface CreatePendingInvitationOutput {
+  pendingInvitation: PendingInvitation;
 }
 
 export type GetPendingInvitationsInput = EmailGetPendingInvitationsInput | PhoneGetPendingInvitationsInput;
@@ -131,19 +125,22 @@ export type DeletePendingInvitationInput = EmailDeletePendingInvitationInput | P
 
 export type DeletePendingInvitationOutput = void;
 
-type Sk<T extends PendingInvitationType> = `${EntityType.PendingInvitation}-${InvitingEntityId<T>}`;
-interface BasePendingInvitation<T extends PendingInvitationType = PendingInvitationType> {
-  type: T;
-  invitingEntityId: InvitingEntityId<T>;
+type PendingInvitationRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
+
+type Sk = `${EntityType.PendingInvitation}-${InvitingEntityId}`;
+
+interface BasePendingInvitation {
+  type: PendingInvitationType;
+  invitingEntityId: InvitingEntityId;
   createdAt: string;
   role?: Role;
 }
 
-interface EmailPendingInvitation<T extends PendingInvitationType = PendingInvitationType> extends BasePendingInvitation<T> {
+interface EmailPendingInvitation extends BasePendingInvitation {
   email: string;
 }
 
-interface PhonePendingInvitation<T extends PendingInvitationType = PendingInvitationType> extends BasePendingInvitation<T> {
+interface PhonePendingInvitation extends BasePendingInvitation {
   phone: string;
 }
 

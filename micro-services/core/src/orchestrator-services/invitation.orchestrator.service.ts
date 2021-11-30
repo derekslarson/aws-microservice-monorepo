@@ -118,15 +118,11 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     }
   }
 
-  public async processPendingInvitation<T extends PendingInvitationType>(params: ProcessPendingInvitationInput<T>): Promise<ProcessPendingInvitationOutput> {
+  public async processPendingInvitation(params: ProcessPendingInvitationInput): Promise<ProcessPendingInvitationOutput> {
     try {
       this.loggerService.trace("processPendingInvitation called", { params }, this.constructor.name);
 
       const { userId, pendingInvitation } = params;
-
-      if (pendingInvitation.type !== PendingInvitationType.Friend && !pendingInvitation.role) {
-        throw new Error("Malformed pending invitation");
-      }
 
       if (pendingInvitation.type === PendingInvitationType.Friend) {
         await this.friendshipMediatorService.createFriendship({
@@ -189,7 +185,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     }
   }
 
-  private async handleInvitation<T extends PendingInvitationType, U extends Invitation>(params: HandleInvitationInput<T, U>): Promise<HandleInvitationOutput<U>> {
+  private async handleInvitation<T extends Invitation>(params: HandleInvitationInput<T>): Promise<HandleInvitationOutput<T>> {
     try {
       this.loggerService.trace("handleInvitation called", { params }, this.constructor.name);
 
@@ -252,7 +248,7 @@ export interface InvitationOrchestratorServiceInterface {
   addUsersToTeam(params: AddUsersToTeamInput): Promise<AddUsersToTeamOutput>;
   addUsersToGroup(params: AddUsersToGroupInput): Promise<AddUsersToGroupOutput>;
   addUsersToMeeting(params: AddUsersToMeetingInput): Promise<AddUsersToMeetingOutput>;
-  processPendingInvitation<T extends PendingInvitationType>(params: ProcessPendingInvitationInput<T>): Promise<ProcessPendingInvitationOutput>;
+  processPendingInvitation(params: ProcessPendingInvitationInput): Promise<ProcessPendingInvitationOutput>;
 }
 export interface AddUsersAsFriendsInput {
   userId: UserId;
@@ -294,9 +290,9 @@ export interface AddUsersToMeetingOutput {
   failures: InvitationWithRole[];
 }
 
-export interface ProcessPendingInvitationInput<T extends PendingInvitationType> {
+export interface ProcessPendingInvitationInput {
   userId: UserId;
-  pendingInvitation: PendingInvitation<T>;
+  pendingInvitation: PendingInvitation;
 }
 
 export type ProcessPendingInvitationOutput = void;
@@ -359,10 +355,10 @@ type Invitation = InvitationWithoutRole | InvitationWithRole;
 interface InvitationRequestInput {
   userId: UserId;
 }
-interface HandleInvitationInput<T extends PendingInvitationType, U extends Invitation> {
-  type: T;
-  invitingEntityId: InvitingEntityId<T>;
-  invitation: U;
+interface HandleInvitationInput<T extends Invitation> {
+  type: PendingInvitationType;
+  invitingEntityId: InvitingEntityId;
+  invitation: T;
   invitationRequest: (params: InvitationRequestInput) => Promise<unknown>;
 }
 
