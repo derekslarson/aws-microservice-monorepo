@@ -172,7 +172,7 @@ export async function getUserByEmail(params: GetUserByEmailInput): Promise<GetUs
     const { Items: [ user ] = [] } = await documentClient.query({
       TableName: process.env["core-table-name"] as string,
       IndexName: GlobalSecondaryIndex.One,
-      KeyConditionExpression: "#gsi1pk = :email AND # :userEntityType",
+      KeyConditionExpression: "#gsi1pk = :email AND #gsi1sk = :userEntityType",
       ExpressionAttributeNames: {
         "#gsi1pk": "gsi1pk",
         "#gsi1sk": "gsi1sk",
@@ -189,7 +189,9 @@ export async function getUserByEmail(params: GetUserByEmailInput): Promise<GetUs
 
     return { user: user as MakeRequired<RawUser, "email"> };
   } catch (error) {
-    console.log("Error in getUserByEmail:\n", error);
+    if (params.logError) {
+      console.log("Error in getUserByEmail:\n", error);
+    }
 
     throw error;
   }
@@ -201,8 +203,8 @@ export async function getUserByPhone(params: GetUserByPhoneInput): Promise<GetUs
 
     const { Items: [ user ] = [] } = await documentClient.query({
       TableName: process.env["core-table-name"] as string,
-      IndexName: GlobalSecondaryIndex.One,
-      KeyConditionExpression: "#gsi2pk = :phone AND #gsi2sk, :userEntityType",
+      IndexName: GlobalSecondaryIndex.Two,
+      KeyConditionExpression: "#gsi2pk = :phone AND #gsi2sk = :userEntityType",
       ExpressionAttributeNames: {
         "#gsi2pk": "gsi2pk",
         "#gsi2sk": "gsi2sk",
@@ -219,7 +221,9 @@ export async function getUserByPhone(params: GetUserByPhoneInput): Promise<GetUs
 
     return { user: user as MakeRequired<RawUser, "phone"> };
   } catch (error) {
-    console.log("Error in getUserByPhone:\n", error);
+    if (params.logError) {
+      console.log("Error in getUserByPhone:\n", error);
+    }
 
     throw error;
   }
@@ -761,6 +765,7 @@ export interface GetUserOutput {
 
 export interface GetUserByEmailInput {
   email: string;
+  logError?: boolean;
 }
 
 export interface GetUserByEmailOutput {
@@ -769,6 +774,7 @@ export interface GetUserByEmailOutput {
 
 export interface GetUserByPhoneInput {
   phone: string;
+  logError?: boolean;
 }
 
 export interface GetUserByPhoneOutput {

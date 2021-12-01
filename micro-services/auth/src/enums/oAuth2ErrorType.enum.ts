@@ -6,4 +6,5 @@ export enum OAuth2ErrorType {
   InvalidScope = "invalid_scope",
   ServerError = "server_error",
   TemporarilyUnavailable = "temporarily_unavailable",
+  InvalidToken = "invalid_token",
 }

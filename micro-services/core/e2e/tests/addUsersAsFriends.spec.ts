@@ -25,7 +25,7 @@ import { AddUsersAsFriendsDto } from "../../src/dtos/addUsersAsFriends.dto";
 import { FriendConvoId } from "../../src/types/friendConvoId.type";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 
-describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
+fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
@@ -117,7 +117,8 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           id: emailUser.id,
           gsi1pk: emailUser.email,
           gsi1sk: EntityType.User,
-          imageMimeType: ImageMimeType.Jpeg,
+          imageMimeType: ImageMimeType.Png,
+          email: emailUser.email,
         });
 
         expect(phoneUser).toEqual({
@@ -127,7 +128,8 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           id: phoneUser.id,
           gsi2pk: phoneUser.phone,
           gsi2sk: EntityType.User,
-          imageMimeType: ImageMimeType.Jpeg,
+          imageMimeType: ImageMimeType.Png,
+          phone: phoneUser.phone,
         });
       } catch (error) {
         fail(error);
@@ -310,7 +312,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
           role: Role.Admin,
           type: ConversationType.Friend,
-          conversationId,
+          conversationId: emailUserConvoId,
           userId,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
@@ -334,7 +336,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
 
         expect(conversationUserRelationshipE).toEqual({
           entityType: EntityType.ConversationUserRelationship,
-          pk: emailUserConvoId,
+          pk: phoneUserConvoId,
           sk: userId,
           gsi1pk: userId,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
@@ -342,7 +344,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
           role: Role.Admin,
           type: ConversationType.Friend,
-          conversationId,
+          conversationId: phoneUserConvoId,
           userId,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
@@ -366,7 +368,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       } catch (error) {
         fail(error);
       }
-    });
+    }, 45000);
 
     it("publishes valid SNS messages", async () => {
       // clear the sns events table so the test can have a clean slate
@@ -379,6 +381,9 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
         body: {
           users: [
             { username: otherUser.username },
+            { email: randomEmail },
+            { phone: randomPhone },
+            { username: randomUsername },
           ],
         },
       };
@@ -410,10 +415,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
               addingUser: {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
                 name: user.name,
-                bio: user.bio,
                 image: jasmine.stringMatching(URL_REGEX),
               },
               addedUser: {
@@ -432,18 +434,11 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
               addingUser: {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
                 name: user.name,
-                bio: user.bio,
                 image: jasmine.stringMatching(URL_REGEX),
               },
               addedUser: {
                 email: emailUser.email,
-                phone: emailUser.phone,
-                username: emailUser.username,
-                name: emailUser.name,
-                bio: emailUser.bio,
                 id: emailUser.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
@@ -454,18 +449,11 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
               addingUser: {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
                 name: user.name,
-                bio: user.bio,
                 image: jasmine.stringMatching(URL_REGEX),
               },
               addedUser: {
-                email: phoneUser.email,
                 phone: phoneUser.phone,
-                username: phoneUser.username,
-                name: phoneUser.name,
-                bio: phoneUser.bio,
                 id: phoneUser.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },

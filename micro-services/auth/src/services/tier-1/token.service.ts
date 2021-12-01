@@ -1,12 +1,14 @@
 /* eslint-disable max-len */
 import { inject, injectable } from "inversify";
-import { ForbiddenError, IdServiceInterface, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
+import { IdServiceInterface, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
 import { JWK } from "node-jose";
 import { TYPES } from "../../inversion-of-control/types";
 import { Jose, JoseFactory } from "../../factories/jose.factory";
 import { EnvConfigInterface } from "../../config/env.config";
 import { Session, SessionRepositoryInterface, UpdateSessionUpdates } from "../../repositories/session.dyanmo.repository";
 import { JwksRepositoryInterface } from "../../repositories/jwks.dynamo.repository";
+import { OAuth2Error } from "../../errors/oAuth2.error";
+import { OAuth2ErrorType } from "../../enums/oAuth2ErrorType.enum";
 
 @injectable()
 export class TokenService implements TokenServiceInterface {
@@ -58,7 +60,11 @@ export class TokenService implements TokenServiceInterface {
     } catch (error: unknown) {
       this.loggerService.error("Error in generateAccessAndRefreshTokens", { error, params }, this.constructor.name);
 
-      throw error;
+      if (error instanceof OAuth2Error) {
+        throw error;
+      }
+
+      throw new OAuth2Error(OAuth2ErrorType.ServerError);
     }
   }
 
@@ -71,7 +77,9 @@ export class TokenService implements TokenServiceInterface {
       const { session } = await this.sessionRepository.getSessionByRefreshToken({ clientId, refreshToken });
 
       if (new Date(session.refreshTokenExpiresAt).getTime() < Date.now().valueOf()) {
-        throw new ForbiddenError("Forbidden");
+        await this.sessionRepository.deleteSession({ clientId, sessionId: session.sessionId });
+
+        throw new OAuth2Error(OAuth2ErrorType.InvalidToken, "refresh_token is expired");
       }
 
       const { tokenType, accessToken, expiresIn } = await this.generateAccessToken({ clientId, userId: session.userId, scope: session.scope, sessionId: session.sessionId });
@@ -86,7 +94,11 @@ export class TokenService implements TokenServiceInterface {
     } catch (error: unknown) {
       this.loggerService.error("Error in refreshAccessToken", { error, params }, this.constructor.name);
 
-      throw error;
+      if (error instanceof OAuth2Error) {
+        throw error;
+      }
+
+      throw new OAuth2Error(OAuth2ErrorType.ServerError);
     }
   }
 
@@ -107,7 +119,7 @@ export class TokenService implements TokenServiceInterface {
       const now = Math.round(Date.now().valueOf() / 1000);
 
       if (decodedToken.exp < now) {
-        throw new ForbiddenError("Forbidden");
+        throw new OAuth2Error(OAuth2ErrorType.InvalidToken, "access_token is expired");
       }
 
       // Check if access token has been revoked
@@ -117,7 +129,7 @@ export class TokenService implements TokenServiceInterface {
     } catch (error: unknown) {
       this.loggerService.error("Error in verifyAccessToken", { error, params }, this.constructor.name);
 
-      throw new ForbiddenError("Forbidden");
+      throw error;
     }
   }
 
@@ -234,7 +246,7 @@ export class TokenService implements TokenServiceInterface {
     } catch (error: unknown) {
       this.loggerService.error("Error in generateAccessToken", { error, params }, this.constructor.name);
 
-      throw new ForbiddenError("Forbidden");
+      throw error;
     }
   }
 }
