@@ -11,3 +11,4 @@ export * from "./groupId.type";
 export * from "./meetingId.type";
 export * from "./teamId.type";
 export * from "./messageId.type";
+export * from "./organizationId.type";
