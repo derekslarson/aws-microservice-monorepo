@@ -1,20 +1,22 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { generateRandomString, getAccessToken } from "../../../../e2e/util";
-import { createRandomTeam, CreateRandomTeamOutput, createRandomUser, getTeam } from "../util";
+import { Role } from "@yac/util";
+import { createRandomAuthServiceUser, generateRandomString, getAccessToken } from "../../../../e2e/util";
+import { createRandomTeam, CreateRandomTeamOutput, createTeamUserRelationship, getTeam } from "../util";
 import { UserId } from "../../src/types/userId.type";
 
 describe("PATCH /teams/{teamId} (Update Team)", () => {
   const baseUrl = process.env.baseUrl as string;
-
   const userId = process.env.userId as UserId;
-  let team: CreateRandomTeamOutput["team"];
   const accessToken = process.env.accessToken as string;
+
+  let team: CreateRandomTeamOutput["team"];
 
   describe("under normal conditions", () => {
     beforeEach(async () => {
       ({ team } = await createRandomTeam({ createdBy: userId }));
+      await createTeamUserRelationship({ teamId: team.id, userId, role: Role.Admin });
     });
 
     describe("when passed 'name' value", () => {
@@ -75,7 +77,7 @@ describe("PATCH /teams/{teamId} (Update Team)", () => {
 
     describe("when an access token from a user who is not admin from the team is passed in", () => {
       it("throws a 403 error", async () => {
-        const { user: randomUser } = await createRandomUser();
+        const randomUser = await createRandomAuthServiceUser();
         const { accessToken: wrongAccessToken } = await getAccessToken(randomUser.id);
         const headers = { Authorization: `Bearer ${wrongAccessToken}` };
         const body = { name: generateRandomString(5) };

@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { generateRandomString, getAccessToken } from "../../../../e2e/util";
-import { createMeetingConversation, createRandomUser, getConversation } from "../util";
+import { Role } from "@yac/util";
+import { createRandomAuthServiceUser, generateRandomString, getAccessToken } from "../../../../e2e/util";
+import { createConversationUserRelationship, createMeetingConversation, getConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { MeetingConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { ConversationType } from "../../src/enums/conversationType.enum";
 
 describe("PATCH /meetings/{meetingId} (Update Meeting)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -15,6 +17,7 @@ describe("PATCH /meetings/{meetingId} (Update Meeting)", () => {
   let meeting: MeetingConversation;
   beforeEach(async () => {
     ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+    await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin });
   });
 
   describe("under normal conditions", () => {
@@ -28,7 +31,7 @@ describe("PATCH /meetings/{meetingId} (Update Meeting)", () => {
           const { status, data } = await axios.patch(`${baseUrl}/meetings/${meeting.id}`, body, { headers });
 
           expect(status).toBe(200);
-          expect(data).toEqual({ meeting: "Meeting updated." });
+          expect(data).toEqual({ message: "Meeting updated." });
         } catch (error) {
           fail(error);
         }
@@ -76,7 +79,7 @@ describe("PATCH /meetings/{meetingId} (Update Meeting)", () => {
 
     describe("when an access token from a user other than the meeting admin is passed in", () => {
       it("throws a 403 error", async () => {
-        const { user: randomUser } = await createRandomUser();
+        const randomUser = await createRandomAuthServiceUser();
         const { accessToken: wrongAccessToken } = await getAccessToken(randomUser.id);
         const headers = { Authorization: `Bearer ${wrongAccessToken}` };
         const body = { name: generateRandomString(5), outcomes: generateRandomString(5) };

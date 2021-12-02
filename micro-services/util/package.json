@@ -7,7 +7,7 @@
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
   "scripts": {
-    "build:library": "yarn clean:library && node --max-old-space-size=8192 ../../node_modules/webpack/bin/webpack.js --bail --config ./config/webpack.config.js && cp ./package.json ./lib/package.json",
+    "build:library": "yarn clean:library && NODE_OPTIONS=--max-old-space-size=8192 webpack --bail --config ./config/webpack.config.js && cp ./package.json ./lib/package.json",
     "build:layer": "ts-node ../../config/layer/buildLayer.ts",
     "build:handlers": "yarn clean:handlers && webpack --bail --config ../../config/webpack/webpack.config.release.js && yarn build:layer",
     "build": "yarn build:library && yarn build:handlers && yarn build:layer",

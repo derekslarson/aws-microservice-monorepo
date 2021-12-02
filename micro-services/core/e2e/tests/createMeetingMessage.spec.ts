@@ -75,7 +75,6 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
               name: user.name,
               id: user.id,
               email: user.email,
-              phone: user.phone,
               image: jasmine.stringMatching(URL_REGEX),
             },
             type: ConversationType.Meeting,

@@ -61,7 +61,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
 
-      if (isTeamAdmin) {
+      if (!isTeamAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 

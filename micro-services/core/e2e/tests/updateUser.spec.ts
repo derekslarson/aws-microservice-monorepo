@@ -1,16 +1,23 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { generateRandomString } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, generateRandomString, getAccessTokenByEmail } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { getUser } from "../util";
 import { UserId } from "../../src/types/userId.type";
 
-describe("PATCH /users/{userId} (Update User by User Id)", () => {
+describe("PATCH /users/{userId} (Update User)", () => {
   const baseUrl = process.env.baseUrl as string;
+  let userId: UserId;
+  let accessToken: string;
 
-  const userId = process.env.userId as UserId;
-  const accessToken = process.env.accessToken as string;
+  beforeEach(async () => {
+    // We have to fetch a new base user and access token here to prevent bleed over to other tests
+    const user = await createRandomAuthServiceUser();
+    userId = user.id;
+
+    ({ accessToken } = await getAccessTokenByEmail(user.email));
+  });
 
   describe("under normal conditions", () => {
     describe("when passed both 'bio' and 'name' value", () => {

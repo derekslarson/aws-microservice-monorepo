@@ -151,7 +151,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           await axios.get(`${baseUrl}/users/${userId}/friends`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -166,7 +166,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           await axios.get(`${baseUrl}/users/${mockUserId}/friends`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -182,7 +182,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           await axios.get(`${baseUrl}/users/test/friends`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

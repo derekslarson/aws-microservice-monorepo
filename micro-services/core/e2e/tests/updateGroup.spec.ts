@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { generateRandomString, getAccessToken } from "../../../../e2e/util";
-import { createGroupConversation, createRandomUser, getConversation } from "../util";
+import { Role } from "@yac/util";
+import { createRandomAuthServiceUser, generateRandomString, getAccessToken } from "../../../../e2e/util";
+import { createConversationUserRelationship, createGroupConversation, getConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { GroupConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { ConversationType } from "../../src/enums/conversationType.enum";
 
 describe("PATCH /groups/{groupId} (Update Group)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -13,8 +15,10 @@ describe("PATCH /groups/{groupId} (Update Group)", () => {
   const accessToken = process.env.accessToken as string;
 
   let group: GroupConversation;
+
   beforeEach(async () => {
     ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
+    await createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin });
   });
 
   describe("under normal conditions", () => {
@@ -76,7 +80,7 @@ describe("PATCH /groups/{groupId} (Update Group)", () => {
 
     describe("when an access token from a user who is not group admin is passed in", () => {
       it("throws a 403 error", async () => {
-        const { user: randomUser } = await createRandomUser();
+        const randomUser = await createRandomAuthServiceUser();
         const { accessToken: wrongAccessToken } = await getAccessToken(randomUser.id);
         const headers = { Authorization: `Bearer ${wrongAccessToken}` };
         const body = { name: generateRandomString(5) };
