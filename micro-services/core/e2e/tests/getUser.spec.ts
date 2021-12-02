@@ -27,8 +27,6 @@ describe("GET /users/{userId} (Get User)", () => {
           user: {
             id: user.id,
             email: user.email,
-            username: user.username,
-            phone: user.phone,
             name: user.name,
             image: jasmine.stringMatching(URL_REGEX),
           },
@@ -48,7 +46,7 @@ describe("GET /users/{userId} (Get User)", () => {
           await axios.get(`${baseUrl}/users/${user.id}`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -63,7 +61,7 @@ describe("GET /users/{userId} (Get User)", () => {
           await axios.get(`${baseUrl}/users/invalid-id`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

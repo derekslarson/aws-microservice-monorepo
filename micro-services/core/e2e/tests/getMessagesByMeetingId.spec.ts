@@ -38,7 +38,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
       ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       ([ { message } ] = await Promise.all([
-        createMessage({ from: otherUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, otherUser.id ], mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: otherUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, otherUser.id ], mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
         createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.User }),
       ]));
 
@@ -75,11 +75,8 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 },
                 from: {
                   name: user.name,
-                  bio: user.bio,
-                  username: user.username,
                   id: user.id,
                   email: user.email,
-                  phone: user.phone,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 type: ConversationType.Meeting,
@@ -154,11 +151,8 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 },
                 from: {
                   name: user.name,
-                  bio: user.bio,
-                  username: user.username,
                   id: user.id,
                   email: user.email,
-                  phone: user.phone,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 type: ConversationType.Meeting,
@@ -232,7 +226,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
           await axios.get(`${baseUrl}/meetings/${mockMeetingId}/messages`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -247,7 +241,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
           await axios.get(`${baseUrl}/meetings/${mockMeetingId}/messages`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -263,7 +257,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
           await axios.get(`${baseUrl}/meetings/test/messages`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

@@ -7,6 +7,7 @@ import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../
 import { AddUsersToGroupDto } from "../../src/dtos/addUsersToGroup.dto";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
+import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
@@ -20,6 +21,8 @@ import {
   generateRandomPhone,
   getConversationUserRelationship,
   getSnsEventsByTopicArn,
+  getUserByEmail,
+  getUserByPhone,
 } from "../util";
 
 describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
@@ -85,6 +88,59 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
       }
     });
 
+    it("creates valid User entities", async () => {
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      const request: Static<typeof AddUsersToGroupDto> = {
+        pathParameters: { groupId: group.id },
+        body: {
+          users: [
+            { username: otherUser.username, role: Role.Admin },
+            { email: randomEmail, role: Role.User },
+            { phone: randomPhone, role: Role.Admin },
+            { username: randomUsername, role: Role.User },
+          ],
+        },
+      };
+
+      try {
+        await axios.post(`${baseUrl}/groups/${request.pathParameters.groupId}/users`, request.body, { headers });
+
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
+        ]);
+
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
+        }
+
+        expect(emailUser).toEqual({
+          entityType: EntityType.User,
+          pk: emailUser.id,
+          sk: EntityType.User,
+          id: emailUser.id,
+          gsi1pk: emailUser.email,
+          gsi1sk: EntityType.User,
+          imageMimeType: ImageMimeType.Png,
+          email: emailUser.email,
+        });
+
+        expect(phoneUser).toEqual({
+          entityType: EntityType.User,
+          pk: phoneUser.id,
+          sk: EntityType.User,
+          id: phoneUser.id,
+          gsi2pk: phoneUser.phone,
+          gsi2sk: EntityType.User,
+          imageMimeType: ImageMimeType.Png,
+          phone: phoneUser.phone,
+        });
+      } catch (error) {
+        fail(error);
+      }
+    });
+
     it("creates valid ConversationUserRelationship entities", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
@@ -103,7 +159,24 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
       try {
         await axios.post(`${baseUrl}/groups/${request.pathParameters.groupId}/users`, request.body, { headers });
 
-        const { conversationUserRelationship: conversationUserRelationshipOtherUser } = await getConversationUserRelationship({ conversationId: group.id, userId: otherUser.id });
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
+        ]);
+
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
+        }
+
+        const [
+          { conversationUserRelationship: conversationUserRelationshipOtherUser },
+          { conversationUserRelationship: conversationUserRelationshipEmailUser },
+          { conversationUserRelationship: conversationUserRelationshipPhoneUser },
+        ] = await Promise.all([
+          backoff(() => getConversationUserRelationship({ conversationId: group.id, userId: otherUser.id }), (res) => !!res.conversationUserRelationship),
+          backoff(() => getConversationUserRelationship({ conversationId: group.id, userId: emailUser.id }), (res) => !!res.conversationUserRelationship),
+          backoff(() => getConversationUserRelationship({ conversationId: group.id, userId: phoneUser.id }), (res) => !!res.conversationUserRelationship),
+        ]);
 
         expect(conversationUserRelationshipOtherUser).toEqual({
           entityType: EntityType.ConversationUserRelationship,
@@ -117,6 +190,38 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
           type: ConversationType.Group,
           conversationId: group.id,
           userId: otherUser.id,
+          updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
+          muted: false,
+        });
+
+        expect(conversationUserRelationshipEmailUser).toEqual({
+          entityType: EntityType.ConversationUserRelationship,
+          pk: group.id,
+          sk: emailUser.id,
+          gsi1pk: emailUser.id,
+          gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
+          gsi2pk: emailUser.id,
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.GroupConversation}.*`)),
+          role: Role.User,
+          type: ConversationType.Group,
+          conversationId: group.id,
+          userId: emailUser.id,
+          updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
+          muted: false,
+        });
+
+        expect(conversationUserRelationshipPhoneUser).toEqual({
+          entityType: EntityType.ConversationUserRelationship,
+          pk: group.id,
+          sk: phoneUser.id,
+          gsi1pk: phoneUser.id,
+          gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
+          gsi2pk: phoneUser.id,
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.GroupConversation}.*`)),
+          role: Role.Admin,
+          type: ConversationType.Group,
+          conversationId: group.id,
+          userId: phoneUser.id,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });
@@ -152,10 +257,19 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
       try {
         await axios.post(`${baseUrl}/groups/${request.pathParameters.groupId}/users`, request.body, { headers });
 
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
+        ]);
+
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
+        }
+
         // wait till all the events have been fired
         const { snsEvents } = await backoff(
           () => getSnsEventsByTopicArn<UserAddedToGroupSnsMessage>({ topicArn: userAddedToGroupSnsTopicArn }),
-          (response) => response.snsEvents.length === 1,
+          (response) => response.snsEvents.length === 3,
         );
 
         expect(snsEvents.length).toBe(3);
@@ -179,6 +293,42 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
                 name: otherUser.name,
                 bio: otherUser.bio,
                 id: otherUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              groupMemberIds: jasmine.arrayContaining([ userId ]),
+              group: {
+                createdBy: userId,
+                id: group.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: group.name,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+                type: ConversationType.Group,
+              },
+              user: {
+                email: emailUser.email,
+                id: emailUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              groupMemberIds: jasmine.arrayContaining([ userId ]),
+              group: {
+                createdBy: userId,
+                id: group.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: group.name,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+                type: ConversationType.Group,
+              },
+              user: {
+                phone: phoneUser.phone,
+                id: phoneUser.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             },

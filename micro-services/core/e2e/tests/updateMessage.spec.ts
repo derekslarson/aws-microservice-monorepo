@@ -7,7 +7,7 @@ import { createGroupConversation, createMessage, createRandomUser, getMessage } 
 import { UserId } from "../../src/types/userId.type";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 
-describe("PATCH /messages/{messageId} (Update Message by Message Id)", () => {
+describe("PATCH /messages/{messageId} (Update Message)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   const userId = process.env.userId as UserId;
@@ -51,6 +51,10 @@ describe("PATCH /messages/{messageId} (Update Message by Message Id)", () => {
 
           const { message: messageEntity } = await getMessage({ messageId: message.id });
 
+          if (!messageEntity) {
+            throw new Error("message entity not found");
+          }
+
           expect(messageEntity).toEqual({
             ...messageEntity,
             ...body,
@@ -72,7 +76,7 @@ describe("PATCH /messages/{messageId} (Update Message by Message Id)", () => {
           await axios.patch(`${baseUrl}/messages/${message.id}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -90,7 +94,7 @@ describe("PATCH /messages/{messageId} (Update Message by Message Id)", () => {
           await axios.patch(`${baseUrl}/messages/${message.id}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -106,13 +110,13 @@ describe("PATCH /messages/{messageId} (Update Message by Message Id)", () => {
           await axios.patch(`${baseUrl}/messages/test`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { userId: "Failed constraint check for string: Must be a message id" },
+              pathParameters: { messageId: "Failed constraint check for string: Must be a message id" },
               body: { transcript: "Expected string, but was boolean" },
             },
           });

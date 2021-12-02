@@ -152,8 +152,8 @@ export async function getAccessToken(userId: UserId): Promise<{ accessToken: str
       throw new Error("Jwks not found.");
     }
 
-    const clientId = ksuid.randomSync().toString();
-    const sessionId = ksuid.randomSync().toString();
+    const clientId = ksuid.randomSync().string;
+    const sessionId = ksuid.randomSync().string;
 
     const jwksJson = JSON.parse(jwks.jsonString) as { keys: unknown[]; };
 
@@ -176,14 +176,14 @@ export async function getAccessToken(userId: UserId): Promise<{ accessToken: str
       nbf: nowSeconds,
       iat: nowSeconds,
       exp: nowSeconds + expiresInSeconds,
-      jti: ksuid.randomSync().toString(),
+      jti: ksuid.randomSync().string,
     };
 
     const accessToken = await jose.JWS.createSign({ compact: true, fields: { typ: "jwt" } }, key)
       .update(JSON.stringify(payload))
       .final() as unknown as string;
 
-    const refreshToken = `${ksuid.randomSync().toString()}${ksuid.randomSync().toString()}${ksuid.randomSync().toString()}`;
+    const refreshToken = `${ksuid.randomSync().string}${ksuid.randomSync().string}${ksuid.randomSync().string}`;
 
     const nowIso = new Date().toISOString();
     const oneHundredEightyDaysFromNowIso = new Date(Date.now() + (1000 * 60 * 60 * 24 * 180)).toISOString();
@@ -336,13 +336,13 @@ export async function createAuthServiceUser(params: CreateUserInput): Promise<{ 
 
 export async function createRandomAuthServiceUser(): Promise<CreateRandomAuthServiceUserOutput> {
   try {
-    const name = generateRandomString(8);
+    const name = generateRandomString();
 
     let user: MakeRequired<RawUser, "email"> | undefined;
     let attempts = 1;
 
     while (!user && attempts < 6) {
-      const email = `${generateRandomString(5)}@${generateRandomString(5)}.com`;
+      const email = `${generateRandomString()}@${generateRandomString()}.com`;
 
       try {
         ({ user } = await createAuthServiceUser({ name, email }));

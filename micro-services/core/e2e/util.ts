@@ -45,7 +45,7 @@ function createDefaultImage(): CreateDefaultImageOutput {
       backColor: "#fff",
     });
 
-    const image = identicon.toPng(ksuid.randomSync().toString(), 100);
+    const image = identicon.toPng(ksuid.randomSync().string, 100);
 
     return { image, mimeType: ImageMimeType.Png };
   } catch (error) {
@@ -116,15 +116,15 @@ export async function createUser(params: CreateUserInput): Promise<CreateUserOut
 
 export async function createRandomUser(): Promise<CreateRandomUserOutput> {
   try {
-    const name = generateRandomString(8);
-    const bio = generateRandomString(8);
+    const name = generateRandomString();
+    const bio = generateRandomString();
 
     let user: CreateUserOutput["user"] | undefined;
     let attempts = 1;
 
     while (!user && attempts < 6) {
       const email = generateRandomEmail();
-      const username = generateRandomString(8);
+      const username = generateRandomString();
       const phone = generateRandomPhone();
 
       try {

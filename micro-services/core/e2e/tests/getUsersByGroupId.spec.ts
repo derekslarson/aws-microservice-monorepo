@@ -51,8 +51,6 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
               {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
                 name: user.name,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
@@ -89,8 +87,6 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
               {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
                 name: user.name,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
@@ -137,7 +133,7 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
           await axios.get(`${baseUrl}/groups/${mockGroupId}/users`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -152,7 +148,7 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
           await axios.get(`${baseUrl}/groups/${mockGroupId}/users`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -168,7 +164,7 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
           await axios.get(`${baseUrl}/groups/test/users`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

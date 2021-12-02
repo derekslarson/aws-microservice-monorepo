@@ -6,7 +6,7 @@ import { createMeetingConversation, createRandomUser, getConversation } from "..
 import { UserId } from "../../src/types/userId.type";
 import { MeetingConversation } from "../../src/repositories/conversation.dynamo.repository";
 
-describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
+describe("PATCH /meetings/{meetingId} (Update Meeting)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   const userId = process.env.userId as UserId;
@@ -42,6 +42,10 @@ describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
 
           const { conversation: meetingEntity } = await getConversation({ conversationId: meeting.id });
 
+          if (!meetingEntity) {
+            throw new Error("meeting entity not found");
+          }
+
           expect(meetingEntity).toEqual({
             ...meetingEntity,
             ...body,
@@ -63,7 +67,7 @@ describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
           await axios.patch(`${baseUrl}/meetings/${meeting.id}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -81,7 +85,7 @@ describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
           await axios.patch(`${baseUrl}/meetings/${meeting.id}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -97,13 +101,13 @@ describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
           await axios.patch(`${baseUrl}/meetings/test`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
-            meeting: "Error validating request",
+            message: "Error validating request",
             validationErrors: {
-              pathParameters: { userId: "Failed constraint check for string: Must be a meeting id" },
+              pathParameters: { meetingId: "Failed constraint check for string: Must be a meeting id" },
               body: {
                 name: "Expected string, but was boolean",
                 outcomes: "Expected string, but was boolean",

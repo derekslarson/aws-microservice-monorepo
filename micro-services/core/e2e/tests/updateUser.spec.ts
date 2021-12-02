@@ -37,6 +37,10 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
 
           const { user: userEntity } = await getUser({ userId });
 
+          if (!userEntity) {
+            throw new Error("user entity not found");
+          }
+
           expect(userEntity).toEqual({
             ...userEntity,
             ...body,
@@ -60,7 +64,7 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
           await axios.patch(`${baseUrl}/users/${userId}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -76,7 +80,7 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
           await axios.patch(`${baseUrl}/users/${mockUserId}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -92,7 +96,7 @@ describe("PATCH /users/{userId} (Update User by User Id)", () => {
           await axios.patch(`${baseUrl}/users/test`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

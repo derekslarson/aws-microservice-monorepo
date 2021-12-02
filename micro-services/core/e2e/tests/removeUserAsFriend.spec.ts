@@ -110,10 +110,7 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
               userA: {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
                 name: user.name,
-                bio: user.bio,
                 image: jasmine.stringMatching(URL_REGEX),
               },
               userB: {
@@ -143,7 +140,7 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
           await axios.delete(`${baseUrl}/users/${userId}/friends/${mockUserId}`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -160,7 +157,7 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
           await axios.delete(`${baseUrl}/users/${mockUserId}/friends/${mockUserIdTwo}`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -175,7 +172,7 @@ describe("DELETE /users/{userId}/friends/{friendId} (Remove User as Friend)", ()
           await axios.delete(`${baseUrl}/users/test/friends/foo`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

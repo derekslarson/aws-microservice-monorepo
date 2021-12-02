@@ -5,7 +5,7 @@ import { generateRandomString, getAccessToken } from "../../../../e2e/util";
 import { createRandomTeam, CreateRandomTeamOutput, createRandomUser, getTeam } from "../util";
 import { UserId } from "../../src/types/userId.type";
 
-describe("PATCH /teams/{teamId} (Update User by User Id)", () => {
+describe("PATCH /teams/{teamId} (Update Team)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   const userId = process.env.userId as UserId;
@@ -41,6 +41,10 @@ describe("PATCH /teams/{teamId} (Update User by User Id)", () => {
 
           const { team: teamEntity } = await getTeam({ teamId: team.id });
 
+          if (!teamEntity) {
+            throw new Error("team entity not found");
+          }
+
           expect(teamEntity).toEqual({
             ...teamEntity,
             ...body,
@@ -62,7 +66,7 @@ describe("PATCH /teams/{teamId} (Update User by User Id)", () => {
           await axios.patch(`${baseUrl}/teams/${team.id}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -80,7 +84,7 @@ describe("PATCH /teams/{teamId} (Update User by User Id)", () => {
           await axios.patch(`${baseUrl}/teams/${team.id}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -96,13 +100,13 @@ describe("PATCH /teams/{teamId} (Update User by User Id)", () => {
           await axios.patch(`${baseUrl}/teams/test`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { userId: "Failed constraint check for string: Must be a team id" },
+              pathParameters: { teamId: "Failed constraint check for string: Must be a team id" },
               body: { name: "Expected string, but was boolean" },
             },
           });

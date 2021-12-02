@@ -7,6 +7,7 @@ import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../
 import { AddUsersToMeetingDto } from "../../src/dtos/addUsersToMeeting.dto";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
+import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
@@ -20,6 +21,8 @@ import {
   generateRandomPhone,
   getConversationUserRelationship,
   getSnsEventsByTopicArn,
+  getUserByEmail,
+  getUserByPhone,
 } from "../util";
 
 describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
@@ -85,6 +88,59 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
       }
     });
 
+    it("creates valid User entities", async () => {
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      const request: Static<typeof AddUsersToMeetingDto> = {
+        pathParameters: { meetingId: meeting.id },
+        body: {
+          users: [
+            { username: otherUser.username, role: Role.Admin },
+            { email: randomEmail, role: Role.User },
+            { phone: randomPhone, role: Role.Admin },
+            { username: randomUsername, role: Role.User },
+          ],
+        },
+      };
+
+      try {
+        await axios.post(`${baseUrl}/meetings/${request.pathParameters.meetingId}/users`, request.body, { headers });
+
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
+        ]);
+
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
+        }
+
+        expect(emailUser).toEqual({
+          entityType: EntityType.User,
+          pk: emailUser.id,
+          sk: EntityType.User,
+          id: emailUser.id,
+          gsi1pk: emailUser.email,
+          gsi1sk: EntityType.User,
+          imageMimeType: ImageMimeType.Png,
+          email: emailUser.email,
+        });
+
+        expect(phoneUser).toEqual({
+          entityType: EntityType.User,
+          pk: phoneUser.id,
+          sk: EntityType.User,
+          id: phoneUser.id,
+          gsi2pk: phoneUser.phone,
+          gsi2sk: EntityType.User,
+          imageMimeType: ImageMimeType.Png,
+          phone: phoneUser.phone,
+        });
+      } catch (error) {
+        fail(error);
+      }
+    });
+
     it("creates valid ConversationUserRelationship entities", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
@@ -103,7 +159,24 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
       try {
         await axios.post(`${baseUrl}/meetings/${request.pathParameters.meetingId}/users`, request.body, { headers });
 
-        const { conversationUserRelationship: conversationUserRelationshipOtherUser } = await getConversationUserRelationship({ conversationId: meeting.id, userId: otherUser.id });
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
+        ]);
+
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
+        }
+
+        const [
+          { conversationUserRelationship: conversationUserRelationshipOtherUser },
+          { conversationUserRelationship: conversationUserRelationshipEmailUser },
+          { conversationUserRelationship: conversationUserRelationshipPhoneUser },
+        ] = await Promise.all([
+          backoff(() => getConversationUserRelationship({ conversationId: meeting.id, userId: otherUser.id }), (res) => !!res.conversationUserRelationship),
+          backoff(() => getConversationUserRelationship({ conversationId: meeting.id, userId: emailUser.id }), (res) => !!res.conversationUserRelationship),
+          backoff(() => getConversationUserRelationship({ conversationId: meeting.id, userId: phoneUser.id }), (res) => !!res.conversationUserRelationship),
+        ]);
 
         expect(conversationUserRelationshipOtherUser).toEqual({
           entityType: EntityType.ConversationUserRelationship,
@@ -120,6 +193,44 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
           dueDate: meeting.dueDate,
           conversationId: meeting.id,
           userId: otherUser.id,
+          updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
+          muted: false,
+        });
+
+        expect(conversationUserRelationshipEmailUser).toEqual({
+          entityType: EntityType.ConversationUserRelationship,
+          pk: meeting.id,
+          sk: emailUser.id,
+          gsi1pk: emailUser.id,
+          gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
+          gsi2pk: emailUser.id,
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
+          gsi3pk: emailUser.id,
+          gsi3sk: `${KeyPrefix.Time}${meeting.dueDate}`,
+          role: Role.User,
+          type: ConversationType.Meeting,
+          dueDate: meeting.dueDate,
+          conversationId: meeting.id,
+          userId: emailUser.id,
+          updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
+          muted: false,
+        });
+
+        expect(conversationUserRelationshipPhoneUser).toEqual({
+          entityType: EntityType.ConversationUserRelationship,
+          pk: meeting.id,
+          sk: phoneUser.id,
+          gsi1pk: phoneUser.id,
+          gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
+          gsi2pk: phoneUser.id,
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
+          gsi3pk: phoneUser.id,
+          gsi3sk: `${KeyPrefix.Time}${meeting.dueDate}`,
+          role: Role.Admin,
+          type: ConversationType.Meeting,
+          dueDate: meeting.dueDate,
+          conversationId: meeting.id,
+          userId: phoneUser.id,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });
@@ -155,10 +266,19 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
       try {
         await axios.post(`${baseUrl}/meetings/${request.pathParameters.meetingId}/users`, request.body, { headers });
 
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
+        ]);
+
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
+        }
+
         // wait till all the events have been fired
         const { snsEvents } = await backoff(
           () => getSnsEventsByTopicArn<UserAddedToMeetingSnsMessage>({ topicArn: userAddedToMeetingSnsTopicArn }),
-          (response) => response.snsEvents.length === 1,
+          (response) => response.snsEvents.length === 3,
         );
 
         expect(snsEvents.length).toBe(3);
@@ -183,6 +303,44 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
                 name: otherUser.name,
                 bio: otherUser.bio,
                 id: otherUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              meetingMemberIds: jasmine.arrayContaining([ userId ]),
+              meeting: {
+                createdBy: userId,
+                id: meeting.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: meeting.name,
+                dueDate: meeting.dueDate,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+                type: ConversationType.Meeting,
+              },
+              user: {
+                email: emailUser.email,
+                id: emailUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              meetingMemberIds: jasmine.arrayContaining([ userId ]),
+              meeting: {
+                createdBy: userId,
+                id: meeting.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: meeting.name,
+                dueDate: meeting.dueDate,
+                createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+                type: ConversationType.Meeting,
+              },
+              user: {
+                phone: phoneUser.phone,
+                id: phoneUser.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             },

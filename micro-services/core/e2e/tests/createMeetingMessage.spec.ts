@@ -73,8 +73,6 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
             },
             from: {
               name: user.name,
-              bio: user.bio,
-              username: user.username,
               id: user.id,
               email: user.email,
               phone: user.phone,
@@ -84,6 +82,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
             mimeType,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             uploadUrl: jasmine.stringMatching(URL_REGEX),
+            chunkedUploadToken: jasmine.any(String),
           },
         });
       } catch (error) {
@@ -146,7 +145,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
         try {
           await axios.post(`${baseUrl}/meetings/${mockMeetingId}/messages`, body, { headers });
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -162,7 +161,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
           await axios.post(`${baseUrl}/meetings/${mockMeetingId}/messages`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -178,7 +177,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
           await axios.post(`${baseUrl}/meetings/pants/messages`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

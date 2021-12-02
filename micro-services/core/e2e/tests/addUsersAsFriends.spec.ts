@@ -25,7 +25,7 @@ import { AddUsersAsFriendsDto } from "../../src/dtos/addUsersAsFriends.dto";
 import { FriendConvoId } from "../../src/types/friendConvoId.type";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 
-fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
+describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
@@ -368,7 +368,7 @@ fdescribe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       } catch (error) {
         fail(error);
       }
-    }, 45000);
+    }, 60000);
 
     it("publishes valid SNS messages", async () => {
       // clear the sns events table so the test can have a clean slate

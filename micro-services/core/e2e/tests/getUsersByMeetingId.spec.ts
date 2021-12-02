@@ -10,7 +10,7 @@ import { MeetingId } from "../../src/types/meetingId.type";
 import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 
-describe("GET /meetings/{meetingId}/users (Get Users by Group Id)", () => {
+describe("GET /meetings/{meetingId}/users (Get Users by Meeting Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   let user: CreateRandomAuthServiceUserOutput;
   let accessToken: string;
@@ -51,8 +51,6 @@ describe("GET /meetings/{meetingId}/users (Get Users by Group Id)", () => {
               {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
                 name: user.name,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
@@ -89,8 +87,6 @@ describe("GET /meetings/{meetingId}/users (Get Users by Group Id)", () => {
               {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
                 name: user.name,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
@@ -137,7 +133,7 @@ describe("GET /meetings/{meetingId}/users (Get Users by Group Id)", () => {
           await axios.get(`${baseUrl}/meetings/${mockMeetingId}/users`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -152,7 +148,7 @@ describe("GET /meetings/{meetingId}/users (Get Users by Group Id)", () => {
           await axios.get(`${baseUrl}/meetings/${mockMeetingId}/users`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -168,7 +164,7 @@ describe("GET /meetings/{meetingId}/users (Get Users by Group Id)", () => {
           await axios.get(`${baseUrl}/meetings/test/users`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

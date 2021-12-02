@@ -14,12 +14,15 @@ import {
   generateRandomPhone,
   deleteSnsEventsByTopicArn,
   getSnsEventsByTopicArn,
+  getUserByEmail,
+  getUserByPhone,
 } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { backoff, generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { AddUsersToTeamDto } from "../../src/dtos/addUsersToTeam.dto";
+import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 
 describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -84,6 +87,59 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
       }
     });
 
+    it("creates valid User entities", async () => {
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      const request: Static<typeof AddUsersToTeamDto> = {
+        pathParameters: { teamId: team.id },
+        body: {
+          users: [
+            { username: otherUser.username, role: Role.Admin },
+            { email: randomEmail, role: Role.User },
+            { phone: randomPhone, role: Role.Admin },
+            { username: randomUsername, role: Role.User },
+          ],
+        },
+      };
+
+      try {
+        await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
+
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
+        ]);
+
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
+        }
+
+        expect(emailUser).toEqual({
+          entityType: EntityType.User,
+          pk: emailUser.id,
+          sk: EntityType.User,
+          id: emailUser.id,
+          gsi1pk: emailUser.email,
+          gsi1sk: EntityType.User,
+          imageMimeType: ImageMimeType.Png,
+          email: emailUser.email,
+        });
+
+        expect(phoneUser).toEqual({
+          entityType: EntityType.User,
+          pk: phoneUser.id,
+          sk: EntityType.User,
+          id: phoneUser.id,
+          gsi2pk: phoneUser.phone,
+          gsi2sk: EntityType.User,
+          imageMimeType: ImageMimeType.Png,
+          phone: phoneUser.phone,
+        });
+      } catch (error) {
+        fail(error);
+      }
+    });
+
     it("creates valid TeamUserRelationship entities", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
@@ -102,7 +158,24 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
       try {
         await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
 
-        const { teamUserRelationship: teamUserRelationshipOtherUser } = await getTeamUserRelationship({ teamId: team.id, userId: otherUser.id });
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
+        ]);
+
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
+        }
+
+        const [
+          { teamUserRelationship: teamUserRelationshipOtherUser },
+          { teamUserRelationship: teamUserRelationshipEmailUser },
+          { teamUserRelationship: teamUserRelationshipPhoneUser },
+        ] = await Promise.all([
+          backoff(() => getTeamUserRelationship({ teamId: team.id, userId: otherUser.id }), (res) => !!res.teamUserRelationship),
+          backoff(() => getTeamUserRelationship({ teamId: team.id, userId: emailUser.id }), (res) => !!res.teamUserRelationship),
+          backoff(() => getTeamUserRelationship({ teamId: team.id, userId: phoneUser.id }), (res) => !!res.teamUserRelationship),
+        ]);
 
         expect(teamUserRelationshipOtherUser).toEqual({
           entityType: EntityType.TeamUserRelationship,
@@ -113,6 +186,28 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
           role: Role.Admin,
           teamId: team.id,
           userId: otherUser.id,
+        });
+
+        expect(teamUserRelationshipEmailUser).toEqual({
+          entityType: EntityType.TeamUserRelationship,
+          pk: team.id,
+          sk: emailUser.id,
+          gsi1pk: emailUser.id,
+          gsi1sk: team.id,
+          role: Role.User,
+          teamId: team.id,
+          userId: emailUser.id,
+        });
+
+        expect(teamUserRelationshipPhoneUser).toEqual({
+          entityType: EntityType.TeamUserRelationship,
+          pk: team.id,
+          sk: phoneUser.id,
+          gsi1pk: phoneUser.id,
+          gsi1sk: team.id,
+          role: Role.Admin,
+          teamId: team.id,
+          userId: phoneUser.id,
         });
       } catch (error) {
         fail(error);
@@ -146,10 +241,19 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
       try {
         await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
 
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
+        ]);
+
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
+        }
+
         // wait till all the events have been fired
         const { snsEvents } = await backoff(
           () => getSnsEventsByTopicArn<UserAddedToTeamSnsMessage>({ topicArn: userAddedToTeamSnsTopicArn }),
-          (response) => response.snsEvents.length === 1,
+          (response) => response.snsEvents.length === 3,
         );
 
         expect(snsEvents.length).toBe(3);
@@ -171,6 +275,38 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
                 name: otherUser.name,
                 bio: otherUser.bio,
                 id: otherUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              teamMemberIds: jasmine.arrayContaining([ userId ]),
+              team: {
+                createdBy: userId,
+                id: team.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: team.name,
+              },
+              user: {
+                email: emailUser.email,
+                id: emailUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              teamMemberIds: jasmine.arrayContaining([ userId ]),
+              team: {
+                createdBy: userId,
+                id: team.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: team.name,
+              },
+              user: {
+                phone: phoneUser.phone,
+                id: phoneUser.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             },

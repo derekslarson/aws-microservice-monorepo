@@ -6,7 +6,7 @@ import { createGroupConversation, createRandomUser, getConversation } from "../u
 import { UserId } from "../../src/types/userId.type";
 import { GroupConversation } from "../../src/repositories/conversation.dynamo.repository";
 
-describe("PATCH /groups/{groupId} (Update Group by Group Id)", () => {
+describe("PATCH /groups/{groupId} (Update Group)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   const userId = process.env.userId as UserId;
@@ -42,6 +42,10 @@ describe("PATCH /groups/{groupId} (Update Group by Group Id)", () => {
 
           const { conversation: groupEntity } = await getConversation({ conversationId: group.id });
 
+          if (!groupEntity) {
+            throw new Error("group entity not found");
+          }
+
           expect(groupEntity).toEqual({
             ...groupEntity,
             ...body,
@@ -63,7 +67,7 @@ describe("PATCH /groups/{groupId} (Update Group by Group Id)", () => {
           await axios.patch(`${baseUrl}/groups/${group.id}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -81,7 +85,7 @@ describe("PATCH /groups/{groupId} (Update Group by Group Id)", () => {
           await axios.patch(`${baseUrl}/groups/${group.id}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -97,13 +101,13 @@ describe("PATCH /groups/{groupId} (Update Group by Group Id)", () => {
           await axios.patch(`${baseUrl}/groups/test`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { userId: "Failed constraint check for string: Must be a group id" },
+              pathParameters: { groupId: "Failed constraint check for string: Must be a group id" },
               body: { name: "Expected string, but was boolean" },
             },
           });
