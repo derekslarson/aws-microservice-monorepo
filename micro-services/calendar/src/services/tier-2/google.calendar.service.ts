@@ -57,7 +57,7 @@ export class GoogleCalendarService implements GoogleCalendarServiceInterface {
     try {
       this.loggerService.trace("getEvents called", { params }, this.constructor.name);
 
-      const { userId } = params;
+      const { userId, limit, exclusiveStartKey, minTime, maxTime } = params;
 
       const { oAuth2Client, settings } = await this.getOAuth2ClientAndSettings({ userId });
 
@@ -65,11 +65,13 @@ export class GoogleCalendarService implements GoogleCalendarServiceInterface {
 
       const listResponse = await calendar.events.list({
         calendarId: settings.defaultCalendarId || "primary",
-        timeMin: new Date().toISOString(),
-        maxResults: params.limit || 10,
+        timeMin: minTime ? new Date(minTime).toISOString() : new Date().toISOString(),
+        timeMax: maxTime && new Date(maxTime).toISOString(),
+        maxResults: limit ?? 25,
         singleEvents: true,
         orderBy: "startTime",
-        pageToken: params.exclusiveStartKey,
+        pageToken: exclusiveStartKey,
+
       });
 
       const events = listResponse.data.items || [];
@@ -139,16 +141,12 @@ export class GoogleCalendarService implements GoogleCalendarServiceInterface {
       try {
         const { googleSettings } = await this.googleSettingsService.getSettings({ userId });
 
-        this.loggerService.info("googleSettings", { googleSettings }, this.constructor.name);
-
         settings = googleSettings;
       } catch (error) {
         if (!(error instanceof NotFoundError)) {
           throw error;
         }
       }
-
-      this.loggerService.info("settings", { settings }, this.constructor.name);
 
       if (!settings.defaultAccountId) {
         const { accounts } = await this.googleAuthService.getAccounts({ userId });
@@ -208,6 +206,8 @@ export interface GetEventsInput {
   userId: UserId;
   limit?: number;
   exclusiveStartKey?: string;
+  minTime?: string;
+  maxTime?: string;
 }
 
 export interface GetEventsOutput {
