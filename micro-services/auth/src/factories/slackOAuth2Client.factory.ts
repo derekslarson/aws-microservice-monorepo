@@ -18,7 +18,7 @@ export class SlackOAuth2Client {
     return `https://slack.com/openid/connect/authorize?response_type=code&client_id=${this.clientId}&redirect_uri=${encodedRedirectUri}&state=${state}&scope=${encodedScope}`;
   }
 
-  public async getToken(code: string): Promise<{ tokens: OpenIDConnectTokenResponse }> {
+  public async getToken(code: string): Promise<{ tokens: OpenIDConnectTokenResponse; }> {
     const tokens = await this.webClient.openid.connect.token({
       code,
       client_id: this.clientId,

@@ -6,6 +6,8 @@ import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as CustomResources from "@aws-cdk/custom-resources";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as SNS from "@aws-cdk/aws-sns";
+import * as SNSSubscriptions from "@aws-cdk/aws-sns-subscriptions";
+import * as SQS from "@aws-cdk/aws-sqs";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as Events from "@aws-cdk/aws-events";
 import * as EventsTargets from "@aws-cdk/aws-events-targets";
@@ -61,8 +63,16 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const slackClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-secret`);
     const slackClientRedirectUri = `${this.httpApi.apiURL}/oauth2/idpresponse`;
 
+    // SNS Topic ARN Imports from Util
     const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
     const createUserRequestSnsTopicArn = CDK.Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn);
+
+    // SNS Topics
+    const createUserRequestSnsTopic = SNS.Topic.fromTopicArn(this, `CreateUserRequestSnsTopic_${id}`, createUserRequestSnsTopicArn);
+
+    // SQS Queues
+    const snsEventSqsQueue = new SQS.Queue(this, `SnsEventSqsQueue_${id}`);
+    createUserRequestSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(snsEventSqsQueue));
 
     // Layers
     const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
@@ -170,7 +180,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     };
 
     // Handlers
-
     new Lambda.Function(this, `AuthTableEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/authTableEvent"),
@@ -185,17 +194,17 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       ],
     });
 
-    new Lambda.Function(this, `SnsEventHandler_${id}`, {
+    new Lambda.Function(this, `SqsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
-      handler: "snsEvent.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
+      handler: "sqsEvent.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `CreateUserRequestSnsTopic_${id}`, createUserRequestSnsTopicArn)),
+        new LambdaEventSources.SqsEventSource(snsEventSqsQueue),
       ],
     });
 
