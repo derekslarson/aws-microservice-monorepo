@@ -1,17 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
-import { createRandomUser, CreateRandomUserOutput } from "../util";
+import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 
 describe("GET /users/{userId} (Get User)", () => {
   const baseUrl = process.env.baseUrl as string;
 
-  let user: CreateRandomUserOutput["user"];
+  let user: CreateRandomAuthServiceUserOutput;
   let accessToken: string;
 
   beforeAll(async () => {
-    ({ user } = await createRandomUser());
+    user = await createRandomAuthServiceUser();
 
     ({ accessToken } = await getAccessTokenByEmail(user.email));
   });
@@ -28,10 +27,7 @@ describe("GET /users/{userId} (Get User)", () => {
           user: {
             id: user.id,
             email: user.email,
-            username: user.username,
-            phone: user.phone,
-            realName: user.realName,
-            bio: user.bio,
+            name: user.name,
             image: jasmine.stringMatching(URL_REGEX),
           },
         });
@@ -50,7 +46,7 @@ describe("GET /users/{userId} (Get User)", () => {
           await axios.get(`${baseUrl}/users/${user.id}`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -65,7 +61,7 @@ describe("GET /users/{userId} (Get User)", () => {
           await axios.get(`${baseUrl}/users/invalid-id`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

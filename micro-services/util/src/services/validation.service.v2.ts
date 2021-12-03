@@ -7,7 +7,6 @@ import { LoggerServiceInterface } from "./logger.service";
 import { Request } from "../models/http/request.model";
 import { ForbiddenError } from "../errors";
 import { ValidatedRequest } from "../types/validatedRequest.type";
-import { UserId } from "../types/userId.type";
 
 @injectable()
 export class ValidationServiceV2 implements ValidationServiceV2Interface {
@@ -21,8 +20,18 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
 
       const { dto, request, getUserIdFromJwt, scopes = [] } = params;
 
+      // This is necessary due to the difference in requestContext.authorizer
+      // structure in the responses from http and websocket authorizers
+      const jwtId = request.requestContext.authorizer?.lambda?.userId || request.requestContext.authorizer?.userId;
+      const jwtScope = request.requestContext.authorizer?.lambda?.scope || request.requestContext.authorizer?.scope;
+
+      if (getUserIdFromJwt && (!jwtId || !jwtScope)) {
+        throw new ForbiddenError("Forbidden");
+      }
+
       if (scopes.length) {
-        const tokenScopesSet = new Set(request.requestContext.authorizer?.lambda?.scopes || []);
+        const tokenScopes = (jwtScope || "").split(" ");
+        const tokenScopesSet = new Set(tokenScopes);
 
         let authorized = false;
 
@@ -38,43 +47,43 @@ export class ValidationServiceV2 implements ValidationServiceV2Interface {
         }
       }
 
-      let jwtId: `user-${string}` | undefined;
+      let body: Record<string, unknown> | undefined;
+      if (request.body) {
+        try {
+          if (request.headers["content-type"] === "application/x-www-form-urlencoded") {
+            const urlEncodedBody: string = request.isBase64Encoded ? Buffer.from(request.body, "base64").toString() : request.body;
+            const parsedBody: Record<string, unknown> = {};
 
-      if (getUserIdFromJwt) {
-        const userId = request.requestContext.authorizer?.lambda?.userId;
+            urlEncodedBody.split("&").forEach((keyValuePair) => {
+              const [ key, value ] = keyValuePair.split("=");
+              parsedBody[key] = decodeURIComponent(value);
+            });
 
-        if (!userId) {
-          throw new ForbiddenError("Forbidden");
+            body = parsedBody;
+          } else {
+            body = JSON.parse(request.body) as Record<string, unknown>;
+          }
+        } catch (error: unknown) {
+          throw new ValidationError({
+            success: false,
+            code: Failcode.VALUE_INCORRECT,
+            message: "Error parsing body.",
+            details: { body: "Malformed" },
+          });
         }
-
-        jwtId = userId;
-      }
-
-      let parsedBody: unknown;
-
-      try {
-        parsedBody = request.body && JSON.parse(request.body) as unknown;
-      } catch (error: unknown) {
-        throw new ValidationError({
-          success: false,
-          code: Failcode.VALUE_INCORRECT,
-          message: "Error parsing body.",
-          details: { body: "Malformed JSON" },
-        });
       }
 
       const parsedRequest = {
         pathParameters: {},
         queryStringParameters: {},
         ...request,
-        body: parsedBody,
+        body,
       };
 
       const validatedRequest = dto.check(parsedRequest);
 
-      if (jwtId) {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        return { ...validatedRequest, jwtId } as ValidateOutput<T, U>;
+      if (jwtId && jwtScope) {
+        return { ...validatedRequest, jwtId, jwtScope };
       }
 
       return validatedRequest as ValidateOutput<T, U>;
@@ -94,22 +103,11 @@ export interface ValidationServiceV2Interface {
   validate<T extends ValidatedRequest, U extends boolean>(params: ValidateInput<T, U>): ValidateOutput<T, U>
 }
 
-type RequestWithAuthorizerContext = Request & {
-  requestContext: {
-    authorizer?: {
-      lambda?: {
-        userId?: UserId;
-        scopes?: string[];
-      }
-    }
-  }
-};
-
 export interface ValidateInput<T extends ValidatedRequest, U extends boolean> {
   dto: Runtype<T>;
-  request: RequestWithAuthorizerContext;
+  request: Request;
   getUserIdFromJwt?: U;
   scopes?: string[];
 }
 
-export type ValidateOutput<T extends ValidatedRequest, U extends boolean> = U extends true ? (T & { jwtId: `user-${string}`; }) : T;
+export type ValidateOutput<T extends ValidatedRequest, U extends boolean> = U extends true ? (T & { jwtId: `user-${string}`; jwtScope: string; }) : T;

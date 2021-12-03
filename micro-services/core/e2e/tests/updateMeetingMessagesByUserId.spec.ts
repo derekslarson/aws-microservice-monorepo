@@ -163,7 +163,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
                       email: fromUser.email,
                       username: fromUser.username,
                       phone: fromUser.phone,
-                      realName: fromUser.realName,
+                      name: fromUser.name,
                       bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
@@ -198,7 +198,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
                       email: fromUser.email,
                       username: fromUser.username,
                       phone: fromUser.phone,
-                      realName: fromUser.realName,
+                      name: fromUser.name,
                       bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
@@ -218,7 +218,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
           } catch (error) {
             fail(error);
           }
-        }, 45000);
+        });
       });
 
       describe("when 'seen: false'", () => {
@@ -303,7 +303,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
           await axios.patch(`${baseUrl}/users/${userId}/meetings/${mockMeetingId}/messages`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -319,7 +319,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
           await axios.patch(`${baseUrl}/users/${userId}/meetings/${mockMeetingId}/messages`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -335,7 +335,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
           await axios.patch(`${baseUrl}/users/test/meetings/test/messages`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

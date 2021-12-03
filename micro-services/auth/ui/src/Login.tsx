@@ -34,6 +34,7 @@ const variants = {
 const CONFIG: IEnvConfig = {
   BASE_URL: new URL(`https://${process.env.REACT_APP_ENVIRONMENT}.yacchat.com/auth`),
   SIGN_IN_PATH: "/login",
+  SIGN_IN_EXTERNAL_PROVIDER_PATH: "/login/idp",
   SIGN_UP_PATH: "sign-up",
   AUTHENTICATE_PATH: "/confirm",
   OAUTH2_AUTHORIZE_PATH: "/oauth2/authorize"
@@ -92,13 +93,8 @@ const Login: React.FC<ILoginProps> = () => {
         url.toString(),
         {
           method: "POST",
-          body: JSON.stringify(phone
-            ? { 
-              phone
-            }
-            : {
-              email
-            })
+          credentials: "include",
+          body: JSON.stringify(phone ? { phone } : { email })
         }
       ).catch((e) => e.response)
         const json = await res.json();
@@ -144,30 +140,11 @@ const Login: React.FC<ILoginProps> = () => {
     try {
       const url = new URL([CONFIG.BASE_URL.pathname, CONFIG.AUTHENTICATE_PATH].join("/"), CONFIG.BASE_URL.origin);
       const res: Response = await fetch(
-          url.toString() + `?client_id=${query.client_id}&redirect_uri=${query.redirect_uri}`,
+          url.toString(),
           {
             method: "POST",
             credentials: "include",
-            body: JSON.stringify((data as IManualAuthenticate).email ? {
-              confirmationCode: otp,
-              email: (data as IManualAuthenticate).email,
-              phone: (data as IManualAuthenticate).phone,
-              clientId: query.client_id,
-              redirectUri: query.redirect_uri,
-              session: request.data.session,
-              ...(query.code_challenge && { codeChallenge: query.code_challenge }),
-              ...(query.code_challenge_method && { codeChallengeMethod: query.code_challenge_method }),
-              ...(query.state && {  state: query.state }),
-              ...(query.scope && {  scope: query.scope })
-            } : {
-              session: (data as ITokenAuthenticate).token,
-              clientId: query.client_id,
-              redirectUri: query.redirect_uri,
-              ...(query.code_challenge && { codeChallenge: query.code_challenge }),
-              ...(query.code_challenge_method && { codeChallengeMethod: query.code_challenge_method }),
-              ...(query.state && { state: query.state }),
-              ...(query.scope && { scope: query.scope })
-            })
+            body: JSON.stringify({ confirmationCode: otp })
           }
         )
         .catch((err) => {
@@ -252,17 +229,12 @@ const Login: React.FC<ILoginProps> = () => {
     }
   }
 
-  const redirectToGoogleAuth = () => {    
-    const redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.OAUTH2_AUTHORIZE_PATH}?identity_provider=Google&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}&scope=${query.scope}&code_challenge=${query.code_challenge}&code_challenge_method=${query.code_challenge_method}&state=${query.state}`;
+  const redirectToExternalProviderAuth = (externalProvider: "slack" | "google") => {    
+    let redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.SIGN_IN_EXTERNAL_PROVIDER_PATH}?external_provider=${externalProvider}`;
 
     window.location.href = redirectLocation
   }
 
-  const redirectToSlackAuth = () => {    
-    const redirectLocation = `${CONFIG.BASE_URL.toString()}${CONFIG.OAUTH2_AUTHORIZE_PATH}?identity_provider=Slack&redirect_uri=${query.redirect_uri}&response_type=code&client_id=${query.client_id}&scope=${query.scope}&code_challenge=${query.code_challenge}&code_challenge_method=${query.code_challenge_method}&state=${query.state}`;
-
-    window.location.href = redirectLocation
-  }
 
   const email_form = () => (
     <motion.form
@@ -275,10 +247,10 @@ const Login: React.FC<ILoginProps> = () => {
       exit={'exit'}
     >
       <h2>Sign in</h2>
-      <button type="button" className="login-with-google-btn" onClick={redirectToGoogleAuth}>
+      <button type="button" className="login-with-google-btn" onClick={() => redirectToExternalProviderAuth("google")}>
         Sign in with Google
       </button>
-      <button type="button" className="login-with-slack-btn" onClick={redirectToSlackAuth}>
+      <button type="button" className="login-with-slack-btn" onClick={() => redirectToExternalProviderAuth("slack")}>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 122.8 122.8">
           <path d="M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z" fill="#e01e5a" />
           <path d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z" fill="#36c5f0" />
@@ -289,7 +261,7 @@ const Login: React.FC<ILoginProps> = () => {
       </button>
       <span>or</span>
       <span className={'login__form-description'}>
-        Use your Yac account email address or phone number
+        use your email address or phone number
       </span>
       <Input
         name={'email'}
@@ -411,18 +383,6 @@ const Login: React.FC<ILoginProps> = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <span
-        style={{
-          textAlign: 'center',
-          maxWidth: '80%'
-        }}
-      >
-        Don't have a Yac account.
-        <a aria-label={'Go to Yac'} href={'https://app.yac.com/create'}>
-          Click Here
-        </a>
-      </span>
     </div>
   )
 }
@@ -452,6 +412,7 @@ interface ILoader {
 interface IEnvConfig {
   BASE_URL: URL,
   SIGN_IN_PATH: string,
+  SIGN_IN_EXTERNAL_PROVIDER_PATH: string,
   SIGN_UP_PATH: string,
   AUTHENTICATE_PATH: string,
   OAUTH2_AUTHORIZE_PATH: string

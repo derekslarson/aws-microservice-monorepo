@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Team, WithRole, User } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Team, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { CreateTeamDto } from "../dtos/createTeam.dto";
@@ -8,7 +8,7 @@ import { GetTeamDto } from "../dtos/getTeam.dto";
 import { AddUsersToTeamDto } from "../dtos/addUsersToTeam.dto";
 import { RemoveUserFromTeamDto } from "../dtos/removeUserFromTeam.dto";
 import { GetTeamsByUserIdDto } from "../dtos/getTeamsByUserId.dto";
-import { AddUsersToTeamInput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { AddUsersToTeamOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { GetTeamImageUploadUrlDto } from "../dtos/getTeamImageUploadUrl.dto";
 import { UpdateTeamDto } from "../dtos/updateTeam.dto";
 
@@ -61,7 +61,7 @@ export class TeamController extends BaseController implements TeamControllerInte
 
       const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
 
-      if (isTeamAdmin) {
+      if (!isTeamAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
@@ -242,8 +242,8 @@ interface GetTeamImageUploadUrlResponse {
 
 interface AddUsersToTeamResponse {
   message: string;
-  successes?: User[];
-  failures?: AddUsersToTeamInput["users"];
+  successes?: AddUsersToTeamOutput["successes"];
+  failures?: AddUsersToTeamOutput["failures"];
 }
 
 interface RemoveUserFromTeamResponse {

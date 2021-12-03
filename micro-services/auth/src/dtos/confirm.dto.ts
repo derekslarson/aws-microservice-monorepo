@@ -1,33 +1,7 @@
 /* eslint-disable max-classes-per-file */
-import { Record, Union, String, Array, Optional, Literal } from "runtypes";
-import { Email } from "../runtypes/email.runtype";
-import { Phone } from "../runtypes/phone.runtype";
-import { RedirectUri } from "../runtypes/redirectUri.runtype";
-
-// eslint-disable-next-line max-classes-per-file
-
-const baseProps = {
-  confirmationCode: String,
-  session: String,
-  clientId: String,
-  redirectUri: RedirectUri,
-  state: Optional(String),
-  codeChallengeMethod: Optional(Literal("S256")),
-  codeChallenge: Optional(String),
-  scope: Optional(String),
-};
-
-const EmailConfirmBody = Record({
-  email: Email,
-  ...baseProps,
-});
-
-const PhoneConfirmBody = Record({
-  phone: Phone,
-  ...baseProps,
-});
+import { Record, String, Array } from "runtypes";
 
 export const ConfirmDto = Record({
   cookies: Array(String),
-  body: Union(EmailConfirmBody, PhoneConfirmBody),
+  body: Record({ confirmationCode: String }),
 });

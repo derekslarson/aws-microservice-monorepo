@@ -70,18 +70,16 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
               image: jasmine.stringMatching(URL_REGEX),
             },
             from: {
-              realName: user.realName,
-              bio: user.bio,
-              username: user.username,
+              name: user.name,
               id: user.id,
               email: user.email,
-              phone: user.phone,
               image: jasmine.stringMatching(URL_REGEX),
             },
             type: ConversationType.Group,
             mimeType,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             uploadUrl: jasmine.stringMatching(URL_REGEX),
+            chunkedUploadToken: jasmine.any(String),
           },
         });
       } catch (error) {
@@ -144,7 +142,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
         try {
           await axios.post(`${baseUrl}/groups/${mockGroupId}/messages`, body, { headers });
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -160,7 +158,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
           await axios.post(`${baseUrl}/groups/${mockGroupId}/messages`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -176,7 +174,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
           await axios.post(`${baseUrl}/groups/pants/messages`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

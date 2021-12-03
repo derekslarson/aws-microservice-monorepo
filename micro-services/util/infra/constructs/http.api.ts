@@ -8,27 +8,6 @@ import * as ApiGatewayV2Authorizers from "@aws-cdk/aws-apigatewayv2-authorizers"
 import { Duration } from "@aws-cdk/core";
 import { Environment } from "../../src/enums/environment.enum";
 
-interface HttpApiProps extends ApiGatewayV2.HttpApiProps {
-  serviceName: string
-  domainName: ApiGatewayV2.IDomainName,
-  corsAllowedOrigins?: string[];
-  authorizerHandlerFunctionArn?: string;
-}
-
-export interface RouteProps<T extends string = string, U extends ApiGatewayV2.HttpMethod = ApiGatewayV2.HttpMethod> {
-  path: T;
-  method: U;
-  handler: Lambda.IFunction;
-  restricted?: boolean;
-}
-
-export interface ProxyRouteProps {
-  path: string;
-  method: ApiGatewayV2.HttpMethod;
-  proxyUrl: string;
-  restricted?: boolean;
-}
-
 export class HttpApi extends ApiGatewayV2.HttpApi {
   public readonly apiURL: string;
 
@@ -59,29 +38,8 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
       },
     });
 
-    if (props.authorizerHandlerFunctionArn) {
-      const authorizerHandler = Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, props.authorizerHandlerFunctionArn);
-
-      // This should be handled by this.authorizer.bind (used in the route declarations below)
-      // but for some reason it isn't working as expected.
-      // See https://github.com/aws/aws-cdk/issues/7588
-      new Lambda.CfnPermission(this, `HttpApiAuthorizerPermission_${id}`, {
-        action: "lambda:InvokeFunction",
-        principal: "apigateway.amazonaws.com",
-        functionName: authorizerHandler.functionName,
-        sourceArn: CDK.Stack.of(scope).formatArn({
-          service: "execute-api",
-          resource: this.apiId,
-          resourceName: "authorizers/*",
-        }),
-      });
-
-      this.authorizer = new ApiGatewayV2Authorizers.HttpLambdaAuthorizer({
-        authorizerName: `LambdaAuthorizer_${id}`,
-        handler: authorizerHandler,
-        resultsCacheTtl: Duration.hours(1),
-        responseTypes: [ ApiGatewayV2Authorizers.HttpLambdaResponseType.SIMPLE ],
-      });
+    if (props.authorizerHandler) {
+      this.addAuthorizer(scope, id, { authorizerHandler: props.authorizerHandler });
     }
 
     this.apiURL = `https://${props.domainName.name}/${props.serviceName}`;
@@ -128,4 +86,62 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
       throw error;
     }
   }
+
+  public addAuthorizer(scope: CDK.Construct, id: string, props: AddAuthorizerProps): void {
+    try {
+      if (this.authorizer) {
+        throw new Error("HttpApi already has an authorizer");
+      }
+
+      // This should be handled by this.authorizer.bind (used in the route declarations below)
+      // but for some reason it isn't working as expected.
+      // See https://github.com/aws/aws-cdk/issues/7588
+      new Lambda.CfnPermission(this, `HttpApiAuthorizerPermission_${id}`, {
+        action: "lambda:InvokeFunction",
+        principal: "apigateway.amazonaws.com",
+        functionName: props.authorizerHandler.functionName,
+        sourceArn: CDK.Stack.of(scope).formatArn({
+          service: "execute-api",
+          resource: this.apiId,
+          resourceName: "authorizers/*",
+        }),
+      });
+
+      this.authorizer = new ApiGatewayV2Authorizers.HttpLambdaAuthorizer({
+        authorizerName: `LambdaAuthorizer_${id}`,
+        handler: props.authorizerHandler,
+        resultsCacheTtl: Duration.minutes(10),
+        responseTypes: [ ApiGatewayV2Authorizers.HttpLambdaResponseType.IAM ],
+      });
+    } catch (error) {
+      console.log(`${new Date().toISOString()} : Error in HttpApi.addAuthorizer:\n`, error);
+
+      throw error;
+    }
+  }
+}
+
+interface HttpApiProps extends ApiGatewayV2.HttpApiProps {
+  serviceName: string
+  domainName: ApiGatewayV2.IDomainName,
+  corsAllowedOrigins?: string[];
+  authorizerHandler?: Lambda.IFunction;
+}
+
+export interface RouteProps<T extends string = string, U extends ApiGatewayV2.HttpMethod = ApiGatewayV2.HttpMethod> {
+  path: T;
+  method: U;
+  handler: Lambda.IFunction;
+  restricted?: boolean;
+}
+
+export interface ProxyRouteProps {
+  path: string;
+  method: ApiGatewayV2.HttpMethod;
+  proxyUrl: string;
+  restricted?: boolean;
+}
+
+export interface AddAuthorizerProps {
+  authorizerHandler: Lambda.IFunction;
 }

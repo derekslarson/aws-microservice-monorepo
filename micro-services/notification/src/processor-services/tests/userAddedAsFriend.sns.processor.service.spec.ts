@@ -20,7 +20,7 @@ describe("UserAddedAsFriendSnsProcessorService", () => {
   const mockUserOne: User = {
     id: mockUserIdOne,
     image: "mock-image",
-    realName: "mock-realName",
+    name: "mock-name",
   };
 
   const mockUserTwo: User = {
@@ -76,7 +76,7 @@ describe("UserAddedAsFriendSnsProcessorService", () => {
         webSocketMediatorService.sendMessage.and.returnValue(Promise.resolve());
       });
 
-      describe("when from.realName is defined", () => {
+      describe("when from.name is defined", () => {
         it("calls pushNotificationMediatorService.sendPushNotification with the correct parameters", async () => {
           await userAddedAsFriendSnsProcessorService.processRecord(mockRecord);
 
@@ -85,12 +85,12 @@ describe("UserAddedAsFriendSnsProcessorService", () => {
             userId: mockUserIdTwo,
             event: PushNotificationEvent.UserAddedAsFriend,
             title: "Added as Friend",
-            body: `${mockUserOne.realName as string} added you as a friend`,
+            body: `${mockUserOne.name as string} added you as a friend`,
           });
         });
       });
 
-      describe("when from.realName isn't defined, but from.username is", () => {
+      describe("when from.name isn't defined, but from.username is", () => {
         const mockRecordTwo = {
           ...mockRecord,
           message: {
@@ -114,7 +114,7 @@ describe("UserAddedAsFriendSnsProcessorService", () => {
         });
       });
 
-      describe("when from.realName and from.username aren't defined, but from.email is", () => {
+      describe("when from.name and from.username aren't defined, but from.email is", () => {
         const mockRecordTwo = {
           ...mockRecord,
           message: {
@@ -138,7 +138,7 @@ describe("UserAddedAsFriendSnsProcessorService", () => {
         });
       });
 
-      describe("when from.realName, from.username and from.email aren't defined, but from.phone is", () => {
+      describe("when from.name, from.username and from.email aren't defined, but from.phone is", () => {
         const mockRecordTwo = {
           ...mockRecord,
           message: {

@@ -2,6 +2,7 @@ import { Container, ContainerModule } from "inversify";
 import { TYPES } from "./types";
 
 import { SnsEventController, SnsEventControllerInterface } from "../controllers/snsEvent.controller";
+import { SqsEventController, SqsEventControllerInterface } from "../controllers/sqsEvent.controller";
 
 import { IdService, IdServiceInterface } from "../services/id.service";
 import { HttpRequestService, HttpRequestServiceInterface } from "../services/http.request.service";
@@ -32,21 +33,20 @@ import { MessageFileRepositoryInterface } from "../repositories/base.message.s3.
 import { MessageUploadTokenService, MessageUploadTokenServiceInterface } from "../services/messageUploadToken.service";
 import { fsFactory, FsFactory } from "../factories/fs.factory";
 import { pathFactory, PathFactory } from "../factories/path.factory";
-import { jwksClientFactory, JwksClientFactory } from "../factories/jwksClient.factory";
-import { TokenVerificationService, TokenVerificationServiceInterface } from "../services/tokenVerification.service";
+import { googleOAuth2ClientFactory, GoogleOAuth2ClientFactory } from "../factories/google.oAuth2ClientFactory";
 
 const coreContainerModule = new ContainerModule((bind) => {
   try {
     bind<DynamoStreamControllerInterface>(TYPES.DynamoStreamControllerInterface).to(DynamoStreamController);
     bind<S3EventControllerInterface>(TYPES.S3EventControllerInterface).to(S3EventController);
     bind<SnsEventControllerInterface>(TYPES.SnsEventControllerInterface).to(SnsEventController);
+    bind<SqsEventControllerInterface>(TYPES.SqsEventControllerInterface).to(SqsEventController);
 
     bind<HttpRequestServiceInterface>(TYPES.HttpRequestServiceInterface).to(HttpRequestService);
     bind<IdServiceInterface>(TYPES.IdServiceInterface).to(IdService);
     bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);
     bind<MessageUploadTokenServiceInterface>(TYPES.MessageUploadTokenServiceInterface).to(MessageUploadTokenService);
     bind<SmsServiceInterface>(TYPES.SmsServiceInterface).to(SmsService);
-    bind<TokenVerificationServiceInterface>(TYPES.TokenVerificationServiceInterface).to(TokenVerificationService);
     bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
     bind<ValidationServiceV2Interface>(TYPES.ValidationServiceV2Interface).to(ValidationServiceV2);
 
@@ -59,9 +59,9 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<CryptoFactory>(TYPES.CryptoFactory).toFactory(() => cryptoFactory);
     bind<DocumentClientFactory>(TYPES.DocumentClientFactory).toFactory(() => documentClientFactory);
     bind<ErrorSerializerFactory>(TYPES.ErrorSerializerFactory).toFactory(() => errorSerializerFactory);
+    bind<GoogleOAuth2ClientFactory>(TYPES.GoogleOAuth2ClientFactory).toFactory(() => googleOAuth2ClientFactory);
     bind<FsFactory>(TYPES.FsFactory).toFactory(() => fsFactory);
     bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
-    bind<JwksClientFactory>(TYPES.JwksClientFactory).toFactory(() => jwksClientFactory);
     bind<JwtFactory>(TYPES.JwtFactory).toFactory(() => jwtFactory);
     bind<PathFactory>(TYPES.PathFactory).toFactory(() => pathFactory);
     bind<KsuidFactory>(TYPES.KsuidFactory).toFactory(() => ksuidFactory);

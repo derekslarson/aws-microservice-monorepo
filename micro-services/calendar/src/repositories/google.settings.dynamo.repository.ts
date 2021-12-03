@@ -65,6 +65,7 @@ export class GoogleSettingsDynamoRepository extends BaseDynamoRepositoryV2<Googl
       const { userId, updates } = params;
 
       const googleSettings = await this.partialUpdate(userId, EntityType.GoogleSettings, updates);
+
       return { googleSettings };
     } catch (error: unknown) {
       this.loggerService.error("Error in updateGoogleSettings", { error, params }, this.constructor.name);
@@ -79,9 +80,9 @@ export class GoogleSettingsDynamoRepository extends BaseDynamoRepositoryV2<Googl
 
       const { googleSettings } = params;
 
-      await this.partialUpdate<GoogleSettings & { entityType: EntityType.GoogleSettings }>(googleSettings.userId, EntityType.GoogleSettings, { ...googleSettings, entityType: EntityType.GoogleSettings });
+      const googleSettingsFromUpdate = await this.partialUpdate<GoogleSettings & { entityType: EntityType.GoogleSettings }>(googleSettings.userId, EntityType.GoogleSettings, { ...googleSettings, entityType: EntityType.GoogleSettings });
 
-      return { googleSettings };
+      return { googleSettings: googleSettingsFromUpdate };
     } catch (error: unknown) {
       this.loggerService.error("Error in upsertGoogleSettings", { error, params }, this.constructor.name);
 
@@ -120,6 +121,7 @@ type GoogleSettingsRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
 export interface GoogleSettings {
   userId: UserId;
   defaultCalendarId?: string;
+  defaultAccountId?: string;
 }
 
 export interface RawGoogleSettings extends GoogleSettings {

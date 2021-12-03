@@ -3,7 +3,7 @@
 
 import WebSocket from "ws";
 import { FriendMessageUpdatedSnsMessage } from "@yac/util";
-import { backoff, createRandomCognitoUser, getAccessTokenByEmail, sns } from "../../../../e2e/util";
+import { backoff, createRandomAuthServiceUser, getAccessTokenByEmail, sns } from "../../../../e2e/util";
 import { WebSocketEvent } from "../../src/enums/webSocket.event.enum";
 import { FriendMessageUpdatedWebSocketMessage } from "../../src/models/websocket-messages/friendMessageUpdated.websocket.message";
 import { UserId } from "../../../core/src/types/userId.type";
@@ -36,9 +36,9 @@ describe("Friend Message Updated (WebSocket Event)", () => {
   beforeAll(async () => {
     // Create three users in cognito
     const [ { email: emailOne, id: idOne }, { email: emailTwo, id: idTwo }, { email: emailThree } ] = await Promise.all([
-      createRandomCognitoUser(),
-      createRandomCognitoUser(),
-      createRandomCognitoUser(),
+      createRandomAuthServiceUser(),
+      createRandomAuthServiceUser(),
+      createRandomAuthServiceUser(),
     ]);
 
     userOneId = idOne;

@@ -171,7 +171,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
           await axios.post(`${baseUrl}/users/${userId}/groups`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -188,7 +188,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
       });
 
       it("throws a 403 error", async () => {
-        const name = generateRandomString(5);
+        const name = generateRandomString();
         const body = { name, teamId: teamTwo.id };
         const headers = { Authorization: `Bearer ${accessToken}` };
 
@@ -196,7 +196,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
           await axios.post(`${baseUrl}/users/${userId}/groups`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -212,7 +212,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
           await axios.post(`${baseUrl}/users/test/groups`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

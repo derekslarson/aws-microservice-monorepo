@@ -3,7 +3,7 @@
 
 import WebSocket from "ws";
 import { UserRemovedAsFriendSnsMessage } from "@yac/util";
-import { backoff, createRandomCognitoUser, getAccessTokenByEmail, sns } from "../../../../e2e/util";
+import { backoff, createRandomAuthServiceUser, getAccessTokenByEmail, sns } from "../../../../e2e/util";
 import { WebSocketEvent } from "../../src/enums/webSocket.event.enum";
 import { UserRemovedAsFriendWebSocketMessage } from "../../src/models/websocket-messages/userRemovedAsFriend.websocket.message";
 import { UserId } from "../../../core/src/types/userId.type";
@@ -36,9 +36,9 @@ describe("User Removed As Friend (WebSocket Event)", () => {
   beforeAll(async () => {
     // Create three users in cognito
     const [ { email: emailOne, id: idOne }, { email: emailTwo, id: idTwo }, { email: emailThree } ] = await Promise.all([
-      createRandomCognitoUser(),
-      createRandomCognitoUser(),
-      createRandomCognitoUser(),
+      createRandomAuthServiceUser(),
+      createRandomAuthServiceUser(),
+      createRandomAuthServiceUser(),
     ]);
 
     userOneId = idOne as UserId;

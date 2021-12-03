@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, User, Group, WithRole } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Group, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { CreateGroupDto } from "../dtos/createGroup.dto";
@@ -11,7 +11,8 @@ import { GetGroupsByUserIdDto } from "../dtos/getGroupsByUserId.dto";
 import { GetGroupsByTeamIdDto } from "../dtos/getGroupsByTeamId.dto";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GetGroupImageUploadUrlDto } from "../dtos/getGroupImageUploadUrl.dto";
-import { AddUsersToGroupInput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { AddUsersToGroupOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { UpdateGroupDto } from "../dtos/updateGroup.dto";
 
 @injectable()
 export class GroupController extends BaseController implements GroupControllerInterface {
@@ -54,6 +55,34 @@ export class GroupController extends BaseController implements GroupControllerIn
       return this.generateCreatedResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in createGroup", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async updateGroup(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("updateGroup called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { groupId },
+        body: updates,
+      } = this.validationService.validate({ dto: UpdateGroupDto, request, getUserIdFromJwt: true });
+
+      const { isGroupAdmin } = await this.groupMediatorService.isGroupAdmin({ groupId, userId: jwtId });
+
+      if (!isGroupAdmin) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      await this.groupMediatorService.updateGroup({ groupId, updates });
+
+      const response: UpdateGroupResponse = { message: "Group updated." };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateGroup", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -230,6 +259,7 @@ export class GroupController extends BaseController implements GroupControllerIn
 
 export interface GroupControllerInterface {
   createGroup(request: Request): Promise<Response>;
+  updateGroup(request: Request): Promise<Response>;
   getGroup(request: Request): Promise<Response>;
   addUsersToGroup(request: Request): Promise<Response>;
   removeUserFromGroup(request: Request): Promise<Response>;
@@ -242,6 +272,10 @@ interface CreateGroupResponse {
   group: Group;
 }
 
+interface UpdateGroupResponse {
+  message: "Group updated.";
+}
+
 interface GetGroupResponse {
   group: Group;
 }
@@ -252,8 +286,8 @@ interface GetGroupImageUploadUrlResponse {
 
 interface AddUsersToGroupResponse {
   message: string;
-  successes?: User[];
-  failures?: AddUsersToGroupInput["users"];
+  successes?: AddUsersToGroupOutput["successes"];
+  failures?: AddUsersToGroupOutput["failures"];
 }
 
 interface RemoveUserFromGroupResponse {

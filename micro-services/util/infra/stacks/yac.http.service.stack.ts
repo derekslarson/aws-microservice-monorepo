@@ -4,6 +4,7 @@ import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as ACM from "@aws-cdk/aws-certificatemanager";
 import * as SSM from "@aws-cdk/aws-ssm";
+import * as Lambda from "@aws-cdk/aws-lambda";
 import { HttpApi } from "../constructs/http.api";
 import { Environment } from "../../src/enums/environment.enum";
 import { generateExportNames } from "../..";
@@ -39,10 +40,10 @@ export class YacHttpServiceStack extends CDK.Stack {
     const customDomainName = CDK.Fn.importValue(ExportNames.CustomDomainName);
     const regionalDomainName = CDK.Fn.importValue(ExportNames.RegionalDomainName);
     const regionalHostedZoneId = CDK.Fn.importValue(ExportNames.RegionalHostedZoneId);
-    const authorizerHandlerFunctionArn = addAuthorizer ? CDK.Fn.importValue(ExportNames.AuthorizerHandlerFunctionArn) : undefined;
+    let authorizerHandler: Lambda.IFunction | undefined;
 
-    if (addAuthorizer && !authorizerHandlerFunctionArn) {
-      throw new Error("authorizerHandlerFunctionArn not found. This stack must be deployed after the successful deployment of YacAuthService, or 'addAuthorizer: false' must be passed in.");
+    if (addAuthorizer) {
+      authorizerHandler = Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, CDK.Fn.importValue(ExportNames.AuthorizerHandlerFunctionArn));
     }
 
     const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
@@ -66,7 +67,7 @@ export class YacHttpServiceStack extends CDK.Stack {
       serviceName: props.serviceName,
       domainName: this.domainName,
       corsAllowedOrigins: environment !== Environment.Prod ? [ `https://${this.recordName}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ],
-      authorizerHandlerFunctionArn: addAuthorizer ? authorizerHandlerFunctionArn : undefined,
+      authorizerHandler,
     });
   }
 

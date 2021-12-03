@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { generateRandomString, getAccessToken } from "../../../../e2e/util";
-import { createMeetingConversation, createRandomUser, getConversation } from "../util";
+import { Role } from "@yac/util";
+import { createRandomAuthServiceUser, generateRandomString, getAccessToken } from "../../../../e2e/util";
+import { createConversationUserRelationship, createMeetingConversation, getConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { MeetingConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { ConversationType } from "../../src/enums/conversationType.enum";
 
-describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
+describe("PATCH /meetings/{meetingId} (Update Meeting)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   const userId = process.env.userId as UserId;
@@ -15,6 +17,7 @@ describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
   let meeting: MeetingConversation;
   beforeEach(async () => {
     ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+    await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin });
   });
 
   describe("under normal conditions", () => {
@@ -28,7 +31,7 @@ describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
           const { status, data } = await axios.patch(`${baseUrl}/meetings/${meeting.id}`, body, { headers });
 
           expect(status).toBe(200);
-          expect(data).toEqual({ meeting: "Meeting updated." });
+          expect(data).toEqual({ message: "Meeting updated." });
         } catch (error) {
           fail(error);
         }
@@ -41,6 +44,10 @@ describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
           await axios.patch(`${baseUrl}/meetings/${meeting.id}`, body, { headers });
 
           const { conversation: meetingEntity } = await getConversation({ conversationId: meeting.id });
+
+          if (!meetingEntity) {
+            throw new Error("meeting entity not found");
+          }
 
           expect(meetingEntity).toEqual({
             ...meetingEntity,
@@ -63,7 +70,7 @@ describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
           await axios.patch(`${baseUrl}/meetings/${meeting.id}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -72,7 +79,7 @@ describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
 
     describe("when an access token from a user other than the meeting admin is passed in", () => {
       it("throws a 403 error", async () => {
-        const { user: randomUser } = await createRandomUser();
+        const randomUser = await createRandomAuthServiceUser();
         const { accessToken: wrongAccessToken } = await getAccessToken(randomUser.id);
         const headers = { Authorization: `Bearer ${wrongAccessToken}` };
         const body = { name: generateRandomString(5), outcomes: generateRandomString(5) };
@@ -81,7 +88,7 @@ describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
           await axios.patch(`${baseUrl}/meetings/${meeting.id}`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -97,13 +104,13 @@ describe("PATCH /meetings/{meetingId} (Update Meeting by Meeting Id)", () => {
           await axios.patch(`${baseUrl}/meetings/test`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
-            meeting: "Error validating request",
+            message: "Error validating request",
             validationErrors: {
-              pathParameters: { userId: "Failed constraint check for string: Must be a meeting id" },
+              pathParameters: { meetingId: "Failed constraint check for string: Must be a meeting id" },
               body: {
                 name: "Expected string, but was boolean",
                 outcomes: "Expected string, but was boolean",

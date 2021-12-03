@@ -145,10 +145,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
                     to: {
                       id: toUser.id,
                       email: toUser.email,
-                      username: toUser.username,
-                      phone: toUser.phone,
-                      realName: toUser.realName,
-                      bio: toUser.bio,
+                      name: toUser.name,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
                     from: {
@@ -156,7 +153,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
                       email: fromUser.email,
                       username: fromUser.username,
                       phone: fromUser.phone,
-                      realName: fromUser.realName,
+                      name: fromUser.name,
                       bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
@@ -179,10 +176,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
                     to: {
                       id: toUser.id,
                       email: toUser.email,
-                      username: toUser.username,
-                      phone: toUser.phone,
-                      realName: toUser.realName,
-                      bio: toUser.bio,
+                      name: toUser.name,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
                     from: {
@@ -190,7 +184,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
                       email: fromUser.email,
                       username: fromUser.username,
                       phone: fromUser.phone,
-                      realName: fromUser.realName,
+                      name: fromUser.name,
                       bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
@@ -210,7 +204,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
           } catch (error) {
             fail(error);
           }
-        }, 45000);
+        });
       });
 
       describe("when 'seen: false'", () => {
@@ -296,7 +290,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
           await axios.patch(`${baseUrl}/users/${userId}/friends/${mockUserId}/messages`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -312,7 +306,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
           await axios.patch(`${baseUrl}/users/${mockUserId}/friends/${mockUserIdTwo}/messages`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -328,7 +322,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
           await axios.patch(`${baseUrl}/users/test/friends/test/messages`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

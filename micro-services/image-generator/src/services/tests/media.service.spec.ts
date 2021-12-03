@@ -136,7 +136,7 @@ describe("MediaService", () => {
         const resourceId = `${yacMessage.isGroup ? "GROUP" : "USER"}-${yacMessage.id}`;
         const messageChecksum = getChecksum({
           senderUsername: yacMessage.usernameFrom,
-          senderRealName: yacMessage.profileNameFrom,
+          sendername: yacMessage.profileNameFrom,
           senderImage: yacMessage.profileImageFrom,
         });
 
@@ -159,7 +159,7 @@ describe("MediaService", () => {
         const resourceId = `${yacMessage.isGroup ? "GROUP" : "USER"}-${yacMessage.id}`;
         const messageChecksum = getChecksum({
           senderUsername: yacMessage.usernameFrom,
-          senderRealName: yacMessage.profileNameFrom,
+          sendername: yacMessage.profileNameFrom,
           senderImage: yacMessage.profileImageFrom,
         });
 
@@ -183,7 +183,7 @@ describe("MediaService", () => {
         const resourceId = `${yacMessage.isGroup ? "GROUP" : "USER"}-${yacMessage.id}`;
         const messageChecksum = getChecksum({
           senderUsername: yacMessage.usernameFrom,
-          senderRealName: yacMessage.profileNameFrom,
+          sendername: yacMessage.profileNameFrom,
           senderImage: yacMessage.profileImageFrom,
         });
 
@@ -208,7 +208,7 @@ describe("MediaService", () => {
         const resourceId = `${yacMessage.isGroup ? "GROUP" : "USER"}-${yacMessage.id}`;
         const messageChecksum = getChecksum({
           senderUsername: yacMessage.usernameFrom,
-          senderRealName: yacMessage.profileNameFrom,
+          sendername: yacMessage.profileNameFrom,
           senderImage: yacMessage.profileImageFrom,
         });
 
@@ -234,7 +234,7 @@ describe("MediaService", () => {
         const resourceId = `${yacMessage.isGroup ? "GROUP" : "USER"}-${yacMessage.id}`;
         const messageChecksum = getChecksum({
           senderUsername: yacMessage.usernameFrom,
-          senderRealName: yacMessage.profileNameFrom,
+          sendername: yacMessage.profileNameFrom,
           senderImage: yacMessage.profileImageFrom,
         });
 
@@ -259,7 +259,7 @@ describe("MediaService", () => {
         const resourceId = `${yacMessage.isGroup ? "GROUP" : "USER"}-${yacMessage.id}`;
         const messageChecksum = getChecksum({
           senderUsername: yacMessage.usernameFrom,
-          senderRealName: yacMessage.profileNameFrom,
+          sendername: yacMessage.profileNameFrom,
           senderImage: yacMessage.profileImageFrom,
         });
 
@@ -285,7 +285,7 @@ describe("MediaService", () => {
         const resourceId = `${yacMessage.isGroup ? "GROUP" : "USER"}-${yacMessage.id}`;
         const messageChecksum = getChecksum({
           senderUsername: yacMessage.usernameFrom,
-          senderRealName: yacMessage.profileNameFrom,
+          sendername: yacMessage.profileNameFrom,
           senderImage: yacMessage.profileImageFrom,
         });
 

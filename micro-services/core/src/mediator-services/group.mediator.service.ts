@@ -40,6 +40,22 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
     }
   }
 
+  public async updateGroup(params: UpdateGroupInput): Promise<UpdateGroupOutput> {
+    try {
+      this.loggerService.trace("updateGroup called", { params }, this.constructor.name);
+
+      const { groupId, updates } = params;
+
+      const { conversation: group } = await this.conversationService.updateConversation({ conversationId: groupId, updates });
+
+      return { group };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateGroup", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getGroup(params: GetGroupInput): Promise<GetGroupOutput> {
     try {
       this.loggerService.trace("getGroup called", { params }, this.constructor.name);
@@ -238,6 +254,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
 export interface GroupMediatorServiceInterface {
   createGroup(params: CreateGroupInput): Promise<CreateGroupOutput>;
+  updateGroup(params: UpdateGroupInput): Promise<UpdateGroupOutput>;
   getGroup(params: GetGroupInput): Promise<GetGroupOutput>;
   deleteGroup(params: DeleteGroupInput): Promise<DeleteGroupOutput>;
   addUserToGroup(params: AddUserToGroupInput): Promise<AddUserToGroupOutput>;
@@ -262,6 +279,15 @@ export interface CreateGroupInput {
 }
 
 export interface CreateGroupOutput {
+  group: Group;
+}
+
+export interface UpdateGroupInput {
+  groupId: GroupId;
+  updates: Pick<Partial<Group>, "name">;
+}
+
+export interface UpdateGroupOutput {
   group: Group;
 }
 

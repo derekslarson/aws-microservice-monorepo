@@ -2,7 +2,7 @@
   "name": "@yac/core",
   "version": "0.1.0",
   "scripts": {
-    "build:local": "yarn clean && webpack --bail --config ../../config/webpack/webpack.config.dev.js && yarn build:layer",
+    "build:local": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --bail --config ../../config/webpack/webpack.config.dev.js && yarn build:layer",
     "build:dev": "yarn clean && webpack --bail --config ../../config/webpack/webpack.config.dev.js && yarn build:layer",
     "build:stage": "yarn clean && webpack --bail --config ../../config/webpack/webpack.config.release.js && yarn build:layer",
     "build:prod": "yarn clean && webpack --bail --config ../../config/webpack/webpack.config.release.js && yarn build:layer",
@@ -44,6 +44,8 @@
     "@aws-cdk/aws-s3-notifications": "~1.114.0",
     "@aws-cdk/aws-secretsmanager": "~1.114.0",
     "@aws-cdk/aws-sns": "~1.114.0",
+    "@aws-cdk/aws-sns-subscriptions": "~1.114.0",
+    "@aws-cdk/aws-sqs": "~1.114.0",
     "@aws-cdk/aws-ssm": "~1.114.0",
     "@aws-cdk/core": "~1.114.0",
     "@aws-cdk/custom-resources": "~1.114.0",

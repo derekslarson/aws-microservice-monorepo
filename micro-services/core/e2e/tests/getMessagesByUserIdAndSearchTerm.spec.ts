@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Role } from "@yac/util";
 import axios from "axios";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX, wait } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
@@ -19,7 +19,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
     const searchParamBoth = "both";
     const searchParamOnlyMeetingMessage = "solo";
 
-    let user: CreateRandomUserOutput["user"];
+    let user: CreateRandomAuthServiceUserOutput;
     let otherUser: CreateRandomUserOutput["user"];
     let accessToken: string;
 
@@ -31,7 +31,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
 
     beforeAll(async () => {
       // We have to fetch a new base user and access token here to prevent bleed over from other tests
-      ([ { user }, { user: otherUser } ] = await Promise.all([ createRandomUser(), createRandomUser() ]));
+      ([ user, { user: otherUser } ] = await Promise.all([ createRandomAuthServiceUser(), createRandomUser() ]));
 
       ([ { accessToken }, { conversation: meeting }, { conversation: group } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
@@ -80,7 +80,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                     image: jasmine.stringMatching(URL_REGEX),
                   },
                   from: {
-                    realName: otherUser.realName,
+                    name: otherUser.name,
                     bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
@@ -109,7 +109,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                     image: jasmine.stringMatching(URL_REGEX),
                   },
                   from: {
-                    realName: otherUser.realName,
+                    name: otherUser.name,
                     bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
@@ -159,7 +159,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                     image: jasmine.stringMatching(URL_REGEX),
                   },
                   from: {
-                    realName: otherUser.realName,
+                    name: otherUser.name,
                     bio: otherUser.bio,
                     username: otherUser.username,
                     id: otherUser.id,
@@ -198,7 +198,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
           await axios.get(`${baseUrl}/users/${userId}/messages`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -216,7 +216,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
           await axios.get(`${baseUrl}/users/${mockUserId}/messages`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -232,7 +232,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
           await axios.get(`${baseUrl}/users/test/messages`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

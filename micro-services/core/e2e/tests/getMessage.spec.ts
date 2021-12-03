@@ -58,7 +58,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
               email: otherUser.email,
               username: otherUser.username,
               phone: otherUser.phone,
-              realName: otherUser.realName,
+              name: otherUser.name,
               bio: otherUser.bio,
               image: jasmine.stringMatching(URL_REGEX),
             },

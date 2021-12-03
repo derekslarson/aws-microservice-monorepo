@@ -39,7 +39,7 @@ export class MeetingMessageCreatedSnsProcessorService implements SnsProcessorSer
 
       const { message: { meetingMemberIds, message } } = record;
 
-      const senderName = message.from.realName || message.from.username || message.from.email || message.from.phone as string;
+      const senderName = message.from.name || message.from.username || message.from.email || message.from.phone as string;
 
       const memberIdsOtherThanSender = meetingMemberIds.filter((meetingMemberId) => meetingMemberId !== message.from.id);
 

@@ -39,7 +39,7 @@ export class FriendMessageCreatedSnsProcessorService implements SnsProcessorServ
 
       const { message: { message } } = record;
 
-      const senderName = message.from.realName || message.from.username || message.from.email || message.from.phone as string;
+      const senderName = message.from.name || message.from.username || message.from.email || message.from.phone as string;
 
       await Promise.allSettled([
         this.pushNotificationMediatorService.sendPushNotification({

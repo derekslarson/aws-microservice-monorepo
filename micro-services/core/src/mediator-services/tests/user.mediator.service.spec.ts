@@ -104,7 +104,7 @@
 //       });
 
 //       it("fails to create an user entry", async () => {
-//         const params: CreateUserInput = { phone: "+123456789", username: "hello", imageMimeType: ImageMimeType.Png, email: "test@mail.com", realName: "test user" };
+//         const params: CreateUserInput = { phone: "+123456789", username: "hello", imageMimeType: ImageMimeType.Png, email: "test@mail.com", name: "test user" };
 //         const mockError = new Error("Failed to create image");
 
 //         uniquePropertyService.isPropertyUnique.and.returnValue({ isPropertyUnique: true });
@@ -126,7 +126,7 @@
 //       });
 
 //       it("fails to upload a default user image", async () => {
-//         const params: CreateUserInput = { phone: "+123456789", username: "hello", imageMimeType: ImageMimeType.Png, email: "test@mail.com", realName: "test user" };
+//         const params: CreateUserInput = { phone: "+123456789", username: "hello", imageMimeType: ImageMimeType.Png, email: "test@mail.com", name: "test user" };
 //         const mockError = new Error("Failed to create image");
 //         const mockUser = { id: "mock-user-id" };
 
@@ -148,7 +148,7 @@
 //       });
 
 //       it("fails to create an unique `email` entry", async () => {
-//         const params: CreateUserInput = { imageMimeType: ImageMimeType.Png, email: "test@mail.com", realName: "test user" };
+//         const params: CreateUserInput = { imageMimeType: ImageMimeType.Png, email: "test@mail.com", name: "test user" };
 //         const mockError = new Error("Failed to create image");
 //         const mockUser = { id: "mock-user-id" };
 
@@ -171,7 +171,7 @@
 //       });
 
 //       it("fails to create an unique `phone` entry", async () => {
-//         const params: CreateUserInput = { phone: "+123456789", imageMimeType: ImageMimeType.Png, realName: "test user" };
+//         const params: CreateUserInput = { phone: "+123456789", imageMimeType: ImageMimeType.Png, name: "test user" };
 //         const mockError = new Error("Failed to create image");
 //         const mockUser = { id: "mock-user-id" };
 
@@ -194,7 +194,7 @@
 //       });
 
 //       it("fails to create an unique `username` entry", async () => {
-//         const params: CreateUserInput = { phone: "+123456789", username: "hello", imageMimeType: ImageMimeType.Png, realName: "test user" };
+//         const params: CreateUserInput = { phone: "+123456789", username: "hello", imageMimeType: ImageMimeType.Png, name: "test user" };
 //         const mockError = new Error("Failed to create image");
 //         const mockUser = { id: "mock-user-id" };
 
@@ -219,7 +219,7 @@
 //       });
 
 //       it("fails to fetch signed-url of the default image", async () => {
-//         const params: CreateUserInput = { phone: "+123456789", username: "hello", imageMimeType: ImageMimeType.Png, realName: "test user" };
+//         const params: CreateUserInput = { phone: "+123456789", username: "hello", imageMimeType: ImageMimeType.Png, name: "test user" };
 //         const mockError = new Error("Failed to create image");
 //         const mockUser = { id: "mock-user-id" };
 
@@ -250,7 +250,7 @@
 
 //     describe("successfully completes when", () => {
 //       it("tries to create an user with the right parameters with only a `phone`", async () => {
-//         const params: CreateUserInput = { phone: "+123456789", username: "hello", imageMimeType: ImageMimeType.Png, realName: "test user" };
+//         const params: CreateUserInput = { phone: "+123456789", username: "hello", imageMimeType: ImageMimeType.Png, name: "test user" };
 //         const mockUser = { id: "mock-user-id" };
 //         const mockSignedUrl = { signedUrl: "mocked-signed-url" };
 
@@ -300,7 +300,7 @@
 //       });
 
 //       it("tries to create an user with the right parameters with only a `email`", async () => {
-//         const params: CreateUserInput = { email: "mock@email.com", username: "hello", imageMimeType: ImageMimeType.Png, realName: "test user" };
+//         const params: CreateUserInput = { email: "mock@email.com", username: "hello", imageMimeType: ImageMimeType.Png, name: "test user" };
 //         const mockUser = { id: "mock-user-id" };
 //         const mockSignedUrl = { signedUrl: "mocked-signed-url" };
 
@@ -373,7 +373,7 @@
 
 //       it("imageFileService.getSignedUrl errors", async () => {
 //         const params: GetUserInput = { userId: "user-mock-id" };
-//         const mockUser = { id: params.userId, username: "mock", realName: "test mock", email: "mock@test.com", imageMimeType: ImageMimeType.Png };
+//         const mockUser = { id: params.userId, username: "mock", name: "test mock", email: "mock@test.com", imageMimeType: ImageMimeType.Png };
 //         const mockError = new Error("Failed to continue");
 
 //         userService.getUser.and.returnValue({ user: mockUser });
@@ -399,7 +399,7 @@
 //     describe("successfully completes when", () => {
 //       it("returns a user object with its image", async () => {
 //         const params: GetUserInput = { userId: "user-mock-id" };
-//         const mockUser = { id: params.userId, username: "mock", realName: "test mock", email: "mock@test.com", imageMimeType: ImageMimeType.Png };
+//         const mockUser = { id: params.userId, username: "mock", name: "test mock", email: "mock@test.com", imageMimeType: ImageMimeType.Png };
 //         const mockImage = { signedUrl: "mock-signed-url" };
 //         const { imageMimeType, ...expectedResponse } = { ...mockUser, image: mockImage.signedUrl };
 
@@ -525,7 +525,7 @@
 //       it("returns the found user", async () => {
 //         const params: GetUserByEmailInput = { email: "test@email.com" };
 //         const mockUserId = "user-mock-id";
-//         const mockUser = { id: mockUserId, email: params.email, realName: "test user", username: "test" };
+//         const mockUser = { id: mockUserId, email: params.email, name: "test user", username: "test" };
 
 //         uniquePropertyService.getUniqueProperty.and.returnValue({ uniqueProperty: { userId: mockUserId } });
 //         mockGetUserFunction.and.returnValue({ user: mockUser });
@@ -594,7 +594,7 @@
 //       it("returns the found user", async () => {
 //         const params: GetUserByPhoneInput = { phone: "+123456789" };
 //         const mockUserId = "user-mock-id";
-//         const mockUser = { id: mockUserId, phone: params.phone, realName: "test user", username: "test" };
+//         const mockUser = { id: mockUserId, phone: params.phone, name: "test user", username: "test" };
 
 //         uniquePropertyService.getUniqueProperty.and.returnValue({ uniqueProperty: { userId: mockUserId } });
 //         mockGetUserFunction.and.returnValue({ user: mockUser });
@@ -663,7 +663,7 @@
 //       it("returns the found user", async () => {
 //         const params: GetUserByUsernameInput = { username: "mock-user" };
 //         const mockUserId = "user-mock-id";
-//         const mockUser = { id: mockUserId, username: params.username, realName: "test user", email: "mock@email.com" };
+//         const mockUser = { id: mockUserId, username: params.username, name: "test user", email: "mock@email.com" };
 
 //         uniquePropertyService.getUniqueProperty.and.returnValue({ uniqueProperty: { userId: mockUserId } });
 //         mockGetUserFunction.and.returnValue({ user: mockUser });
@@ -720,7 +720,7 @@
 //         const mockError = new Error("Failed to continue");
 
 //         const mockUserId = "user-mock-id";
-//         const mockUser = { id: mockUserId, username: "testuser", realName: "test user", email: "mock@email.com" };
+//         const mockUser = { id: mockUserId, username: "testuser", name: "test user", email: "mock@email.com" };
 
 //         mockGetUserByEmailFunction.and.throwError(mockError);
 //         mockCreateUserFunction.and.returnValue({ user: mockUser });
@@ -742,7 +742,7 @@
 //         const params: GetOrCreateUserByEmailInput = { email: "mock@mail.com" };
 
 //         const mockUserId = "user-mock-id";
-//         const mockUser = { id: mockUserId, username: "testuser", realName: "test user", email: "mock@email.com" };
+//         const mockUser = { id: mockUserId, username: "testuser", name: "test user", email: "mock@email.com" };
 
 //         mockGetUserByEmailFunction.and.returnValue({ user: mockUser });
 
@@ -797,7 +797,7 @@
 //         const mockError = new Error("Failed to continue");
 
 //         const mockUserId = "user-mock-id";
-//         const mockUser = { id: mockUserId, username: "testuser", realName: "test user", email: "mock@email.com" };
+//         const mockUser = { id: mockUserId, username: "testuser", name: "test user", email: "mock@email.com" };
 
 //         mockGetUserByPhoneFunction.and.throwError(mockError);
 //         mockCreateUserFunction.and.returnValue({ user: mockUser });
@@ -819,7 +819,7 @@
 //         const params: GetOrCreateUserByPhoneInput = { phone: "+123456789" };
 
 //         const mockUserId = "user-mock-id";
-//         const mockUser = { id: mockUserId, username: "testuser", realName: "test user", email: "mock@email.com" };
+//         const mockUser = { id: mockUserId, username: "testuser", name: "test user", email: "mock@email.com" };
 
 //         mockGetUserByPhoneFunction.and.returnValue({ user: mockUser });
 
