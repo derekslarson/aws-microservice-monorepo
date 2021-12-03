@@ -6,7 +6,6 @@ export * from "./sms.service";
 export * from "./validation.service";
 export * from "./validation.service.v2";
 export * from "./messageUploadToken.service";
-export * from "./tokenVerification.service";
 export * from "./interfaces/dynamo.processor.service.interface";
 export * from "./interfaces/sns.processor.service.interface";
 export * from "./interfaces/s3.processor.service.interface";

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Meeting, WithRole, User } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Meeting, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { CreateMeetingDto } from "../dtos/createMeeting.dto";
@@ -11,7 +11,7 @@ import { GetMeetingsByUserIdDto } from "../dtos/getMeetingsByUserId.dto";
 import { GetMeetingsByTeamIdDto } from "../dtos/getMeetingsByTeamId.dto";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GetMeetingImageUploadUrlDto } from "../dtos/getMeetingImageUploadUrl.dto";
-import { AddUsersToMeetingInput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { AddUsersToMeetingOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { UpdateMeetingDto } from "../dtos/updateMeeting.dto";
 
 @injectable()
@@ -291,8 +291,8 @@ interface GetMeetingImageUploadUrlResponse {
 
 interface AddUsersToMeetingResponse {
   message: string;
-  successes?: User[];
-  failures?: AddUsersToMeetingInput["users"];
+  successes?: AddUsersToMeetingOutput["failures"];
+  failures?: AddUsersToMeetingOutput["failures"];
 }
 
 interface RemoveUserFromMeetingResponse {

@@ -12,11 +12,10 @@ import {
   CreateRandomUserOutput,
   generateRandomEmail,
   generateRandomPhone,
-  getUserByEmail,
-  getUserByPhone,
-  getUniqueProperty,
   deleteSnsEventsByTopicArn,
   getSnsEventsByTopicArn,
+  getUserByEmail,
+  getUserByPhone,
 } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { backoff, generateRandomString, URL_REGEX } from "../../../../e2e/util";
@@ -24,7 +23,6 @@ import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { AddUsersToTeamDto } from "../../src/dtos/addUsersToTeam.dto";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
-import { UniqueProperty } from "../../src/enums/uniqueProperty.enum";
 
 describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -76,25 +74,9 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
         expect(data).toEqual({
           message: "Users added to team, but with some failures.",
           successes: jasmine.arrayContaining([
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              username: otherUser.username,
-              realName: otherUser.realName,
-              bio: otherUser.bio,
-              email: otherUser.email,
-              phone: otherUser.phone,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              email: randomEmail,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              phone: randomPhone,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
+            { username: otherUser.username, role: Role.Admin },
+            { email: randomEmail, role: Role.User },
+            { phone: randomPhone, role: Role.Admin },
           ]),
           failures: [
             { username: randomUsername, role: Role.User },
@@ -123,81 +105,35 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
       try {
         await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
         ]);
 
-        expect(userByEmail).toEqual({
-          entityType: EntityType.User,
-          pk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          email: randomEmail,
-          imageMimeType: ImageMimeType.Png,
-        });
-
-        expect(userByPhone).toEqual({
-          entityType: EntityType.User,
-          pk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          phone: randomPhone,
-          imageMimeType: ImageMimeType.Png,
-        });
-      } catch (error) {
-        fail(error);
-      }
-    });
-
-    it("creates valid UniqueProperty entities", async () => {
-      const headers = { Authorization: `Bearer ${accessToken}` };
-
-      const request: Static<typeof AddUsersToTeamDto> = {
-        pathParameters: { teamId: team.id },
-        body: {
-          users: [
-            { username: otherUser.username, role: Role.Admin },
-            { email: randomEmail, role: Role.User },
-            { phone: randomPhone, role: Role.Admin },
-            { username: randomUsername, role: Role.User },
-          ],
-        },
-      };
-
-      try {
-        await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
-
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
-        ]);
-
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
         }
 
-        const [ { uniqueProperty: uniqueEmail }, { uniqueProperty: uniquePhone } ] = await Promise.all([
-          getUniqueProperty({ property: UniqueProperty.Email, value: randomEmail }),
-          getUniqueProperty({ property: UniqueProperty.Phone, value: randomPhone }),
-        ]);
-
-        expect(uniqueEmail).toEqual({
-          entityType: EntityType.UniqueProperty,
-          pk: UniqueProperty.Email,
-          sk: randomEmail,
-          property: UniqueProperty.Email,
-          value: randomEmail,
-          userId: userByEmail.id,
+        expect(emailUser).toEqual({
+          entityType: EntityType.User,
+          pk: emailUser.id,
+          sk: EntityType.User,
+          id: emailUser.id,
+          gsi1pk: emailUser.email,
+          gsi1sk: EntityType.User,
+          imageMimeType: ImageMimeType.Png,
+          email: emailUser.email,
         });
 
-        expect(uniquePhone).toEqual({
-          entityType: EntityType.UniqueProperty,
-          pk: UniqueProperty.Phone,
-          sk: randomPhone,
-          property: UniqueProperty.Phone,
-          value: randomPhone,
-          userId: userByPhone.id,
+        expect(phoneUser).toEqual({
+          entityType: EntityType.User,
+          pk: phoneUser.id,
+          sk: EntityType.User,
+          id: phoneUser.id,
+          gsi2pk: phoneUser.phone,
+          gsi2sk: EntityType.User,
+          imageMimeType: ImageMimeType.Png,
+          phone: phoneUser.phone,
         });
       } catch (error) {
         fail(error);
@@ -222,23 +158,23 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
       try {
         await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
         ]);
 
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
         }
 
         const [
           { teamUserRelationship: teamUserRelationshipOtherUser },
-          { teamUserRelationship: teamUserRelationshipUserByEmail },
-          { teamUserRelationship: teamUserRelationshipUserByPhone },
+          { teamUserRelationship: teamUserRelationshipEmailUser },
+          { teamUserRelationship: teamUserRelationshipPhoneUser },
         ] = await Promise.all([
-          getTeamUserRelationship({ teamId: team.id, userId: otherUser.id }),
-          getTeamUserRelationship({ teamId: team.id, userId: userByEmail.id }),
-          getTeamUserRelationship({ teamId: team.id, userId: userByPhone.id }),
+          backoff(() => getTeamUserRelationship({ teamId: team.id, userId: otherUser.id }), (res) => !!res.teamUserRelationship),
+          backoff(() => getTeamUserRelationship({ teamId: team.id, userId: emailUser.id }), (res) => !!res.teamUserRelationship),
+          backoff(() => getTeamUserRelationship({ teamId: team.id, userId: phoneUser.id }), (res) => !!res.teamUserRelationship),
         ]);
 
         expect(teamUserRelationshipOtherUser).toEqual({
@@ -252,26 +188,26 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
           userId: otherUser.id,
         });
 
-        expect(teamUserRelationshipUserByEmail).toEqual({
+        expect(teamUserRelationshipEmailUser).toEqual({
           entityType: EntityType.TeamUserRelationship,
           pk: team.id,
-          sk: userByEmail.id,
-          gsi1pk: userByEmail.id,
+          sk: emailUser.id,
+          gsi1pk: emailUser.id,
           gsi1sk: team.id,
           role: Role.User,
           teamId: team.id,
-          userId: userByEmail.id,
+          userId: emailUser.id,
         });
 
-        expect(teamUserRelationshipUserByPhone).toEqual({
+        expect(teamUserRelationshipPhoneUser).toEqual({
           entityType: EntityType.TeamUserRelationship,
           pk: team.id,
-          sk: userByPhone.id,
-          gsi1pk: userByPhone.id,
+          sk: phoneUser.id,
+          gsi1pk: phoneUser.id,
           gsi1sk: team.id,
           role: Role.Admin,
           teamId: team.id,
-          userId: userByPhone.id,
+          userId: phoneUser.id,
         });
       } catch (error) {
         fail(error);
@@ -305,13 +241,13 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
       try {
         await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
         ]);
 
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
         }
 
         // wait till all the events have been fired
@@ -333,44 +269,44 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
                 name: team.name,
               },
               user: {
-                email: userByEmail.email,
-                id: userByEmail.id,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-            },
-          }),
-          jasmine.objectContaining({
-            message: {
-              teamMemberIds: jasmine.arrayContaining([ userId ]),
-              team: {
-                createdBy: userId,
-                id: team.id,
-                image: jasmine.stringMatching(URL_REGEX),
-                name: team.name,
-              },
-              user: {
-                phone: userByPhone.phone,
-                id: userByPhone.id,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-            },
-          }),
-          jasmine.objectContaining({
-            message: {
-              teamMemberIds: jasmine.arrayContaining([ userId ]),
-              team: {
-                createdBy: userId,
-                id: team.id,
-                image: jasmine.stringMatching(URL_REGEX),
-                name: team.name,
-              },
-              user: {
                 email: otherUser.email,
                 phone: otherUser.phone,
                 username: otherUser.username,
-                realName: otherUser.realName,
+                name: otherUser.name,
                 bio: otherUser.bio,
                 id: otherUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              teamMemberIds: jasmine.arrayContaining([ userId ]),
+              team: {
+                createdBy: userId,
+                id: team.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: team.name,
+              },
+              user: {
+                email: emailUser.email,
+                id: emailUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              teamMemberIds: jasmine.arrayContaining([ userId ]),
+              team: {
+                createdBy: userId,
+                id: team.id,
+                image: jasmine.stringMatching(URL_REGEX),
+                name: team.name,
+              },
+              user: {
+                phone: phoneUser.phone,
+                id: phoneUser.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             },
@@ -391,7 +327,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
         try {
           await axios.post(`${baseUrl}/teams/${mockTeamId}/users`, body, { headers });
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -423,7 +359,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
           await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -439,7 +375,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
           await axios.post(`${baseUrl}/teams/pants/users`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

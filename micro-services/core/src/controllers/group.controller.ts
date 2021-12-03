@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, User, Group, WithRole } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Group, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { CreateGroupDto } from "../dtos/createGroup.dto";
@@ -11,7 +11,7 @@ import { GetGroupsByUserIdDto } from "../dtos/getGroupsByUserId.dto";
 import { GetGroupsByTeamIdDto } from "../dtos/getGroupsByTeamId.dto";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GetGroupImageUploadUrlDto } from "../dtos/getGroupImageUploadUrl.dto";
-import { AddUsersToGroupInput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { AddUsersToGroupOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { UpdateGroupDto } from "../dtos/updateGroup.dto";
 
 @injectable()
@@ -286,8 +286,8 @@ interface GetGroupImageUploadUrlResponse {
 
 interface AddUsersToGroupResponse {
   message: string;
-  successes?: User[];
-  failures?: AddUsersToGroupInput["users"];
+  successes?: AddUsersToGroupOutput["successes"];
+  failures?: AddUsersToGroupOutput["failures"];
 }
 
 interface RemoveUserFromGroupResponse {

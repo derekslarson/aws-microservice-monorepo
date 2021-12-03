@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role } from "@yac/util";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { User } from "../../src/mediator-services/user.mediator.service";
 import { createConversationUserRelationship, createFriendConversation, createRandomUser, CreateRandomUserOutput } from "../util";
 import { UserId } from "../../src/types/userId.type";
@@ -25,7 +25,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
 
     beforeAll(async () => {
       // We have to fetch a new base user and access token here to prevent bleed over from other tests
-      const { user } = await createRandomUser();
+      const user = await createRandomAuthServiceUser();
       userId = user.id;
 
       ([ { accessToken }, { user: otherUserA }, { user: otherUserB } ] = await Promise.all([
@@ -62,7 +62,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           expect(data).toEqual({
             friends: [
               {
-                realName: otherUserB.realName,
+                name: otherUserB.name,
                 bio: otherUserB.bio,
                 username: otherUserB.username,
                 id: otherUserB.id,
@@ -71,7 +71,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
                 image: jasmine.stringMatching(URL_REGEX),
               },
               {
-                realName: otherUserA.realName,
+                name: otherUserA.name,
                 bio: otherUserA.bio,
                 username: otherUserA.username,
                 id: otherUserA.id,
@@ -99,7 +99,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           expect(data).toEqual({
             friends: [
               {
-                realName: otherUserB.realName,
+                name: otherUserB.name,
                 bio: otherUserB.bio,
                 username: otherUserB.username,
                 id: otherUserB.id,
@@ -122,7 +122,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           expect(callTwoData).toEqual({
             friends: [
               {
-                realName: otherUserA.realName,
+                name: otherUserA.name,
                 bio: otherUserA.bio,
                 username: otherUserA.username,
                 id: otherUserA.id,
@@ -151,7 +151,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           await axios.get(`${baseUrl}/users/${userId}/friends`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -166,7 +166,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           await axios.get(`${baseUrl}/users/${mockUserId}/friends`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -182,7 +182,7 @@ describe("GET /users/{userId}/friends (Get Friends by User Id)", () => {
           await axios.get(`${baseUrl}/users/test/friends`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

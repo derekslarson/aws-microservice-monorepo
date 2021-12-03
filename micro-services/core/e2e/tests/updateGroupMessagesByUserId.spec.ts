@@ -160,7 +160,7 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
                       email: fromUser.email,
                       username: fromUser.username,
                       phone: fromUser.phone,
-                      realName: fromUser.realName,
+                      name: fromUser.name,
                       bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
@@ -194,7 +194,7 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
                       email: fromUser.email,
                       username: fromUser.username,
                       phone: fromUser.phone,
-                      realName: fromUser.realName,
+                      name: fromUser.name,
                       bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
@@ -214,7 +214,7 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
           } catch (error) {
             fail(error);
           }
-        }, 45000);
+        });
       });
 
       describe("when 'seen: false'", () => {

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role, WithRole } from "@yac/util";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { createRandomUser, createConversationUserRelationship, createGroupConversation, CreateRandomUserOutput } from "../util";
 import { User } from "../../src/mediator-services/user.mediator.service";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
@@ -12,13 +12,13 @@ import { ConversationType } from "../../src/enums/conversationType.enum";
 
 describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
   const baseUrl = process.env.baseUrl as string;
-  let user: CreateRandomUserOutput["user"];
+  let user: CreateRandomAuthServiceUserOutput;
   let accessToken: string;
 
   const mockGroupId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
 
   beforeAll(async () => {
-    ({ user } = await createRandomUser());
+    user = await createRandomAuthServiceUser();
 
     ({ accessToken } = await getAccessTokenByEmail(user.email));
   });
@@ -51,10 +51,7 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
               {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
-                realName: user.realName,
-                bio: user.bio,
+                name: user.name,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
               },
@@ -63,7 +60,7 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
                 email: otherUser.email,
                 username: otherUser.username,
                 phone: otherUser.phone,
-                realName: otherUser.realName,
+                name: otherUser.name,
                 bio: otherUser.bio,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.User,
@@ -90,10 +87,7 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
               {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
-                realName: user.realName,
-                bio: user.bio,
+                name: user.name,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
               },
@@ -116,7 +110,7 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
                 email: otherUser.email,
                 username: otherUser.username,
                 phone: otherUser.phone,
-                realName: otherUser.realName,
+                name: otherUser.name,
                 bio: otherUser.bio,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.User,
@@ -139,7 +133,7 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
           await axios.get(`${baseUrl}/groups/${mockGroupId}/users`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -154,7 +148,7 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
           await axios.get(`${baseUrl}/groups/${mockGroupId}/users`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -170,7 +164,7 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
           await axios.get(`${baseUrl}/groups/test/users`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

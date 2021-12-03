@@ -30,7 +30,7 @@ const TYPES = {
   // SNS Processor Services
   MessageTranscodedSnsProcessorServiceInterface: Symbol.for("MessageTranscodedSnsProcessorServiceInterface"),
   MessageTranscribedSnsProcessorServiceInterface: Symbol.for("MessageTranscribedSnsProcessorServiceInterface"),
-  ExternalProviderUserSignedUpSnsProcessorServiceInterface: Symbol.for("ExternalProviderUserSignedUpSnsProcessorServiceInterface"),
+  UserCreatedSnsProcessorServiceInterface: Symbol.for("UserCreatedSnsProcessorServiceInterface"),
 
   // Dynamo Processor Services
   UserCreatedDynamoProcessorServiceInterface: Symbol.for("UserCreatedDynamoProcessorServiceInterface"),
@@ -51,6 +51,7 @@ const TYPES = {
   GroupMessageUpdatedDynamoProcessorServiceInterface: Symbol.for("GroupMessageUpdatedDynamoProcessorServiceInterface"),
   MeetingMessageCreatedDynamoProcessorServiceInterface: Symbol.for("MeetingMessageCreatedDynamoProcessorServiceInterface"),
   MeetingMessageUpdatedDynamoProcessorServiceInterface: Symbol.for("MeetingMessageUpdatedDynamoProcessorServiceInterface"),
+  PendingInvitationCreatedDynamoProcessorServiceInterface: Symbol.for("PendingInvitationCreatedDynamoProcessorServiceInterface"),
 
   // SNS Services
   UserCreatedSnsServiceInterface: Symbol.for("UserCreatedSnsServiceInterface"),
@@ -71,16 +72,17 @@ const TYPES = {
   GroupMessageUpdatedSnsServiceInterface: Symbol.for("GroupMessageUpdatedSnsServiceInterface"),
   MeetingMessageCreatedSnsServiceInterface: Symbol.for("MeetingMessageCreatedSnsServiceInterface"),
   MeetingMessageUpdatedSnsServiceInterface: Symbol.for("MeetingMessageUpdatedSnsServiceInterface"),
+  CreateUserRequestSnsServiceInterface: Symbol.for("CreateUserRequestSnsServiceInterface"),
 
   // Entity Services
   ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
   ConversationUserRelationshipServiceInterface: Symbol.for("ConversationUserRelationshipServiceInterface"),
   MessageServiceInterface: Symbol.for("MessageServiceInterface"),
   PendingMessageServiceInterface: Symbol.for("PendingMessageServiceInterface"),
+  PendingInvitationServiceInterface: Symbol.for("PendingInvitationServiceInterface"),
   SearchServiceInterface: Symbol.for("SearchServiceInterface"),
   TeamServiceInterface: Symbol.for("TeamServiceInterface"),
   TeamUserRelationshipServiceInterface: Symbol.for("TeamUserRelationshipServiceInterface"),
-  UniquePropertyServiceInterface: Symbol.for("UniquePropertyServiceInterface"),
   UserServiceInterface: Symbol.for("UserServiceInterface"),
   UserGroupMeetingSearchServiceInterface: Symbol.for("UserGroupMeetingSearchServiceInterface"),
 
@@ -91,9 +93,9 @@ const TYPES = {
   MessageRepositoryInterface: Symbol.for("MessageRepositoryInterface"),
   SearchRepositoryInterface: Symbol.for("SearchRepositoryInterface"),
   PendingMessageRepositoryInterface: Symbol.for("PendingMessageRepositoryInterface"),
+  PendingInvitationRepositoryInterface: Symbol.for("PendingInvitationRepositoryInterface"),
   TeamRepositoryInterface: Symbol.for("TeamRepositoryInterface"),
   TeamUserRelationshipRepositoryInterface: Symbol.for("TeamUserRelationshipRepositoryInterface"),
-  UniquePropertyRepositoryInterface: Symbol.for("UniquePropertyRepositoryInterface"),
   UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
 
   // Factories

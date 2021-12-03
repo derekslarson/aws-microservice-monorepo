@@ -10,7 +10,6 @@ import { GroupMediatorServiceInterface } from "../mediator-services/group.mediat
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { GetUsersByGroupIdDto } from "../dtos/getUsersByGroupId.dto";
 import { GetUsersByMeetingIdDto } from "../dtos/getUsersByMeetingId.dto";
-import { CreateUserDto } from "../dtos/createUser.dto";
 import { GetUserImageUploadUrlDto } from "../dtos/getUserImageUploadUrl.dto";
 import { UpdateUserDto } from "../dtos/updateUser.dto";
 
@@ -48,24 +47,6 @@ export class UserController extends BaseController implements UserControllerInte
       return this.generateSuccessResponse(response);
     } catch (error: unknown) {
       this.loggerService.error("Error in updateUser", { error, request }, this.constructor.name);
-
-      return this.generateErrorResponse(error);
-    }
-  }
-
-  public async createUser(request: Request): Promise<Response> {
-    try {
-      this.loggerService.trace("createUser called", { request }, this.constructor.name);
-
-      const { body } = this.validationService.validate({ dto: CreateUserDto, request });
-
-      const { user } = await this.userMediatorService.createUser(body);
-
-      const response: CreateUserResponse = { user };
-
-      return this.generateSuccessResponse(response);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in createUsersByTeamId", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -200,17 +181,12 @@ export class UserController extends BaseController implements UserControllerInte
 }
 
 export interface UserControllerInterface {
-  createUser(request: Request): Promise<Response>;
   updateUser(request: Request): Promise<Response>;
   getUser(request: Request): Promise<Response>;
   getUserImageUploadUrl(request: Request): Promise<Response>;
   getUsersByTeamId(request: Request): Promise<Response>;
   getUsersByGroupId(request: Request): Promise<Response>;
   getUsersByMeetingId(request: Request): Promise<Response>;
-}
-
-interface CreateUserResponse {
-  user: User;
 }
 
 interface UpdateUserResponse {

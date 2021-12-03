@@ -4,26 +4,33 @@ const TYPES = {
   ...CORE_TYPES,
   EnvConfigInterface: Symbol.for("EnvConfigInterface"),
 
-  AuthenticationControllerInterface: Symbol.for("AuthenticationControllerInterface"),
-  AuthorizationControllerInterface: Symbol.for("AuthorizationControllerInterface"),
+  AuthControllerInterface: Symbol.for("AuthControllerInterface"),
   ClientControllerInterface: Symbol.for("ClientControllerInterface"),
+  UserControllerInterface: Symbol.for("UserControllerInterface"),
 
-  AuthenticationServiceInterface: Symbol.for("AuthenticationServiceInterface"),
-  AuthorizationServiceInterface: Symbol.for("AuthorizationServiceInterface"),
+  AuthServiceInterface: Symbol.for("AuthServiceInterface"),
   ClientServiceInterface: Symbol.for("ClientServiceInterface"),
-  ExternalProviderUserMappingServiceInterface: Symbol.for("ExternalProviderUserMappingServiceInterface"),
   MailServiceInterface: Symbol.for("MailServiceInterface"),
-  UserPoolServiceInterface: Symbol.for("UserPoolServiceInterface"),
+  TokenServiceInterface: Symbol.for("TokenServiceInterface"),
+  UserServiceInterface: Symbol.for("UserServiceInterface"),
 
-  ExternalProviderUserMappingFoundProcessorServiceInterface: Symbol.for("ExternalProviderUserMappingFoundProcessorServiceInterface"),
-  UserCreatedProcessorServiceInterface: Symbol.for("UserCreatedProcessorServiceInterface"),
+  UserCreatedSnsServiceInterface: Symbol.for("UserCreatedSnsServiceInterface"),
 
-  ExternalProviderUserSignedUpSnsServiceInterface: Symbol.for("ExternalProviderUserSignedUpSnsServiceInterface"),
+  CreateUserRequestSnsProcessorServiceInterface: Symbol.for("CreateUserRequestSnsProcessorServiceInterface"),
+  UserCreatedDynamoProcessorServiceInterface: Symbol.for("UserCreatedDynamoProcessorServiceInterface"),
 
-  ExternalProviderUserMappingRepositoryInterface: Symbol.for("ExternalProviderUserMappingRepositoryInterface"),
+  AuthFlowAttemptRepositoryInterface: Symbol.for("AuthFlowAttemptRepositoryInterface"),
+  ClientRepositoryInterface: Symbol.for("ClientRepositoryInterface"),
+  JwksRepositoryInterface: Symbol.for("JwksRepositoryInterface"),
+  SessionRepositoryInterface: Symbol.for("SessionRepositoryInterface"),
+  UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
 
   CognitoFactory: Symbol.for("CognitoFactory"),
+  CsrfFactory: Symbol.for("CsrfFactory"),
+  JoseFactory: Symbol.for("JoseFactory"),
+  PkceChallengeFactory: Symbol.for("PkceChallengeFactory"),
   SesFactory: Symbol.for("SesFactory"),
+  SlackOAuth2ClientFactory: Symbol.for("SlackOAuth2ClientFactory"),
 };
 
 export { TYPES };

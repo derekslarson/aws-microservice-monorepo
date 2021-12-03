@@ -145,7 +145,7 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
           await axios.post(`${baseUrl}/users/${userId}/teams`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -161,7 +161,7 @@ describe("POST /users/{userId}/teams (Create Team)", () => {
           await axios.post(`${baseUrl}/users/test/teams`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

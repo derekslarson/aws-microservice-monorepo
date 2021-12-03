@@ -5,8 +5,9 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { RawUser } from "../repositories/user.dynamo.repository";
 import { EntityType } from "../enums/entityType.enum";
-import { UserCreatedSnsServiceInterface } from "../sns-services/userCreated.sns.service";
 import { UserServiceInterface } from "../entity-services/user.service";
+import { PendingInvitation, PendingInvitationServiceInterface } from "../entity-services/pendingInvitation.service";
+import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 
 @injectable()
 export class UserCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -14,8 +15,9 @@ export class UserCreatedDynamoProcessorService implements DynamoProcessorService
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.UserCreatedSnsServiceInterface) private userCreatedSnsService: UserCreatedSnsServiceInterface,
+    @inject(TYPES.PendingInvitationServiceInterface) private pendingInvitationService: PendingInvitationServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
+    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -43,9 +45,23 @@ export class UserCreatedDynamoProcessorService implements DynamoProcessorService
 
       const { newImage: user } = record;
 
+      const pendingInvitations: PendingInvitation[] = [];
+
+      if (user.email) {
+        const { pendingInvitations: pendingEmailInvitations } = await this.pendingInvitationService.getPendingInvitations({ email: user.email });
+        pendingInvitations.push(...pendingEmailInvitations);
+      }
+
+      if (user.phone) {
+        const { pendingInvitations: pendingPhoneInvitations } = await this.pendingInvitationService.getPendingInvitations({ phone: user.phone });
+        pendingInvitations.push(...pendingPhoneInvitations);
+      }
+
+      await this.userService.indexUserForSearch({ user });
+
       await Promise.allSettled([
-        this.userCreatedSnsService.sendMessage({ id: user.id, email: user.email, phone: user.phone }),
         this.userService.indexUserForSearch({ user }),
+        ...pendingInvitations.map((pendingInvitation) => this.invitationOrchestratorService.processPendingInvitation({ userId: user.id, pendingInvitation })),
       ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);

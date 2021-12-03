@@ -63,7 +63,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const meetingMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageUpdatedSnsTopicArn);
     const messageTranscodedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
     const messageTranscribedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn);
-    const externalProviderUserSignedUpSnsTopicArn = CDK.Fn.importValue(ExportNames.ExternalProviderUserSignedUpSnsTopicArn);
+    const createUserRequestSnsTopicArn = CDK.Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn);
 
     // Secret imports from Util
     const messageUploadTokenSecretArn = CDK.Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
@@ -80,6 +80,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     // SNS Topics
     const messageTranscodedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn);
     const messageTranscribedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscribedSnsTopic_${id}`, messageTranscribedSnsTopicArn);
+    const userCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `UserCreatedSnsTopic_${id}`, userCreatedSnsTopicArn);
 
     // Secrets
     const messageUploadTokenSecret = SecretsManager.Secret.fromSecretCompleteArn(this, `MessageUploadTokenSecret_${id}`, messageUploadTokenSecretArn);
@@ -259,6 +260,10 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       actions: [ "SNS:Publish" ],
       resources: [ meetingMessageUpdatedSnsTopicArn ],
     });
+    const createUserRequestSnsPublishPolicyStatement = new IAM.PolicyStatement({
+      actions: [ "SNS:Publish" ],
+      resources: [ createUserRequestSnsTopicArn ],
+    });
 
     const getMessageUploadTokenSecretPolicyStatement = new IAM.PolicyStatement({
       actions: [ "secretsmanager:GetSecretValue" ],
@@ -292,7 +297,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN: meetingMessageUpdatedSnsTopicArn,
       MESSAGE_TRANSCODED_SNS_TOPIC_ARN: messageTranscodedSnsTopicArn,
       MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN: messageTranscribedSnsTopicArn,
-      EXTERNAL_PROVIDER_USER_SIGNED_UP_SNS_TOPIC_ARN: externalProviderUserSignedUpSnsTopicArn,
+      CREATE_USER_REQUEST_SNS_TOPIC_ARN: createUserRequestSnsTopicArn,
       RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
       ENHANCED_MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,
       IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
@@ -304,6 +309,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`);
     messageTranscodedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
     messageTranscribedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Dynamo Stream Handler
     new Lambda.Function(this, `CoreTableChanged_${id}`, {
@@ -334,6 +340,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         groupMessageUpdatedSnsPublishPolicyStatement,
         meetingMessageCreatedSnsPublishPolicyStatement,
         meetingMessageUpdatedSnsPublishPolicyStatement,
+        createUserRequestSnsPublishPolicyStatement,
         openSearchFullAccessPolicyStatement,
       ],
       timeout: CDK.Duration.seconds(15),
@@ -365,7 +372,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
       timeout: CDK.Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
@@ -373,17 +380,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     // HTTP Event Handlers
-    const createUserHandler = new Lambda.Function(this, `CreateUser_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/createUser"),
-      handler: "createUser.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
     const updateUserHandler = new Lambda.Function(this, `UpdateUser${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/updateUser"),
@@ -897,11 +893,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     const userRoutes: RouteProps[] = [
       {
-        path: "/users",
-        method: ApiGatewayV2.HttpMethod.POST,
-        handler: createUserHandler,
-      },
-      {
         path: "/users/{userId}",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateUserHandler,
@@ -1014,7 +1005,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       },
       {
         path: "/groups/{groupId}",
-        method: ApiGatewayV2.HttpMethod.POST,
+        method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateGroupHandler,
         restricted: true,
       },

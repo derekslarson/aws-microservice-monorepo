@@ -12,7 +12,6 @@ import {
   getConversation,
   getConversationUserRelationship,
   getSnsEventsByTopicArn,
-  getUniqueProperty,
   getUser,
   getUserByEmail,
   getUserByPhone,
@@ -23,9 +22,8 @@ import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { AddUsersAsFriendsDto } from "../../src/dtos/addUsersAsFriends.dto";
-import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 import { FriendConvoId } from "../../src/types/friendConvoId.type";
-import { UniqueProperty } from "../../src/enums/uniqueProperty.enum";
+import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 
 describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -72,25 +70,9 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
         expect(data).toEqual({
           message: "Users added as friends, but with some failures.",
           successes: jasmine.arrayContaining([
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              username: otherUser.username,
-              realName: otherUser.realName,
-              bio: otherUser.bio,
-              email: otherUser.email,
-              phone: otherUser.phone,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              email: randomEmail,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
-            {
-              id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-              phone: randomPhone,
-              image: jasmine.stringMatching(URL_REGEX),
-            },
+            { username: otherUser.username },
+            { email: randomEmail },
+            { phone: randomPhone },
           ]),
           failures: [
             { username: randomUsername },
@@ -119,34 +101,42 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       try {
         await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
         ]);
 
-        expect(userByEmail).toEqual({
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
+        }
+
+        expect(emailUser).toEqual({
           entityType: EntityType.User,
-          pk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          email: randomEmail,
+          pk: emailUser.id,
+          sk: EntityType.User,
+          id: emailUser.id,
+          gsi1pk: emailUser.email,
+          gsi1sk: EntityType.User,
           imageMimeType: ImageMimeType.Png,
+          email: emailUser.email,
         });
 
-        expect(userByPhone).toEqual({
+        expect(phoneUser).toEqual({
           entityType: EntityType.User,
-          pk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          id: jasmine.stringMatching(new RegExp(`${KeyPrefix.User}.*`)),
-          phone: randomPhone,
+          pk: phoneUser.id,
+          sk: EntityType.User,
+          id: phoneUser.id,
+          gsi2pk: phoneUser.phone,
+          gsi2sk: EntityType.User,
           imageMimeType: ImageMimeType.Png,
+          phone: phoneUser.phone,
         });
       } catch (error) {
         fail(error);
       }
     });
 
-    it("creates valid UniqueProperty entities", async () => {
+    it("creates valid Conversation entities", async () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       const request: Static<typeof AddUsersAsFriendsDto> = {
@@ -164,80 +154,26 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       try {
         await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
         ]);
 
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
         }
 
-        const [ { uniqueProperty: uniqueEmail }, { uniqueProperty: uniquePhone } ] = await Promise.all([
-          getUniqueProperty({ property: UniqueProperty.Email, value: randomEmail }),
-          getUniqueProperty({ property: UniqueProperty.Phone, value: randomPhone }),
-        ]);
-
-        expect(uniqueEmail).toEqual({
-          entityType: EntityType.UniqueProperty,
-          pk: UniqueProperty.Email,
-          sk: randomEmail,
-          property: UniqueProperty.Email,
-          value: randomEmail,
-          userId: userByEmail.id,
-        });
-
-        expect(uniquePhone).toEqual({
-          entityType: EntityType.UniqueProperty,
-          pk: UniqueProperty.Phone,
-          sk: randomPhone,
-          property: UniqueProperty.Phone,
-          value: randomPhone,
-          userId: userByPhone.id,
-        });
-      } catch (error) {
-        fail(error);
-      }
-    });
-
-    it("creates a valid Conversation entities", async () => {
-      const headers = { Authorization: `Bearer ${accessToken}` };
-
-      const request: Static<typeof AddUsersAsFriendsDto> = {
-        pathParameters: { userId },
-        body: {
-          users: [
-            { username: otherUser.username },
-            { email: randomEmail },
-            { phone: randomPhone },
-            { username: randomUsername },
-          ],
-        },
-      };
-
-      try {
-        await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
-
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
-        ]);
-
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
-        }
-
-        const userByEmailConversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, userByEmail?.id ].sort().join("-")}`;
-        const userByPhoneConversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, userByPhone?.id ].sort().join("-")}`;
+        const emailUserConvoId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, emailUser.id ].sort().join("-")}`;
+        const phoneUserConvoId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, phoneUser.id ].sort().join("-")}`;
 
         const [
           { conversation: usernameInviteConvo },
           { conversation: emailInviteConvo },
-          { conversation: phoneInviteConvio },
+          { conversation: phoneInviteConvo },
         ] = await Promise.all([
-          getConversation({ conversationId }),
-          getConversation({ conversationId: userByEmailConversationId }),
-          getConversation({ conversationId: userByPhoneConversationId }),
+          backoff(() => getConversation({ conversationId }), (res) => !!res.conversation),
+          backoff(() => getConversation({ conversationId: emailUserConvoId }), (res) => !!res.conversation),
+          backoff(() => getConversation({ conversationId: phoneUserConvoId }), (res) => !!res.conversation),
         ]);
 
         expect(usernameInviteConvo).toEqual({
@@ -252,19 +188,19 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
 
         expect(emailInviteConvo).toEqual({
           entityType: EntityType.FriendConversation,
-          pk: userByEmailConversationId,
-          sk: userByEmailConversationId,
-          id: userByEmailConversationId,
+          pk: emailUserConvoId,
+          sk: emailUserConvoId,
+          id: emailUserConvoId,
           type: ConversationType.Friend,
           createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
           createdBy: userId,
         });
 
-        expect(phoneInviteConvio).toEqual({
+        expect(phoneInviteConvo).toEqual({
           entityType: EntityType.FriendConversation,
-          pk: userByPhoneConversationId,
-          sk: userByPhoneConversationId,
-          id: userByPhoneConversationId,
+          pk: phoneUserConvoId,
+          sk: phoneUserConvoId,
+          id: phoneUserConvoId,
           type: ConversationType.Friend,
           createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
           createdBy: userId,
@@ -292,17 +228,31 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       try {
         await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
 
-        const [ { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
+        const [ { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
         ]);
 
-        if (!userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
+        if (!emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
         }
 
-        const userByEmailConversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, userByEmail.id ].sort().join("-")}`;
-        const userByPhoneConversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, userByPhone.id ].sort().join("-")}`;
+        const emailUserConvoId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, emailUser.id ].sort().join("-")}`;
+        const phoneUserConvoId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, phoneUser.id ].sort().join("-")}`;
+
+        const [
+          { conversation: usernameInviteConvo },
+          { conversation: emailInviteConvo },
+          { conversation: phoneInviteConvo },
+        ] = await Promise.all([
+          backoff(() => getConversation({ conversationId }), (res) => !!res.conversation),
+          backoff(() => getConversation({ conversationId: emailUserConvoId }), (res) => !!res.conversation),
+          backoff(() => getConversation({ conversationId: phoneUserConvoId }), (res) => !!res.conversation),
+        ]);
+
+        if (!usernameInviteConvo || !emailInviteConvo || !phoneInviteConvo) {
+          throw new Error("Necessary conversation entities not created.");
+        }
 
         const [
           { conversationUserRelationship: conversationUserRelationshipA },
@@ -312,12 +262,12 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           { conversationUserRelationship: conversationUserRelationshipE },
           { conversationUserRelationship: conversationUserRelationshipF },
         ] = await Promise.all([
-          getConversationUserRelationship({ conversationId, userId }),
-          getConversationUserRelationship({ conversationId, userId: otherUser.id }),
-          getConversationUserRelationship({ conversationId: userByEmailConversationId, userId }),
-          getConversationUserRelationship({ conversationId: userByEmailConversationId, userId: userByEmail.id }),
-          getConversationUserRelationship({ conversationId: userByPhoneConversationId, userId }),
-          getConversationUserRelationship({ conversationId: userByPhoneConversationId, userId: userByPhone.id }),
+          backoff(() => getConversationUserRelationship({ conversationId, userId }), (res) => !!res.conversationUserRelationship),
+          backoff(() => getConversationUserRelationship({ conversationId, userId: otherUser.id }), (res) => !!res.conversationUserRelationship),
+          backoff(() => getConversationUserRelationship({ conversationId: emailUserConvoId, userId }), (res) => !!res.conversationUserRelationship),
+          backoff(() => getConversationUserRelationship({ conversationId: emailUserConvoId, userId: emailUser.id }), (res) => !!res.conversationUserRelationship),
+          backoff(() => getConversationUserRelationship({ conversationId: phoneUserConvoId, userId }), (res) => !!res.conversationUserRelationship),
+          backoff(() => getConversationUserRelationship({ conversationId: phoneUserConvoId, userId: phoneUser.id }), (res) => !!res.conversationUserRelationship),
         ]);
 
         expect(conversationUserRelationshipA).toEqual({
@@ -354,7 +304,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
 
         expect(conversationUserRelationshipC).toEqual({
           entityType: EntityType.ConversationUserRelationship,
-          pk: userByEmailConversationId,
+          pk: emailUserConvoId,
           sk: userId,
           gsi1pk: userId,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
@@ -362,7 +312,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
           role: Role.Admin,
           type: ConversationType.Friend,
-          conversationId: userByEmailConversationId,
+          conversationId: emailUserConvoId,
           userId,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
@@ -370,23 +320,23 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
 
         expect(conversationUserRelationshipD).toEqual({
           entityType: EntityType.ConversationUserRelationship,
-          pk: userByEmailConversationId,
-          sk: userByEmail.id,
-          gsi1pk: userByEmail.id,
+          pk: emailUserConvoId,
+          sk: emailUser.id,
+          gsi1pk: emailUser.id,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: userByEmail.id,
+          gsi2pk: emailUser.id,
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
           role: Role.Admin,
           type: ConversationType.Friend,
-          conversationId: userByEmailConversationId,
-          userId: userByEmail.id,
+          conversationId: emailUserConvoId,
+          userId: emailUser.id,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });
 
         expect(conversationUserRelationshipE).toEqual({
           entityType: EntityType.ConversationUserRelationship,
-          pk: userByPhoneConversationId,
+          pk: phoneUserConvoId,
           sk: userId,
           gsi1pk: userId,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
@@ -394,7 +344,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
           role: Role.Admin,
           type: ConversationType.Friend,
-          conversationId: userByPhoneConversationId,
+          conversationId: phoneUserConvoId,
           userId,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
@@ -402,23 +352,23 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
 
         expect(conversationUserRelationshipF).toEqual({
           entityType: EntityType.ConversationUserRelationship,
-          pk: userByPhoneConversationId,
-          sk: userByPhone.id,
-          gsi1pk: userByPhone.id,
+          pk: phoneUserConvoId,
+          sk: phoneUser.id,
+          gsi1pk: phoneUser.id,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
-          gsi2pk: userByPhone.id,
+          gsi2pk: phoneUser.id,
           gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.FriendConversation}.*`)),
           role: Role.Admin,
           type: ConversationType.Friend,
-          conversationId: userByPhoneConversationId,
-          userId: userByPhone.id,
+          conversationId: phoneUserConvoId,
+          userId: phoneUser.id,
           updatedAt: jasmine.stringMatching(ISO_DATE_REGEX),
           muted: false,
         });
       } catch (error) {
         fail(error);
       }
-    });
+    }, 60000);
 
     it("publishes valid SNS messages", async () => {
       // clear the sns events table so the test can have a clean slate
@@ -441,14 +391,14 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
       try {
         await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
 
-        const [ { user }, { user: userByEmail }, { user: userByPhone } ] = await Promise.all([
-          getUser({ userId }),
-          getUserByEmail({ email: randomEmail }),
-          getUserByPhone({ phone: randomPhone }),
+        const [ { user }, { user: emailUser }, { user: phoneUser } ] = await Promise.all([
+          backoff(() => getUser({ userId }), (res) => !!res.user),
+          backoff(() => getUserByEmail({ email: randomEmail }), (res) => !!res.user),
+          backoff(() => getUserByPhone({ phone: randomPhone }), (res) => !!res.user),
         ]);
 
-        if (!user || !userByEmail || !userByPhone) {
-          throw new Error("necessary user records not created");
+        if (!user || !emailUser || !phoneUser) {
+          throw new Error("Necessary user entities not created.");
         }
 
         // wait till all the events have been fired
@@ -465,53 +415,46 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
               addingUser: {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
-                bio: user.bio,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-              addedUser: {
-                email: userByEmail.email,
-                id: userByEmail.id,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-            },
-          }),
-          jasmine.objectContaining({
-            message: {
-              addingUser: {
-                id: user.id,
-                email: user.email,
-                username: user.username,
-                phone: user.phone,
-                realName: user.realName,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-              addedUser: {
-                phone: userByPhone.phone,
-                id: userByPhone.id,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-            },
-          }),
-          jasmine.objectContaining({
-            message: {
-              addingUser: {
-                id: user.id,
-                email: user.email,
-                username: user.username,
-                phone: user.phone,
-                realName: user.realName,
-                bio: user.bio,
+                name: user.name,
                 image: jasmine.stringMatching(URL_REGEX),
               },
               addedUser: {
                 email: otherUser.email,
                 phone: otherUser.phone,
                 username: otherUser.username,
-                realName: otherUser.realName,
+                name: otherUser.name,
                 bio: otherUser.bio,
                 id: otherUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              addingUser: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+              addedUser: {
+                email: emailUser.email,
+                id: emailUser.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+            },
+          }),
+          jasmine.objectContaining({
+            message: {
+              addingUser: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+              addedUser: {
+                phone: phoneUser.phone,
+                id: phoneUser.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             },
@@ -533,7 +476,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           await axios.post(`${baseUrl}/users/${userId}/friends`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -558,7 +501,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -574,7 +517,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           await axios.post(`${baseUrl}/users/pants/friends`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

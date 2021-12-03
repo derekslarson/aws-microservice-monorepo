@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface, TokenVerificationServiceInterface } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { ConnectDto } from "../dtos/connect.dto";
@@ -10,7 +10,6 @@ import { DisconnectDto } from "../dtos/disconnect.dto";
 export class WebSocketController extends BaseController implements WebSocketControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
-    @inject(TYPES.TokenVerificationServiceInterface) private tokenVerificationService: TokenVerificationServiceInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.WebSocketMediatorServiceInterface) private webSocketMediatorService: WebSocketMediatorServiceInterface,
   ) {
@@ -22,11 +21,9 @@ export class WebSocketController extends BaseController implements WebSocketCont
       this.loggerService.trace("connect called", { request }, this.constructor.name);
 
       const {
-        queryStringParameters: { token },
+        jwtId: userId,
         requestContext: { connectionId },
-      } = this.validationService.validate({ dto: ConnectDto, request });
-
-      const { decodedToken: { username: userId } } = await this.tokenVerificationService.verifyToken({ token });
+      } = this.validationService.validate({ dto: ConnectDto, request, getUserIdFromJwt: true });
 
       await this.webSocketMediatorService.persistListener({ userId, listener: { value: connectionId } });
 

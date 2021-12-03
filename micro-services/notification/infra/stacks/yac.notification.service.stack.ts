@@ -58,7 +58,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
     const gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/gcm-server-key`);
 
     // Imported User Pool Id from Auth
-    const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
+    // const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
 
     // SNS Topics
     const userAddedToTeamSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn);
@@ -171,7 +171,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       NOTIFICATION_MAPPING_TABLE_NAME: listenerMappingTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
-      JWKS_URL: `https://cognito-idp.${this.region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`,
+      JWKS_URL: `https://cognito-idp.${this.region}.amazonaws.com/test/.well-known/jwks.json`,
       USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: userAddedToTeamSnsTopicArn,
       USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: userRemovedFromTeamSnsTopicArn,
       USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: userAddedToGroupSnsTopicArn,

@@ -64,7 +64,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
               {
                 id: messageTwo.id,
                 to: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -73,12 +73,9 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: user.realName,
-                  bio: user.bio,
-                  username: user.username,
+                  name: user.name,
                   id: user.id,
                   email: user.email,
-                  phone: user.phone,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 type: ConversationType.Friend,
@@ -94,16 +91,13 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
               {
                 id: message.id,
                 to: {
-                  realName: user.realName,
-                  bio: user.bio,
-                  username: user.username,
+                  name: user.name,
                   id: user.id,
                   email: user.email,
-                  phone: user.phone,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -143,7 +137,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
               {
                 id: messageTwo.id,
                 to: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -152,12 +146,9 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: user.realName,
-                  bio: user.bio,
-                  username: user.username,
+                  name: user.name,
                   id: user.id,
                   email: user.email,
-                  phone: user.phone,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 type: ConversationType.Friend,
@@ -184,16 +175,13 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
               {
                 id: message.id,
                 to: {
-                  realName: user.realName,
-                  bio: user.bio,
-                  username: user.username,
+                  name: user.name,
                   id: user.id,
                   email: user.email,
-                  phone: user.phone,
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -231,7 +219,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
           await axios.get(`${baseUrl}/users/${mockUserId}/friends/${otherUser.id}/messages`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -246,7 +234,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
           await axios.get(`${baseUrl}/users/${mockUserId}/friends/${otherUser.id}/messages`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -262,7 +250,7 @@ describe("GET /users/{userId}/friends/{friendId}/messages (Get Messages by User 
           await axios.get(`${baseUrl}/users/test/friends/test/messages`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

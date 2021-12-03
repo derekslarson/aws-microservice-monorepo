@@ -39,7 +39,7 @@ export class GroupMessageCreatedSnsProcessorService implements SnsProcessorServi
 
       const { message: { groupMemberIds, message } } = record;
 
-      const senderName = message.from.realName || message.from.username || message.from.email || message.from.phone as string;
+      const senderName = message.from.name || message.from.username || message.from.email || message.from.phone as string;
 
       const memberIdsOtherThanSender = groupMemberIds.filter((groupMemberId) => groupMemberId !== message.from.id);
 

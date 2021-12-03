@@ -41,7 +41,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
 
       // We have to create the messages in sequence to ensure sort order
       ([ { message: messageTwo } ] = await Promise.all([
-        createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId, otherUser.id ], mimeType: MessageMimeType.AudioMp3 }),
+        createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId, otherUser.id ], mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
         // We have to create a reply to prove that it doesnt get returned at root level
         createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId, otherUser.id ], replyTo: message.id, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
       ]));
@@ -68,7 +68,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -98,7 +98,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -146,7 +146,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -186,7 +186,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                   image: jasmine.stringMatching(URL_REGEX),
                 },
                 from: {
-                  realName: otherUser.realName,
+                  name: otherUser.name,
                   bio: otherUser.bio,
                   username: otherUser.username,
                   id: otherUser.id,
@@ -224,7 +224,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
           await axios.get(`${baseUrl}/groups/${mockGroupId}/messages`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -239,7 +239,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
           await axios.get(`${baseUrl}/groups/${mockGroupId}/messages`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -255,7 +255,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
           await axios.get(`${baseUrl}/groups/test/messages`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

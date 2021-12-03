@@ -17,7 +17,7 @@ export function generateMockRequest(overrideParams: Partial<Request> = {}, jwtUs
       authorizer: jwtUserId ? {
         lambda: {
           userId: jwtUserId,
-          scopes: [ "mock-scope" ],
+          scope: "mock-scope",
         },
       } : undefined,
       domainName: "mock-domain-name",

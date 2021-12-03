@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { inject, injectable } from "inversify";
-import { FileOperation, IdServiceInterface, LoggerServiceInterface } from "@yac/util";
+import { FileOperation, LoggerServiceInterface, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { UserRepositoryInterface, User as UserEntity, UserUpdates, RawUser } from "../repositories/user.dynamo.repository";
-import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
@@ -15,7 +13,6 @@ import { ImageFileRepositoryInterface } from "../repositories/image.s3.repositor
 export class UserService implements UserServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.IdServiceInterface) private idService: IdServiceInterface,
     @inject(TYPES.ImageFileRepositoryInterface) private imageFileRepository: ImageFileRepositoryInterface,
     @inject(TYPES.UserRepositoryInterface) private userRepository: UserRepositoryInterface,
     @inject(TYPES.SearchRepositoryInterface) private userSearchRepository: UserSearchRepositoryInterface,
@@ -25,24 +22,22 @@ export class UserService implements UserServiceInterface {
     try {
       this.loggerService.trace("createUser called", { params }, this.constructor.name);
 
-      const { email, phone, username, realName, bio } = params;
-
-      const userId: UserId = `${KeyPrefix.User}${this.idService.generateId()}`;
+      const { id, email, phone, username, name, bio } = params;
 
       const { image, mimeType: imageMimeType } = this.imageFileRepository.createDefaultImage();
 
       const userEntity: UserEntity = {
-        id: userId,
+        id,
         imageMimeType,
         email,
         phone,
         username,
-        realName,
+        name,
         bio,
       };
 
       await Promise.all([
-        this.imageFileRepository.uploadFile({ entityType: EntityType.User, entityId: userId, file: image, mimeType: imageMimeType }),
+        this.imageFileRepository.uploadFile({ entityType: EntityType.User, entityId: id, file: image, mimeType: imageMimeType }),
         this.userRepository.createUser({ user: userEntity }),
       ]);
 
@@ -69,6 +64,60 @@ export class UserService implements UserServiceInterface {
       return { user };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUser", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput> {
+    try {
+      this.loggerService.trace("getUserByEmail called", { params }, this.constructor.name);
+
+      const { email } = params;
+
+      const { user: userEntity } = await this.userRepository.getUserByEmail({ email });
+
+      const { entity: user } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUserByEmail", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput> {
+    try {
+      this.loggerService.trace("getUserByPhone called", { params }, this.constructor.name);
+
+      const { phone } = params;
+
+      const { user: userEntity } = await this.userRepository.getUserByPhone({ phone });
+
+      const { entity: user } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUserByPhone", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getUserByUsername(params: GetUserByUsernameInput): Promise<GetUserByUsernameOutput> {
+    try {
+      this.loggerService.trace("getUserByUsername called", { params }, this.constructor.name);
+
+      const { username } = params;
+
+      const { user: userEntity } = await this.userRepository.getUserByUsername({ username });
+
+      const { entity: user } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
+
+      return { user };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUserByUsername", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -194,6 +243,9 @@ export interface User extends Omit<UserEntity, "imageMimeType"> {
 export interface UserServiceInterface {
   createUser(params: CreateUserInput): Promise<CreateUserOutput>;
   getUser(params: GetUserInput): Promise<GetUserOutput>;
+  getUserByEmail(params: GetUserByEmailInput): Promise<GetUserByEmailOutput>;
+  getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput>;
+  getUserByUsername(params: GetUserByUsernameInput): Promise<GetUserByUsernameOutput>;
   updateUser(params: UpdateUserInput): Promise<UpdateUserOutput>;
   getUsers(params: GetUsersInput): Promise<GetUsersOutput>;
   getUserImageUploadUrl(params: GetUserImageUploadUrlInput): GetUserImageUploadUrlOutput;
@@ -202,22 +254,14 @@ export interface UserServiceInterface {
   getUsersBySearchTerm(params: GetUsersBySearchTermInput): Promise<GetUsersBySearchTermOutput>;
 }
 
-interface BaseCreateUserInput {
+export interface CreateUserInput {
+  id: UserId;
   email?: string;
   phone?: string;
   username?: string;
-  realName?: string;
+  name?: string;
   bio?: string;
 }
-interface CreateUserEmailRequiredInput extends Omit<BaseCreateUserInput, "email"> {
-  email: string;
-}
-
-interface CreateUserPhoneRequiredInput extends Omit<BaseCreateUserInput, "phone"> {
-  phone: string;
-}
-
-export type CreateUserInput = CreateUserEmailRequiredInput | CreateUserPhoneRequiredInput;
 
 export interface CreateUserOutput {
   user: User;
@@ -228,6 +272,30 @@ export interface GetUserInput {
 }
 
 export interface GetUserOutput {
+  user: User;
+}
+
+export interface GetUserByEmailInput {
+  email: string;
+}
+
+export interface GetUserByEmailOutput {
+  user: User;
+}
+
+export interface GetUserByPhoneInput {
+  phone: string;
+}
+
+export interface GetUserByPhoneOutput {
+  user: User;
+}
+
+export interface GetUserByUsernameInput {
+  username: string;
+}
+
+export interface GetUserByUsernameOutput {
   user: User;
 }
 

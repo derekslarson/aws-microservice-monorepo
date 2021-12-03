@@ -1,54 +1,78 @@
 import { Container } from "inversify";
-import { coreContainerModule, SnsProcessorServiceInterface } from "@yac/util";
+import { coreContainerModule, DynamoProcessorServiceInterface, SnsProcessorServiceInterface } from "@yac/util";
 import { TYPES } from "./types";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
-
-import { AuthenticationController, AuthenticationControllerInterface } from "../controllers/authentication.controller";
-
-import { AuthenticationService, AuthenticationServiceInterface } from "../services/authentication.service";
-import { MailService, MailServiceInterface } from "../services/mail.service";
-
-import { cognitoFactory, CognitoFactory } from "../factories/cognito.factory";
+import { MailService, MailServiceInterface } from "../services/tier-1/mail.service";
 import { sesFactory, SesFactory } from "../factories/ses.factory";
-import { ClientService, ClientServiceInterface } from "../services/client.service";
+import { ClientService, ClientServiceInterface } from "../services/tier-1/client.service";
 import { ClientController, ClientControllerInterface } from "../controllers/client.controller";
-import { UserCreatedProcessorService } from "../processor-services/userCreated.processor.service";
-import { AuthorizationService, AuthorizationServiceInterface } from "../services/authorization.service";
-import { AuthorizationController, AuthorizationControllerInterface } from "../controllers/authorization.controller";
-import { ExternalProviderUserMappingDynamoRepository, ExternalProviderUserMappingRepositoryInterface } from "../repositories/externalProviderUserMapping.dynamo.repository";
-import { ExternalProviderUserMappingService, ExternalProviderUserMappingServiceInterface } from "../services/externalProviderUserMapping.service";
-import { ExternalProviderUserSignedUpSnsService, ExternalProviderUserSignedUpSnsServiceInterface } from "../sns-services/externalProviderUserSignedUp.sns.service";
-import { UserPoolService, UserPoolServiceInterface } from "../services/userPool.service";
+import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
+import { ClientDynamoRepository, ClientRepositoryInterface } from "../repositories/client.dynamo.repository";
+import { AuthFlowAttemptDynamoRepository, AuthFlowAttemptRepositoryInterface } from "../repositories/authFlowAttempt.dynamo.repository";
+import { csrfFactory, CsrfFactory } from "../factories/csrf.factory";
+import { AuthService, AuthServiceInterface } from "../services/tier-2/auth.service";
+import { AuthController, AuthControllerInterface } from "../controllers/auth.controller";
+import { joseFactory, JoseFactory } from "../factories/jose.factory";
+import { TokenService, TokenServiceInterface } from "../services/tier-1/token.service";
+import { SessionDynamoRepository, SessionRepositoryInterface } from "../repositories/session.dyanmo.repository";
+import { pkceChallengeFactory, PkceChallengeFactory } from "../factories/pkceChallenge.factory";
+import { UserController, UserControllerInterface } from "../controllers/user.controller";
+import { JwksDynamoRepository, JwksRepositoryInterface } from "../repositories/jwks.dynamo.repository";
+import { slackOAuth2ClientFactory, SlackOAuth2ClientFactory } from "../factories/slackOAuth2Client.factory";
+import { UserCreatedSnsService, UserCreatedSnsServiceInterface } from "../sns-services/userCreated.sns.service";
+import { UserCreatedDynamoProcessorService } from "../processor-services/userCreated.dynamo.processor.service";
+import { UserService, UserServiceInterface } from "../services/tier-1/user.service";
+import { CreateUserRequestSnsProcessorService } from "../processor-services/createUserRequest.sns.processor.service";
 
 const container = new Container();
 
 try {
   container.load(coreContainerModule);
 
+  // Environment Variables
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
 
-  container.bind<AuthenticationControllerInterface>(TYPES.AuthenticationControllerInterface).to(AuthenticationController);
-  container.bind<AuthorizationControllerInterface>(TYPES.AuthorizationControllerInterface).to(AuthorizationController);
+  // Controllers
+  container.bind<AuthControllerInterface>(TYPES.AuthControllerInterface).to(AuthController);
   container.bind<ClientControllerInterface>(TYPES.ClientControllerInterface).to(ClientController);
+  container.bind<UserControllerInterface>(TYPES.UserControllerInterface).to(UserController);
 
-  container.bind<AuthenticationServiceInterface>(TYPES.AuthenticationServiceInterface).to(AuthenticationService);
-  container.bind<AuthorizationServiceInterface>(TYPES.AuthorizationServiceInterface).to(AuthorizationService);
+  // Services
+  container.bind<AuthServiceInterface>(TYPES.AuthServiceInterface).to(AuthService);
   container.bind<ClientServiceInterface>(TYPES.ClientServiceInterface).to(ClientService);
-  container.bind<ExternalProviderUserMappingServiceInterface>(TYPES.ExternalProviderUserMappingServiceInterface).to(ExternalProviderUserMappingService);
   container.bind<MailServiceInterface>(TYPES.MailServiceInterface).to(MailService);
-  container.bind<UserPoolServiceInterface>(TYPES.UserPoolServiceInterface).to(UserPoolService);
+  container.bind<TokenServiceInterface>(TYPES.TokenServiceInterface).to(TokenService);
+  container.bind<UserServiceInterface>(TYPES.UserServiceInterface).to(UserService);
 
-  container.bind<ExternalProviderUserSignedUpSnsServiceInterface>(TYPES.ExternalProviderUserSignedUpSnsServiceInterface).to(ExternalProviderUserSignedUpSnsService);
+  // SNS Services
+  container.bind<UserCreatedSnsServiceInterface>(TYPES.UserCreatedSnsServiceInterface).to(UserCreatedSnsService);
 
-  container.bind<SnsProcessorServiceInterface>(TYPES.UserCreatedProcessorServiceInterface).to(UserCreatedProcessorService);
+  // Dynamo Processor Services
+  container.bind<DynamoProcessorServiceInterface>(TYPES.UserCreatedDynamoProcessorServiceInterface).to(UserCreatedDynamoProcessorService);
 
-  container.bind<ExternalProviderUserMappingRepositoryInterface>(TYPES.ExternalProviderUserMappingRepositoryInterface).to(ExternalProviderUserMappingDynamoRepository);
+  // SNS Processor Services
+  container.bind<SnsProcessorServiceInterface>(TYPES.CreateUserRequestSnsProcessorServiceInterface).to(CreateUserRequestSnsProcessorService);
 
-  container.bind<CognitoFactory>(TYPES.CognitoFactory).toFactory(() => cognitoFactory);
+  // Repositories
+  container.bind<AuthFlowAttemptRepositoryInterface>(TYPES.AuthFlowAttemptRepositoryInterface).to(AuthFlowAttemptDynamoRepository);
+  container.bind<ClientRepositoryInterface>(TYPES.ClientRepositoryInterface).to(ClientDynamoRepository);
+  container.bind<JwksRepositoryInterface>(TYPES.JwksRepositoryInterface).to(JwksDynamoRepository);
+  container.bind<SessionRepositoryInterface>(TYPES.SessionRepositoryInterface).to(SessionDynamoRepository);
+  container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);
+
+  // Factories
+  container.bind<CsrfFactory>(TYPES.CsrfFactory).toFactory(() => csrfFactory);
+  container.bind<JoseFactory>(TYPES.JoseFactory).toFactory(() => joseFactory);
+  container.bind<PkceChallengeFactory>(TYPES.PkceChallengeFactory).toFactory(() => pkceChallengeFactory);
   container.bind<SesFactory>(TYPES.SesFactory).toFactory(() => sesFactory);
+  container.bind<SlackOAuth2ClientFactory>(TYPES.SlackOAuth2ClientFactory).toFactory(() => slackOAuth2ClientFactory);
 
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
-    container.get(TYPES.UserCreatedProcessorServiceInterface),
+    container.get(TYPES.CreateUserRequestSnsProcessorServiceInterface),
+  ]);
+
+  container.bind<DynamoProcessorServiceInterface[]>(TYPES.DynamoProcessorServicesInterface).toConstantValue([
+    container.get(TYPES.UserCreatedDynamoProcessorServiceInterface),
   ]);
 } catch (error: unknown) {
   // eslint-disable-next-line no-console

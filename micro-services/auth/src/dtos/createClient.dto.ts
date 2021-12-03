@@ -6,7 +6,7 @@ export const CreateClientDto = Record({
   body: Record({
     name: String,
     redirectUri: RedirectUri,
-    type: Union(Literal(ClientType.Public), Literal(ClientType.Private)),
+    type: Union(Literal(ClientType.Public), Literal(ClientType.Confidential)),
     scopes: Array(String),
   }),
 });

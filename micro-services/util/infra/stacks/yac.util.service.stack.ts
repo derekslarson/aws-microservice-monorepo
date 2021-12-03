@@ -76,7 +76,7 @@ export class YacUtilServiceStack extends CDK.Stack {
     const meetingMessageUpdatedSnsTopic = new SNS.Topic(this, `MeetingMessageUpdatedSnsTopic_${id}`, { topicName: `MeetingMessageUpdatedSnsTopic_${id}` });
     const messageTranscodedSnsTopic = new SNS.Topic(this, `MessageTranscodedSnsTopic_${id}`, { topicName: `MessageTranscodedSnsTopic_${id}` });
     const messageTranscribedSnsTopic = new SNS.Topic(this, `MessageTranscribedSnsTopic_${id}`, { topicName: `MessageTranscribedSnsTopic_${id}` });
-    const externalProviderUserSignedUpSnsTopic = new SNS.Topic(this, `ExternalProviderUserSignedUpSnsTopic_${id}`, { topicName: `ExternalProviderUserSignedUpSnsTopic_${id}` });
+    const createUserRequestSnsTopic = new SNS.Topic(this, `CreateUserRequestSnsTopic_${id}`, { topicName: `CreateUserRequestSnsTopic_${id}` });
 
     // Secret for signing token for use in message flow (core and message services)
     const messageUploadTokenSecret = new SecretsManager.Secret(this, `MessageUploadTokenSecret_${id}`);
@@ -199,9 +199,9 @@ export class YacUtilServiceStack extends CDK.Stack {
       value: messageTranscribedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `ExternalProviderUserSignedUpSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.ExternalProviderUserSignedUpSnsTopicArn,
-      value: externalProviderUserSignedUpSnsTopic.topicArn,
+    new CDK.CfnOutput(this, `CreateUserRequestSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.CreateUserRequestSnsTopicArn,
+      value: createUserRequestSnsTopic.topicArn,
     });
 
     new CDK.CfnOutput(this, `MessageS3BucketArnExport_${id}`, {
@@ -320,9 +320,9 @@ export class YacUtilServiceStack extends CDK.Stack {
       stringValue: messageTranscribedSnsTopic.topicArn,
     });
 
-    new SSM.StringParameter(this, `ExternalProviderUserSignedUpSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/external-provider-user-signed-up-sns-topic-arn`,
-      stringValue: externalProviderUserSignedUpSnsTopic.topicArn,
+    new SSM.StringParameter(this, `CreateUserRequestSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/create-user-request-sns-topic-arn`,
+      stringValue: createUserRequestSnsTopic.topicArn,
     });
 
     new SSM.StringParameter(this, `RawMessageS3BucketNameSsmParameter_${id}`, {

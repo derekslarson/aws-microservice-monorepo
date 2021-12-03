@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { Role, WithRole } from "@yac/util";
-import { generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomUser, createRandomTeam, createTeamUserRelationship, CreateRandomUserOutput } from "../util";
 import { User } from "../../src/mediator-services/user.mediator.service";
@@ -11,13 +11,13 @@ import { TeamId } from "../../src/types/teamId.type";
 
 describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
   const baseUrl = process.env.baseUrl as string;
-  let user: CreateRandomUserOutput["user"];
+  let user: CreateRandomAuthServiceUserOutput;
   let accessToken: string;
 
   const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
 
   beforeAll(async () => {
-    ({ user } = await createRandomUser());
+    user = await createRandomAuthServiceUser();
 
     ({ accessToken } = await getAccessTokenByEmail(user.email));
   });
@@ -50,10 +50,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
               {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
-                realName: user.realName,
-                bio: user.bio,
+                name: user.name,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
               },
@@ -62,7 +59,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
                 email: otherUser.email,
                 username: otherUser.username,
                 phone: otherUser.phone,
-                realName: otherUser.realName,
+                name: otherUser.name,
                 bio: otherUser.bio,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.User,
@@ -89,10 +86,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
               {
                 id: user.id,
                 email: user.email,
-                username: user.username,
-                phone: user.phone,
-                realName: user.realName,
-                bio: user.bio,
+                name: user.name,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.Admin,
               },
@@ -115,7 +109,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
                 email: otherUser.email,
                 username: otherUser.username,
                 phone: otherUser.phone,
-                realName: otherUser.realName,
+                name: otherUser.name,
                 bio: otherUser.bio,
                 image: jasmine.stringMatching(URL_REGEX),
                 role: Role.User,
@@ -138,7 +132,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
           await axios.get(`${baseUrl}/teams/${mockTeamId}/users`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -153,7 +147,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
           await axios.get(`${baseUrl}/teams/${mockTeamId}/users`, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -169,7 +163,7 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
           await axios.get(`${baseUrl}/teams/test/users`, { params, headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

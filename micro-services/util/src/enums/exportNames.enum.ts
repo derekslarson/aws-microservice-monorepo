@@ -41,7 +41,7 @@ const ExportNames = {
   ChunkedUploadsVPCId: "chunkedUploadsVPCId",
   ChunkedUploadsVPCAvailabilityZone: "chunkedUploadsVPCAvailabilityZones",
   ChunkedUploadsVPCSecurityGroupSSM: "chunkedUploadsVPCSecurityGroupSSM",
-  ExternalProviderUserSignedUpSnsTopicArn: "externalProviderUserSignedUpSnsTopicArn",
+  CreateUserRequestSnsTopicArn: "createUserRequestSnsTopicArn",
   AuthorizerHandlerFunctionArn: "authorizerHandlerFunctionArn",
 };
 

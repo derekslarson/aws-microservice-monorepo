@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import { FriendMessageCreatedSnsMessage } from "@yac/util";
-import { backoff, createRandomCognitoUser, sns } from "../../../../e2e/util";
+import { backoff, createRandomAuthServiceUser, sns } from "../../../../e2e/util";
 import { WebSocketEvent } from "../../src/enums/webSocket.event.enum";
 import { createWebSocketListener, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn, registerMockDevice, RegisterMockDeviceOutput, WebSocketListener } from "../util";
 
@@ -17,9 +17,9 @@ describe("Friend Message Created SNS Topic", () => {
   beforeAll(async () => {
     // Create three users in cognito
     ([ { id: userOneId }, { id: userTwoId }, { id: userThreeId } ] = await Promise.all([
-      createRandomCognitoUser(),
-      createRandomCognitoUser(),
-      createRandomCognitoUser(),
+      createRandomAuthServiceUser(),
+      createRandomAuthServiceUser(),
+      createRandomAuthServiceUser(),
     ]));
   });
 
@@ -63,7 +63,7 @@ describe("Friend Message Created SNS Topic", () => {
               from: {
                 id: userTwoId,
                 image: "test-image-two",
-                realName: "User Two",
+                name: "User Two",
               },
               type: "friend",
               createdAt: new Date().toISOString(),
@@ -132,7 +132,7 @@ describe("Friend Message Created SNS Topic", () => {
               from: {
                 id: userTwoId,
                 image: "test-image-two",
-                realName: "User Two",
+                name: "User Two",
               },
               type: "friend",
               createdAt: new Date().toISOString(),

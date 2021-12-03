@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import { UserAddedAsFriendSnsMessage } from "@yac/util";
-import { backoff, createRandomCognitoUser, sns } from "../../../../e2e/util";
+import { backoff, createRandomAuthServiceUser, sns } from "../../../../e2e/util";
 import { WebSocketEvent } from "../../src/enums/webSocket.event.enum";
 import { createWebSocketListener, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn, registerMockDevice, RegisterMockDeviceOutput, WebSocketListener } from "../util";
 
@@ -16,9 +16,9 @@ describe("User Added As Friend SNS Topic", () => {
   beforeAll(async () => {
     // Create three users in cognito
     ([ { id: userOneId }, { id: userTwoId }, { id: userThreeId } ] = await Promise.all([
-      createRandomCognitoUser(),
-      createRandomCognitoUser(),
-      createRandomCognitoUser(),
+      createRandomAuthServiceUser(),
+      createRandomAuthServiceUser(),
+      createRandomAuthServiceUser(),
     ]));
   });
 

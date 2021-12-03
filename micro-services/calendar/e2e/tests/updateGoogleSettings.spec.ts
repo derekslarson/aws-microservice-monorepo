@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { UserId } from "@yac/util";
 import axios, { AxiosError } from "axios";
-import { createRandomCognitoUser, generateRandomString, getAccessToken } from "../../../../e2e/util";
+import { createRandomAuthServiceUser, generateRandomString, getAccessToken } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { createGoogleSettings, getGoogleSettings } from "../util";
 
@@ -32,7 +32,7 @@ describe("PATCH /users/{userId}/google/settings (Update Google Settings)", () =>
       let accessTokenTwo: string;
 
       beforeEach(async () => {
-        ({ id: userIdTwo } = await createRandomCognitoUser());
+        ({ id: userIdTwo } = await createRandomAuthServiceUser());
         ({ accessToken: accessTokenTwo } = await getAccessToken(userIdTwo));
       });
 
@@ -64,7 +64,7 @@ describe("PATCH /users/{userId}/google/settings (Update Google Settings)", () =>
       let accessTokenTwo: string;
 
       beforeEach(async () => {
-        ({ id: userIdTwo } = await createRandomCognitoUser());
+        ({ id: userIdTwo } = await createRandomAuthServiceUser());
         ([ { accessToken: accessTokenTwo } ] = await Promise.all([
           getAccessToken(userIdTwo),
           createGoogleSettings({ userId: userIdTwo, defaultCalendarId: generateRandomString(5) }),
