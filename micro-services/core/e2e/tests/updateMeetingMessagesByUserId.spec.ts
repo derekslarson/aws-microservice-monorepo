@@ -218,7 +218,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
           } catch (error) {
             fail(error);
           }
-        }, 45000);
+        });
       });
 
       describe("when 'seen: false'", () => {

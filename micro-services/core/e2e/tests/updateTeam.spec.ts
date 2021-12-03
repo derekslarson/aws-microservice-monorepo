@@ -13,12 +13,12 @@ describe("PATCH /teams/{teamId} (Update Team)", () => {
 
   let team: CreateRandomTeamOutput["team"];
 
-  describe("under normal conditions", () => {
-    beforeEach(async () => {
-      ({ team } = await createRandomTeam({ createdBy: userId }));
-      await createTeamUserRelationship({ teamId: team.id, userId, role: Role.Admin });
-    });
+  beforeEach(async () => {
+    ({ team } = await createRandomTeam({ createdBy: userId }));
+    await createTeamUserRelationship({ teamId: team.id, userId, role: Role.Admin });
+  });
 
+  describe("under normal conditions", () => {
     describe("when passed 'name' value", () => {
       const body = { name: generateRandomString(5) };
 

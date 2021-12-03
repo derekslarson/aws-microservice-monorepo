@@ -214,7 +214,7 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
           } catch (error) {
             fail(error);
           }
-        }, 45000);
+        });
       });
 
       describe("when 'seen: false'", () => {

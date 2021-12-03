@@ -327,7 +327,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
         try {
           await axios.post(`${baseUrl}/teams/${mockTeamId}/users`, body, { headers });
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -359,7 +359,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
           await axios.post(`${baseUrl}/teams/${request.pathParameters.teamId}/users`, request.body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -375,7 +375,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
           await axios.post(`${baseUrl}/teams/pants/users`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

@@ -361,7 +361,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
         try {
           await axios.post(`${baseUrl}/meetings/${mockMeetingId}/users`, body, { headers });
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -393,7 +393,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
           await axios.post(`${baseUrl}/meetings/${request.pathParameters.meetingId}/users`, request.body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -409,7 +409,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
           await axios.post(`${baseUrl}/meetings/pants/users`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

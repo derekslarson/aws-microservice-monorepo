@@ -349,7 +349,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
         try {
           await axios.post(`${baseUrl}/groups/${mockGroupId}/users`, body, { headers });
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -381,7 +381,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
           await axios.post(`${baseUrl}/groups/${request.pathParameters.groupId}/users`, request.body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -397,7 +397,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
           await axios.post(`${baseUrl}/groups/pants/users`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({

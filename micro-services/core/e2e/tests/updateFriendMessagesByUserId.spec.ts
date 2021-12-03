@@ -204,7 +204,7 @@ describe("PATCH /users/{userId}/friends/{friendId}/messages (Update Friend Messa
           } catch (error) {
             fail(error);
           }
-        }, 45000);
+        });
       });
 
       describe("when 'seen: false'", () => {

@@ -210,10 +210,7 @@ describe("Message Transcribed SNS Topic", () => {
                     from: {
                       id: fromUser.id,
                       email: fromUser.email,
-                      username: fromUser.username,
-                      phone: fromUser.phone,
                       name: fromUser.name,
-                      bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
                     type: ConversationType.Friend,
@@ -231,7 +228,7 @@ describe("Message Transcribed SNS Topic", () => {
           } catch (error) {
             fail(error);
           }
-        }, 45000);
+        });
       });
 
       describe("when the message is a group message", () => {
@@ -412,10 +409,7 @@ describe("Message Transcribed SNS Topic", () => {
                     from: {
                       id: fromUser.id,
                       email: fromUser.email,
-                      username: fromUser.username,
-                      phone: fromUser.phone,
                       name: fromUser.name,
-                      bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
                     type: ConversationType.Group,
@@ -433,7 +427,7 @@ describe("Message Transcribed SNS Topic", () => {
           } catch (error) {
             fail(error);
           }
-        }, 45000);
+        });
       });
 
       describe("when the message is a meeting message", () => {
@@ -615,10 +609,7 @@ describe("Message Transcribed SNS Topic", () => {
                     from: {
                       id: fromUser.id,
                       email: fromUser.email,
-                      username: fromUser.username,
-                      phone: fromUser.phone,
                       name: fromUser.name,
-                      bio: fromUser.bio,
                       image: jasmine.stringMatching(URL_REGEX),
                     },
                     type: ConversationType.Meeting,
@@ -636,7 +627,7 @@ describe("Message Transcribed SNS Topic", () => {
           } catch (error) {
             fail(error);
           }
-        }, 45000);
+        });
       });
     });
   });

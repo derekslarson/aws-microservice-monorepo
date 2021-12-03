@@ -476,7 +476,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           await axios.post(`${baseUrl}/users/${userId}/friends`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(401);
           expect(error.response?.statusText).toBe("Unauthorized");
         }
@@ -501,7 +501,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           await axios.post(`${baseUrl}/users/${request.pathParameters.userId}/friends`, request.body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(403);
           expect(error.response?.statusText).toBe("Forbidden");
         }
@@ -517,7 +517,7 @@ describe("POST /users/{userId}/friends (Add Users as Friends)", () => {
           await axios.post(`${baseUrl}/users/pants/friends`, body, { headers });
 
           fail("Expected an error");
-        } catch (error) {
+        } catch (error: any) {
           expect(error.response?.status).toBe(400);
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
