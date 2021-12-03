@@ -65,13 +65,12 @@ export class GoogleCalendarService implements GoogleCalendarServiceInterface {
 
       const listResponse = await calendar.events.list({
         calendarId: settings.defaultCalendarId || "primary",
-        timeMin: minTime ? new Date(minTime).toISOString() : new Date().toISOString(),
-        timeMax: maxTime && new Date(maxTime).toISOString(),
         maxResults: limit ?? 25,
         singleEvents: true,
         orderBy: "startTime",
         pageToken: exclusiveStartKey,
-
+        timeMin: minTime ? new Date(minTime).toISOString() : new Date().toISOString(),
+        timeMax: maxTime ? new Date(maxTime).toISOString() : undefined,
       });
 
       const events = listResponse.data.items || [];
@@ -206,8 +205,8 @@ export interface GetEventsInput {
   userId: UserId;
   limit?: number;
   exclusiveStartKey?: string;
-  minTime?: string;
-  maxTime?: string;
+  minTime?: string | number;
+  maxTime?: string | number;
 }
 
 export interface GetEventsOutput {
