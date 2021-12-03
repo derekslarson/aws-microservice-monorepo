@@ -57,7 +57,7 @@ export class GoogleCalendarService implements GoogleCalendarServiceInterface {
     try {
       this.loggerService.trace("getEvents called", { params }, this.constructor.name);
 
-      const { userId } = params;
+      const { userId, limit, exclusiveStartKey, minTime, maxTime } = params;
 
       const { oAuth2Client, settings } = await this.getOAuth2ClientAndSettings({ userId });
 
@@ -65,15 +65,17 @@ export class GoogleCalendarService implements GoogleCalendarServiceInterface {
 
       const listResponse = await calendar.events.list({
         calendarId: settings.defaultCalendarId || "primary",
-        timeMin: new Date().toISOString(),
-        maxResults: 10,
+        maxResults: limit ?? 25,
         singleEvents: true,
         orderBy: "startTime",
+        pageToken: exclusiveStartKey,
+        timeMin: minTime ? new Date(minTime).toISOString() : new Date().toISOString(),
+        timeMax: maxTime ? new Date(maxTime).toISOString() : undefined,
       });
 
       const events = listResponse.data.items || [];
 
-      return { events };
+      return { events, lastEvaluatedKey: listResponse.data.nextPageToken };
     } catch (error: unknown) {
       this.loggerService.error("Error in getEvents", { error, params }, this.constructor.name);
 
@@ -138,16 +140,12 @@ export class GoogleCalendarService implements GoogleCalendarServiceInterface {
       try {
         const { googleSettings } = await this.googleSettingsService.getSettings({ userId });
 
-        this.loggerService.info("googleSettings", { googleSettings }, this.constructor.name);
-
         settings = googleSettings;
       } catch (error) {
         if (!(error instanceof NotFoundError)) {
           throw error;
         }
       }
-
-      this.loggerService.info("settings", { settings }, this.constructor.name);
 
       if (!settings.defaultAccountId) {
         const { accounts } = await this.googleAuthService.getAccounts({ userId });
@@ -205,10 +203,15 @@ export interface CompleteAccessFlowOutput {
 
 export interface GetEventsInput {
   userId: UserId;
+  limit?: number;
+  exclusiveStartKey?: string;
+  minTime?: string | number;
+  maxTime?: string | number;
 }
 
 export interface GetEventsOutput {
   events: calendar_v3.Schema$Event[];
+  lastEvaluatedKey?: calendar_v3.Schema$Events["nextPageToken"];
 }
 
 export interface GetSettingsInput {

@@ -69,15 +69,16 @@ export class CalendarController extends BaseController implements CalendarContro
       const {
         jwtId,
         pathParameters: { userId },
+        queryStringParameters: { exclusiveStartKey, limit, minTime, maxTime },
       } = this.validationService.validate({ dto: GetGoogleEventsDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
+      const limitNumber = limit ? parseInt(limit, 10) : undefined;
+      const { events, lastEvaluatedKey } = await this.googleCalendarService.getEvents({ userId, limit: limitNumber, exclusiveStartKey, minTime, maxTime });
 
-      const { events } = await this.googleCalendarService.getEvents({ userId });
-
-      const responseBody: GetGoogleEventsResponseBody = { events };
+      const responseBody: GetGoogleEventsResponseBody = { lastEvaluatedKey, events };
 
       return this.generateSuccessResponse(responseBody);
     } catch (error: unknown) {
@@ -179,6 +180,7 @@ export interface InitiateAccessFlowResponseBody {
 
 export interface GetGoogleEventsResponseBody {
   events: GetEventsOutput["events"];
+  lastEvaluatedKey: GetEventsOutput["lastEvaluatedKey"];
 }
 export interface GetGoogleAccountsResponseBody {
   accounts: GetAccountsOutput["accounts"];
