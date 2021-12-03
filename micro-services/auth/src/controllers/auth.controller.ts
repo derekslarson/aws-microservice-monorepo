@@ -3,6 +3,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, StatusCode, ValidationServiceV2Interface } from "@yac/util";
+import { APIGatewayAuthorizerResult, APIGatewayRequestAuthorizerEvent } from "aws-lambda/trigger/api-gateway-authorizer";
 import { TYPES } from "../inversion-of-control/types";
 import { BeginAuthFlowDto } from "../dtos/beginAuthFlow.dto";
 import { GetTokenDto } from "../dtos/getToken.dto";
@@ -313,9 +314,63 @@ export class AuthController extends BaseController implements AuthControllerInte
 
       return this.generateSuccessResponse(jwks);
     } catch (error: unknown) {
-      this.loggerService.error("Error in completeExternalProviderAuthFlow", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in getPublicJwks", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
+    }
+  }
+
+  public async authorizeRequest(request: APIGatewayRequestAuthorizerEvent): Promise<APIGatewayAuthorizerResult> {
+    try {
+      this.loggerService.trace("authorizeRequest called", { request }, this.constructor.name);
+
+      const isWebSocketConnectAttempt = request.requestContext.eventType === "CONNECT";
+
+      const tokenString = isWebSocketConnectAttempt ? request.queryStringParameters?.token : request.headers?.authorization;
+
+      if (!tokenString) {
+        throw new Error("token missing from event");
+      }
+
+      if (!isWebSocketConnectAttempt && !tokenString.startsWith("Bearer ")) {
+        throw new Error(`Invalid authorization token - ${tokenString} does not match "Bearer .*"`);
+      }
+
+      const accessToken = tokenString.replace("Bearer ", "");
+
+      const { decodedToken: { sub: userId, scope } } = await this.authService.verifyAccessToken({ accessToken });
+
+      return {
+        principalId: userId,
+        policyDocument: {
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Action: "execute-api:Invoke",
+              Effect: "Allow",
+              Resource: "*",
+            },
+          ],
+        },
+        context: { userId, scope },
+      };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in authorizeRequest", { error, request }, this.constructor.name);
+
+      return {
+        principalId: request.requestContext.requestId,
+        policyDocument: {
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Action: "execute-api:Invoke",
+              Effect: "Deny",
+              Resource: "*",
+            },
+          ],
+        },
+        context: {},
+      };
     }
   }
 
@@ -368,6 +423,7 @@ export interface AuthControllerInterface {
   getToken(request: Request): Promise<Response>;
   revokeTokens(request: Request): Promise<Response>;
   getPublicJwks(request: Request): Promise<Response>;
+  authorizeRequest(request: APIGatewayRequestAuthorizerEvent): Promise<APIGatewayAuthorizerResult>;
 }
 
 export interface OAuth2ErrorResponse extends Response {

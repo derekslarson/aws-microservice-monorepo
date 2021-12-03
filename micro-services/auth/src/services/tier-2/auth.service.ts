@@ -6,7 +6,7 @@ import { MailServiceInterface } from "../tier-1/mail.service";
 import { AuthFlowAttempt, AuthFlowAttemptRepositoryInterface, UpdateAuthFlowAttemptUpdates } from "../../repositories/authFlowAttempt.dynamo.repository";
 import { Csrf, CsrfFactory } from "../../factories/csrf.factory";
 import { EnvConfigInterface } from "../../config/env.config";
-import { TokenServiceInterface, GetPublicJwksOutput as TokenServiceGetPublicJwksOutput } from "../tier-1/token.service";
+import { TokenServiceInterface, GetPublicJwksOutput as TokenServiceGetPublicJwksOutput, VerifyAccessTokenOutput as TokenServiceVerifyAccessTokenOutput } from "../tier-1/token.service";
 import { PkceChallenge, PkceChallengeFactory } from "../../factories/pkceChallenge.factory";
 import { OAuth2Error } from "../../errors/oAuth2.error";
 import { OAuth2ErrorType } from "../../enums/oAuth2ErrorType.enum";
@@ -361,6 +361,22 @@ export class AuthService implements AuthServiceInterface {
     }
   }
 
+  public async verifyAccessToken(params: VerifyAccessTokenInput): Promise<VerifyAccessTokenOutput> {
+    try {
+      this.loggerService.trace("verifyAccessToken called", { }, this.constructor.name);
+
+      const { accessToken } = params;
+
+      const { decodedToken } = await this.tokenService.verifyAccessToken({ accessToken });
+
+      return { decodedToken };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in verifyAccessToken", { error }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   private async getOrCreateUser(params: GetOrCreateUserInput): Promise<GetOrCreateUserOutput> {
     try {
       this.loggerService.trace("getOrCreateUser called", { params }, this.constructor.name);
@@ -395,6 +411,7 @@ export interface AuthServiceInterface {
   handleAuthorizationCodeGrant(params: HandleAuthorizationCodeGrantInput): Promise<HandleAuthorizationCodeGrantOutput>;
   handleRefreshTokenGrant(params: HandleRefreshTokenGrantInput): Promise<HandleRefreshTokenGrantOutput>;
   revokeTokens(params: RevokeTokensInput): Promise<RevokeTokensOutput>;
+  verifyAccessToken(params: VerifyAccessTokenInput): Promise<VerifyAccessTokenOutput>;
   getPublicJwks(): Promise<GetPublicJwksOutput>;
 }
 
@@ -467,6 +484,14 @@ export type RevokeTokensOutput = void;
 
 export interface GetPublicJwksOutput {
   jwks: TokenServiceGetPublicJwksOutput["jwks"]
+}
+
+export interface VerifyAccessTokenInput {
+  accessToken: string;
+}
+
+export interface VerifyAccessTokenOutput {
+  decodedToken: TokenServiceVerifyAccessTokenOutput["decodedToken"];
 }
 
 interface HandleAuthorizationCodeGrantInput {
