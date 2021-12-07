@@ -11,12 +11,14 @@ import { GetTeamsByUserIdDto } from "../dtos/getTeamsByUserId.dto";
 import { AddUsersToTeamOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { GetTeamImageUploadUrlDto } from "../dtos/getTeamImageUploadUrl.dto";
 import { UpdateTeamDto } from "../dtos/updateTeam.dto";
+import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 
 @injectable()
 export class TeamController extends BaseController implements TeamControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
     @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
   ) {
@@ -28,16 +30,18 @@ export class TeamController extends BaseController implements TeamControllerInte
       this.loggerService.trace("createTeam called", { request }, this.constructor.name);
 
       const {
-        jwtId,
-        pathParameters: { userId },
+        jwtId: userId,
+        pathParameters: { organizationId },
         body: { name },
       } = this.validationService.validate({ dto: CreateTeamDto, request, getUserIdFromJwt: true });
 
-      if (jwtId !== userId) {
+      const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId });
+
+      if (!isOrganizationAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { team } = await this.teamMediatorService.createTeam({ name, createdBy: userId });
+      const { team } = await this.teamMediatorService.createTeam({ name, createdBy: userId, organizationId });
 
       const response: CreateTeamResponse = { team };
 

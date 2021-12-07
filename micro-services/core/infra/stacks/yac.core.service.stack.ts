@@ -1029,7 +1029,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     const teamRoutes: RouteProps[] = [
       {
-        path: "/users/{userId}/teams",
+        path: "/organizations/{organizationId}/teams",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createTeamHandler,
         restricted: true,

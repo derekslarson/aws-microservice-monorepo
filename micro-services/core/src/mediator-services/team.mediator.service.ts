@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/util";
+import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamServiceInterface, Team as TeamEntity } from "../entity-services/team.service";
 import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";
@@ -19,11 +19,12 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
     try {
       this.loggerService.trace("createTeam called", { params }, this.constructor.name);
 
-      const { name, createdBy } = params;
+      const { name, createdBy, organizationId } = params;
 
       const { team: teamEntity } = await this.teamService.createTeam({
         name,
         createdBy,
+        organizationId,
       });
 
       const { teamUserRelationship } = await this.teamUserRelationshipService.createTeamUserRelationship({ teamId: teamEntity.id, userId: createdBy, role: Role.Admin });
@@ -205,6 +206,7 @@ export type TeamUserRelationship = TeamUserRelationshipEntity;
 export interface CreateTeamInput {
   name: string;
   createdBy: UserId;
+  organizationId: OrganizationId;
 }
 
 export interface CreateTeamOutput {

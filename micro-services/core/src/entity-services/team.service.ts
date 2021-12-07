@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { FileOperation, IdServiceInterface, LoggerServiceInterface } from "@yac/util";
+import { FileOperation, IdServiceInterface, LoggerServiceInterface, OrganizationId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamRepositoryInterface, Team as TeamEntity, TeamUpdates, RawTeam } from "../repositories/team.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -25,7 +25,7 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("createTeam called", { params }, this.constructor.name);
 
-      const { name, createdBy } = params;
+      const { name, createdBy, organizationId } = params;
 
       const teamId: TeamId = `${KeyPrefix.Team}${this.idService.generateId()}`;
 
@@ -36,6 +36,7 @@ export class TeamService implements TeamServiceInterface {
         imageMimeType,
         name,
         createdBy,
+        organizationId,
       };
 
       await Promise.all([
@@ -202,6 +203,7 @@ export interface TeamServiceInterface {
 export interface CreateTeamInput {
   name: string;
   createdBy: UserId;
+  organizationId: OrganizationId;
 }
 
 export interface CreateTeamOutput {

@@ -1,7 +1,7 @@
 import { Record, String } from "runtypes";
-import { UserId } from "../runtypes/userId.runtype";
+import { OrganizationId } from "../runtypes/organizationId.runtype";
 
 export const CreateTeamDto = Record({
-  pathParameters: Record({ userId: UserId }),
+  pathParameters: Record({ organizationId: OrganizationId }),
   body: Record({ name: String }),
 });

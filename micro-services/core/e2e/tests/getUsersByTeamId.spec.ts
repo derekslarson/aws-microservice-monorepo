@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role, WithRole } from "@yac/util";
+import { OrganizationId, Role, WithRole } from "@yac/util";
 import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomUser, createRandomTeam, createTeamUserRelationship, CreateRandomUserOutput } from "../util";
@@ -25,11 +25,12 @@ describe("GET /teams/{teamId}/users (Get Users by Team Id)", () => {
   describe("under normal conditions", () => {
     let team: RawTeam;
     let otherUser: CreateRandomUserOutput["user"];
+    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
     beforeAll(async () => {
       ({ user: otherUser } = await createRandomUser());
 
-      ({ team } = await createRandomTeam({ createdBy: user.id }));
+      ({ team } = await createRandomTeam({ createdBy: user.id, organizationId: mockOrganizationId }));
 
       await Promise.all([
         createTeamUserRelationship({ userId: user.id, teamId: team.id, role: Role.Admin }),

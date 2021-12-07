@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role, UserRemovedFromTeamSnsMessage } from "@yac/util";
+import { OrganizationId, Role, UserRemovedFromTeamSnsMessage } from "@yac/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomTeam, createRandomUser, CreateRandomUserOutput, createTeamUserRelationship, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn, getTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
@@ -21,13 +21,14 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
   describe("under normal conditions", () => {
     let team: RawTeam;
     let otherUser: CreateRandomUserOutput["user"];
+    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
     beforeAll(async () => {
       ({ user: otherUser } = await createRandomUser());
     });
 
     beforeEach(async () => {
-      ({ team } = await createRandomTeam({ createdBy: userId }));
+      ({ team } = await createRandomTeam({ createdBy: userId, organizationId: mockOrganizationId }));
 
       await Promise.all([
         createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin }),
@@ -124,9 +125,10 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
     describe("when an id of a team the user is not an admin of is passed in", () => {
       let teamTwo: RawTeam;
       const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+      const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
       beforeEach(async () => {
-        ({ team: teamTwo } = await createRandomTeam({ createdBy: mockUserIdTwo }));
+        ({ team: teamTwo } = await createRandomTeam({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId }));
 
         await createTeamUserRelationship({ userId, teamId: teamTwo.id, role: Role.User });
       });

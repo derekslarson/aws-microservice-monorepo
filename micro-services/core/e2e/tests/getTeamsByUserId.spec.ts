@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import { createRandomAuthServiceUser, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomTeam, createTeamUserRelationship } from "../util";
@@ -18,6 +18,7 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
     let accessToken: string;
     let teamA: RawTeam;
     let teamB: RawTeam;
+    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
     beforeAll(async () => {
       // We have to fetch a new base user and access token here to prevent bleed over from other tests
@@ -26,12 +27,11 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
 
       ([ { accessToken }, { team: teamA } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createRandomTeam({ createdBy: userId }),
+        createRandomTeam({ createdBy: userId, organizationId: mockOrganizationId }),
       ]));
 
       // We need to wait create the teams in sequence, so that we can be sure of the return order in the test
-
-      ({ team: teamB } = await createRandomTeam({ createdBy: mockUserId }));
+      ({ team: teamB } = await createRandomTeam({ createdBy: mockUserId, organizationId: mockOrganizationId }));
 
       await Promise.all([
         createTeamUserRelationship({ userId, teamId: teamA.id, role: Role.Admin }),

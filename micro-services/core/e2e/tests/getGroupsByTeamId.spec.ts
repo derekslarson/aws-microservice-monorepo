@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createConversationUserRelationship, createGroupConversation, createRandomTeam, createTeamUserRelationship } from "../util";
@@ -23,9 +23,10 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
     let team: RawTeam;
     let group: RawConversation<GroupConversation>;
     let groupTwo: RawConversation<GroupConversation>;
+    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
     beforeAll(async () => {
-      ({ team } = await createRandomTeam({ createdBy: mockUserId }));
+      ({ team } = await createRandomTeam({ createdBy: mockUserId, organizationId: mockOrganizationId }));
 
       // We need to wait create the groups in sequence, so that we can be sure of the return order in the test
       ({ conversation: group } = await createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5), teamId: team.id }));

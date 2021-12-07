@@ -253,7 +253,7 @@ export async function deleteUser(id: UserId): Promise<void> {
 
 export async function createRandomTeam(params: CreateRandomTeamInput): Promise<CreateRandomTeamOutput> {
   try {
-    const { createdBy } = params;
+    const { organizationId, createdBy } = params;
 
     const { image, mimeType } = createDefaultImage();
 
@@ -263,10 +263,13 @@ export async function createRandomTeam(params: CreateRandomTeamInput): Promise<C
       entityType: EntityType.Team,
       imageMimeType: mimeType,
       pk: teamId,
-      sk: teamId,
+      sk: EntityType.Team,
+      gsi1pk: organizationId,
+      gsi1sk: teamId,
       id: teamId,
       name: generateRandomString(5),
       createdBy,
+      organizationId,
     };
 
     const s3UploadInput: S3.Types.PutObjectRequest = {
@@ -300,7 +303,7 @@ export async function getTeam(params: GetTeamInput): Promise<GetTeamOutput> {
 
     const { Item } = await documentClient.get({
       TableName: process.env["core-table-name"] as string,
-      Key: { pk: teamId, sk: teamId },
+      Key: { pk: teamId, sk: EntityType.Team },
     }).promise();
 
     const team = Item as RawTeam;
@@ -859,6 +862,7 @@ export interface CreateRandomUserOutput {
 }
 
 export interface CreateRandomTeamInput {
+  organizationId: OrganizationId;
   createdBy: UserId;
 }
 
