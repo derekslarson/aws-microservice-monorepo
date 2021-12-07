@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, AxiosFactory, Axios, BadRequestError, MakeRequired } from "@yac/util";
+import { LoggerServiceInterface, AxiosFactory, Axios, BadRequestError, MakeRequired, OrganizationId } from "@yac/util";
 import { Aws4, Aws4Factory } from "../factories/aws4.factory";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
@@ -15,6 +15,7 @@ import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
 import { MessageId } from "../types/messageId.type";
 import { ConversationId } from "../types/conversationId.type";
+import { Organization } from "./organization.dynamo.repository";
 
 @injectable()
 export class OpenSearchRepository implements SearchRepositoryInterface {
@@ -223,6 +224,35 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
     }
   }
 
+  public async getOrganizationsBySearchTerm(params: GetOrganizationsBySearchTermInput): Promise<GetOrganizationsBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getOrganizationsBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, organizationIds, limit, exclusiveStartKey } = params;
+
+      const queryString = `
+        SELECT *
+        FROM ${SearchIndex.Organization}
+        WHERE (
+          MATCH_PHRASE(name, '${searchTerm}')
+          OR name LIKE '%${searchTerm}%'
+        )
+        ${organizationIds ? `AND id IN (${organizationIds.join(", ")})` : ""}
+      `;
+
+      const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
+
+      return {
+        organizations: results as Organization[],
+        lastEvaluatedKey,
+      };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getOrganizationsBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async indexDocument<T extends SearchIndex>(params: IndexDocumentInput<T>): Promise<IndexDocumentOutput> {
     try {
       this.loggerService.trace("indexDocument called", { params }, this.constructor.name);
@@ -403,6 +433,7 @@ export interface SearchRepositoryInterface {
   getUsersGroupsAndMeetingsBySearchTerm(params: GetUsersGroupsAndMeetingsBySearchTermInput): Promise<GetUsersGroupsAndMeetingsBySearchTermOutput>;
   getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput>;
   getTeamsBySearchTerm(params: GetTeamsBySearchTermInput): Promise<GetTeamsBySearchTermOutput>;
+  getOrganizationsBySearchTerm(params: GetOrganizationsBySearchTermInput): Promise<GetOrganizationsBySearchTermOutput>;
   indexDocument<T extends SearchIndex>(params: IndexDocumentInput<T>): Promise<IndexDocumentOutput>;
   deindexDocument<T extends SearchIndex>(params: DeindexDocumentInput<T>): Promise<DeindexDocumentOutput>;
 }
@@ -477,7 +508,19 @@ export interface GetTeamsBySearchTermInput {
 }
 
 export interface GetTeamsBySearchTermOutput {
-  teams: Team[];
+  teams: TeamOnlyIdRequired[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetOrganizationsBySearchTermInput {
+  searchTerm: string;
+  organizationIds?: OrganizationId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetOrganizationsBySearchTermOutput {
+  organizations: OrganizationOnlyIdRequired[];
   lastEvaluatedKey?: string;
 }
 
@@ -530,8 +573,9 @@ type GroupConversationOnlyIdRequired = MakeRequired<Partial<GroupConversation>, 
 type MeetingConversationOnlyIdRequired = MakeRequired<Partial<MeetingConversation>, "id">;
 type TeamOnlyIdRequired = MakeRequired<Partial<Team>, "id">;
 type MessageOnlyIdRequired = MakeRequired<Partial<Message>, "id">;
+type OrganizationOnlyIdRequired = MakeRequired<Partial<Organization>, "id">;
 
-type QueryResult = UserOnlyIdRequired | GroupConversationOnlyIdRequired | MeetingConversationOnlyIdRequired | TeamOnlyIdRequired | MessageOnlyIdRequired;
+type QueryResult = UserOnlyIdRequired | OrganizationOnlyIdRequired | GroupConversationOnlyIdRequired | MeetingConversationOnlyIdRequired | TeamOnlyIdRequired | MessageOnlyIdRequired;
 
 interface SearchKey {
   offset: number;
@@ -541,10 +585,12 @@ type IndexToDocument<T extends SearchIndex> =
   T extends SearchIndex.User ? User :
     T extends SearchIndex.Group ? GroupConversation :
       T extends SearchIndex.Meeting ? MeetingConversation :
-        T extends SearchIndex.Team ? Team : Message;
+        T extends SearchIndex.Team ? Team :
+          T extends SearchIndex.Organization ? Organization : Message;
 
 type IndexToId<T extends SearchIndex> =
   T extends SearchIndex.User ? UserId :
     T extends SearchIndex.Group ? GroupId :
       T extends SearchIndex.Meeting ? MeetingId :
-        T extends SearchIndex.Team ? TeamId : MessageId;
+        T extends SearchIndex.Team ? TeamId :
+          T extends SearchIndex.Organization ? OrganizationId : MessageId;

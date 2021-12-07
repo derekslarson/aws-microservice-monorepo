@@ -380,6 +380,8 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     // HTTP Event Handlers
+
+    // User Handlers
     const updateUserHandler = new Lambda.Function(this, `UpdateUser${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/updateUser"),
@@ -395,6 +397,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getUser"),
       handler: "getUser.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getUsersByOrganizationIdHandler = new Lambda.Function(this, `GetUsersByOrganizationId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getUsersByOrganizationId"),
+      handler: "getUsersByOrganizationId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -517,6 +530,84 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getTeamImageUploadUrl"),
       handler: "getTeamImageUploadUrl.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    // Organization Handlers
+    const createOrganizationHandler = new Lambda.Function(this, `CreateOrganization_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/createOrganization"),
+      handler: "createOrganization.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const updateOrganizationHandler = new Lambda.Function(this, `UpdateOrganization${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/updateOrganization"),
+      handler: "updateOrganization.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getOrganizationHandler = new Lambda.Function(this, `GetOrganization_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getOrganization"),
+      handler: "getOrganization.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const addUsersToOrganizationHandler = new Lambda.Function(this, `AddUsersToOrganization_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/addUsersToOrganization"),
+      handler: "addUsersToOrganization.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const removeUserFromOrganizationHandler = new Lambda.Function(this, `RemoveUserFromOrganization_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/removeUserFromOrganization"),
+      handler: "removeUserFromOrganization.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getOrganizationsByUserIdHandler = new Lambda.Function(this, `GetOrganizationsByUserId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getOrganizationsByUserId"),
+      handler: "getOrganizationsByUserId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
+    const getOrganizationImageUploadUrlHandler = new Lambda.Function(this, `GetOrganizationImageUploadUrl_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getOrganizationImageUploadUrl"),
+      handler: "getOrganizationImageUploadUrl.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -905,6 +996,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         restricted: true,
       },
       {
+        path: "/organizations/{organizationId}/users",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getUsersByOrganizationIdHandler,
+        restricted: true,
+      },
+      {
         path: "/teams/{teamId}/users",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getUsersByTeamIdHandler,
@@ -971,6 +1068,51 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/teams/{teamId}/image-upload-url",
         method: ApiGatewayV2.HttpMethod.GET,
         handler: getTeamImageUploadUrlHandler,
+        restricted: true,
+      },
+    ];
+
+    const organizationRoutes: RouteProps[] = [
+      {
+        path: "/users/{userId}/organizations",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: createOrganizationHandler,
+        restricted: true,
+      },
+      {
+        path: "/organizations/{organizationId}",
+        method: ApiGatewayV2.HttpMethod.PATCH,
+        handler: updateOrganizationHandler,
+        restricted: true,
+      },
+      {
+        path: "/organizations/{organizationId}",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getOrganizationHandler,
+        restricted: true,
+      },
+      {
+        path: "/users/{userId}/organizations",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getOrganizationsByUserIdHandler,
+        restricted: true,
+      },
+      {
+        path: "/organizations/{organizationId}/users",
+        method: ApiGatewayV2.HttpMethod.POST,
+        handler: addUsersToOrganizationHandler,
+        restricted: true,
+      },
+      {
+        path: "/organizations/{organizationId}/users/{userId}",
+        method: ApiGatewayV2.HttpMethod.DELETE,
+        handler: removeUserFromOrganizationHandler,
+        restricted: true,
+      },
+      {
+        path: "/organizations/{organizationId}/image-upload-url",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getOrganizationImageUploadUrlHandler,
         restricted: true,
       },
     ];
@@ -1191,6 +1333,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     const routes: RouteProps[] = [
       ...userRoutes,
+      ...organizationRoutes,
       ...teamRoutes,
       ...friendRoutes,
       ...groupRoutes,

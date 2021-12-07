@@ -1,4 +1,5 @@
 export enum SearchIndex {
+  Organization = "organization",
   User = "user",
   Group = "group",
   Meeting = "meeting",

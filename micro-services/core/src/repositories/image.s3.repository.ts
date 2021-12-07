@@ -10,13 +10,12 @@ import {
   GetSignedUrlInput as BaseGetSignedUrlInput,
   GetSignedUrlOutput as BaseGetSignedUrlOutput,
   FileOperation,
+  OrganizationId,
 } from "@yac/util";
 import { injectable, inject } from "inversify";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-
-/* eslint-disable @typescript-eslint/naming-convention */
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { EntityType } from "../enums/entityType.enum";
@@ -36,6 +35,7 @@ export class ImageS3Repository extends BaseS3Repository implements ImageFileRepo
 
   private readonly entityTypeToDirectoryMap: Record<ImageEntityType, FileDirectory> = {
     [EntityType.User]: "users",
+    [EntityType.Organization]: "organizations",
     [EntityType.Team]: "teams",
     [EntityType.GroupConversation]: "groups",
     [EntityType.MeetingConversation]: "meetings",
@@ -188,10 +188,10 @@ export interface ImageFileRepositoryInterface {
 
 type ImageS3RepositoryConfig = Pick<EnvConfigInterface, "bucketNames">;
 
-export type FileDirectory = "users" | "teams" | "groups" | "meetings";
+export type FileDirectory = "users" | "organizations" | "teams" | "groups" | "meetings";
 export type FileExtension = "jpeg" | "bmp" | "png";
-export type ImageEntityId = UserId | TeamId | GroupId | MeetingId;
-export type ImageEntityType = EntityType.User | EntityType.Team | EntityType.GroupConversation | EntityType.MeetingConversation;
+export type ImageEntityId = UserId | OrganizationId | TeamId | GroupId | MeetingId;
+export type ImageEntityType = EntityType.User | EntityType.Organization | EntityType.Team | EntityType.GroupConversation | EntityType.MeetingConversation;
 
 export interface CreateDefaultImageOutput {
   image: Buffer;

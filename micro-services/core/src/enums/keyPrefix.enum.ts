@@ -1,5 +1,6 @@
 export enum KeyPrefix {
   User = "user-",
+  Organization = "organization-",
   Team = "team-",
   Conversation = "convo-",
   FriendConversation = "convo-friend-",

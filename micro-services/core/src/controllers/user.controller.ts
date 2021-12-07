@@ -12,6 +12,8 @@ import { GetUsersByGroupIdDto } from "../dtos/getUsersByGroupId.dto";
 import { GetUsersByMeetingIdDto } from "../dtos/getUsersByMeetingId.dto";
 import { GetUserImageUploadUrlDto } from "../dtos/getUserImageUploadUrl.dto";
 import { UpdateUserDto } from "../dtos/updateUser.dto";
+import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
+import { GetUsersByOrganizationIdDto } from "../dtos/getUsersByOrganizationId.dto";
 
 @injectable()
 export class UserController extends BaseController implements UserControllerInterface {
@@ -19,6 +21,7 @@ export class UserController extends BaseController implements UserControllerInte
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
+    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
     @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
@@ -90,6 +93,34 @@ export class UserController extends BaseController implements UserControllerInte
       return Promise.resolve(this.generateSuccessResponse({ uploadUrl }));
     } catch (error: unknown) {
       this.loggerService.error("Error in getUserImageUploadUrl", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
+
+  public async getUsersByOrganizationId(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getUsersByOrganizationId called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { organizationId },
+        queryStringParameters: { exclusiveStartKey, limit },
+      } = this.validationService.validate({ dto: GetUsersByOrganizationIdDto, request, getUserIdFromJwt: true });
+
+      const { isOrganizationMember } = await this.organizationMediatorService.isOrganizationMember({ organizationId, userId: jwtId });
+
+      if (!isOrganizationMember) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+
+      const response: GetUsersByOrganizationIdResponse = { users, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersByOrganizationId", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -184,6 +215,7 @@ export interface UserControllerInterface {
   updateUser(request: Request): Promise<Response>;
   getUser(request: Request): Promise<Response>;
   getUserImageUploadUrl(request: Request): Promise<Response>;
+  getUsersByOrganizationId(request: Request): Promise<Response>;
   getUsersByTeamId(request: Request): Promise<Response>;
   getUsersByGroupId(request: Request): Promise<Response>;
   getUsersByMeetingId(request: Request): Promise<Response>;
@@ -195,6 +227,11 @@ interface UpdateUserResponse {
 
 interface GetUserResponse {
   user: User;
+}
+
+interface GetUsersByOrganizationIdResponse {
+  users: WithRole<User>[];
+  lastEvaluatedKey?: string;
 }
 
 interface GetUsersByTeamIdResponse {
