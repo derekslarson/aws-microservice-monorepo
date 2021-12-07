@@ -34,6 +34,7 @@ describe("UserRemovedFromTeamDynamoProcessorService", () => {
     name: "mock-name",
     image: "mock-image",
     createdBy: "user-mock-id",
+    organizationId: "organization-123",
   };
 
   const mockRecord: DynamoProcessorServiceRecord = {

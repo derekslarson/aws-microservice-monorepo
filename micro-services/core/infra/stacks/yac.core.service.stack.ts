@@ -526,6 +526,17 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const getTeamsByOrganizationIdHandler = new Lambda.Function(this, `GetTeamsByOrganizationId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getTeamsByOrganizationId"),
+      handler: "getTeamsByOrganizationId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const getTeamImageUploadUrlHandler = new Lambda.Function(this, `GetTeamImageUploadUrl_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getTeamImageUploadUrl"),
@@ -1032,6 +1043,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         path: "/organizations/{organizationId}/teams",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createTeamHandler,
+        restricted: true,
+      },
+      {
+        path: "/organizations/{organizationId}/teams",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getTeamsByOrganizationIdHandler,
         restricted: true,
       },
       {

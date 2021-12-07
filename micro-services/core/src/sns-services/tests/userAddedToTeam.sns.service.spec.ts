@@ -29,6 +29,7 @@ describe("UserAddedToTeamSnsService", () => {
     name: "mock-name",
     image: "mock-image",
     createdBy: "user-mock-id",
+    organizationId: "organization-123",
   };
 
   const mockError = new Error("test");

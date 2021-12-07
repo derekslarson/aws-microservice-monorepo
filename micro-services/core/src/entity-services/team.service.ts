@@ -72,6 +72,28 @@ export class TeamService implements TeamServiceInterface {
     }
   }
 
+  public async getTeamsByOrganizationId(params: GetTeamsByOrganizationIdInput): Promise<GetTeamsByOrganizationIdOutput> {
+    try {
+      this.loggerService.trace("getTeamsByOrganizationId called", { params }, this.constructor.name);
+
+      const { organizationId, limit, exclusiveStartKey } = params;
+
+      const { teams: teamEntities, lastEvaluatedKey } = await this.teamRepository.getTeamsByOrganizationId({ organizationId, limit, exclusiveStartKey });
+
+      const teams = teamEntities.map((teamEntity) => {
+        const { entity } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
+
+        return entity;
+      });
+
+      return { teams, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getTeamsByOrganizationId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput> {
     try {
       this.loggerService.trace("updateTeam called", { params }, this.constructor.name);
@@ -194,6 +216,7 @@ export interface TeamServiceInterface {
   getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
   updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput>;
   getTeams(params: GetTeamsInput): Promise<GetTeamsOutput>;
+  getTeamsByOrganizationId(params: GetTeamsByOrganizationIdInput): Promise<GetTeamsByOrganizationIdOutput>;
   getTeamImageUploadUrl(params: GetTeamImageUploadUrlInput): GetTeamImageUploadUrlOutput;
   indexTeamForSearch(params: IndexTeamForSearchInput): Promise<IndexTeamForSearchOutput>;
   deindexTeamForSearch(params: DeindexTeamForSearchInput): Promise<DeindexTeamForSearchOutput>;
@@ -233,6 +256,17 @@ export interface GetTeamsInput {
 
 export interface GetTeamsOutput {
   teams: Team[];
+}
+
+export interface GetTeamsByOrganizationIdInput {
+  organizationId: OrganizationId;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetTeamsByOrganizationIdOutput {
+  teams: Team[];
+  lastEvaluatedKey?: string;
 }
 
 export interface IndexTeamForSearchInput {

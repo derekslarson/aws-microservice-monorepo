@@ -40,6 +40,7 @@ describe("POST /organizations/{organizationId}/teams (Create Team)", () => {
             name,
             createdBy: userId,
             role: Role.Admin,
+            organizationId: organization.id,
             image: jasmine.stringMatching(URL_REGEX),
           },
         });
@@ -61,11 +62,14 @@ describe("POST /organizations/{organizationId}/teams (Create Team)", () => {
         expect(team).toEqual({
           entityType: EntityType.Team,
           pk: data.team.id,
-          sk: data.team.id,
+          sk: EntityType.Team,
+          gsi1pk: organization.id,
+          gsi1sk: data.team.id,
           id: data.team.id,
           createdBy: userId,
           name,
           imageMimeType: ImageMimeType.Png,
+          organizationId: organization.id,
         });
       } catch (error) {
         fail(error);
@@ -133,6 +137,7 @@ describe("POST /organizations/{organizationId}/teams (Create Team)", () => {
               id: team.id,
               image: jasmine.stringMatching(URL_REGEX),
               name: team.name,
+              oeganizationId: organization.id,
             },
           },
         }));
@@ -198,7 +203,7 @@ describe("POST /organizations/{organizationId}/teams (Create Team)", () => {
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { userId: "Failed constraint check for string: Must be a user id" },
+              pathParameters: { organizationId: "Failed constraint check for string: Must be an organization id" },
               body: { name: "Expected string, but was missing" },
             },
           });

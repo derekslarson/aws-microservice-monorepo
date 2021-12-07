@@ -145,6 +145,22 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
     }
   }
 
+  public async getTeamsByOrganizationId(params: GetTeamsByOrganizationIdInput): Promise<GetTeamsByOrganizationIdOutput> {
+    try {
+      this.loggerService.trace("getTeamsByOrganizationId called", { params }, this.constructor.name);
+
+      const { organizationId, exclusiveStartKey, limit } = params;
+
+      const { teams, lastEvaluatedKey } = await this.teamService.getTeamsByOrganizationId({ organizationId, exclusiveStartKey, limit });
+
+      return { teams, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getTeamsByOrganizationId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async isTeamMember(params: IsTeamMemberInput): Promise<IsTeamMemberOutput> {
     try {
       this.loggerService.trace("isTeamMember called", { params }, this.constructor.name);
@@ -194,6 +210,7 @@ export interface TeamMediatorServiceInterface {
   removeUserFromTeam(params: RemoveUserFromTeamInput): Promise<RemoveUserFromTeamOutput>;
   getTeamImageUploadUrl(params: GetTeamImageUploadUrlInput): GetTeamImageUploadUrlOutput;
   getTeamsByUserId(params: GetTeamsByUserIdInput): Promise<GetTeamsByUserIdOutput>;
+  getTeamsByOrganizationId(params: GetTeamsByOrganizationIdInput): Promise<GetTeamsByOrganizationIdOutput>
   isTeamMember(params: IsTeamMemberInput): Promise<IsTeamMemberOutput>;
   isTeamAdmin(params: IsTeamAdminInput): Promise<IsTeamAdminOutput>;
 }
@@ -280,4 +297,15 @@ export interface GetTeamImageUploadUrlInput {
 
 export interface GetTeamImageUploadUrlOutput {
   uploadUrl: string;
+}
+
+export interface GetTeamsByOrganizationIdInput {
+  organizationId: OrganizationId;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetTeamsByOrganizationIdOutput {
+  teams: Team[];
+  lastEvaluatedKey?: string;
 }

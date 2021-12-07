@@ -12,6 +12,7 @@ import { AddUsersToTeamOutput, InvitationOrchestratorServiceInterface } from "..
 import { GetTeamImageUploadUrlDto } from "../dtos/getTeamImageUploadUrl.dto";
 import { UpdateTeamDto } from "../dtos/updateTeam.dto";
 import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
+import { GetTeamsByOrganizationIdDto } from "../dtos/getTeamsByOrganizationId.dto";
 
 @injectable()
 export class TeamController extends BaseController implements TeamControllerInterface {
@@ -30,18 +31,18 @@ export class TeamController extends BaseController implements TeamControllerInte
       this.loggerService.trace("createTeam called", { request }, this.constructor.name);
 
       const {
-        jwtId: userId,
+        jwtId,
         pathParameters: { organizationId },
         body: { name },
       } = this.validationService.validate({ dto: CreateTeamDto, request, getUserIdFromJwt: true });
 
-      const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId });
+      const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId: jwtId });
 
       if (!isOrganizationAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { team } = await this.teamMediatorService.createTeam({ name, createdBy: userId, organizationId });
+      const { team } = await this.teamMediatorService.createTeam({ name, createdBy: jwtId, organizationId });
 
       const response: CreateTeamResponse = { team };
 
@@ -220,6 +221,34 @@ export class TeamController extends BaseController implements TeamControllerInte
       return this.generateErrorResponse(error);
     }
   }
+
+  public async getTeamsByOrganizationId(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getTeamsByOrganizationId called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { organizationId },
+        queryStringParameters: { exclusiveStartKey, limit },
+      } = this.validationService.validate({ dto: GetTeamsByOrganizationIdDto, request, getUserIdFromJwt: true });
+
+      const { isOrganizationMember } = await this.organizationMediatorService.isOrganizationMember({ organizationId, userId: jwtId });
+
+      if (!isOrganizationMember) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+
+      const response: GetTeamsByOrganizationIdResponse = { teams, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getTeamsByOrganizationId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
 }
 
 export interface TeamControllerInterface {
@@ -230,6 +259,7 @@ export interface TeamControllerInterface {
   removeUserFromTeam(request: Request): Promise<Response>;
   getTeamImageUploadUrl(request: Request): Promise<Response>;
   getTeamsByUserId(request: Request): Promise<Response>;
+  getTeamsByOrganizationId(request: Request): Promise<Response>;
 }
 
 interface CreateTeamResponse {
@@ -259,5 +289,10 @@ interface UpdateTeamResponse {
 
 interface GetTeamsByUserIdResponse {
   teams: WithRole<Team>[];
+  lastEvaluatedKey?: string;
+}
+
+interface GetTeamsByOrganizationIdResponse {
+  teams: Team[];
   lastEvaluatedKey?: string;
 }
