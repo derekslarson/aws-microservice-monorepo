@@ -9,7 +9,7 @@
     "build:layer": "ts-node ../../config/layer/buildLayer.ts",
     "build:unit-tests": "yarn clean:unit-tests && tsc --project tsconfig.test.json",
     "build:e2e-tests": "yarn clean:unit-tests && tsc --project tsconfig.e2e.test.json",
-    "clean": "rm -rf ./dist",
+    "clean": "rm -rf ./dist && rm -rf ./cdk.out",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
     "clean:e2e-tests": "rm -rf ./compiled_e2e_tests",
     "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",

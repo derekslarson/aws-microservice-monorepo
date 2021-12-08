@@ -8,7 +8,7 @@
     "build:stage": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.release.js && yarn build:layer",
     "build:prod": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.release.js && yarn build:layer",
     "build:layer": "ts-node ../../../../config/layer/buildLayer.ts",
-    "clean": "rm -rf ./dist",
+    "clean": "rm -rf ./dist && rm -rf ./cdk.out",
     "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",
     "synth:dev": "cdk synth --context environment=dev",
     "synth:stage": "cdk synth --context environment=stage",
