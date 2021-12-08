@@ -224,7 +224,7 @@ export class TokenService implements TokenServiceInterface {
       const key = await this.jose.JWK.asKey(keyStore.all({ use: "sig" })[0]);
 
       const nowSeconds = Math.round(Date.now().valueOf() / 1000);
-      const expiresInSeconds = 60 * 10;
+      const expiresInSeconds = 60 * 20;
 
       const payload: AccessTokenPayload = {
         sid: sessionId,
