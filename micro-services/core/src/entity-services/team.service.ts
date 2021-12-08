@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { FileOperation, IdServiceInterface, LoggerServiceInterface } from "@yac/util";
+import { FileOperation, IdServiceInterface, LoggerServiceInterface, OrganizationId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamRepositoryInterface, Team as TeamEntity, TeamUpdates, RawTeam } from "../repositories/team.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -25,7 +25,7 @@ export class TeamService implements TeamServiceInterface {
     try {
       this.loggerService.trace("createTeam called", { params }, this.constructor.name);
 
-      const { name, createdBy } = params;
+      const { name, createdBy, organizationId } = params;
 
       const teamId: TeamId = `${KeyPrefix.Team}${this.idService.generateId()}`;
 
@@ -36,6 +36,7 @@ export class TeamService implements TeamServiceInterface {
         imageMimeType,
         name,
         createdBy,
+        organizationId,
       };
 
       await Promise.all([
@@ -66,6 +67,28 @@ export class TeamService implements TeamServiceInterface {
       return { team };
     } catch (error: unknown) {
       this.loggerService.error("Error in getTeam", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getTeamsByOrganizationId(params: GetTeamsByOrganizationIdInput): Promise<GetTeamsByOrganizationIdOutput> {
+    try {
+      this.loggerService.trace("getTeamsByOrganizationId called", { params }, this.constructor.name);
+
+      const { organizationId, limit, exclusiveStartKey } = params;
+
+      const { teams: teamEntities, lastEvaluatedKey } = await this.teamRepository.getTeamsByOrganizationId({ organizationId, limit, exclusiveStartKey });
+
+      const teams = teamEntities.map((teamEntity) => {
+        const { entity } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Team, entity: teamEntity });
+
+        return entity;
+      });
+
+      return { teams, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getTeamsByOrganizationId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -193,6 +216,7 @@ export interface TeamServiceInterface {
   getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
   updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput>;
   getTeams(params: GetTeamsInput): Promise<GetTeamsOutput>;
+  getTeamsByOrganizationId(params: GetTeamsByOrganizationIdInput): Promise<GetTeamsByOrganizationIdOutput>;
   getTeamImageUploadUrl(params: GetTeamImageUploadUrlInput): GetTeamImageUploadUrlOutput;
   indexTeamForSearch(params: IndexTeamForSearchInput): Promise<IndexTeamForSearchOutput>;
   deindexTeamForSearch(params: DeindexTeamForSearchInput): Promise<DeindexTeamForSearchOutput>;
@@ -202,6 +226,7 @@ export interface TeamServiceInterface {
 export interface CreateTeamInput {
   name: string;
   createdBy: UserId;
+  organizationId: OrganizationId;
 }
 
 export interface CreateTeamOutput {
@@ -231,6 +256,17 @@ export interface GetTeamsInput {
 
 export interface GetTeamsOutput {
   teams: Team[];
+}
+
+export interface GetTeamsByOrganizationIdInput {
+  organizationId: OrganizationId;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetTeamsByOrganizationIdOutput {
+  teams: Team[];
+  lastEvaluatedKey?: string;
 }
 
 export interface IndexTeamForSearchInput {

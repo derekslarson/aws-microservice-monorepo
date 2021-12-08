@@ -35,7 +35,7 @@ describe("Team Created (WebSocket Event)", () => {
       createRandomAuthServiceUser(),
     ]);
 
-    userOneId = idOne as UserId;
+    userOneId = idOne;
 
     // Get JWT tokens for each user
     const [ { accessToken: accessTokenOne }, { accessToken: accessTokenTwo } ] = await Promise.all([
@@ -80,6 +80,7 @@ describe("Team Created (WebSocket Event)", () => {
           name: "test team",
           image: "test-image",
           createdBy: userOneId,
+          organizationId: "organization-123",
         },
       };
 

@@ -89,6 +89,7 @@ describe("User Removed From Team (WebSocket Event)", () => {
           name: "test team",
           image: "test-image",
           createdBy: "user-123",
+          organizationId: "organization-123",
         },
         user: {
           id: "user-123",

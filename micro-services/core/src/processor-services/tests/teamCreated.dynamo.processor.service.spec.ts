@@ -15,13 +15,14 @@ describe("TeamCreatedDynamoProcessorService", () => {
   const mockConfig = { tableNames: { core: mockCoreTableName } };
   const mockTeamId = "team-mock-id";
   const mockUserIdOne = "user-mock-one";
-  const mockTeamMemberIds = [mockUserIdOne];
+  const mockTeamMemberIds = [ mockUserIdOne ];
 
   const mockTeam: Team = {
     id: mockTeamId,
     name: "mock-name",
     image: "mock-image",
     createdBy: mockUserIdOne,
+    organizationId: "organization-123",
   };
 
   const mockRecord: DynamoProcessorServiceRecord = {

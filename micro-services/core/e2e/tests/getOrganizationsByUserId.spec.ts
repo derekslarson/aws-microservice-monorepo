@@ -8,7 +8,7 @@ import { createOrganization, createOrganizationUserRelationship } from "../util"
 import { UserId } from "../../src/types/userId.type";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
-fdescribe("GET /users/{userId}/organizations (Get Organizations by User Id)", () => {
+describe("GET /users/{userId}/organizations (Get Organizations by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;

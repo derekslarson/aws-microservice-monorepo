@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import { createRandomAuthServiceUser, generateRandomString, getAccessToken } from "../../../../e2e/util";
 import { createRandomTeam, CreateRandomTeamOutput, createTeamUserRelationship, getTeam } from "../util";
 import { UserId } from "../../src/types/userId.type";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("PATCH /teams/{teamId} (Update Team)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -12,9 +13,10 @@ describe("PATCH /teams/{teamId} (Update Team)", () => {
   const accessToken = process.env.accessToken as string;
 
   let team: CreateRandomTeamOutput["team"];
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   beforeEach(async () => {
-    ({ team } = await createRandomTeam({ createdBy: userId }));
+    ({ team } = await createRandomTeam({ createdBy: userId, organizationId: mockOrganizationId }));
     await createTeamUserRelationship({ teamId: team.id, userId, role: Role.Admin });
   });
 

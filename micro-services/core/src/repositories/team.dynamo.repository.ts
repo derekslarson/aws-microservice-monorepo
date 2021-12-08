@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, OrganizationId } from "@yac/util";
 
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
@@ -8,15 +8,19 @@ import { EntityType } from "../enums/entityType.enum";
 import { TeamId } from "../types/teamId.type";
 import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
 export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implements TeamRepositoryInterface {
+  private gsiOneIndexName: string;
+
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: TeamRepositoryConfig,
   ) {
     super(documentClientFactory, envConfig.tableNames.core, loggerService);
+    this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
   }
 
   public async createTeam(params: CreateTeamInput): Promise<CreateTeamOutput> {
@@ -28,7 +32,9 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
       const teamEntity: RawTeam = {
         entityType: EntityType.Team,
         pk: team.id,
-        sk: team.id,
+        sk: EntityType.Team,
+        gsi1pk: team.organizationId,
+        gsi1sk: team.id,
         ...team,
       };
 
@@ -52,7 +58,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
 
       const { teamId } = params;
 
-      const team = await this.get({ Key: { pk: teamId, sk: teamId } }, "Team");
+      const team = await this.get({ Key: { pk: teamId, sk: EntityType.Team } }, "Team");
 
       return { team };
     } catch (error: unknown) {
@@ -68,7 +74,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
 
       const { teamId, updates } = params;
 
-      const team = await this.partialUpdate(teamId, teamId, updates);
+      const team = await this.partialUpdate(teamId, EntityType.Team, updates);
 
       return { team };
     } catch (error: unknown) {
@@ -84,11 +90,44 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
 
       const { teamIds } = params;
 
-      const teams = await this.batchGet({ Keys: teamIds.map((teamId) => ({ pk: teamId, sk: teamId })) });
+      const teams = await this.batchGet({ Keys: teamIds.map((teamId) => ({ pk: teamId, sk: EntityType.Team })) });
 
       return { teams };
     } catch (error: unknown) {
       this.loggerService.error("Error in getTeams", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getTeamsByOrganizationId(params: GetTeamsByOrganizationIdInput): Promise<GetTeamsByOrganizationIdOutput> {
+    try {
+      this.loggerService.trace("getTeamsByOrganizationId called", { params }, this.constructor.name);
+
+      const { organizationId, exclusiveStartKey, limit } = params;
+
+      const { Items: teams, LastEvaluatedKey } = await this.query({
+        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+        Limit: limit ?? 25,
+        ScanIndexForward: false,
+        IndexName: this.gsiOneIndexName,
+        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :teamId)",
+        ExpressionAttributeNames: {
+          "#gsi1pk": "gsi1pk",
+          "#gsi1sk": "gsi1sk",
+        },
+        ExpressionAttributeValues: {
+          ":gsi1pk": organizationId,
+          ":teamId": KeyPrefix.Team,
+        },
+      });
+
+      return {
+        teams,
+        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+      };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getTeamsByOrganizationId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -114,15 +153,17 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
 export interface TeamRepositoryInterface {
   createTeam(params: CreateTeamInput): Promise<CreateTeamOutput>;
   getTeam(params: GetTeamInput): Promise<GetTeamOutput>;
-  updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput>;
   getTeams(params: GetTeamsInput): Promise<GetTeamsOutput>;
+  getTeamsByOrganizationId(params: GetTeamsByOrganizationIdInput): Promise<GetTeamsByOrganizationIdOutput>;
+  updateTeam(params: UpdateTeamInput): Promise<UpdateTeamOutput>;
   convertRawTeamToTeam(params: ConvertRawTeamToTeamInput): ConvertRawTeamToTeamOutput;
 }
 
-type TeamRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
+type TeamRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
 export interface Team {
   id: TeamId;
+  organizationId: OrganizationId;
   imageMimeType: ImageMimeType;
   createdBy: UserId;
   name: string;
@@ -131,7 +172,9 @@ export interface Team {
 export interface RawTeam extends Team {
   entityType: EntityType.Team,
   pk: TeamId;
-  sk: TeamId;
+  sk: EntityType.Team;
+  gsi1pk: OrganizationId;
+  gsi1sk: TeamId;
 }
 
 export interface CreateTeamInput {
@@ -148,6 +191,17 @@ export interface GetTeamInput {
 
 export interface GetTeamOutput {
   team: Team;
+}
+
+export interface GetTeamsByOrganizationIdInput {
+  organizationId: OrganizationId;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetTeamsByOrganizationIdOutput {
+  teams: Team[];
+  lastEvaluatedKey?: string;
 }
 
 export type TeamUpdates = Partial<Pick<Team, "name" | "imageMimeType">>;

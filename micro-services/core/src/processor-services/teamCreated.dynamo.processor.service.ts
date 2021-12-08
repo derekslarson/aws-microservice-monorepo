@@ -15,7 +15,7 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamCreatedSnsServiceInterface) private teamCreatedSnsService: TeamCreatedSnsServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatoService: TeamMediatorServiceInterface,
+    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: TeamCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -43,7 +43,7 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
 
       const { newImage: { id: teamId } } = record;
 
-      const { team } = await this.teamMediatoService.getTeam({ teamId });
+      const { team } = await this.teamMediatorService.getTeam({ teamId });
 
       await this.teamCreatedSnsService.sendMessage({ team, teamMemberIds: [ team.createdBy ] });
     } catch (error: unknown) {

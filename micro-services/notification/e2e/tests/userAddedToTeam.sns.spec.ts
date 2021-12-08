@@ -60,6 +60,7 @@ describe("User Added To Team SNS Topic", () => {
               name: "test team",
               image: "test-image",
               createdBy: "user-123",
+              organizationId: "organization-123",
             },
             user: {
               id: "user-123",
@@ -137,6 +138,7 @@ describe("User Added To Team SNS Topic", () => {
               name: "test team",
               image: "test-image",
               createdBy: "user-123",
+              organizationId: "organization-123",
             },
             user: {
               id: userOneId,

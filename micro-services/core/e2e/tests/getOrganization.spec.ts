@@ -8,7 +8,7 @@ import { UserId } from "../../src/types/userId.type";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { generateRandomString, URL_REGEX } from "../../../../e2e/util";
 
-fdescribe("GET /organizations/{organizationId} (Get Organization)", () => {
+describe("GET /organizations/{organizationId} (Get Organization)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
@@ -97,7 +97,7 @@ fdescribe("GET /organizations/{organizationId} (Get Organization)", () => {
           expect(error.response?.statusText).toBe("Bad Request");
           expect(error.response?.data).toEqual({
             message: "Error validating request",
-            validationErrors: { pathParameters: { organizationId: "Failed constraint check for string: Must be a organization id" } },
+            validationErrors: { pathParameters: { organizationId: "Failed constraint check for string: Must be an organization id" } },
           });
         }
       });

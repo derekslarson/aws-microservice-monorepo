@@ -50,7 +50,7 @@ export class OrganizationDynamoRepository extends BaseDynamoRepositoryV2<Organiz
 
       const { organizationId } = params;
 
-      const organization = await this.get({ Key: { pk: organizationId, sk: organizationId } }, "Organization");
+      const organization = await this.get({ Key: { pk: organizationId, sk: EntityType.Organization } }, "Organization");
 
       return { organization };
     } catch (error: unknown) {
@@ -66,7 +66,7 @@ export class OrganizationDynamoRepository extends BaseDynamoRepositoryV2<Organiz
 
       const { organizationId, updates } = params;
 
-      const organization = await this.partialUpdate(organizationId, organizationId, updates);
+      const organization = await this.partialUpdate(organizationId, EntityType.Organization, updates);
 
       return { organization };
     } catch (error: unknown) {
@@ -82,7 +82,7 @@ export class OrganizationDynamoRepository extends BaseDynamoRepositoryV2<Organiz
 
       const { organizationIds } = params;
 
-      const organizations = await this.batchGet({ Keys: organizationIds.map((organizationId) => ({ pk: organizationId, sk: organizationId })) });
+      const organizations = await this.batchGet({ Keys: organizationIds.map((organizationId) => ({ pk: organizationId, sk: EntityType.Organization })) });
 
       return { organizations };
     } catch (error: unknown) {

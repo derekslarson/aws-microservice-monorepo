@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { createRandomTeam, createTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
@@ -16,9 +16,10 @@ describe("GET /teams/{teamId} (Get Team)", () => {
 
   describe("under normal conditions", () => {
     let team: RawTeam;
+    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
     beforeAll(async () => {
-      ({ team } = await createRandomTeam({ createdBy: userId }));
+      ({ team } = await createRandomTeam({ createdBy: userId, organizationId: mockOrganizationId }));
 
       await createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin });
     });
@@ -35,6 +36,7 @@ describe("GET /teams/{teamId} (Get Team)", () => {
             id: team.id,
             name: team.name,
             createdBy: team.createdBy,
+            organizationId: mockOrganizationId,
             image: jasmine.stringMatching(URL_REGEX),
           },
         });
@@ -63,12 +65,12 @@ describe("GET /teams/{teamId} (Get Team)", () => {
     });
 
     describe("when a teamId of a team the user is not a member of is passed in", () => {
+      let team: RawTeam;
+      const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
       const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
-      let team: RawTeam;
-
       beforeAll(async () => {
-        ({ team } = await createRandomTeam({ createdBy: mockUserId }));
+        ({ team } = await createRandomTeam({ createdBy: mockUserId, organizationId: mockOrganizationId }));
       });
 
       it("throws a 403 error", async () => {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { MeetingMessageUpdatedSnsMessage, Role } from "@yac/util";
@@ -110,7 +111,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
 
             const { unreadMessages, ...updatedConversationUserRelationship } = conversationUserRelationship;
 
-            expect(conversationUserRelationshipEntity).toEqual(updatedConversationUserRelationship);
+            expect(conversationUserRelationshipEntity).toEqual(updatedConversationUserRelationship as RawConversationUserRelationship<ConversationType.Meeting>);
           } catch (error) {
             fail(error);
           }
@@ -282,7 +283,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
             expect(conversationUserRelationshipEntity).toEqual({
               ...conversationUserRelationship,
               unreadMessages: documentClient.createSet([ message.id, messageTwo.id ].sort()),
-            });
+            } as RawConversationUserRelationship<ConversationType.Meeting>);
           } catch (error) {
             fail(error);
           }

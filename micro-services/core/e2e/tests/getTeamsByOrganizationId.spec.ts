@@ -2,67 +2,59 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { OrganizationId, Role } from "@yac/util";
-import { createRandomAuthServiceUser, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
+import { generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createRandomTeam, createTeamUserRelationship } from "../util";
+import { createOrganization, createOrganizationUserRelationship, createRandomTeam } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
+import { RawOrganization } from "../../src/repositories/organization.dynamo.repository";
 
-describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
+describe("GET /organizations/{organizationId}/teams (Get Teams by Organization Id)", () => {
   const baseUrl = process.env.baseUrl as string;
-
+  const userId = process.env.userId as UserId;
+  const accessToken = process.env.accessToken as string;
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
+
+  let organization: RawOrganization;
+  let teamA: RawTeam;
+  let teamB: RawTeam;
+
+  beforeAll(async () => {
+    ({ organization } = await createOrganization({ createdBy: userId, name: generateRandomString() }));
+
+    await createOrganizationUserRelationship({ organizationId: organization.id, userId, role: Role.Admin });
+
+    // We need to wait create the teams in sequence, so that we can be sure of the return order in the test
+    ({ team: teamA } = await createRandomTeam({ createdBy: userId, organizationId: organization.id }));
+    ({ team: teamB } = await createRandomTeam({ createdBy: mockUserId, organizationId: organization.id }));
+    // This team should not be returned as it is in a different org
+    await createRandomTeam({ createdBy: mockUserId, organizationId: mockOrganizationId });
+  });
 
   describe("under normal conditions", () => {
-    let userId: UserId;
-    let accessToken: string;
-    let teamA: RawTeam;
-    let teamB: RawTeam;
-    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
-
-    beforeAll(async () => {
-      // We have to fetch a new base user and access token here to prevent bleed over from other tests
-      const user = await createRandomAuthServiceUser();
-      userId = user.id;
-
-      ([ { accessToken }, { team: teamA } ] = await Promise.all([
-        getAccessTokenByEmail(user.email),
-        createRandomTeam({ createdBy: userId, organizationId: mockOrganizationId }),
-      ]));
-
-      // We need to wait create the teams in sequence, so that we can be sure of the return order in the test
-      ({ team: teamB } = await createRandomTeam({ createdBy: mockUserId, organizationId: mockOrganizationId }));
-
-      await Promise.all([
-        createTeamUserRelationship({ userId, teamId: teamA.id, role: Role.Admin }),
-        createTeamUserRelationship({ userId, teamId: teamB.id, role: Role.User }),
-      ]);
-    });
-
     describe("when not passed a 'limit' query param", () => {
       it("returns a valid response", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get(`${baseUrl}/users/${userId}/teams`, { headers });
+          const { status, data } = await axios.get(`${baseUrl}/organizations/${organization.id}/teams`, { headers });
 
           expect(status).toBe(200);
           expect(data).toEqual({
             teams: [
               {
-                id: teamA.id,
-                name: teamA.name,
-                createdBy: teamA.createdBy,
-                role: Role.Admin,
-                organizationId: mockOrganizationId,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-              {
                 id: teamB.id,
                 name: teamB.name,
                 createdBy: teamB.createdBy,
-                role: Role.User,
-                organizationId: mockOrganizationId,
+                organizationId: organization.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+              {
+                id: teamA.id,
+                name: teamA.name,
+                createdBy: teamA.createdBy,
+                organizationId: organization.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             ],
@@ -79,17 +71,16 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          const { status, data } = await axios.get(`${baseUrl}/users/${userId}/teams`, { params, headers });
+          const { status, data } = await axios.get(`${baseUrl}/organizations/${organization.id}/teams`, { params, headers });
 
           expect(status).toBe(200);
           expect(data).toEqual({
             teams: [
               {
-                id: teamA.id,
-                name: teamA.name,
-                createdBy: teamA.createdBy,
-                role: Role.Admin,
-                organizationId: mockOrganizationId,
+                id: teamB.id,
+                name: teamB.name,
+                createdBy: teamB.createdBy,
+                organizationId: organization.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             ],
@@ -98,17 +89,16 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
 
           const callTwoParams = { limit: 1, exclusiveStartKey: data.lastEvaluatedKey };
 
-          const { status: callTwoStatus, data: callTwoData } = await axios.get(`${baseUrl}/users/${userId}/teams`, { params: callTwoParams, headers });
+          const { status: callTwoStatus, data: callTwoData } = await axios.get(`${baseUrl}/organizations/${organization.id}/teams`, { params: callTwoParams, headers });
 
           expect(callTwoStatus).toBe(200);
           expect(callTwoData).toEqual({
             teams: [
               {
-                id: teamB.id,
-                name: teamB.name,
-                createdBy: teamB.createdBy,
-                role: Role.User,
-                organizationId: mockOrganizationId,
+                id: teamA.id,
+                name: teamA.name,
+                createdBy: teamA.createdBy,
+                organizationId: organization.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             ],
@@ -121,15 +111,12 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
   });
 
   describe("under error conditions", () => {
-    const userId = process.env.userId as UserId;
-    const accessToken = process.env.accessToken as string;
-
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
         const headers = {};
 
         try {
-          await axios.get(`${baseUrl}/users/${userId}/teams`, { headers });
+          await axios.get(`${baseUrl}/organizations/${organization.id}/teams`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -139,12 +126,18 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
       });
     });
 
-    describe("when a userId of a user different than the id in the accessToken is passed in", () => {
+    describe("when passed an organizationId the user is not an admin of", () => {
+      let organizationTwo: RawOrganization;
+
+      beforeEach(async () => {
+        ({ organization: organizationTwo } = await createOrganization({ createdBy: mockUserId, name: generateRandomString() }));
+      });
+
       it("throws a 403 error", async () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/users/${mockUserId}/teams`, { headers });
+          await axios.get(`${baseUrl}/organizations/${organizationTwo.id}/teams`, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -160,7 +153,7 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.get(`${baseUrl}/users/test/teams`, { params, headers });
+          await axios.get(`${baseUrl}/organizations/test/teams`, { params, headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -169,7 +162,7 @@ describe("GET /users/{userId}/teams (Get Teams by User Id)", () => {
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { userId: "Failed constraint check for string: Must be a user id" },
+              pathParameters: { organizationId: "Failed constraint check for string: Must be an organization id" },
               queryStringParameters: { limit: "Failed constraint check for string: Must be a whole number" },
             },
           });

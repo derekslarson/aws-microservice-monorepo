@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role, UserAddedToTeamSnsMessage } from "@yac/util";
+import { OrganizationId, Role, UserAddedToTeamSnsMessage } from "@yac/util";
 import { Static } from "runtypes";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import {
@@ -38,6 +38,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
     let randomEmail: string;
     let randomPhone: string;
     let randomUsername: string;
+    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
     beforeEach(async () => {
       randomEmail = generateRandomEmail();
@@ -46,7 +47,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
 
       ([ { user: otherUser }, { team } ] = await Promise.all([
         createRandomUser(),
-        createRandomTeam({ createdBy: userId }),
+        createRandomTeam({ createdBy: userId, organizationId: mockOrganizationId }),
       ]));
 
       await createTeamUserRelationship({ userId, teamId: team.id, role: Role.Admin });
@@ -267,6 +268,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
                 id: team.id,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: team.name,
+                organizationId: mockOrganizationId,
               },
               user: {
                 email: otherUser.email,
@@ -287,6 +289,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
                 id: team.id,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: team.name,
+                organizationId: mockOrganizationId,
               },
               user: {
                 email: emailUser.email,
@@ -303,6 +306,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
                 id: team.id,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: team.name,
+                organizationId: mockOrganizationId,
               },
               user: {
                 phone: phoneUser.phone,
@@ -337,9 +341,10 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
     describe("when an id of a team that the user is not an admin of is passed in", () => {
       let teamTwo: RawTeam;
       const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+      const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
       beforeEach(async () => {
-        ({ team: teamTwo } = await createRandomTeam({ createdBy: mockUserIdTwo }));
+        ({ team: teamTwo } = await createRandomTeam({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId }));
 
         await createTeamUserRelationship({ teamId: teamTwo.id, userId, role: Role.User });
       });

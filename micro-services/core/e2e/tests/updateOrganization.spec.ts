@@ -6,7 +6,7 @@ import { createRandomAuthServiceUser, generateRandomString, getAccessToken } fro
 import { createOrganization, CreateOrganizationOutput, createOrganizationUserRelationship, getOrganization } from "../util";
 import { UserId } from "../../src/types/userId.type";
 
-fdescribe("PATCH /organizations/{organizationId} (Update Organization)", () => {
+describe("PATCH /organizations/{organizationId} (Update Organization)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
@@ -108,7 +108,7 @@ fdescribe("PATCH /organizations/{organizationId} (Update Organization)", () => {
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { organizationId: "Failed constraint check for string: Must be a organization id" },
+              pathParameters: { organizationId: "Failed constraint check for string: Must be an organization id" },
               body: { name: "Expected string, but was boolean" },
             },
           });

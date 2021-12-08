@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { GroupCreatedSnsMessage, Role } from "@yac/util";
+import { GroupCreatedSnsMessage, OrganizationId, Role } from "@yac/util";
 import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { Group } from "../../src/mediator-services/group.mediator.service";
 import { EntityType } from "../../src/enums/entityType.enum";
@@ -21,9 +21,10 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
 
   describe("under normal conditions", () => {
     let team: RawTeam;
+    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
     beforeEach(async () => {
-      ({ team } = await createRandomTeam({ createdBy: userId }));
+      ({ team } = await createRandomTeam({ createdBy: userId, organizationId: mockOrganizationId }));
 
       await createTeamUserRelationship({ teamId: team.id, userId, role: Role.Admin });
     });
@@ -180,9 +181,10 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
 
     describe("when passed a teamId the user is not an admin of", () => {
       let teamTwo: RawTeam;
+      const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
       beforeEach(async () => {
-        ({ team: teamTwo } = await createRandomTeam({ createdBy: `${KeyPrefix.User}${generateRandomString(5)}` }));
+        ({ team: teamTwo } = await createRandomTeam({ createdBy: `${KeyPrefix.User}${generateRandomString(5)}`, organizationId: mockOrganizationId }));
 
         await createTeamUserRelationship({ teamId: teamTwo.id, userId, role: Role.User });
       });
