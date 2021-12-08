@@ -343,7 +343,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const rule = new Events.Rule(this, `RotateJwksChronRule_${id}`, { schedule: Events.Schedule.rate(CDK.Duration.minutes(10)) });
+    const rule = new Events.Rule(this, `RotateJwksChronRule_${id}`, { schedule: Events.Schedule.rate(CDK.Duration.minutes(20)) });
     rule.addTarget(new EventsTargets.LambdaFunction(rotateJwksHandler));
 
     new CustomResources.AwsCustomResource(this, `AddJwksToAuthTable_${id}`, {
