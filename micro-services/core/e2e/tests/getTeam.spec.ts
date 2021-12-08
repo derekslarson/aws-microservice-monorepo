@@ -36,6 +36,7 @@ describe("GET /teams/{teamId} (Get Team)", () => {
             id: team.id,
             name: team.name,
             createdBy: team.createdBy,
+            organizationId: mockOrganizationId,
             image: jasmine.stringMatching(URL_REGEX),
           },
         });
