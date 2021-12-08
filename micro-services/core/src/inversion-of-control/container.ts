@@ -80,6 +80,12 @@ import { PendingInvitationDynamoRepository, PendingInvitationRepositoryInterface
 import { PendingInvitationService, PendingInvitationServiceInterface } from "../entity-services/pendingInvitation.service";
 import { CreateUserRequestSnsService, CreateUserRequestSnsServiceInterface } from "../sns-services/createUserRequest.sns.service";
 import { PendingInvitationCreatedDynamoProcessorService } from "../processor-services/pendingInvitationCreated.dynamo.processor.service";
+import { OrganizationDynamoRepository, OrganizationRepositoryInterface } from "../repositories/organization.dynamo.repository";
+import { OrganizationService, OrganizationServiceInterface } from "../entity-services/organization.service";
+import { OrganizationUserRelationshipDynamoRepository, OrganizationUserRelationshipRepositoryInterface } from "../repositories/organizationUserRelationship.dynamo.repository";
+import { OrganizationUserRelationshipService, OrganizationUserRelationshipServiceInterface } from "../entity-services/organizationUserRelationship.service";
+import { OrganizationMediatorService, OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
+import { OrganizationController, OrganizationControllerInterface } from "../controllers/organization.controller";
 
 const container = new Container();
 
@@ -95,6 +101,7 @@ try {
   container.bind<GroupControllerInterface>(TYPES.GroupControllerInterface).to(GroupController);
   container.bind<MeetingControllerInterface>(TYPES.MeetingControllerInterface).to(MeetingController);
   container.bind<MessageControllerInterface>(TYPES.MessageControllerInterface).to(MessageController);
+  container.bind<OrganizationControllerInterface>(TYPES.OrganizationControllerInterface).to(OrganizationController);
   container.bind<TeamControllerInterface>(TYPES.TeamControllerInterface).to(TeamController);
   container.bind<UserControllerInterface>(TYPES.UserControllerInterface).to(UserController);
 
@@ -107,6 +114,7 @@ try {
   container.bind<GroupMediatorServiceInterface>(TYPES.GroupMediatorServiceInterface).to(GroupMediatorService);
   container.bind<MeetingMediatorServiceInterface>(TYPES.MeetingMediatorServiceInterface).to(MeetingMediatorService);
   container.bind<MessageMediatorServiceInterface>(TYPES.MessageMediatorServiceInterface).to(MessageMediatorService);
+  container.bind<OrganizationMediatorServiceInterface>(TYPES.OrganizationMediatorServiceInterface).to(OrganizationMediatorService);
   container.bind<TeamMediatorServiceInterface>(TYPES.TeamMediatorServiceInterface).to(TeamMediatorService);
   container.bind<UserMediatorServiceInterface>(TYPES.UserMediatorServiceInterface).to(UserMediatorService);
 
@@ -164,6 +172,8 @@ try {
   container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
   container.bind<ConversationUserRelationshipServiceInterface>(TYPES.ConversationUserRelationshipServiceInterface).to(ConversationUserRelationshipService);
   container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);
+  container.bind<OrganizationServiceInterface>(TYPES.OrganizationServiceInterface).to(OrganizationService);
+  container.bind<OrganizationUserRelationshipServiceInterface>(TYPES.OrganizationUserRelationshipServiceInterface).to(OrganizationUserRelationshipService);
   container.bind<PendingInvitationServiceInterface>(TYPES.PendingInvitationServiceInterface).to(PendingInvitationService);
   container.bind<PendingMessageServiceInterface>(TYPES.PendingMessageServiceInterface).to(PendingMessageService);
   container.bind<TeamServiceInterface>(TYPES.TeamServiceInterface).to(TeamService);
@@ -176,6 +186,8 @@ try {
   container.bind<ConversationUserRelationshipRepositoryInterface>(TYPES.ConversationUserRelationshipRepositoryInterface).to(ConversationUserRelationshipDynamoRepository);
   container.bind<ImageFileRepositoryInterface>(TYPES.ImageFileRepositoryInterface).to(ImageS3Repository);
   container.bind<MessageRepositoryInterface>(TYPES.MessageRepositoryInterface).to(MessageDynamoRepository);
+  container.bind<OrganizationRepositoryInterface>(TYPES.OrganizationRepositoryInterface).to(OrganizationDynamoRepository);
+  container.bind<OrganizationUserRelationshipRepositoryInterface>(TYPES.OrganizationUserRelationshipRepositoryInterface).to(OrganizationUserRelationshipDynamoRepository);
   container.bind<PendingMessageRepositoryInterface>(TYPES.PendingMessageRepositoryInterface).to(PendingMessageDynamoRepository);
   container.bind<PendingInvitationRepositoryInterface>(TYPES.PendingInvitationRepositoryInterface).to(PendingInvitationDynamoRepository);
   container.bind<TeamRepositoryInterface>(TYPES.TeamRepositoryInterface).to(TeamDynamoRepository);

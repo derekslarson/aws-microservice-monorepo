@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, Role } from "@yac/util";
+import { LoggerServiceInterface, NotFoundError, OrganizationId, Role } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamId } from "../types/teamId.type";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
@@ -13,12 +13,14 @@ import { PendingInvitationType } from "../enums/pendingInvitationType.enum";
 import { PendingInvitation, PendingInvitationServiceInterface } from "../entity-services/pendingInvitation.service";
 import { User, UserServiceInterface, GetUserByEmailInput, GetUserByPhoneInput, GetUserByUsernameInput } from "../entity-services/user.service";
 import { InvitingEntityId } from "../repositories/pendingInvitation.dynamo.repository";
+import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 
 @injectable()
 export class InvitationOrchestratorService implements InvitationOrchestratorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
+    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
     @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
@@ -44,6 +46,29 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
       return { successes, failures };
     } catch (error: unknown) {
       this.loggerService.error("Error in addUsersAsFriends", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async addUsersToOrganization(params: AddUsersToOrganizationInput): Promise<AddUsersToOrganizationOutput> {
+    try {
+      this.loggerService.trace("addUsersToOrganization called", { params }, this.constructor.name);
+
+      const { organizationId, users: invitations } = params;
+
+      const settledInvitations = await Promise.all(invitations.map((invitation) => this.handleInvitation({
+        type: PendingInvitationType.Organization,
+        invitingEntityId: organizationId,
+        invitation,
+        invitationRequest: ({ userId }) => this.organizationMediatorService.addUserToOrganization({ organizationId, userId, role: invitation.role }),
+      })));
+
+      const { successes, failures } = this.mapSettledInvitationsToResponse({ settledInvitations });
+
+      return { successes, failures };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addUsersToOrganization", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -245,6 +270,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
 export interface InvitationOrchestratorServiceInterface {
   addUsersAsFriends(params: AddUsersAsFriendsInput): Promise<AddUsersAsFriendsOutput>;
+  addUsersToOrganization(params: AddUsersToOrganizationInput): Promise<AddUsersToOrganizationOutput>;
   addUsersToTeam(params: AddUsersToTeamInput): Promise<AddUsersToTeamOutput>;
   addUsersToGroup(params: AddUsersToGroupInput): Promise<AddUsersToGroupOutput>;
   addUsersToMeeting(params: AddUsersToMeetingInput): Promise<AddUsersToMeetingOutput>;
@@ -258,6 +284,16 @@ export interface AddUsersAsFriendsInput {
 export interface AddUsersAsFriendsOutput {
   successes: InvitationWithoutRole[];
   failures: InvitationWithoutRole[];
+}
+
+export interface AddUsersToOrganizationInput {
+  organizationId: OrganizationId;
+  users: InvitationWithRole[];
+}
+
+export interface AddUsersToOrganizationOutput {
+  successes: InvitationWithRole[];
+  failures: InvitationWithRole[];
 }
 
 export interface AddUsersToTeamInput {

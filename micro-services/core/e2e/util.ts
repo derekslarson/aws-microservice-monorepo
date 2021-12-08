@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-console */
-import { MakeRequired, NotFoundError, Role } from "@yac/util";
+import { MakeRequired, NotFoundError, OrganizationId, Role } from "@yac/util";
 import { randomDigits } from "crypto-secure-random-digit";
 import ksuid from "ksuid";
 import { DynamoDB, S3 } from "aws-sdk";
@@ -27,6 +27,8 @@ import { MessageMimeType } from "../src/enums/message.mimeType.enum";
 import { PendingMessageId } from "../src/types/pendingMessageId.type";
 import { RawPendingMessage } from "../src/repositories/pendingMessage.dynamo.repository";
 import { RawUser } from "../src/repositories/user.dynamo.repository";
+import { RawOrganization } from "../src/repositories/organization.dynamo.repository";
+import { RawOrganizationUserRelationship } from "../src/repositories/organizationUserRelationship.dynamo.repository";
 import { ImageMimeType } from "../src/enums/image.mimeType.enum";
 import { GlobalSecondaryIndex } from "../src/enums/globalSecondaryIndex.enum";
 
@@ -353,6 +355,115 @@ export async function getTeamUserRelationship(params: GetTeamUserRelationshipInp
     return { teamUserRelationship };
   } catch (error) {
     console.log("Error in getTeamUserRelationship:\n", error);
+
+    throw error;
+  }
+}
+
+export async function createOrganization(params: CreateOrganizationInput): Promise<CreateOrganizationOutput> {
+  try {
+    const { name, createdBy } = params;
+
+    const { image, mimeType } = createDefaultImage();
+
+    const organizationId: OrganizationId = `${KeyPrefix.Organization}${ksuid.randomSync().string}`;
+
+    const organization: RawOrganization = {
+      entityType: EntityType.Organization,
+      imageMimeType: mimeType,
+      pk: organizationId,
+      sk: EntityType.Organization,
+      id: organizationId,
+      name,
+      createdBy,
+    };
+
+    const s3UploadInput: S3.Types.PutObjectRequest = {
+      Bucket: process.env["image-s3-bucket-name"] as string,
+      Key: `organizations/${organizationId}.png`,
+      Body: image,
+      ContentType: mimeType,
+    };
+
+    const dynamoPutInput: DocumentClient.PutItemInput = {
+      TableName: process.env["core-table-name"] as string,
+      Item: organization,
+    };
+
+    await Promise.all([
+      s3.upload(s3UploadInput).promise(),
+      documentClient.put(dynamoPutInput).promise(),
+    ]);
+
+    return { organization };
+  } catch (error) {
+    console.log("Error in createRandomOrganization:\n", error);
+
+    throw error;
+  }
+}
+
+export async function getOrganization(params: GetOrganizationInput): Promise<GetOrganizationOutput> {
+  try {
+    const { organizationId } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: organizationId, sk: EntityType.Organization },
+    }).promise();
+
+    const organization = Item as RawOrganization | undefined;
+
+    return { organization };
+  } catch (error) {
+    console.log("Error in getOrganization:\n", error);
+
+    throw error;
+  }
+}
+
+export async function createOrganizationUserRelationship(params: CreateOrganizationUserRelationshipInput): Promise<CreateOrganizationUserRelationshipOutput> {
+  try {
+    const { userId, organizationId, role } = params;
+
+    const organizationUserRelationship: RawOrganizationUserRelationship = {
+      entityType: EntityType.OrganizationUserRelationship,
+      pk: organizationId,
+      sk: userId,
+      gsi1pk: userId,
+      gsi1sk: organizationId,
+      organizationId,
+      userId,
+      role,
+    };
+
+    await documentClient.put({
+      TableName: process.env["core-table-name"] as string,
+      Item: organizationUserRelationship,
+    }).promise();
+
+    return { organizationUserRelationship };
+  } catch (error) {
+    console.log("Error in createOrganizationUserRelationship:\n", error);
+
+    throw error;
+  }
+}
+
+export async function getOrganizationUserRelationship(params: GetOrganizationUserRelationshipInput): Promise<GetOrganizationUserRelationshipOutput> {
+  try {
+    const { organizationId, userId } = params;
+
+    const { Item } = await documentClient.get({
+      TableName: process.env["core-table-name"] as string,
+      Key: { pk: organizationId, sk: userId },
+    }).promise();
+
+    const organizationUserRelationship = Item as RawOrganizationUserRelationship;
+
+    return { organizationUserRelationship };
+  } catch (error) {
+    console.log("Error in getOrganizationUserRelationship:\n", error);
 
     throw error;
   }
@@ -962,3 +1073,39 @@ export interface DeleteSnsEventsByTopicArnInput {
 }
 
 export type DeleteSnsEventsByTopicArnOutput = void;
+
+export interface CreateOrganizationInput {
+  createdBy: UserId;
+  name: string;
+}
+
+export interface CreateOrganizationOutput {
+  organization: RawOrganization;
+}
+
+export interface GetOrganizationInput {
+  organizationId: OrganizationId;
+}
+
+export interface GetOrganizationOutput {
+  organization?: RawOrganization;
+}
+
+export interface GetOrganizationUserRelationshipInput {
+  userId: UserId;
+  organizationId: OrganizationId;
+}
+
+export interface GetOrganizationUserRelationshipOutput {
+  organizationUserRelationship?: RawOrganizationUserRelationship;
+}
+
+export interface CreateOrganizationUserRelationshipInput {
+  userId: UserId;
+  organizationId: OrganizationId;
+  role: Role;
+}
+
+export interface CreateOrganizationUserRelationshipOutput {
+  organizationUserRelationship: RawOrganizationUserRelationship;
+}

@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, WithRole } from "@yac/util";
+import { LoggerServiceInterface, OrganizationId, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { UserServiceInterface, User as UserEntity } from "../entity-services/user.service";
 import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";
@@ -9,6 +9,7 @@ import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
 import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
+import { OrganizationUserRelationshipServiceInterface } from "../entity-services/organizationUserRelationship.service";
 
 @injectable()
 export class UserMediatorService implements UserMediatorServiceInterface {
@@ -17,6 +18,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.TeamUserRelationshipServiceInterface) private teamUserRelationshipService: TeamUserRelationshipServiceInterface,
     @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
+    @inject(TYPES.OrganizationUserRelationshipServiceInterface) private organizationUserRelationshipService: OrganizationUserRelationshipServiceInterface,
   ) {}
 
   public async updateUser(params: UpdateUserInput): Promise<UpdateUserOutput> {
@@ -110,6 +112,35 @@ export class UserMediatorService implements UserMediatorServiceInterface {
       return { user };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUserByUsername", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getUsersByOrganizationId(params: GetUsersByOrganizationIdInput): Promise<GetUsersByOrganizationIdOutput> {
+    try {
+      this.loggerService.trace("getUsersByOrganizationId called", { params }, this.constructor.name);
+
+      const { organizationId, exclusiveStartKey, limit } = params;
+
+      const { organizationUserRelationships, lastEvaluatedKey } = await this.organizationUserRelationshipService.getOrganizationUserRelationshipsByOrganizationId({ organizationId, exclusiveStartKey, limit });
+
+      const userIds = organizationUserRelationships.map((relationship) => relationship.userId);
+
+      const { users: userEntities } = await this.userService.getUsers({ userIds });
+
+      const users = userEntities.map((userEntity, i) => {
+        const user: WithRole<User> = {
+          ...userEntity,
+          role: organizationUserRelationships[i].role,
+        };
+
+        return user;
+      });
+
+      return { users, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersByOrganizationId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -218,6 +249,7 @@ export interface UserMediatorServiceInterface {
   getUserByPhone(params: GetUserByPhoneInput): Promise<GetUserByPhoneOutput>;
   getUserByUsername(params: GetUserByUsernameInput): Promise<GetUserByUsernameOutput>;
   getUserImageUploadUrl(params: GetUserImageUploadUrlInput): GetUserImageUploadUrlOutput;
+  getUsersByOrganizationId(params: GetUsersByOrganizationIdInput): Promise<GetUsersByOrganizationIdOutput>;
   getUsersByTeamId(params: GetUsersByTeamIdInput): Promise<GetUsersByTeamIdOutput>;
   getUsersByGroupId(params: GetUsersByGroupIdInput): Promise<GetUsersByGroupIdOutput>;
   getUsersByMeetingId(params: GetUsersByMeetingIdInput): Promise<GetUsersByMeetingIdOutput>;
@@ -291,6 +323,17 @@ export interface GetUserByUsernameInput {
 
 export interface GetUserByUsernameOutput {
   user: User;
+}
+
+export interface GetUsersByOrganizationIdInput {
+  organizationId: OrganizationId;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetUsersByOrganizationIdOutput {
+  users: WithRole<User>[];
+  lastEvaluatedKey?: string;
 }
 
 export interface GetUsersByTeamIdInput {
