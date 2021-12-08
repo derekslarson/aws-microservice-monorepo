@@ -8,7 +8,7 @@ import { createRandomUser, createOrganization, createOrganizationUserRelationshi
 import { User } from "../../src/mediator-services/user.mediator.service";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
-fdescribe("GET /organizations/{organizationId}/users (Get Users by Organization Id)", () => {
+describe("GET /organizations/{organizationId}/users (Get Users by Organization Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   let user: CreateRandomAuthServiceUserOutput;
   let accessToken: string;
@@ -168,7 +168,7 @@ fdescribe("GET /organizations/{organizationId}/users (Get Users by Organization 
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { organizationId: "Failed constraint check for string: Must be a organization id" },
+              pathParameters: { organizationId: "Failed constraint check for string: Must be an organization id" },
               queryStringParameters: { limit: "Failed constraint check for string: Must be a whole number" },
             },
           });

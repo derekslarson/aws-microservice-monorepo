@@ -268,6 +268,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
                 id: team.id,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: team.name,
+                organizationId: mockOrganizationId,
               },
               user: {
                 email: otherUser.email,
@@ -288,6 +289,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
                 id: team.id,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: team.name,
+                organizationId: mockOrganizationId,
               },
               user: {
                 email: emailUser.email,
@@ -304,6 +306,7 @@ describe("POST /teams/{teamId}/users (Add Users to Team)", () => {
                 id: team.id,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: team.name,
+                organizationId: mockOrganizationId,
               },
               user: {
                 phone: phoneUser.phone,

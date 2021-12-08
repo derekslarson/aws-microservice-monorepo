@@ -10,7 +10,7 @@ import { getOrganization, getOrganizationUserRelationship } from "../util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 
-fdescribe("POST /users/{userId}/organizations (Create Organization)", () => {
+describe("POST /users/{userId}/organizations (Create Organization)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;

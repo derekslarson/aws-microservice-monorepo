@@ -88,6 +88,7 @@ describe("DELETE /teams/{teamId}/users/{userId} (Remove User from Team)", () => 
               id: team.id,
               image: jasmine.stringMatching(URL_REGEX),
               name: team.name,
+              organizationId: mockOrganizationId,
             },
             user: {
               email: otherUser.email,

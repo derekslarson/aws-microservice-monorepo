@@ -44,15 +44,17 @@ describe("GET /organizations/{organizationId}/teams (Get Teams by Organization I
           expect(data).toEqual({
             teams: [
               {
-                id: teamA.id,
-                name: teamA.name,
-                createdBy: teamA.createdBy,
-                image: jasmine.stringMatching(URL_REGEX),
-              },
-              {
                 id: teamB.id,
                 name: teamB.name,
                 createdBy: teamB.createdBy,
+                organizationId: organization.id,
+                image: jasmine.stringMatching(URL_REGEX),
+              },
+              {
+                id: teamA.id,
+                name: teamA.name,
+                createdBy: teamA.createdBy,
+                organizationId: organization.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             ],
@@ -75,9 +77,10 @@ describe("GET /organizations/{organizationId}/teams (Get Teams by Organization I
           expect(data).toEqual({
             teams: [
               {
-                id: teamA.id,
-                name: teamA.name,
-                createdBy: teamA.createdBy,
+                id: teamB.id,
+                name: teamB.name,
+                createdBy: teamB.createdBy,
+                organizationId: organization.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             ],
@@ -92,9 +95,10 @@ describe("GET /organizations/{organizationId}/teams (Get Teams by Organization I
           expect(callTwoData).toEqual({
             teams: [
               {
-                id: teamB.id,
-                name: teamB.name,
-                createdBy: teamB.createdBy,
+                id: teamA.id,
+                name: teamA.name,
+                createdBy: teamA.createdBy,
+                organizationId: organization.id,
                 image: jasmine.stringMatching(URL_REGEX),
               },
             ],

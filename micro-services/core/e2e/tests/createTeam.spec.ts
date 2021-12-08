@@ -137,7 +137,7 @@ describe("POST /organizations/{organizationId}/teams (Create Team)", () => {
               id: team.id,
               image: jasmine.stringMatching(URL_REGEX),
               name: team.name,
-              oeganizationId: organization.id,
+              organizationId: organization.id,
             },
           },
         }));
@@ -175,7 +175,7 @@ describe("POST /organizations/{organizationId}/teams (Create Team)", () => {
       it("throws a 403 error", async () => {
         const name = generateRandomString(5);
         const body = { name };
-        const headers = {};
+        const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
           await axios.post(`${baseUrl}/organizations/${organizationTwo.id}/teams`, body, { headers });
@@ -194,7 +194,7 @@ describe("POST /organizations/{organizationId}/teams (Create Team)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/users/test/teams`, body, { headers });
+          await axios.post(`${baseUrl}/organizations/test/teams`, body, { headers });
 
           fail("Expected an error");
         } catch (error: any) {
