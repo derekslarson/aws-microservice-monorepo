@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role, WithRole } from "@yac/util";
+import { OrganizationId, Role, WithRole } from "@yac/util";
 import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { createRandomUser, createConversationUserRelationship, createMeetingConversation, CreateRandomUserOutput } from "../util";
 import { User } from "../../src/mediator-services/user.mediator.service";
@@ -16,6 +16,7 @@ describe("GET /meetings/{meetingId}/users (Get Users by Meeting Id)", () => {
   let accessToken: string;
 
   const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   beforeAll(async () => {
     user = await createRandomAuthServiceUser();
@@ -30,7 +31,7 @@ describe("GET /meetings/{meetingId}/users (Get Users by Meeting Id)", () => {
     beforeAll(async () => {
       ({ user: otherUser } = await createRandomUser());
 
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: user.id, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeetingConversation({ createdBy: user.id, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Meeting, userId: user.id, conversationId: meeting.id, role: Role.Admin }),

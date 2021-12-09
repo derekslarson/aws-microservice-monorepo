@@ -13,15 +13,15 @@ import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 import { GroupId } from "../../src/types/groupId.type";
 
-describe("POST /users/{userId}/groups (Create Group)", () => {
+describe("POST /organizations/{organizationId}/groups (Create Group)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
   const groupCreatedSnsTopicArn = process.env["group-created-sns-topic-arn"] as string;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     let team: RawTeam;
-    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
     beforeEach(async () => {
       ({ team } = await createRandomTeam({ createdBy: userId, organizationId: mockOrganizationId }));
@@ -35,12 +35,13 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post(`${baseUrl}/users/${userId}/groups`, body, { headers });
+        const { status, data } = await axios.post(`${baseUrl}/organizations/${mockOrganizationId}/groups`, body, { headers });
 
         expect(status).toBe(201);
         expect(data).toEqual({
           group: {
             id: jasmine.stringMatching(new RegExp(`${KeyPrefix.GroupConversation}.*`)),
+            organizationId: mockOrganizationId,
             name,
             teamId: team.id,
             createdBy: userId,
@@ -60,7 +61,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { data } = await axios.post<{ group: Group; }>(`${baseUrl}/users/${userId}/groups`, body, { headers });
+        const { data } = await axios.post<{ group: Group; }>(`${baseUrl}/organizations/${mockOrganizationId}/groups`, body, { headers });
 
         const { conversation } = await getConversation({ conversationId: data.group.id });
 
@@ -70,7 +71,10 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
           sk: data.group.id,
           gsi1pk: team.id,
           gsi1sk: data.group.id,
+          gsi2pk: mockOrganizationId,
+          gsi2sk: data.group.id,
           id: data.group.id,
+          organizationId: mockOrganizationId,
           createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
           imageMimeType: ImageMimeType.Png,
           type: ConversationType.Group,
@@ -89,7 +93,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { data } = await axios.post<{ group: Group; }>(`${baseUrl}/users/${userId}/groups`, body, { headers });
+        const { data } = await axios.post<{ group: Group; }>(`${baseUrl}/organizations/${mockOrganizationId}/groups`, body, { headers });
 
         const { conversationUserRelationship } = await getConversationUserRelationship({ conversationId: data.group.id, userId });
 
@@ -122,7 +126,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { data } = await axios.post(`${baseUrl}/users/${userId}/groups `, body, { headers });
+        const { data } = await axios.post(`${baseUrl}/organizations/${mockOrganizationId}/groups `, body, { headers });
 
         const [ { user }, { conversation: group } ] = await Promise.all([
           getUser({ userId }),
@@ -147,6 +151,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
             group: {
               createdBy: group.createdBy,
               teamId: group.teamId,
+              organizationId: mockOrganizationId,
               image: jasmine.stringMatching(URL_REGEX),
               name: group.name,
               createdAt: group.createdAt,
@@ -169,7 +174,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
         const headers = {};
 
         try {
-          await axios.post(`${baseUrl}/users/${userId}/groups`, body, { headers });
+          await axios.post(`${baseUrl}/organizations/${mockOrganizationId}/groups`, body, { headers });
 
           fail("Expected an error");
         } catch (error: any) {
@@ -181,7 +186,6 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
 
     describe("when passed a teamId the user is not an admin of", () => {
       let teamTwo: RawTeam;
-      const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
       beforeEach(async () => {
         ({ team: teamTwo } = await createRandomTeam({ createdBy: `${KeyPrefix.User}${generateRandomString(5)}`, organizationId: mockOrganizationId }));
@@ -195,7 +199,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/users/${userId}/groups`, body, { headers });
+          await axios.post(`${baseUrl}/organizations/${mockOrganizationId}/groups`, body, { headers });
 
           fail("Expected an error");
         } catch (error: any) {
@@ -211,7 +215,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/users/test/groups`, body, { headers });
+          await axios.post(`${baseUrl}/organizations/test/groups`, body, { headers });
 
           fail("Expected an error");
         } catch (error: any) {
@@ -220,7 +224,7 @@ describe("POST /users/{userId}/groups (Create Group)", () => {
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { userId: "Failed constraint check for string: Must be a user id" },
+              pathParameters: { organizationId: "Failed constraint check for string: Must be an organization id" },
               body: {
                 name: "Expected string, but was missing",
                 teamId: "Expected string, but was number",

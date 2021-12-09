@@ -13,6 +13,7 @@ import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator
 import { GetMeetingImageUploadUrlDto } from "../dtos/getMeetingImageUploadUrl.dto";
 import { AddUsersToMeetingOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { UpdateMeetingDto } from "../dtos/updateMeeting.dto";
+import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 
 @injectable()
 export class MeetingController extends BaseController implements MeetingControllerInterface {
@@ -20,6 +21,7 @@ export class MeetingController extends BaseController implements MeetingControll
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
+    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
   ) {
@@ -32,23 +34,28 @@ export class MeetingController extends BaseController implements MeetingControll
 
       const {
         jwtId,
-        pathParameters: { userId },
+        pathParameters: { organizationId },
         body: { name, teamId, dueDate },
       } = this.validationService.validate({ dto: CreateMeetingDto, request, getUserIdFromJwt: true });
 
-      if (jwtId !== userId) {
-        throw new ForbiddenError("Forbidden");
-      }
-
       if (teamId) {
-        const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId });
+        const [ { isTeamAdmin }, { team } ] = await Promise.all([
+          this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId }),
+          this.teamMediatorService.getTeam({ teamId }),
+        ]);
 
-        if (!isTeamAdmin) {
+        if (!isTeamAdmin || team.organizationId !== organizationId) {
+          throw new ForbiddenError("Forbidden");
+        }
+      } else {
+        const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId: jwtId });
+
+        if (!isOrganizationAdmin) {
           throw new ForbiddenError("Forbidden");
         }
       }
 
-      const { meeting } = await this.meetingMediatorService.createMeeting({ name, createdBy: userId, dueDate, teamId });
+      const { meeting } = await this.meetingMediatorService.createMeeting({ name, createdBy: jwtId, dueDate, organizationId, teamId });
 
       const response: CreateMeetingResponse = { meeting };
 

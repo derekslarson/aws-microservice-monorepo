@@ -18,22 +18,22 @@ describe("GET /teams/{teamId}/meetings (Get Meetings by Team Id)", () => {
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
   const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     let team: RawTeam;
     let meeting: RawConversation<MeetingConversation>;
     let meetingTwo: RawConversation<MeetingConversation>;
-    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
     beforeAll(async () => {
       ({ team } = await createRandomTeam({ createdBy: mockUserId, organizationId: mockOrganizationId }));
 
       // We need to wait create the meetings in sequence, so that we can be sure of the return order in the test
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: mockUserId, name: generateRandomString(5), teamId: team.id, dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeetingConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id, dueDate: new Date().toISOString() }));
 
       await wait(1000);
 
-      ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserId, name: generateRandomString(5), teamId: team.id, dueDate: new Date().toISOString() }));
+      ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id, dueDate: new Date().toISOString() }));
 
       await Promise.all([
         createTeamUserRelationship({ userId, teamId: team.id, role: Role.User }),
@@ -54,6 +54,7 @@ describe("GET /teams/{teamId}/meetings (Get Meetings by Team Id)", () => {
             meetings: [
               {
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 name: meeting.name,
                 createdBy: meeting.createdBy,
                 createdAt: meeting.createdAt,
@@ -64,6 +65,7 @@ describe("GET /teams/{teamId}/meetings (Get Meetings by Team Id)", () => {
               },
               {
                 id: meetingTwo.id,
+                organizationId: mockOrganizationId,
                 name: meetingTwo.name,
                 createdBy: meetingTwo.createdBy,
                 createdAt: meetingTwo.createdAt,
@@ -93,6 +95,7 @@ describe("GET /teams/{teamId}/meetings (Get Meetings by Team Id)", () => {
             meetings: [
               {
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 name: meeting.name,
                 createdBy: meeting.createdBy,
                 createdAt: meeting.createdAt,
@@ -117,6 +120,7 @@ describe("GET /teams/{teamId}/meetings (Get Meetings by Team Id)", () => {
             meetings: [
               {
                 id: meetingTwo.id,
+                organizationId: mockOrganizationId,
                 name: meetingTwo.name,
                 createdBy: meetingTwo.createdBy,
                 createdAt: meetingTwo.createdAt,

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { MeetingMessageUpdatedSnsMessage, Role } from "@yac/util";
+import { MeetingMessageUpdatedSnsMessage, OrganizationId, Role } from "@yac/util";
 import axios from "axios";
 import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -19,6 +19,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
   const meetingMessageUpdatedSnsTopicArn = process.env["meeting-message-updated-sns-topic-arn"] as string;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     let fromUser: CreateRandomUserOutput["user"];
@@ -31,10 +32,10 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
     beforeEach(async () => {
       ([ { user: fromUser }, { conversation: meeting } ] = await Promise.all([
         createRandomUser(),
-        createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+        createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
       ]));
 
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       ([ { message }, { message: messageTwo } ] = await Promise.all([
         createMessage({ from: fromUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
@@ -152,6 +153,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
                     id: updatedMessage.id,
                     to: {
                       id: meeting.id,
+                      organizationId: mockOrganizationId,
                       name: meeting.name,
                       createdBy: meeting.createdBy,
                       createdAt: meeting.createdAt,
@@ -187,6 +189,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
                     id: updatedMessageTwo.id,
                     to: {
                       id: meeting.id,
+                      organizationId: mockOrganizationId,
                       name: meeting.name,
                       createdBy: meeting.createdBy,
                       createdAt: meeting.createdAt,

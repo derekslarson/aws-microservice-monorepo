@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, CleansedEntity, DocumentClientFactory, LoggerServiceInterface, RecursivePartial } from "@yac/util";
+import { BaseDynamoRepositoryV2, CleansedEntity, DocumentClientFactory, LoggerServiceInterface, OrganizationId, RecursivePartial } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
@@ -16,6 +16,14 @@ import { ImageMimeType } from "../enums/image.mimeType.enum";
 export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Conversation> implements ConversationRepositoryInterface {
   private gsiOneIndexName: string;
 
+  private gsiTwoIndexName: string;
+
+  private readonly typeToSkPrefixMap = {
+    [ConversationTypeEnum.Friend]: KeyPrefix.FriendConversation,
+    [ConversationTypeEnum.Group]: KeyPrefix.GroupConversation,
+    [ConversationTypeEnum.Meeting]: KeyPrefix.MeetingConversation,
+  };
+
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
@@ -24,6 +32,7 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
     super(documentClientFactory, envConfig.tableNames.core, loggerService);
 
     this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
+    this.gsiTwoIndexName = envConfig.globalSecondaryIndexNames.two;
   }
 
   public async createConversation<T extends Conversation>(params: CreateConversationInput<T>): Promise<CreateConversationOutput<T>> {
@@ -36,8 +45,8 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
         entityType: this.getEntityTypeByConversationType(conversation.type),
         pk: conversation.id,
         sk: conversation.id,
-        gsi1pk: conversation.teamId,
-        gsi1sk: conversation.teamId && conversation.id,
+        ...(conversation.teamId && { gsi1pk: conversation.teamId, gsi1sk: conversation.id }),
+        ...(conversation.organizationId && { gsi2pk: conversation.organizationId, gsi2sk: conversation.id }),
         ...conversation,
       };
 
@@ -126,17 +135,11 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
   public async getConversationsByTeamId<T extends ConversationType>(params: GetConversationsByTeamIdInput<T>): Promise<GetConversationsByTeamIdOutput<T>> {
     try {
-      this.loggerService.trace("getConversations called", { params }, this.constructor.name);
+      this.loggerService.trace("getConversationsByTeamId called", { params }, this.constructor.name);
 
       const { teamId, type, exclusiveStartKey, limit } = params;
 
-      const typeToSkPrefixMap = {
-        [ConversationTypeEnum.Friend]: KeyPrefix.FriendConversation,
-        [ConversationTypeEnum.Group]: KeyPrefix.GroupConversation,
-        [ConversationTypeEnum.Meeting]: KeyPrefix.MeetingConversation,
-      };
-
-      const skPrefix = type ? typeToSkPrefixMap[type] : KeyPrefix.Conversation;
+      const skPrefix = type ? this.typeToSkPrefixMap[type] : KeyPrefix.Conversation;
 
       const { Items: conversations, LastEvaluatedKey } = await this.query<Conversation<T>>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
@@ -159,6 +162,40 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
       };
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversationsByTeamId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getConversationsByOrganizationId<T extends ConversationType>(params: GetConversationsByOrganizationIdInput<T>): Promise<GetConversationsByOrganizationIdOutput<T>> {
+    try {
+      this.loggerService.trace("getConversationsByOrganizationId called", { params }, this.constructor.name);
+
+      const { organizationId, type, exclusiveStartKey, limit } = params;
+
+      const skPrefix = type ? this.typeToSkPrefixMap[type] : KeyPrefix.Conversation;
+
+      const { Items: conversations, LastEvaluatedKey } = await this.query<Conversation<T>>({
+        ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
+        Limit: limit ?? 25,
+        IndexName: this.gsiTwoIndexName,
+        KeyConditionExpression: "#gsi2pk = :gsi2pk AND begins_with(#gsi2sk, :skPrefix)",
+        ExpressionAttributeNames: {
+          "#gsi2pk": "gsi2pk",
+          "#gsi2sk": "gsi2sk",
+        },
+        ExpressionAttributeValues: {
+          ":gsi2pk": organizationId,
+          ":skPrefix": skPrefix,
+        },
+      });
+
+      return {
+        conversations,
+        ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
+      };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getConversationsByOrganizationId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -208,6 +245,7 @@ export interface ConversationRepositoryInterface {
   getConversations<T extends ConversationId>(params: GetConversationsInput<T>): Promise<GetConversationsOutput<T>>;
   deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput>;
   getConversationsByTeamId<T extends ConversationType>(params: GetConversationsByTeamIdInput<T>): Promise<GetConversationsByTeamIdOutput<T>>;
+  getConversationsByOrganizationId<T extends ConversationType>(params: GetConversationsByOrganizationIdInput<T>): Promise<GetConversationsByOrganizationIdOutput<T>>;
   convertRawConversationToConversation<T extends RawConversation<Conversation>>(params: ConvertRawConversationToConversationInput<T>): ConvertRawConversationToConversationOutput<T>;
 }
 
@@ -219,6 +257,7 @@ export interface BaseConversation<T extends ConversationTypeEnum> {
   createdBy: UserId;
   createdAt: string;
   teamId?: TeamId;
+  organizationId?: OrganizationId;
 }
 
 type ConversationEntityType = EntityType.FriendConversation | EntityType.GroupConversation | EntityType.MeetingConversation;
@@ -228,6 +267,7 @@ export type FriendConversation = BaseConversation<ConversationTypeEnum.Friend>;
 export interface GroupConversation extends BaseConversation<ConversationTypeEnum.Group> {
   name: string;
   imageMimeType: ImageMimeType;
+  organizationId: OrganizationId;
 }
 
 export interface MeetingConversation extends BaseConversation<ConversationTypeEnum.Meeting> {
@@ -235,6 +275,7 @@ export interface MeetingConversation extends BaseConversation<ConversationTypeEn
   imageMimeType: ImageMimeType;
   dueDate: string;
   outcomes?: string;
+  organizationId: OrganizationId;
 }
 
 export type Conversation<T extends ConversationType | void = void> =
@@ -249,6 +290,8 @@ export type RawConversation<T extends Conversation> = T & {
   sk: ConversationId;
   gsi1pk?: TeamId;
   gsi1sk?: ConversationId;
+  gsi2pk?: OrganizationId;
+  gsi2sk?: ConversationId;
 };
 
 export interface CreateConversationInput<T extends Conversation> {
@@ -302,6 +345,18 @@ export interface GetConversationsByTeamIdInput<T extends ConversationType> {
 }
 
 export interface GetConversationsByTeamIdOutput<T extends ConversationType> {
+  conversations: Conversation<T>[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetConversationsByOrganizationIdInput<T extends ConversationType> {
+  organizationId: OrganizationId;
+  type?: T;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetConversationsByOrganizationIdOutput<T extends ConversationType> {
   conversations: Conversation<T>[];
   lastEvaluatedKey?: string;
 }

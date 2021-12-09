@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { MessageTranscodedSnsMessage } from "@yac/util";
+import { MessageTranscodedSnsMessage, OrganizationId } from "@yac/util";
 import { backoff, generateRandomString, sns } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
@@ -26,8 +26,10 @@ describe("Message Transcoded SNS Topic", () => {
       let pendingMessage: RawPendingMessage;
       let messageId: MessageId;
 
+      const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
+
       beforeEach(async () => {
-        ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
+        ({ conversation: group } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
         ({ pendingMessage } = await createPendingMessage({ conversationId: group.id, from: userId, mimeType: mockMimeType }));
 

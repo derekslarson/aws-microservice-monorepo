@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import axios from "axios";
 import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -14,6 +14,7 @@ import { createConversationUserRelationship, createGroupConversation, createMeet
 
 describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)", () => {
   const baseUrl = process.env.baseUrl as string;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     const searchParamBoth = "both";
@@ -35,8 +36,8 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
 
       ([ { accessToken }, { conversation: meeting }, { conversation: group } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createMeetingConversation({ createdBy: user.id, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString() }),
-        createGroupConversation({ createdBy: otherUser.id, name: generateRandomString(5) }),
+        createMeetingConversation({ createdBy: user.id, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString() }),
+        createGroupConversation({ createdBy: otherUser.id, organizationId: mockOrganizationId, name: generateRandomString(5) }),
       ]));
 
       ([ { message }, { message: messageTwo } ] = await Promise.all([
@@ -72,6 +73,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                   title: message.title,
                   to: {
                     id: meeting.id,
+                    organizationId: mockOrganizationId,
                     name: meeting.name,
                     createdBy: meeting.createdBy,
                     createdAt: meeting.createdAt,
@@ -102,6 +104,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                   title: messageTwo.title,
                   to: {
                     id: group.id,
+                    organizationId: mockOrganizationId,
                     name: group.name,
                     createdBy: group.createdBy,
                     createdAt: group.createdAt,
@@ -151,6 +154,7 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
                   title: message.title,
                   to: {
                     id: meeting.id,
+                    organizationId: mockOrganizationId,
                     name: meeting.name,
                     createdBy: meeting.createdBy,
                     createdAt: meeting.createdAt,

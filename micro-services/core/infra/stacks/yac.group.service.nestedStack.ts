@@ -107,7 +107,7 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
 
     const routes: RouteProps[] = [
       {
-        path: "/users/{userId}/groups",
+        path: "/organizations/{organizationId}/groups",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createGroupHandler,
         restricted: true,

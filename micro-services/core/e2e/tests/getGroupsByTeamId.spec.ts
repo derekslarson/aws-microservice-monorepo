@@ -18,22 +18,22 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
   const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     let team: RawTeam;
     let group: RawConversation<GroupConversation>;
     let groupTwo: RawConversation<GroupConversation>;
-    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
     beforeAll(async () => {
       ({ team } = await createRandomTeam({ createdBy: mockUserId, organizationId: mockOrganizationId }));
 
       // We need to wait create the groups in sequence, so that we can be sure of the return order in the test
-      ({ conversation: group } = await createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5), teamId: team.id }));
+      ({ conversation: group } = await createGroupConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id }));
 
       await wait(1000);
 
-      ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5), teamId: team.id }));
+      ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id }));
 
       await Promise.all([
         createTeamUserRelationship({ userId, teamId: team.id, role: Role.User }),
@@ -54,6 +54,7 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
             groups: [
               {
                 id: group.id,
+                organizationId: mockOrganizationId,
                 name: group.name,
                 createdBy: group.createdBy,
                 createdAt: group.createdAt,
@@ -63,6 +64,7 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
               },
               {
                 id: groupTwo.id,
+                organizationId: mockOrganizationId,
                 name: groupTwo.name,
                 createdBy: groupTwo.createdBy,
                 createdAt: groupTwo.createdAt,
@@ -91,6 +93,7 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
             groups: [
               {
                 id: group.id,
+                organizationId: mockOrganizationId,
                 name: group.name,
                 createdBy: group.createdBy,
                 createdAt: group.createdAt,
@@ -111,6 +114,7 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
             groups: [
               {
                 id: groupTwo.id,
+                organizationId: mockOrganizationId,
                 name: groupTwo.name,
                 createdBy: groupTwo.createdBy,
                 createdAt: groupTwo.createdAt,

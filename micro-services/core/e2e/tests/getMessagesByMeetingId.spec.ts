@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { MakeRequired, Role } from "@yac/util";
+import { MakeRequired, OrganizationId, Role } from "@yac/util";
 import axios from "axios";
 import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -17,6 +17,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   let user: RawUser;
   let otherUser: RawUser;
@@ -35,7 +36,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
     let messageTwo: RawMessage;
 
     beforeAll(async () => {
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       ([ { message } ] = await Promise.all([
         createMessage({ from: otherUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, otherUser.id ], mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
@@ -66,6 +67,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 id: messageTwo.id,
                 to: {
                   id: meeting.id,
+                  organizationId: mockOrganizationId,
                   name: meeting.name,
                   createdBy: meeting.createdBy,
                   createdAt: meeting.createdAt,
@@ -93,6 +95,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 id: message.id,
                 to: {
                   id: meeting.id,
+                  organizationId: mockOrganizationId,
                   name: meeting.name,
                   createdBy: meeting.createdBy,
                   createdAt: meeting.createdAt,
@@ -142,6 +145,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 id: messageTwo.id,
                 to: {
                   id: meeting.id,
+                  organizationId: mockOrganizationId,
                   name: meeting.name,
                   createdBy: meeting.createdBy,
                   createdAt: meeting.createdAt,
@@ -180,6 +184,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
                 id: message.id,
                 to: {
                   id: meeting.id,
+                  organizationId: mockOrganizationId,
                   name: meeting.name,
                   createdBy: meeting.createdBy,
                   createdAt: meeting.createdAt,

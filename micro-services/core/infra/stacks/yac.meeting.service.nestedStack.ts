@@ -107,7 +107,7 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
 
     const routes: RouteProps[] = [
       {
-        path: "/users/{userId}/meetings",
+        path: "/organizations/{organizationId}/meetings",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createMeetingHandler,
         restricted: true,

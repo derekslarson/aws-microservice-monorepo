@@ -1,23 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import { createRandomAuthServiceUser, generateRandomString, getAccessToken } from "../../../../e2e/util";
 import { createConversationUserRelationship, createGroupConversation, getConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { GroupConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { ConversationType } from "../../src/enums/conversationType.enum";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("PATCH /groups/{groupId} (Update Group)", () => {
   const baseUrl = process.env.baseUrl as string;
-
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   let group: GroupConversation;
 
   beforeEach(async () => {
-    ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
+    ({ conversation: group } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
     await createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin });
   });
 

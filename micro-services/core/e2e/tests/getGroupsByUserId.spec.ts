@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import axios from "axios";
 import { createRandomAuthServiceUser, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -13,6 +13,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     let userId: UserId;
@@ -27,8 +28,8 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
 
       ([ { accessToken }, { conversation: group }, { conversation: groupTwo } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createGroupConversation({ createdBy: userId, name: generateRandomString(5), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
-        createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5) }),
+        createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
+        createGroupConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
       ]));
 
       // We need to wait create the relationships in sequence, so that we can be sure of the return order in the test
@@ -48,6 +49,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
             groups: [
               {
                 id: groupTwo.id,
+                organizationId: mockOrganizationId,
                 name: groupTwo.name,
                 createdBy: groupTwo.createdBy,
                 createdAt: groupTwo.createdAt,
@@ -57,6 +59,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
               },
               {
                 id: group.id,
+                organizationId: mockOrganizationId,
                 name: group.name,
                 createdBy: group.createdBy,
                 createdAt: group.createdAt,
@@ -86,6 +89,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
             groups: [
               {
                 id: groupTwo.id,
+                organizationId: mockOrganizationId,
                 name: groupTwo.name,
                 createdBy: groupTwo.createdBy,
                 createdAt: groupTwo.createdAt,
@@ -106,6 +110,7 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
             groups: [
               {
                 id: group.id,
+                organizationId: mockOrganizationId,
                 name: group.name,
                 createdBy: group.createdBy,
                 createdAt: group.createdAt,

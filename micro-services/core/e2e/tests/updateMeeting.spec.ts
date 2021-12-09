@@ -1,22 +1,23 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import { createRandomAuthServiceUser, generateRandomString, getAccessToken } from "../../../../e2e/util";
 import { createConversationUserRelationship, createMeetingConversation, getConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { MeetingConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { ConversationType } from "../../src/enums/conversationType.enum";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("PATCH /meetings/{meetingId} (Update Meeting)", () => {
   const baseUrl = process.env.baseUrl as string;
-
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   let meeting: MeetingConversation;
   beforeEach(async () => {
-    ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+    ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
     await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin });
   });
 

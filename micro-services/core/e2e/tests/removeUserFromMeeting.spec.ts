@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role, UserRemovedFromMeetingSnsMessage } from "@yac/util";
+import { OrganizationId, Role, UserRemovedFromMeetingSnsMessage } from "@yac/util";
 import { createRandomUser, createConversationUserRelationship, createMeetingConversation, getConversationUserRelationship, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
@@ -18,6 +18,7 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
   const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     let meeting: RawConversation<MeetingConversation>;
@@ -28,7 +29,7 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
     });
 
     beforeEach(async () => {
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Meeting, userId, conversationId: meeting.id, role: Role.Admin }),
@@ -86,6 +87,7 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
             meeting: {
               createdBy: userId,
               id: meeting.id,
+              organizationId: mockOrganizationId,
               image: jasmine.stringMatching(URL_REGEX),
               name: meeting.name,
               dueDate: meeting.dueDate,
@@ -130,7 +132,7 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
       const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
-        ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserIdTwo, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+        ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
         await createConversationUserRelationship({ type: ConversationType.Meeting, userId, conversationId: meetingTwo.id, role: Role.User });
       });

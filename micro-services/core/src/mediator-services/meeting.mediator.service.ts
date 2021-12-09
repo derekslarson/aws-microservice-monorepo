@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/util";
+import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationServiceInterface, MeetingConversation } from "../entity-services/conversation.service";
 import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
@@ -22,12 +22,13 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
     try {
       this.loggerService.trace("createMeeting called", { params }, this.constructor.name);
 
-      const { name, createdBy, dueDate, teamId } = params;
+      const { name, createdBy, dueDate, organizationId, teamId } = params;
 
       const { conversation: meeting } = await this.conversationService.createMeetingConversation({
         name,
         createdBy,
         dueDate,
+        organizationId,
         teamId,
       });
 
@@ -216,6 +217,27 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
     }
   }
 
+  public async getMeetingsByOrganizationId(params: GetMeetingsByOrganizationIdInput): Promise<GetMeetingsByOrganizationIdOutput> {
+    try {
+      this.loggerService.trace("getMeetingsByOrganizationId called", { params }, this.constructor.name);
+
+      const { organizationId, exclusiveStartKey, limit } = params;
+
+      const { conversations: meetings, lastEvaluatedKey } = await this.conversationService.getConversationsByOrganizationId({
+        organizationId,
+        type: ConversationType.Meeting,
+        exclusiveStartKey,
+        limit,
+      });
+
+      return { meetings, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMeetingsByOrganizationId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async isMeetingMember(params: IsMeetingMemberInput): Promise<IsMeetingMemberOutput> {
     try {
       this.loggerService.trace("isMeetingMember called", { params }, this.constructor.name);
@@ -271,6 +293,7 @@ export interface MeetingMediatorServiceInterface {
   getMeetingImageUploadUrl(params: GetMeetingImageUploadUrlInput): GetMeetingImageUploadUrlOutput;
   getMeetingsByUserId(params: GetMeetingsByUserIdInput): Promise<GetMeetingsByUserIdOutput>;
   getMeetingsByTeamId(params: GetMeetingsByTeamIdInput): Promise<GetMeetingsByTeamIdOutput>;
+  getMeetingsByOrganizationId(params: GetMeetingsByOrganizationIdInput): Promise<GetMeetingsByOrganizationIdOutput>;
   isMeetingMember(params: IsMeetingMemberInput): Promise<IsMeetingMemberOutput>;
   isMeetingAdmin(params: IsMeetingAdminInput): Promise<IsMeetingAdminOutput>;
 }
@@ -285,6 +308,7 @@ export interface CreateMeetingInput {
   name: string;
   createdBy: UserId;
   dueDate: string;
+  organizationId: OrganizationId;
   teamId?: TeamId;
 }
 
@@ -358,6 +382,17 @@ export interface GetMeetingsByTeamIdInput {
 }
 
 export interface GetMeetingsByTeamIdOutput {
+  meetings: Meeting[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetMeetingsByOrganizationIdInput {
+  organizationId: OrganizationId;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetMeetingsByOrganizationIdOutput {
   meetings: Meeting[];
   lastEvaluatedKey?: string;
 }

@@ -13,6 +13,7 @@ import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator
 import { GetGroupImageUploadUrlDto } from "../dtos/getGroupImageUploadUrl.dto";
 import { AddUsersToGroupOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { UpdateGroupDto } from "../dtos/updateGroup.dto";
+import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 
 @injectable()
 export class GroupController extends BaseController implements GroupControllerInterface {
@@ -20,6 +21,7 @@ export class GroupController extends BaseController implements GroupControllerIn
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
+    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
     @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
   ) {
@@ -32,23 +34,27 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       const {
         jwtId,
-        pathParameters: { userId },
+        pathParameters: { organizationId },
         body: { name, teamId },
       } = this.validationService.validate({ dto: CreateGroupDto, request, getUserIdFromJwt: true });
 
-      if (jwtId !== userId) {
-        throw new ForbiddenError("Forbidden");
-      }
-
       if (teamId) {
-        const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId });
+        const [ { isTeamAdmin }, { team } ] = await Promise.all([
+          this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId }),
+          this.teamMediatorService.getTeam({ teamId }),
+        ]);
 
-        if (!isTeamAdmin) {
+        if (!isTeamAdmin || team.organizationId !== organizationId) {
+          throw new ForbiddenError("Forbidden");
+        }
+      } else {
+        const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId: jwtId });
+
+        if (!isOrganizationAdmin) {
           throw new ForbiddenError("Forbidden");
         }
       }
-
-      const { group } = await this.groupMediatorService.createGroup({ name, createdBy: userId, teamId });
+      const { group } = await this.groupMediatorService.createGroup({ name, createdBy: jwtId, organizationId, teamId });
 
       const response: CreateGroupResponse = { group };
 

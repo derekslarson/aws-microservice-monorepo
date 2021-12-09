@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import axios from "axios";
 import { generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -14,6 +14,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   let group: CreateGroupConversationOutput["conversation"];
   let otherUser: CreateRandomUserOutput["user"];
@@ -21,7 +22,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
   beforeAll(async () => {
     ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
       createRandomUser(),
-      createGroupConversation({ createdBy: userId, name: generateRandomString(5) }),
+      createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
     ]));
   });
 
@@ -47,6 +48,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
             id: message.id,
             to: {
               id: group.id,
+              organizationId: mockOrganizationId,
               name: group.name,
               createdBy: group.createdBy,
               createdAt: group.createdAt,
@@ -102,7 +104,7 @@ describe("GET /messages/{messageId} (Get Message)", () => {
       let message: RawMessage;
 
       beforeAll(async () => {
-        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
+        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
         ({ message } = await createMessage({ from: otherUser.id, conversationId: groupTwo.id, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }));
       });
