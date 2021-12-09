@@ -18,6 +18,8 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
   private gsiTwoIndexName: string;
 
+  private gsiThreeIndexName: string;
+
   private readonly typeToSkPrefixMap = {
     [ConversationTypeEnum.Friend]: KeyPrefix.FriendConversation,
     [ConversationTypeEnum.Group]: KeyPrefix.GroupConversation,
@@ -33,6 +35,7 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
     this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
     this.gsiTwoIndexName = envConfig.globalSecondaryIndexNames.two;
+    this.gsiThreeIndexName = envConfig.globalSecondaryIndexNames.three;
   }
 
   public async createConversation<T extends Conversation>(params: CreateConversationInput<T>): Promise<CreateConversationOutput<T>> {
@@ -47,6 +50,7 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
         sk: conversation.id,
         ...(conversation.teamId && { gsi1pk: conversation.teamId, gsi1sk: conversation.id }),
         ...(conversation.organizationId && { gsi2pk: conversation.organizationId, gsi2sk: conversation.id }),
+        ...(conversation.organizationId && !conversation.teamId && { gsi3pk: conversation.organizationId, gsi3sk: conversation.id }),
         ...conversation,
       };
 
@@ -171,21 +175,21 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
     try {
       this.loggerService.trace("getConversationsByOrganizationId called", { params }, this.constructor.name);
 
-      const { organizationId, type, exclusiveStartKey, limit } = params;
+      const { organizationId, rootOnly, type, exclusiveStartKey, limit } = params;
 
       const skPrefix = type ? this.typeToSkPrefixMap[type] : KeyPrefix.Conversation;
 
       const { Items: conversations, LastEvaluatedKey } = await this.query<Conversation<T>>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
-        IndexName: this.gsiTwoIndexName,
-        KeyConditionExpression: "#gsi2pk = :gsi2pk AND begins_with(#gsi2sk, :skPrefix)",
+        IndexName: rootOnly ? this.gsiThreeIndexName : this.gsiTwoIndexName,
+        KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :skPrefix)",
         ExpressionAttributeNames: {
-          "#gsi2pk": "gsi2pk",
-          "#gsi2sk": "gsi2sk",
+          "#pk": rootOnly ? "gsi3pk" : "gsi2pk",
+          "#sk": rootOnly ? "gsi3sk" : "gsi2sk",
         },
         ExpressionAttributeValues: {
-          ":gsi2pk": organizationId,
+          ":pk": organizationId,
           ":skPrefix": skPrefix,
         },
       });
@@ -290,6 +294,7 @@ export type RawConversation<T extends Conversation> = T & {
   sk: ConversationId;
   gsi1pk?: TeamId;
   gsi1sk?: ConversationId;
+  // for fetching all convos in an org, regardless of if within a team or not
   gsi2pk?: OrganizationId;
   gsi2sk?: ConversationId;
 };
@@ -351,6 +356,7 @@ export interface GetConversationsByTeamIdOutput<T extends ConversationType> {
 
 export interface GetConversationsByOrganizationIdInput<T extends ConversationType> {
   organizationId: OrganizationId;
+  rootOnly?: boolean;
   type?: T;
   limit?: number;
   exclusiveStartKey?: string;

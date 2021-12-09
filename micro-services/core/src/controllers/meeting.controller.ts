@@ -14,6 +14,7 @@ import { GetMeetingImageUploadUrlDto } from "../dtos/getMeetingImageUploadUrl.dt
 import { AddUsersToMeetingOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { UpdateMeetingDto } from "../dtos/updateMeeting.dto";
 import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
+import { GetMeetingsByOrganizationIdDto } from "../dtos/getMeetingsByOrganizationId.dto";
 
 @injectable()
 export class MeetingController extends BaseController implements MeetingControllerInterface {
@@ -267,6 +268,34 @@ export class MeetingController extends BaseController implements MeetingControll
       return this.generateErrorResponse(error);
     }
   }
+
+  public async getMeetingsByOrganizationId(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getMeetingsByOrganizationId called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { organizationId },
+        queryStringParameters: { exclusiveStartKey, limit },
+      } = this.validationService.validate({ dto: GetMeetingsByOrganizationIdDto, request, getUserIdFromJwt: true });
+
+      const { isOrganizationMember } = await this.organizationMediatorService.isOrganizationMember({ organizationId, userId: jwtId });
+
+      if (!isOrganizationMember) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+
+      const response: GetMeetingsByOrganizationIdResponse = { meetings, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMeetingsByOrganizationId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
 }
 
 export interface MeetingControllerInterface {
@@ -278,6 +307,7 @@ export interface MeetingControllerInterface {
   getMeetingImageUploadUrl(request: Request): Promise<Response>;
   getMeetingsByUserId(request: Request): Promise<Response>;
   getMeetingsByTeamId(request: Request): Promise<Response>;
+  getMeetingsByOrganizationId(request: Request): Promise<Response>;
 }
 
 interface CreateMeetingResponse {
@@ -312,6 +342,11 @@ interface GetMeetingsByUserIdResponse {
 }
 
 interface GetMeetingsByTeamIdResponse {
+  meetings: Meeting[];
+  lastEvaluatedKey?: string;
+}
+
+interface GetMeetingsByOrganizationIdResponse {
   meetings: Meeting[];
   lastEvaluatedKey?: string;
 }

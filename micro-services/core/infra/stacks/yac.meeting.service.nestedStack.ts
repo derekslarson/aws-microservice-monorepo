@@ -94,6 +94,17 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const getMeetingsByOrganizationIdHandler = new Lambda.Function(this, `GetMeetingsByOrganizationId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getMeetingsByOrganizationId"),
+      handler: "getMeetingsByOrganizationId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const getMeetingImageUploadUrlHandler = new Lambda.Function(this, `GetMeetingImageUploadUrl_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMeetingImageUploadUrl"),
@@ -110,6 +121,12 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
         path: "/organizations/{organizationId}/meetings",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createMeetingHandler,
+        restricted: true,
+      },
+      {
+        path: "/organizations/{organizationId}/meetings",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getMeetingsByOrganizationIdHandler,
         restricted: true,
       },
       {

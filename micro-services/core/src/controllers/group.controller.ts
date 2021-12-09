@@ -14,6 +14,7 @@ import { GetGroupImageUploadUrlDto } from "../dtos/getGroupImageUploadUrl.dto";
 import { AddUsersToGroupOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { UpdateGroupDto } from "../dtos/updateGroup.dto";
 import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
+import { GetGroupsByOrganizationIdDto } from "../dtos/getGroupsByOrganizationId.dto";
 
 @injectable()
 export class GroupController extends BaseController implements GroupControllerInterface {
@@ -261,6 +262,34 @@ export class GroupController extends BaseController implements GroupControllerIn
       return this.generateErrorResponse(error);
     }
   }
+
+  public async getGroupsByOrganizationId(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getGroupsByOrganizationId called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { organizationId },
+        queryStringParameters: { exclusiveStartKey, limit },
+      } = this.validationService.validate({ dto: GetGroupsByOrganizationIdDto, request, getUserIdFromJwt: true });
+
+      const { isOrganizationMember } = await this.organizationMediatorService.isOrganizationMember({ organizationId, userId: jwtId });
+
+      if (!isOrganizationMember) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+
+      const response: GetGroupsByOrganizationIdResponse = { groups, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGroupsByOrganizationId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
 }
 
 export interface GroupControllerInterface {
@@ -272,6 +301,7 @@ export interface GroupControllerInterface {
   getGroupImageUploadUrl(request: Request): Promise<Response>;
   getGroupsByUserId(request: Request): Promise<Response>;
   getGroupsByTeamId(request: Request): Promise<Response>;
+  getGroupsByOrganizationId(request: Request): Promise<Response>
 }
 
 interface CreateGroupResponse {
@@ -306,6 +336,11 @@ interface GetGroupsByUserIdResponse {
 }
 
 interface GetGroupsByTeamIdResponse {
+  groups: Group[];
+  lastEvaluatedKey?: string;
+}
+
+interface GetGroupsByOrganizationIdResponse {
   groups: Group[];
   lastEvaluatedKey?: string;
 }

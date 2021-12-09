@@ -256,9 +256,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("getConversationsByOrganizationId called", { params }, this.constructor.name);
 
-      const { organizationId, type, exclusiveStartKey, limit } = params;
+      const { organizationId, rootOnly, type, exclusiveStartKey, limit } = params;
 
-      const { conversations: conversationEntities, lastEvaluatedKey } = await this.conversationRepository.getConversationsByOrganizationId({ organizationId, type, exclusiveStartKey, limit });
+      const { conversations: conversationEntities, lastEvaluatedKey } = await this.conversationRepository.getConversationsByOrganizationId({ organizationId, rootOnly, type, exclusiveStartKey, limit });
 
       const conversations = conversationEntities.map((conversationEntity) => {
         const { conversation } = this.convertConversationEntityToConversation({ conversationEntity })
@@ -545,6 +545,7 @@ export interface GetConversationsByTeamIdOutput<T extends ConversationType> {
 
 export interface GetConversationsByOrganizationIdInput<T extends ConversationType>  {
   organizationId: OrganizationId;
+  rootOnly?: boolean;
   type?: T;
   limit?: number;
   exclusiveStartKey?: string;

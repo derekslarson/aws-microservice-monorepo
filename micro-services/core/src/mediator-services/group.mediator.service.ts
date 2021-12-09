@@ -216,6 +216,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { conversations: groups, lastEvaluatedKey } = await this.conversationService.getConversationsByOrganizationId({
         organizationId,
+        rootOnly: true,
         type: ConversationType.Group,
         exclusiveStartKey,
         limit,
