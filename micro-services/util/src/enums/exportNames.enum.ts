@@ -1,47 +1,52 @@
 const ExportNames = {
-  MessageCreatedSnsTopicArn: "messageCreatedSnsTopicArn",
-  UserPoolId: "userPoolId",
-  YacUserPoolClientId: "yacUserPoolClientId",
-  YacUserPoolClientSecret: "yacUserPoolClientSecret",
-  YacUserPoolClientRedirectUri: "yacUserPoolClientRedirectUri",
   CustomDomainName: "customDomainName",
   RegionalDomainName: "regionalDomainName",
   RegionalHostedZoneId: "regionalHostedZoneId",
-  ClientsUpdatedSnsTopicArn: "clientsUpdatedSnsTopicArn",
-  UserSignedUpSnsTopicArn: "userSignedUpSnsTopicArn",
+
   UserCreatedSnsTopicArn: "userCreatedSnsTopicArn",
-  UserAddedToTeamSnsTopicArn: "userAddedToTeamSnsTopicArn",
-  UserRemovedFromTeamSnsTopicArn: "userRemovedFromTeamSnsTopicArn",
-  UserAddedToGroupSnsTopicArn: "userAddedToGroupSnsTopicArn",
-  UserRemovedFromGroupSnsTopicArn: "userRemovedFromGroupSnsTopicArn",
-  UserAddedToMeetingSnsTopicArn: "userAddedToMeetingSnsTopicArn",
-  UserRemovedFromMeetingSnsTopicArn: "userRemovedFromMeetingSnsTopicArn",
-  UserAddedAsFriendSnsTopicArn: "userAddedAsFriendSnsTopicArn",
-  UserRemovedAsFriendSnsTopicArn: "userRemovedAsFriendSnsTopicArn",
+  OrganizationCreatedSnsTopicArn: "organizationCreatedSnsTopicArn",
   TeamCreatedSnsTopicArn: "teamCreatedSnsTopicArn",
   MeetingCreatedSnsTopicArn: "meetingCreatedSnsTopicArn",
   GroupCreatedSnsTopicArn: "groupCreatedSnsTopicArn",
+
+  UserAddedToOrganizationSnsTopicArn: "userAddedToOrganizationSnsTopicArn",
+  UserAddedToTeamSnsTopicArn: "userAddedToTeamSnsTopicArn",
+  UserAddedToGroupSnsTopicArn: "userAddedToGroupSnsTopicArn",
+  UserAddedToMeetingSnsTopicArn: "userAddedToMeetingSnsTopicArn",
+  UserAddedAsFriendSnsTopicArn: "userAddedAsFriendSnsTopicArn",
+
+  UserRemovedFromOrganizationSnsTopicArn: "userRemovedFromOrganizationSnsTopicArn",
+  UserRemovedFromTeamSnsTopicArn: "userRemovedFromTeamSnsTopicArn",
+  UserRemovedFromGroupSnsTopicArn: "userRemovedFromGroupSnsTopicArn",
+  UserRemovedFromMeetingSnsTopicArn: "userRemovedFromMeetingSnsTopicArn",
+  UserRemovedAsFriendSnsTopicArn: "userRemovedAsFriendSnsTopicArn",
+
   FriendMessageCreatedSnsTopicArn: "friendMessageCreatedSnsTopicArn",
-  FriendMessageUpdatedSnsTopicArn: "friendMessageUpdatedSnsTopicArn",
   GroupMessageCreatedSnsTopicArn: "groupMessageCreatedSnsTopicArn",
-  GroupMessageUpdatedSnsTopicArn: "groupMessageUpdatedSnsTopicArn",
   MeetingMessageCreatedSnsTopicArn: "meetingMessageCreatedSnsTopicArn",
+
+  GroupMessageUpdatedSnsTopicArn: "groupMessageUpdatedSnsTopicArn",
   MeetingMessageUpdatedSnsTopicArn: "meetingMessageUpdatedSnsTopicArn",
+  FriendMessageUpdatedSnsTopicArn: "friendMessageUpdatedSnsTopicArn",
+
   PushNotificationFailedSnsTopicArn: "pushNotificationFailedSnsTopicArn",
+
   MessageTranscodedSnsTopicArn: "messageTranscodedSnsTopicArn",
   MessageTranscribedSnsTopicArn: "messageTranscribedSnsTopicArn",
-  CoreTableName: "coreTableName",
-  MessageS3BucketArn: "messageS3BucketArn",
+  CreateUserRequestSnsTopicArn: "createUserRequestSnsTopicArn",
+
   RawMessageS3BucketArn: "rawMessageS3BucketArn",
   EnhancedMessageS3BucketArn: "enhancedMessageS3BucketArn",
+
   MessageUploadTokenSecretArn: "messageUploadTokenSecretArn",
+
   ChunkedUploadsFSId: "chunkedUploadsFSId",
   ChunkedUploadsFSAccessPointId: "chunkedUploadsFsAccesPointId",
   ChunkedUploadsFSMountedPath: "chunkedUploadsFSMountedPath",
   ChunkedUploadsVPCId: "chunkedUploadsVPCId",
   ChunkedUploadsVPCAvailabilityZone: "chunkedUploadsVPCAvailabilityZones",
   ChunkedUploadsVPCSecurityGroupSSM: "chunkedUploadsVPCSecurityGroupSSM",
-  CreateUserRequestSnsTopicArn: "createUserRequestSnsTopicArn",
+
   AuthorizerHandlerFunctionArn: "authorizerHandlerFunctionArn",
 };
 

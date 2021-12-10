@@ -36,6 +36,9 @@ const TYPES = {
 
   // Dynamo Processor Services
   UserCreatedDynamoProcessorServiceInterface: Symbol.for("UserCreatedDynamoProcessorServiceInterface"),
+  OrganizationCreatedDynamoProcessorServiceInterface: Symbol.for("OrganizationCreatedDynamoProcessorServiceInterface"),
+  UserAddedToOrganizationDynamoProcessorServiceInterface: Symbol.for("UserAddedToOrganizationDynamoProcessorServiceInterface"),
+  UserRemovedFromOrganizationDynamoProcessorServiceInterface: Symbol.for("UserRemovedFromOrganizationDynamoProcessorServiceInterface"),
   UserAddedToTeamDynamoProcessorServiceInterface: Symbol.for("UserAddedToTeamDynamoProcessorServiceInterface"),
   UserRemovedFromTeamDynamoProcessorServiceInterface: Symbol.for("UserRemovedFromTeamDynamoProcessorServiceInterface"),
   UserAddedToGroupDynamoProcessorServiceInterface: Symbol.for("UserAddedToGroupDynamoProcessorServiceInterface"),
@@ -57,6 +60,9 @@ const TYPES = {
 
   // SNS Services
   UserCreatedSnsServiceInterface: Symbol.for("UserCreatedSnsServiceInterface"),
+  OrganizationCreatedSnsServiceInterface: Symbol.for("OrganizationCreatedSnsServiceInterface"),
+  UserAddedToOrganizationSnsServiceInterface: Symbol.for("UserAddedToOrganizationSnsServiceInterface"),
+  UserRemovedFromOrganizationSnsServiceInterface: Symbol.for("UserRemovedFromOrganizationSnsServiceInterface"),
   UserAddedToTeamSnsServiceInterface: Symbol.for("UserAddedToTeamSnsServiceInterface"),
   UserRemovedFromTeamSnsServiceInterface: Symbol.for("UserRemovedFromTeamSnsServiceInterface"),
   UserAddedToGroupSnsServiceInterface: Symbol.for("UserAddedToGroupSnsServiceInterface"),

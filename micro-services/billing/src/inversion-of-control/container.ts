@@ -8,6 +8,8 @@ import { OrganizationService, OrganizationServiceInterface } from "../services/t
 import { BillingController, BillingControllerInterface } from "../controllers/billing.controller";
 import { stripeFactory, StripeFactory } from "../factories/stripe.factory";
 import { BillingService, BillingServiceInterface } from "../services/tier-1/billing.service";
+import { UserAddedToOrganizationSnsProcessorService } from "../processor-services/userAddedToOrganization.sns.processor.service";
+import { OrganizationCreatedSnsProcessorService } from "../processor-services/organizationCreated.sns.processor.service";
 
 const container = new Container();
 
@@ -24,6 +26,10 @@ try {
   container.bind<BillingServiceInterface>(TYPES.BillingServiceInterface).to(BillingService);
   container.bind<OrganizationServiceInterface>(TYPES.OrganizationServiceInterface).to(OrganizationService);
 
+  // SNS Processor Services
+  container.bind<SnsProcessorServiceInterface>(TYPES.UserAddedToOrganizationSnsProcessorServiceInterface).to(UserAddedToOrganizationSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.OrganizationCreatedSnsProcessorServiceInterface).to(OrganizationCreatedSnsProcessorService);
+
   // Repositories
   container.bind<OrganizationAdminMappingRepositoryInterface>(TYPES.OrganizationAdminMappingRepositoryInterface).to(OrganizationAdminMappingDynamoRepository);
   container.bind<OrganizationStripeMappingRepositoryInterface>(TYPES.OrganizationStripeMappingRepositoryInterface).to(OrganizationStripeMappingDynamoRepository);
@@ -32,7 +38,10 @@ try {
   container.bind<StripeFactory>(TYPES.StripeFactory).toFactory(() => stripeFactory);
 
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)
-  container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([]);
+  container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
+    container.get(TYPES.UserAddedToOrganizationSnsProcessorServiceInterface),
+    container.get(TYPES.OrganizationCreatedSnsProcessorServiceInterface),
+  ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([]);
 

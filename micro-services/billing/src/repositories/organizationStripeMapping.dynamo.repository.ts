@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, NotFoundError } from "@yac/util";
+import { BaseDynamoRepositoryV2, BillingPlan, DocumentClientFactory, LoggerServiceInterface, NotFoundError } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
@@ -8,6 +8,8 @@ import { EntityType } from "../enums/entityType.enum";
 @injectable()
 export class OrganizationStripeMappingDynamoRepository extends BaseDynamoRepositoryV2<OrganizationStripeMapping> implements OrganizationStripeMappingRepositoryInterface {
   private gsiOneIndexName: string;
+
+  private gsiTwoIndexName: string;
 
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
@@ -17,6 +19,7 @@ export class OrganizationStripeMappingDynamoRepository extends BaseDynamoReposit
     super(documentClientFactory, config.tableNames.billing, loggerService);
 
     this.gsiOneIndexName = config.globalSecondaryIndexNames.one;
+    this.gsiTwoIndexName = config.globalSecondaryIndexNames.two;
   }
 
   public async createOrganizationStripeMapping(params: CreateOrganizationStripeMappingInput): Promise<CreateOrganizationStripeMappingOutput> {
@@ -25,22 +28,21 @@ export class OrganizationStripeMappingDynamoRepository extends BaseDynamoReposit
 
       const { organizationStripeMapping } = params;
 
-      const organizationStripeMappingEntity: RawOrganizationStripeMapping = {
+      const organizationStripeMappingEntity: Omit<RawOrganizationStripeMapping, "pk" | "sk" | "subscriptionItemQuantity"> = {
         entityType: EntityType.OrganizationStripeMapping,
-        pk: organizationStripeMapping.organizationId,
-        sk: EntityType.OrganizationStripeMapping,
         gsi1pk: organizationStripeMapping.customerId,
         gsi1sk: EntityType.OrganizationStripeMapping,
+        gsi2pk: EntityType.OrganizationStripeMapping,
         ...organizationStripeMapping,
       };
 
-      await this.documentClient.put({
-        TableName: this.tableName,
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
-        Item: organizationStripeMappingEntity,
-      }).promise();
+      // We need to do this as an update, because there is a race condition between
+      // the organization creation and the addition of the first member (which increments subscriptionQuantity on this item),
+      // so using a put here could potentially overwrite the record created in the case that the addition event
+      // gets handled before the creation event
+      const updateResponse = await this.partialUpdate(organizationStripeMapping.organizationId, EntityType.OrganizationStripeMapping, organizationStripeMappingEntity);
 
-      return { organizationStripeMapping };
+      return { organizationStripeMapping: updateResponse };
     } catch (error: unknown) {
       this.loggerService.error("Error in createOrganizationStripeMapping", { error, params }, this.constructor.name);
 
@@ -95,6 +97,25 @@ export class OrganizationStripeMappingDynamoRepository extends BaseDynamoReposit
     }
   }
 
+  public async getOrganizationStripeMappingsWithPendingQuantityUpdates(): Promise<GetOrganizationStripeMappingsWithPendingQuantityUpdatesOutput> {
+    try {
+      this.loggerService.trace("getOrganizationStripeMappingsWithPendingQuantityUpdates called", {}, this.constructor.name);
+
+      const { Items: organizationStripeMappings } = await this.query({
+        IndexName: this.gsiTwoIndexName,
+        KeyConditionExpression: "#gsi2pk = :gsi2pk",
+        ExpressionAttributeNames: { "#gsi2pk": "gsi2pk" },
+        ExpressionAttributeValues: { ":gsi2pk": EntityType.OrganizationStripeMapping },
+      });
+
+      return { organizationStripeMappings };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getOrganizationStripeMappingsWithPendingQuantityUpdates", { error }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async updateOrganizationStripeMapping(params: UpdateOrganizationStripeMappingInput): Promise<UpdateOrganizationStripeMappingOutput> {
     try {
       this.loggerService.trace("updateOrganizationStripeMapping called", { params }, this.constructor.name);
@@ -105,6 +126,53 @@ export class OrganizationStripeMappingDynamoRepository extends BaseDynamoReposit
       return { organizationStripeMapping };
     } catch (error: unknown) {
       this.loggerService.error("Error in updateOrganizationStripeMapping", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async incrementSubscriptionItemQuantity(params: IncrementSubscriptionItemQuantityInput): Promise<IncrementSubscriptionItemQuantityOutput> {
+    try {
+      this.loggerService.trace("incrementSubscriptionItemQuantity called", { params }, this.constructor.name);
+
+      const { organizationId } = params;
+
+      const organizationStripeMapping = await this.update({
+        Key: { pk: organizationId, sk: EntityType.OrganizationStripeMapping },
+        UpdateExpression: "ADD #subscriptionItemQuantity :one SET #gsi2sk = :pendingQuantityUpdate",
+        ExpressionAttributeNames: {
+          "#subscriptionItemQuantity": "subscriptionItemQuantity",
+          "#gsi2sk": "gsi2sk",
+        },
+        ExpressionAttributeValues: {
+          ":one": 1,
+          ":pendingQuantityUpdate": "PENDING_QUANTITY_UPDATE",
+        },
+      });
+
+      return { organizationStripeMapping };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in incrementSubscriptionQuantity", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async removePendingQuantityUpdateStatus(params: RemovePendingQuantityUpdateStatusInput): Promise<RemovePendingQuantityUpdateStatusOutput> {
+    try {
+      this.loggerService.trace("removePendingQuantityUpdateStatus called", { params }, this.constructor.name);
+
+      const { organizationId } = params;
+
+      const organizationStripeMapping = await this.update({
+        Key: { pk: organizationId, sk: EntityType.OrganizationStripeMapping },
+        UpdateExpression: "REMOVE #gsi2sk",
+        ExpressionAttributeNames: { "#gsi2sk": "gsi2sk" },
+      });
+
+      return { organizationStripeMapping };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in removePendingQuantityUpdateStatus", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -132,7 +200,10 @@ export interface OrganizationStripeMappingRepositoryInterface {
   createOrganizationStripeMapping(params: CreateOrganizationStripeMappingInput): Promise<CreateOrganizationStripeMappingOutput>;
   getOrganizationStripeMapping(params: GetOrganizationStripeMappingInput): Promise<GetOrganizationStripeMappingOutput>;
   getOrganizationStripeMappingByCustomerId(params: GetOrganizationStripeMappingByCustomerIdInput): Promise<GetOrganizationStripeMappingByCustomerIdOutput>;
+  getOrganizationStripeMappingsWithPendingQuantityUpdates(): Promise<GetOrganizationStripeMappingsWithPendingQuantityUpdatesOutput>
   updateOrganizationStripeMapping(params: UpdateOrganizationStripeMappingInput): Promise<UpdateOrganizationStripeMappingOutput>;
+  incrementSubscriptionItemQuantity(params: IncrementSubscriptionItemQuantityInput): Promise<IncrementSubscriptionItemQuantityOutput>;
+  removePendingQuantityUpdateStatus(params: RemovePendingQuantityUpdateStatusInput): Promise<RemovePendingQuantityUpdateStatusOutput>
   deleteOrganizationStripeMapping(params: DeleteOrganizationStripeMappingInput): Promise<DeleteOrganizationStripeMappingOutput>;
 }
 
@@ -141,7 +212,9 @@ type OrganizationStripeMappingRepositoryConfig = Pick<EnvConfigInterface, "table
 export interface OrganizationStripeMapping {
   organizationId: string;
   customerId: string;
-  planId: string;
+  subscriptionItemId: string;
+  subscriptionItemQuantity: number;
+  plan: BillingPlan;
 }
 
 export interface RawOrganizationStripeMapping extends OrganizationStripeMapping {
@@ -152,10 +225,13 @@ export interface RawOrganizationStripeMapping extends OrganizationStripeMapping 
   // customerId
   gsi1pk: string;
   gsi1sk: EntityType.OrganizationStripeMapping;
+  // sparse index for fetching pending quantity updates during chron job
+  gsi2pk: EntityType.OrganizationStripeMapping;
+  gsi2sk?: "PENDING_QUANTITY_UPDATE";
 }
 
 export interface CreateOrganizationStripeMappingInput {
-  organizationStripeMapping: OrganizationStripeMapping;
+  organizationStripeMapping: Omit<OrganizationStripeMapping, "subscriptionItemQuantity">;
 }
 
 export interface CreateOrganizationStripeMappingOutput {
@@ -170,6 +246,22 @@ export interface UpdateOrganizationStripeMappingInput {
 }
 
 export interface UpdateOrganizationStripeMappingOutput {
+  organizationStripeMapping: OrganizationStripeMapping;
+}
+
+export interface IncrementSubscriptionItemQuantityInput {
+  organizationId: string;
+}
+
+export interface IncrementSubscriptionItemQuantityOutput {
+  organizationStripeMapping: OrganizationStripeMapping;
+}
+
+export interface RemovePendingQuantityUpdateStatusInput {
+  organizationId: string;
+}
+
+export interface RemovePendingQuantityUpdateStatusOutput {
   organizationStripeMapping: OrganizationStripeMapping;
 }
 
@@ -194,3 +286,7 @@ export interface DeleteOrganizationStripeMappingInput {
 }
 
 export type DeleteOrganizationStripeMappingOutput = void;
+
+export interface GetOrganizationStripeMappingsWithPendingQuantityUpdatesOutput {
+  organizationStripeMappings: OrganizationStripeMapping[];
+}

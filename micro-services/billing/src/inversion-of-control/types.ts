@@ -10,6 +10,10 @@ const TYPES = {
   BillingServiceInterface: Symbol.for("BillingServiceInterface"),
   OrganizationServiceInterface: Symbol.for("OrganizationServiceInterface"),
 
+  // SNS Processor Services
+  UserAddedToOrganizationSnsProcessorServiceInterface: Symbol.for("UserAddedToOrganizationSnsProcessorServiceInterface"),
+  OrganizationCreatedSnsProcessorServiceInterface: Symbol.for("OrganizationCreatedSnsProcessorServiceInterface"),
+
   // Repositories
   OrganizationAdminMappingRepositoryInterface: Symbol.for("OrganizationAdminMappingRepositoryInterface"),
   OrganizationStripeMappingRepositoryInterface: Symbol.for("OrganizationStripeMappingRepositoryInterface"),
