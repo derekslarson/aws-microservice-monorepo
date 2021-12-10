@@ -51,6 +51,7 @@ export class OrganizationCreatedSnsProcessorService implements SnsProcessorServi
         organizationId: organization.id,
         customerId: customer.id,
         subscriptionItemId: subscriptionItem.id,
+        productId: subscriptionItem.price.product as string,
         plan: BillingPlan.Free,
       };
 

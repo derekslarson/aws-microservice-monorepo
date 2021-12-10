@@ -82,6 +82,8 @@ export class YacUtilServiceStack extends CDK.Stack {
     const messageTranscodedSnsTopic = new SNS.Topic(this, `MessageTranscodedSnsTopic_${id}`, { topicName: `MessageTranscodedSnsTopic_${id}` });
     const messageTranscribedSnsTopic = new SNS.Topic(this, `MessageTranscribedSnsTopic_${id}`, { topicName: `MessageTranscribedSnsTopic_${id}` });
 
+    const billingPlanUpdatedSnsTopic = new SNS.Topic(this, `BillingPlanUpdatedSnsTopic_${id}`, { topicName: `BillingPlanUpdatedSnsTopic_${id}` });
+
     const createUserRequestSnsTopic = new SNS.Topic(this, `CreateUserRequestSnsTopic_${id}`, { topicName: `CreateUserRequestSnsTopic_${id}` });
 
     // Secret for signing token for use in message flow (core and message services)
@@ -225,6 +227,11 @@ export class YacUtilServiceStack extends CDK.Stack {
       value: createUserRequestSnsTopic.topicArn,
     });
 
+    new CDK.CfnOutput(this, `BillingPlanUpdatedSnsTopicArnExport_${id}`, {
+      exportName: ExportNames.BillingPlanUpdatedSnsTopicArn,
+      value: billingPlanUpdatedSnsTopic.topicArn,
+    });
+
     new CDK.CfnOutput(this, `RawMessageS3BucketArnExport_${id}`, {
       exportName: ExportNames.RawMessageS3BucketArn,
       value: rawMessageS3Bucket.bucketArn,
@@ -344,6 +351,11 @@ export class YacUtilServiceStack extends CDK.Stack {
     new SSM.StringParameter(this, `OrganizationCreatedSsmParameter_${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/organization-created-sns-topic-arn`,
       stringValue: organizationCreatedSnsTopic.topicArn,
+    });
+
+    new SSM.StringParameter(this, `BillingPlanUpdatedSsmParameter_${id}`, {
+      parameterName: `/yac-api-v4/${stackPrefix}/billing-plan-updated-sns-topic-arn`,
+      stringValue: billingPlanUpdatedSnsTopic.topicArn,
     });
 
     new SSM.StringParameter(this, `RawMessageS3BucketNameSsmParameter_${id}`, {

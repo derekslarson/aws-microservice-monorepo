@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, BillingPlan, DocumentClientFactory, LoggerServiceInterface, NotFoundError } from "@yac/util";
+import { BaseDynamoRepositoryV2, BillingPlan, DocumentClientFactory, LoggerServiceInterface, NotFoundError, OrganizationId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
@@ -73,7 +73,7 @@ export class OrganizationStripeMappingDynamoRepository extends BaseDynamoReposit
       const { customerId } = params;
 
       const { Items: [ organizationStripeMapping ] } = await this.query({
-        KeyConditionExpression: "#gsi1pk = :gsi1pk AND #gsi1sk = :",
+        KeyConditionExpression: "#gsi1pk = :gsi1pk AND #gsi1sk = :gsi1sk",
         IndexName: this.gsiOneIndexName,
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
@@ -158,6 +158,33 @@ export class OrganizationStripeMappingDynamoRepository extends BaseDynamoReposit
     }
   }
 
+  public async decrementSubscriptionItemQuantity(params: DecrementSubscriptionItemQuantityInput): Promise<DecrementSubscriptionItemQuantityOutput> {
+    try {
+      this.loggerService.trace("decrementSubscriptionItemQuantity called", { params }, this.constructor.name);
+
+      const { organizationId } = params;
+
+      const organizationStripeMapping = await this.update({
+        Key: { pk: organizationId, sk: EntityType.OrganizationStripeMapping },
+        UpdateExpression: "ADD #subscriptionItemQuantity :negativeOne SET #gsi2sk = :pendingQuantityUpdate",
+        ExpressionAttributeNames: {
+          "#subscriptionItemQuantity": "subscriptionItemQuantity",
+          "#gsi2sk": "gsi2sk",
+        },
+        ExpressionAttributeValues: {
+          ":negativeOne": -1,
+          ":pendingQuantityUpdate": "PENDING_QUANTITY_UPDATE",
+        },
+      });
+
+      return { organizationStripeMapping };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in decrementSubscriptionQuantity", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async removePendingQuantityUpdateStatus(params: RemovePendingQuantityUpdateStatusInput): Promise<RemovePendingQuantityUpdateStatusOutput> {
     try {
       this.loggerService.trace("removePendingQuantityUpdateStatus called", { params }, this.constructor.name);
@@ -203,6 +230,7 @@ export interface OrganizationStripeMappingRepositoryInterface {
   getOrganizationStripeMappingsWithPendingQuantityUpdates(): Promise<GetOrganizationStripeMappingsWithPendingQuantityUpdatesOutput>
   updateOrganizationStripeMapping(params: UpdateOrganizationStripeMappingInput): Promise<UpdateOrganizationStripeMappingOutput>;
   incrementSubscriptionItemQuantity(params: IncrementSubscriptionItemQuantityInput): Promise<IncrementSubscriptionItemQuantityOutput>;
+  decrementSubscriptionItemQuantity(params: DecrementSubscriptionItemQuantityInput): Promise<DecrementSubscriptionItemQuantityOutput>;
   removePendingQuantityUpdateStatus(params: RemovePendingQuantityUpdateStatusInput): Promise<RemovePendingQuantityUpdateStatusOutput>
   deleteOrganizationStripeMapping(params: DeleteOrganizationStripeMappingInput): Promise<DeleteOrganizationStripeMappingOutput>;
 }
@@ -210,8 +238,9 @@ export interface OrganizationStripeMappingRepositoryInterface {
 type OrganizationStripeMappingRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
 export interface OrganizationStripeMapping {
-  organizationId: string;
+  organizationId: OrganizationId;
   customerId: string;
+  productId: string;
   subscriptionItemId: string;
   subscriptionItemQuantity: number;
   plan: BillingPlan;
@@ -254,6 +283,14 @@ export interface IncrementSubscriptionItemQuantityInput {
 }
 
 export interface IncrementSubscriptionItemQuantityOutput {
+  organizationStripeMapping: OrganizationStripeMapping;
+}
+
+export interface DecrementSubscriptionItemQuantityInput {
+  organizationId: string;
+}
+
+export interface DecrementSubscriptionItemQuantityOutput {
   organizationStripeMapping: OrganizationStripeMapping;
 }
 

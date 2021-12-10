@@ -31,7 +31,7 @@ export class UserAddedToOrganizationSnsProcessorService implements SnsProcessorS
     }
   }
 
-  public async processRecord(record: SnsProcessorServiceRecord<AdminAddedToOrganizationSnsMessage>): Promise<void> {
+  public async processRecord(record: SnsProcessorServiceRecord<UserAddedToOrganizationSnsMessage>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
@@ -58,7 +58,3 @@ export class UserAddedToOrganizationSnsProcessorService implements SnsProcessorS
 export interface UserAddedToOrganizationSnsProcessorServiceConfigInterface {
   snsTopicArns: Pick<EnvConfigInterface["snsTopicArns"], "userAddedToOrganization">;
 }
-
-export type AdminAddedToOrganizationSnsMessage = UserAddedToOrganizationSnsMessage & {
-  role: Role.Admin;
-};

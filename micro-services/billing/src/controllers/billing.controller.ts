@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ForbiddenError, LoggerServiceInterface, OrganizationId, Request, Response, ValidationServiceV2Interface } from "@yac/util";
+import { BadRequestError, BaseController, ForbiddenError, LoggerServiceInterface, OrganizationId, Request, Response, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { GetBillingPortalUrlDto } from "../dtos/getBillingPortalUrl.dto";
 import { OrganizationServiceInterface } from "../services/tier-1/organization.service";
@@ -42,31 +42,28 @@ export class BillingController extends BaseController implements BillingControll
     }
   }
 
-  // public async handleStripeWebhookEvent(request: Request): Promise<Response> {
-  //   try {
-  //     this.loggerService.trace("handleStripeWebhookEvent called", { request }, this.constructor.name);
+  public async handleStripeWebhook(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("handleStripeWebhookEvent called", { request }, this.constructor.name);
 
-  //     const {
-  //       jwtId,
-  //       pathParameters: { userId },
-  //     } = this.validationService.validate({ dto: GetGoogleEventsDto, request, getUserIdFromJwt: true });
+      const { body, headers: { "stripe-signature": stripeSignature } } = request;
 
-  //     if (jwtId !== userId) {
-  //       throw new ForbiddenError("Forbidden");
-  //     }
+      if (!body || !stripeSignature) {
+        throw new BadRequestError("Bad Request");
+      }
 
-  //     const { events } = await this.googleStripeService.getEvents({ userId: userId as UserId });
+      await this.billingService.handleStripeWebhook({ body, stripeSignature });
 
-  //     return this.generateSuccessResponse({ events });
-  //   } catch (error: unknown) {
-  //     this.loggerService.error("Error in handleStripeWebhookEvent", { error, request }, this.constructor.name);
+      return this.generateSuccessResponse({});
+    } catch (error: unknown) {
+      this.loggerService.error("Error in handleStripeWebhookEvent", { error, request }, this.constructor.name);
 
-  //     return this.generateErrorResponse(error);
-  //   }
-  // }
+      return this.generateErrorResponse(error);
+    }
+  }
 }
 
 export interface BillingControllerInterface {
   getBillingPortalUrl(request: Request): Promise<Response>;
-  // handleStripeWebhookEvent(request: Request): Promise<Response>;
+  handleStripeWebhook(request: Request): Promise<Response>;
 }

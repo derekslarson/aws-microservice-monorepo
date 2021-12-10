@@ -79,6 +79,8 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     const createUserRequestSnsTopicArn = CDK.Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn);
 
+    const billingPlanUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.BillingPlanUpdatedSnsTopicArn);
+
     // Secret imports from Util
     const messageUploadTokenSecretArn = CDK.Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
 
@@ -95,6 +97,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const messageTranscodedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn);
     const messageTranscribedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscribedSnsTopic_${id}`, messageTranscribedSnsTopicArn);
     const userCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `UserCreatedSnsTopic_${id}`, userCreatedSnsTopicArn);
+    const billingPlanUpdatedSnsTopic = SNS.Topic.fromTopicArn(this, `BillingPlanUpdatedSnsTopic_${id}`, billingPlanUpdatedSnsTopicArn);
 
     // Secrets
     const messageUploadTokenSecret = SecretsManager.Secret.fromSecretCompleteArn(this, `MessageUploadTokenSecret_${id}`, messageUploadTokenSecretArn);
@@ -339,6 +342,8 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
       CREATE_USER_REQUEST_SNS_TOPIC_ARN: createUserRequestSnsTopicArn,
 
+      BILLING_PLAN_UPDATED_SNS_TOPIC_ARN: billingPlanUpdatedSnsTopicArn,
+
       RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
       ENHANCED_MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,
       IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
@@ -352,6 +357,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     messageTranscodedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
     messageTranscribedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
     userCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    billingPlanUpdatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Dynamo Stream Handler
     new Lambda.Function(this, `CoreTableEventHandler_${id}`, {

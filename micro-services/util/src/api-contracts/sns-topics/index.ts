@@ -23,3 +23,4 @@ export * from "./meetingMessageUpdated.snsMessage.model";
 export * from "./messageTranscoded.snsMessage.model";
 export * from "./messageTranscribed.snsMessage.model";
 export * from "./createUserRequest.snsMessage.model";
+export * from "./billingPlanUpdated.snsMessage.model";

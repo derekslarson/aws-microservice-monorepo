@@ -33,7 +33,10 @@ const ExportNames = {
 
   MessageTranscodedSnsTopicArn: "messageTranscodedSnsTopicArn",
   MessageTranscribedSnsTopicArn: "messageTranscribedSnsTopicArn",
+
   CreateUserRequestSnsTopicArn: "createUserRequestSnsTopicArn",
+
+  BillingPlanUpdatedSnsTopicArn: "billingPlanUpdatedSnsTopicArn",
 
   RawMessageS3BucketArn: "rawMessageS3BucketArn",
   EnhancedMessageS3BucketArn: "enhancedMessageS3BucketArn",

@@ -33,6 +33,7 @@ export const envConfig: EnvConfigInterface = {
     messageTranscoded: process.env.MESSAGE_TRANSCODED_SNS_TOPIC_ARN || "",
     messageTranscribed: process.env.MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN || "",
     createUserRequest: process.env.CREATE_USER_REQUEST_SNS_TOPIC_ARN || "",
+    billingPlanUpdated: process.env.BILLING_PLAN_UPDATED_SNS_TOPIC_ARN || "",
   },
   globalSecondaryIndexNames: {
     one: process.env.GSI_ONE_INDEX_NAME || "",
@@ -72,6 +73,7 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     messageTranscoded: string;
     messageTranscribed: string;
     createUserRequest: string;
+    billingPlanUpdated: string;
   };
   bucketNames: {
     rawMessage: string;

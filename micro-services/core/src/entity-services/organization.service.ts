@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { FileOperation, IdServiceInterface, LoggerServiceInterface, OrganizationId } from "@yac/util";
+import { BillingPlan, FileOperation, IdServiceInterface, LoggerServiceInterface, OrganizationId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { OrganizationRepositoryInterface, Organization as OrganizationEntity, OrganizationUpdates, RawOrganization } from "../repositories/organization.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -35,6 +35,7 @@ export class OrganizationService implements OrganizationServiceInterface {
         imageMimeType,
         name,
         createdBy,
+        billingPlan: BillingPlan.Free,
       };
 
       await Promise.all([

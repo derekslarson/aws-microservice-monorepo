@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, OrganizationId } from "@yac/util";
+import { BadRequestError, BillingPlan, LoggerServiceInterface, OrganizationId } from "@yac/util";
 import StripeNamespace from "stripe";
 import { TYPES } from "../../inversion-of-control/types";
 import { OrganizationStripeMappingRepositoryInterface } from "../../repositories/organizationStripeMapping.dynamo.repository";
@@ -10,7 +10,11 @@ import { EnvConfigInterface } from "../../config/env.config";
 export class BillingService implements BillingServiceInterface {
   private stripe: Stripe;
 
-  private freePlanPriceId: string;
+  private freePlanProductId: string;
+
+  private paidPlanProductId: string;
+
+  private webhookSecret: string;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
@@ -19,7 +23,9 @@ export class BillingService implements BillingServiceInterface {
     @inject(TYPES.StripeFactory) stripeFactory: StripeFactory,
   ) {
     this.stripe = stripeFactory(config.stripe.apiKey);
-    this.freePlanPriceId = config.stripe.freePlanPriceId;
+    this.freePlanProductId = config.stripe.freePlanProductId;
+    this.paidPlanProductId = config.stripe.paidPlanProductId;
+    this.webhookSecret = config.stripe.webhookSecret;
   }
 
   public async getBillingPortalUrl(params: GetBillingPortalUrlInput): Promise<GetBillingPortalUrlOutput> {
@@ -62,10 +68,16 @@ export class BillingService implements BillingServiceInterface {
 
       const { customerId } = params;
 
+      const { data: [ freePlanPrice ] } = await this.stripe.prices.list({ product: this.freePlanProductId });
+
+      if (!freePlanPrice) {
+        throw new Error("free plan price not found");
+      }
+
       const subscription = await this.stripe.subscriptions.create({
         customer: customerId,
         proration_behavior: "always_invoice",
-        items: [ { price: this.freePlanPriceId, quantity: 1 } ],
+        items: [ { price: freePlanPrice.id, quantity: 1 } ],
       });
 
       return { subscription };
@@ -89,6 +101,40 @@ export class BillingService implements BillingServiceInterface {
       throw error;
     }
   }
+
+  public async handleStripeWebhook(params: HandleStripeWebhookInput): Promise<HandleStripeWebhookOutput> {
+    try {
+      this.loggerService.trace("handleStripeWebhook called", { params }, this.constructor.name);
+
+      const { body, stripeSignature } = params;
+
+      const webhookEvent = this.stripe.webhooks.constructEvent(body, stripeSignature, this.webhookSecret);
+
+      const { customer: customerId, items: { data: subscriptionItems } } = webhookEvent.data.object as StripeNamespace.Subscription;
+
+      if (typeof customerId !== "string") {
+        throw new BadRequestError("Malformed event from stripe. customerId value not string");
+      }
+
+      const { organizationStripeMapping } = await this.organizationStripeMappingRepository.getOrganizationStripeMappingByCustomerId({ customerId });
+
+      const subscriptionItem = subscriptionItems.find((item) => item.id === organizationStripeMapping.subscriptionItemId);
+
+      if (!subscriptionItem) {
+        throw new BadRequestError("Malformed event from stripe. subscriptionItem missing");
+      }
+
+      if (organizationStripeMapping.productId !== subscriptionItem.price.product) {
+        const newPlan = subscriptionItem.price.product === this.paidPlanProductId ? BillingPlan.Paid : BillingPlan.Free;
+
+        await this.organizationStripeMappingRepository.updateOrganizationStripeMapping({ organizationId: organizationStripeMapping.organizationId, updates: { plan: newPlan } });
+      }
+    } catch (error: unknown) {
+      this.loggerService.error("Error in handleStripeWebhook", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface BillingServiceInterface {
@@ -96,6 +142,7 @@ export interface BillingServiceInterface {
   createCustomer(params: CreateCustomerInput): Promise<CreateCustomerOutput>;
   createFreePlanSubscription(params: CreateFreePlanSubscriptionInput): Promise<CreateFreePlanSubscriptionOutput>;
   updateSubscriptionItemQuantity(params: UpdateSubscriptionItemQuantityInput): Promise<UpdateSubscriptionItemQuantityOutput>
+  handleStripeWebhook(params: HandleStripeWebhookInput): Promise<HandleStripeWebhookOutput>
 }
 
 type BillingServiceConfig = Pick<EnvConfigInterface, "stripe">;
@@ -132,3 +179,10 @@ export interface UpdateSubscriptionItemQuantityInput {
 }
 
 export type UpdateSubscriptionItemQuantityOutput = void;
+
+export interface HandleStripeWebhookInput {
+  body: string;
+  stripeSignature: string;
+}
+
+export type HandleStripeWebhookOutput = void;

@@ -33,6 +33,7 @@ const TYPES = {
   MessageTranscodedSnsProcessorServiceInterface: Symbol.for("MessageTranscodedSnsProcessorServiceInterface"),
   MessageTranscribedSnsProcessorServiceInterface: Symbol.for("MessageTranscribedSnsProcessorServiceInterface"),
   UserCreatedSnsProcessorServiceInterface: Symbol.for("UserCreatedSnsProcessorServiceInterface"),
+  BillingPlanUpdatedSnsProcessorServiceInterface: Symbol.for("BillingPlanUpdatedSnsProcessorServiceInterface"),
 
   // Dynamo Processor Services
   UserCreatedDynamoProcessorServiceInterface: Symbol.for("UserCreatedDynamoProcessorServiceInterface"),

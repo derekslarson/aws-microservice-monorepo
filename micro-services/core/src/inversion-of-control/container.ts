@@ -92,6 +92,7 @@ import { UserAddedToOrganizationSnsService, UserAddedToOrganizationSnsServiceInt
 import { UserRemovedFromOrganizationSnsService, UserRemovedFromOrganizationSnsServiceInterface } from "../sns-services/userRemovedFromOrganization.sns.service";
 import { UserAddedToOrganizationDynamoProcessorService } from "../processor-services/userAddedToOrganization.dynamo.processor.service";
 import { UserRemovedFromOrganizationDynamoProcessorService } from "../processor-services/userRemovedFromOrganization.dynamo.processor.service";
+import { BillingPlanUpdatedSnsProcessorService } from "../processor-services/billingPlanUpdated.sns.processor.service";
 
 const container = new Container();
 
@@ -131,6 +132,7 @@ try {
   container.bind<SnsProcessorServiceInterface>(TYPES.MessageTranscodedSnsProcessorServiceInterface).to(MessageTranscodedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.MessageTranscribedSnsProcessorServiceInterface).to(MessageTranscribedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserCreatedSnsProcessorServiceInterface).to(UserCreatedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.BillingPlanUpdatedSnsProcessorServiceInterface).to(BillingPlanUpdatedSnsProcessorService);
 
   // Dynamo Processor Services
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserCreatedDynamoProcessorServiceInterface).to(UserCreatedDynamoProcessorService);
@@ -216,6 +218,7 @@ try {
     container.get(TYPES.MessageTranscodedSnsProcessorServiceInterface),
     container.get(TYPES.MessageTranscribedSnsProcessorServiceInterface),
     container.get(TYPES.UserCreatedSnsProcessorServiceInterface),
+    container.get(TYPES.BillingPlanUpdatedSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([
