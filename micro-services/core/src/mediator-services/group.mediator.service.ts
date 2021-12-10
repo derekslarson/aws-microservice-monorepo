@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, Role, WithRole } from "@yac/util";
+import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationServiceInterface, GroupConversation } from "../entity-services/conversation.service";
 import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
@@ -22,11 +22,12 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
     try {
       this.loggerService.trace("createGroup called", { params }, this.constructor.name);
 
-      const { name, createdBy, teamId } = params;
+      const { name, createdBy, organizationId, teamId } = params;
 
       const { conversation: group } = await this.conversationService.createGroupConversation({
         name,
         createdBy,
+        organizationId,
         teamId,
       });
 
@@ -207,6 +208,27 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
     }
   }
 
+  public async getGroupsByOrganizationId(params: GetGroupsByOrganizationIdInput): Promise<GetGroupsByOrganizationIdOutput> {
+    try {
+      this.loggerService.trace("getGroupsByOrganizationId called", { params }, this.constructor.name);
+
+      const { organizationId, exclusiveStartKey, limit } = params;
+
+      const { conversations: groups, lastEvaluatedKey } = await this.conversationService.getConversationsByOrganizationId({
+        organizationId,
+        type: ConversationType.Group,
+        exclusiveStartKey,
+        limit,
+      });
+
+      return { groups, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGroupsByOrganizationId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async isGroupMember(params: IsGroupMemberInput): Promise<IsGroupMemberOutput> {
     try {
       this.loggerService.trace("isGroupMember called", { params }, this.constructor.name);
@@ -262,6 +284,7 @@ export interface GroupMediatorServiceInterface {
   getGroupImageUploadUrl(params: GetGroupImageUploadUrlInput): GetGroupImageUploadUrlOutput;
   getGroupsByUserId(params: GetGroupsByUserIdInput): Promise<GetGroupsByUserIdOutput>;
   getGroupsByTeamId(params: GetGroupsByTeamIdInput): Promise<GetGroupsByTeamIdOutput>;
+  getGroupsByOrganizationId(params: GetGroupsByOrganizationIdInput): Promise<GetGroupsByOrganizationIdOutput>;
   isGroupMember(params: IsGroupMemberInput): Promise<IsGroupMemberOutput>;
   isGroupAdmin(params: IsGroupAdminInput): Promise<IsGroupAdminOutput>;
 }
@@ -275,6 +298,7 @@ export interface Membership { groupId: string; userId: string; role: Role; }
 export interface CreateGroupInput {
   name: string;
   createdBy: UserId;
+  organizationId: OrganizationId;
   teamId?: TeamId;
 }
 
@@ -349,6 +373,17 @@ export interface GetGroupsByTeamIdInput {
 }
 
 export interface GetGroupsByTeamIdOutput {
+  groups: Group[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetGroupsByOrganizationIdInput {
+  organizationId: OrganizationId;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetGroupsByOrganizationIdOutput {
   groups: Group[];
   lastEvaluatedKey?: string;
 }

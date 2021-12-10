@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import axios from "axios";
 import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -16,6 +16,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   let otherUser: CreateRandomUserOutput["user"];
 
@@ -30,7 +31,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
     let messageTwo: RawMessage;
 
     beforeAll(async () => {
-      ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
+      ({ conversation: group } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
       ([ { message } ] = await Promise.all([
         createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId, otherUser.id ], replyCount: 1, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
@@ -61,6 +62,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 id: messageTwo.id,
                 to: {
                   id: group.id,
+                  organizationId: mockOrganizationId,
                   name: group.name,
                   createdBy: group.createdBy,
                   createdAt: group.createdAt,
@@ -91,6 +93,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 id: message.id,
                 to: {
                   id: group.id,
+                  organizationId: mockOrganizationId,
                   name: group.name,
                   createdBy: group.createdBy,
                   createdAt: group.createdAt,
@@ -139,6 +142,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 id: messageTwo.id,
                 to: {
                   id: group.id,
+                  organizationId: mockOrganizationId,
                   name: group.name,
                   createdBy: group.createdBy,
                   createdAt: group.createdAt,
@@ -179,6 +183,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
                 id: message.id,
                 to: {
                   id: group.id,
+                  organizationId: mockOrganizationId,
                   name: group.name,
                   createdBy: group.createdBy,
                   createdAt: group.createdAt,

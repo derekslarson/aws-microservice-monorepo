@@ -1,21 +1,22 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { MessageMimeType } from "@yac/util";
+import { MessageMimeType, OrganizationId } from "@yac/util";
 import { generateRandomString, getAccessToken } from "../../../../e2e/util";
 import { createGroupConversation, createMessage, createRandomUser, getMessage } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
+import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 
 describe("PATCH /messages/{messageId} (Update Message)", () => {
   const baseUrl = process.env.baseUrl as string;
-
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   let message: RawMessage;
   beforeEach(async () => {
-    const { conversation } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) });
+    const { conversation } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) });
     ({ message } = await createMessage({
       from: userId,
       conversationId: conversation.id,

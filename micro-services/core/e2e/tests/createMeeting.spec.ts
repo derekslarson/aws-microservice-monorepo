@@ -1,33 +1,38 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { MeetingCreatedSnsMessage, Role, Meeting, OrganizationId } from "@yac/util";
+import { MeetingCreatedSnsMessage, Role, Meeting } from "@yac/util";
 import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { UserId } from "../../src/types/userId.type";
-import { createRandomTeam, createTeamUserRelationship, deleteSnsEventsByTopicArn, getConversation, getConversationUserRelationship, getSnsEventsByTopicArn, getUser } from "../util";
+import { createOrganization, createOrganizationUserRelationship, createRandomTeam, createTeamUserRelationship, deleteSnsEventsByTopicArn, getConversation, getConversationUserRelationship, getSnsEventsByTopicArn, getUser } from "../util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 import { MeetingConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { RawOrganization } from "../../src/repositories/organization.dynamo.repository";
 
-describe("POST /users/{userId}/meetings (Create Meeting)", () => {
+describe("POST /organizations/{organizationId}/meetings (Create Meeting)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
   const meetingCreatedSnsTopicArn = process.env["meeting-created-sns-topic-arn"] as string;
 
+  let team: RawTeam;
+  let organization: RawOrganization;
+
+  beforeAll(async () => {
+    ({ organization } = await createOrganization({ createdBy: userId, name: generateRandomString() }));
+    ({ team } = await createRandomTeam({ createdBy: userId, organizationId: organization.id }));
+
+    await Promise.all([
+      createOrganizationUserRelationship({ organizationId: organization.id, userId, role: Role.Admin }),
+      createTeamUserRelationship({ teamId: team.id, userId, role: Role.Admin }),
+    ]);
+  });
+
   describe("under normal conditions", () => {
-    let team: RawTeam;
-    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
-
-    beforeEach(async () => {
-      ({ team } = await createRandomTeam({ createdBy: userId, organizationId: mockOrganizationId }));
-
-      await createTeamUserRelationship({ teamId: team.id, userId, role: Role.Admin });
-    });
-
     it("returns a valid response", async () => {
       const name = generateRandomString(5);
       const dueDate = new Date().toISOString();
@@ -36,7 +41,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { status, data } = await axios.post(`${baseUrl}/users/${userId}/meetings`, body, { headers });
+        const { status, data } = await axios.post(`${baseUrl}/organizations/${organization.id}/meetings`, body, { headers });
 
         expect(status).toBe(201);
         expect(data).toEqual({
@@ -45,6 +50,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
             name,
             dueDate,
             teamId: team.id,
+            organizationId: organization.id,
             createdBy: userId,
             createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
             image: jasmine.stringMatching(URL_REGEX),
@@ -56,35 +62,71 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
       }
     });
 
-    it("creates a valid Conversation entity", async () => {
-      const name = generateRandomString(5);
-      const dueDate = new Date().toISOString();
-      const body = { name, teamId: team.id, dueDate };
-      const headers = { Authorization: `Bearer ${accessToken}` };
+    describe("when passed a teamId", () => {
+      it("creates a valid Conversation entity", async () => {
+        const name = generateRandomString(5);
+        const dueDate = new Date().toISOString();
+        const body = { name, teamId: team.id, dueDate };
+        const headers = { Authorization: `Bearer ${accessToken}` };
 
-      try {
-        const { data } = await axios.post(`${baseUrl}/users/${userId}/meetings`, body, { headers });
+        try {
+          const { data } = await axios.post(`${baseUrl}/organizations/${organization.id}/meetings`, body, { headers });
 
-        const { conversation } = await getConversation({ conversationId: data.meeting.id });
+          const { conversation } = await getConversation({ conversationId: data.meeting.id });
 
-        expect(conversation).toEqual({
-          entityType: EntityType.MeetingConversation,
-          pk: data.meeting.id,
-          sk: data.meeting.id,
-          gsi1pk: team.id,
-          gsi1sk: data.meeting.id,
-          id: data.meeting.id,
-          createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
-          type: ConversationType.Meeting,
-          imageMimeType: ImageMimeType.Png,
-          teamId: team.id,
-          createdBy: userId,
-          dueDate,
-          name,
-        });
-      } catch (error) {
-        fail(error);
-      }
+          expect(conversation).toEqual({
+            entityType: EntityType.MeetingConversation,
+            pk: data.meeting.id,
+            sk: data.meeting.id,
+            gsi1pk: team.id,
+            gsi1sk: data.meeting.id,
+            id: data.meeting.id,
+            organizationId: organization.id,
+            createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+            type: ConversationType.Meeting,
+            imageMimeType: ImageMimeType.Png,
+            teamId: team.id,
+            createdBy: userId,
+            dueDate,
+            name,
+          });
+        } catch (error) {
+          fail(error);
+        }
+      });
+    });
+
+    describe("when not passed a teamId", () => {
+      it("creates a valid Conversation entity", async () => {
+        const name = generateRandomString(5);
+        const dueDate = new Date().toISOString();
+        const body = { name, dueDate };
+        const headers = { Authorization: `Bearer ${accessToken}` };
+
+        try {
+          const { data } = await axios.post(`${baseUrl}/organizations/${organization.id}/meetings`, body, { headers });
+
+          const { conversation } = await getConversation({ conversationId: data.meeting.id });
+
+          expect(conversation).toEqual({
+            entityType: EntityType.MeetingConversation,
+            pk: data.meeting.id,
+            sk: data.meeting.id,
+            gsi2pk: organization.id,
+            gsi2sk: data.meeting.id,
+            id: data.meeting.id,
+            organizationId: organization.id,
+            createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
+            type: ConversationType.Meeting,
+            imageMimeType: ImageMimeType.Png,
+            createdBy: userId,
+            dueDate,
+            name,
+          });
+        } catch (error) {
+          fail(error);
+        }
+      });
     });
 
     it("creates a valid ConversationUserRelationship entity", async () => {
@@ -94,7 +136,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { data } = await axios.post(`${baseUrl}/users/${userId}/meetings`, body, { headers });
+        const { data } = await axios.post(`${baseUrl}/organizations/${organization.id}/meetings`, body, { headers });
 
         const { conversationUserRelationship } = await getConversationUserRelationship({ conversationId: data.meeting.id, userId });
 
@@ -131,7 +173,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       try {
-        const { data } = await axios.post<{ meeting: Meeting }>(`${baseUrl}/users/${userId}/meetings`, body, { headers });
+        const { data } = await axios.post<{ meeting: Meeting }>(`${baseUrl}/organizations/${organization.id}/meetings`, body, { headers });
 
         const [ { user }, { conversation: meeting } ] = await Promise.all([
           getUser({ userId }),
@@ -160,6 +202,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
               name: meeting.name,
               dueDate: meeting.dueDate,
               teamId: meeting.teamId,
+              organizationId: organization.id,
               createdAt: meeting.createdAt,
               type: meeting.type,
             },
@@ -179,7 +222,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
         const headers = {};
 
         try {
-          await axios.post(`${baseUrl}/users/${userId}/meetings`, body, { headers });
+          await axios.post(`${baseUrl}/organizations/${organization.id}/meetings`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -189,12 +232,36 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
       });
     });
 
-    describe("when passed a teamId the user is not an admin of", () => {
-      let teamTwo: RawTeam;
-      const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
+    describe("when passed an organizationId the user is not an admin of and no teamId", () => {
+      let organizationTwo: RawOrganization;
 
       beforeEach(async () => {
-        ({ team: teamTwo } = await createRandomTeam({ createdBy: `${KeyPrefix.User}${generateRandomString(5)}`, organizationId: mockOrganizationId }));
+        ({ organization: organizationTwo } = await createOrganization({ createdBy: `${KeyPrefix.User}${generateRandomString(5)}`, name: generateRandomString() }));
+
+        await createOrganizationUserRelationship({ organizationId: organizationTwo.id, userId, role: Role.User });
+      });
+
+      it("throws a 403 error", async () => {
+        const name = generateRandomString(5);
+        const body = { name, dueDate: new Date().toISOString() };
+        const headers = { Authorization: `Bearer ${accessToken}` };
+
+        try {
+          await axios.post(`${baseUrl}/organizations/${organizationTwo.id}/meetings`, body, { headers });
+
+          fail("Expected an error");
+        } catch (error) {
+          expect(error.response?.status).toBe(403);
+          expect(error.response?.statusText).toBe("Forbidden");
+        }
+      });
+    });
+
+    describe("when passed a teamId the user is not an admin of", () => {
+      let teamTwo: RawTeam;
+
+      beforeEach(async () => {
+        ({ team: teamTwo } = await createRandomTeam({ createdBy: `${KeyPrefix.User}${generateRandomString(5)}`, organizationId: organization.id }));
 
         await createTeamUserRelationship({ teamId: teamTwo.id, userId, role: Role.User });
       });
@@ -205,7 +272,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/users/${userId}/meetings`, body, { headers });
+          await axios.post(`${baseUrl}/organizations/${organization.id}/meetings`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -221,7 +288,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         try {
-          await axios.post(`${baseUrl}/users/test/meetings`, body, { headers });
+          await axios.post(`${baseUrl}/organizations/test/meetings`, body, { headers });
 
           fail("Expected an error");
         } catch (error) {
@@ -230,7 +297,7 @@ describe("POST /users/{userId}/meetings (Create Meeting)", () => {
           expect(error.response?.data).toEqual({
             message: "Error validating request",
             validationErrors: {
-              pathParameters: { userId: "Failed constraint check for string: Must be a user id" },
+              pathParameters: { organizationId: "Failed constraint check for string: Must be an organization id" },
               body: {
                 name: "Expected string, but was missing",
                 teamId: "Expected string, but was number",

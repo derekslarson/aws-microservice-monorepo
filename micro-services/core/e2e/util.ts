@@ -474,7 +474,7 @@ export async function getOrganizationUserRelationship(params: GetOrganizationUse
 
 export async function createFriendConversation(params: CreateFriendConversationInput): Promise<CreateFriendConversationOutput> {
   try {
-    const { userId, friendId } = params;
+    const { userId, friendId, organizationId, teamId } = params;
 
     const conversationId: FriendConvoId = `${KeyPrefix.FriendConversation}${[ userId, friendId ].sort().join("-")}`;
 
@@ -483,9 +483,13 @@ export async function createFriendConversation(params: CreateFriendConversationI
       pk: conversationId,
       sk: conversationId,
       id: conversationId,
+      organizationId,
+      teamId,
       type: ConversationTypeEnum.Friend,
       createdAt: new Date().toISOString(),
       createdBy: userId,
+      ...(teamId && { gsi1pk: teamId, gsi1sk: conversationId }),
+      ...(organizationId && { gsi2pk: organizationId, gsi2sk: conversationId }),
     };
 
     await documentClient.put({
@@ -503,7 +507,7 @@ export async function createFriendConversation(params: CreateFriendConversationI
 
 export async function createGroupConversation(params: CreateGroupConversationInput): Promise<CreateGroupConversationOutput> {
   try {
-    const { name, createdBy, teamId } = params;
+    const { name, createdBy, organizationId, teamId } = params;
 
     const { image, mimeType } = createDefaultImage();
 
@@ -514,14 +518,15 @@ export async function createGroupConversation(params: CreateGroupConversationInp
       imageMimeType: mimeType,
       pk: conversationId,
       sk: conversationId,
-      gsi1pk: teamId,
-      gsi1sk: teamId && conversationId,
       id: conversationId,
+      organizationId,
       type: ConversationTypeEnum.Group,
       createdAt: new Date().toISOString(),
       name,
       createdBy,
+      ...(teamId && { gsi1pk: teamId, gsi1sk: conversationId }),
       ...(teamId && { teamId }),
+      ...(!teamId && { gsi2pk: organizationId, gsi2sk: conversationId }),
     };
 
     const s3UploadInput: S3.Types.PutObjectRequest = {
@@ -551,7 +556,7 @@ export async function createGroupConversation(params: CreateGroupConversationInp
 
 export async function createMeetingConversation(params: CreateMeetingConversationInput): Promise<CreateMeetingConversationOutput> {
   try {
-    const { name, createdBy, teamId, dueDate } = params;
+    const { name, createdBy, organizationId, teamId, dueDate } = params;
 
     const { image, mimeType } = createDefaultImage();
 
@@ -562,15 +567,16 @@ export async function createMeetingConversation(params: CreateMeetingConversatio
       imageMimeType: mimeType,
       pk: conversationId,
       sk: conversationId,
-      gsi1pk: teamId,
-      gsi1sk: teamId && conversationId,
       id: conversationId,
+      organizationId,
       type: ConversationTypeEnum.Meeting,
       createdAt: new Date().toISOString(),
       dueDate,
       name,
       createdBy,
+      ...(teamId && { gsi1pk: teamId, gsi1sk: conversationId }),
       ...(teamId && { teamId }),
+      ...(!teamId && { gsi2pk: organizationId, gsi2sk: conversationId }),
     };
 
     const s3UploadInput: S3.Types.PutObjectRequest = {
@@ -950,6 +956,8 @@ export interface GetTeamUserRelationshipOutput {
 export interface CreateFriendConversationInput {
   userId: UserId;
   friendId: UserId;
+  organizationId?: OrganizationId;
+  teamId?: TeamId;
 }
 
 export interface CreateFriendConversationOutput {
@@ -959,6 +967,7 @@ export interface CreateFriendConversationOutput {
 export interface CreateGroupConversationInput {
   createdBy: UserId;
   name: string;
+  organizationId: OrganizationId;
   teamId?: TeamId;
 }
 
@@ -970,6 +979,7 @@ export interface CreateMeetingConversationInput {
   createdBy: UserId;
   name: string;
   dueDate: string;
+  organizationId: OrganizationId;
   teamId?: TeamId;
 }
 

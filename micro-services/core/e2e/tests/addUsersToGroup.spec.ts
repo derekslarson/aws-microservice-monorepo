@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Role, UserAddedToGroupSnsMessage } from "@yac/util";
+import { OrganizationId, Role, UserAddedToGroupSnsMessage } from "@yac/util";
 import axios from "axios";
 import { Static } from "runtypes";
 import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
@@ -31,6 +31,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
   const accessToken = process.env.accessToken as string;
   const userAddedToGroupSnsTopicArn = process.env["user-added-to-group-sns-topic-arn"] as string;
 
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
   const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
@@ -47,7 +48,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
 
       ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
         createRandomUser(),
-        createGroupConversation({ createdBy: userId, name: generateRandomString(5) }),
+        createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
       ]));
 
       await createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin });
@@ -281,6 +282,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
               group: {
                 createdBy: userId,
                 id: group.id,
+                organizationId: mockOrganizationId,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: group.name,
                 createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
@@ -303,6 +305,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
               group: {
                 createdBy: userId,
                 id: group.id,
+                organizationId: mockOrganizationId,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: group.name,
                 createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
@@ -321,6 +324,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
               group: {
                 createdBy: userId,
                 id: group.id,
+                organizationId: mockOrganizationId,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: group.name,
                 createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
@@ -361,7 +365,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
       const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
-        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserIdTwo, name: generateRandomString(5) }));
+        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
         await createConversationUserRelationship({ type: ConversationType.Group, conversationId: groupTwo.id, userId, role: Role.User });
       });

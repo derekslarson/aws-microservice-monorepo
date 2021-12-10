@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import { createConversationUserRelationship, createMeetingConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
@@ -13,6 +13,7 @@ describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     let userId: UserId;
@@ -27,8 +28,8 @@ describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
 
       ([ { accessToken }, { conversation: meeting }, { conversation: meetingTwo } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
-        createMeetingConversation({ createdBy: mockUserId, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
+        createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
+        createMeetingConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
       ]));
 
       // We need to wait create the relationships in sequence, so that we can be sure of the return order in the test
@@ -48,6 +49,7 @@ describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
             meetings: [
               {
                 id: meetingTwo.id,
+                organizationId: mockOrganizationId,
                 name: meetingTwo.name,
                 createdBy: meetingTwo.createdBy,
                 createdAt: meetingTwo.createdAt,
@@ -58,6 +60,7 @@ describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
               },
               {
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 name: meeting.name,
                 createdBy: meeting.createdBy,
                 createdAt: meeting.createdAt,
@@ -88,6 +91,7 @@ describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
             meetings: [
               {
                 id: meetingTwo.id,
+                organizationId: mockOrganizationId,
                 name: meetingTwo.name,
                 createdBy: meetingTwo.createdBy,
                 createdAt: meetingTwo.createdAt,
@@ -112,6 +116,7 @@ describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
             meetings: [
               {
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 name: meeting.name,
                 createdBy: meeting.createdBy,
                 createdAt: meeting.createdAt,
@@ -142,6 +147,7 @@ describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
             meetings: [
               {
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 name: meeting.name,
                 createdBy: meeting.createdBy,
                 createdAt: meeting.createdAt,
@@ -153,6 +159,7 @@ describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
               },
               {
                 id: meetingTwo.id,
+                organizationId: mockOrganizationId,
                 name: meetingTwo.name,
                 createdBy: meetingTwo.createdBy,
                 createdAt: meetingTwo.createdAt,

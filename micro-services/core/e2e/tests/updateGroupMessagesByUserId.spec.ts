@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { GroupMessageUpdatedSnsMessage, Role } from "@yac/util";
+import { GroupMessageUpdatedSnsMessage, OrganizationId, Role } from "@yac/util";
 import axios from "axios";
 import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -18,19 +18,19 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
   const groupMessageUpdatedSnsTopicArn = process.env["group-message-updated-sns-topic-arn"] as string;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     let fromUser: CreateRandomUserOutput["user"];
     let group: RawConversation<GroupConversation>;
     let message: RawMessage;
     let messageTwo: RawMessage;
-
     let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Group>;
 
     beforeEach(async () => {
       ([ { user: fromUser }, { conversation: group } ] = await Promise.all([
         createRandomUser(),
-        createGroupConversation({ createdBy: userId, name: generateRandomString(5) }),
+        createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
       ]));
 
       ([ { message }, { message: messageTwo } ] = await Promise.all([
@@ -149,6 +149,7 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
                     id: updatedMessage.id,
                     to: {
                       id: group.id,
+                      organizationId: mockOrganizationId,
                       name: group.name,
                       createdBy: group.createdBy,
                       createdAt: group.createdAt,
@@ -183,6 +184,7 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
                     id: updatedMessageTwo.id,
                     to: {
                       id: group.id,
+                      organizationId: mockOrganizationId,
                       name: group.name,
                       createdBy: group.createdBy,
                       createdAt: group.createdAt,

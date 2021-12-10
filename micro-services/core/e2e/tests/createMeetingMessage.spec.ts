@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { MakeRequired, Role } from "@yac/util";
+import { MakeRequired, OrganizationId, Role } from "@yac/util";
 import axios from "axios";
 import { generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -27,6 +27,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
   const mimeType = MessageMimeType.AudioMp3;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     let user: RawUser;
@@ -40,10 +41,10 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
     beforeEach(async () => {
       ([ { user: otherUser }, { conversation: meeting } ] = await Promise.all([
         createRandomUser(),
-        createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+        createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
       ]));
 
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin }),
@@ -64,6 +65,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
             id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Message}.*`)),
             to: {
               id: meeting.id,
+              organizationId: mockOrganizationId,
               name: meeting.name,
               createdBy: meeting.createdBy,
               createdAt: meeting.createdAt,

@@ -13,6 +13,8 @@ import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator
 import { GetMeetingImageUploadUrlDto } from "../dtos/getMeetingImageUploadUrl.dto";
 import { AddUsersToMeetingOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { UpdateMeetingDto } from "../dtos/updateMeeting.dto";
+import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
+import { GetMeetingsByOrganizationIdDto } from "../dtos/getMeetingsByOrganizationId.dto";
 
 @injectable()
 export class MeetingController extends BaseController implements MeetingControllerInterface {
@@ -20,6 +22,7 @@ export class MeetingController extends BaseController implements MeetingControll
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
+    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
   ) {
@@ -32,23 +35,28 @@ export class MeetingController extends BaseController implements MeetingControll
 
       const {
         jwtId,
-        pathParameters: { userId },
+        pathParameters: { organizationId },
         body: { name, teamId, dueDate },
       } = this.validationService.validate({ dto: CreateMeetingDto, request, getUserIdFromJwt: true });
 
-      if (jwtId !== userId) {
-        throw new ForbiddenError("Forbidden");
-      }
-
       if (teamId) {
-        const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId });
+        const [ { isTeamAdmin }, { team } ] = await Promise.all([
+          this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId }),
+          this.teamMediatorService.getTeam({ teamId }),
+        ]);
 
-        if (!isTeamAdmin) {
+        if (!isTeamAdmin || team.organizationId !== organizationId) {
+          throw new ForbiddenError("Forbidden");
+        }
+      } else {
+        const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId: jwtId });
+
+        if (!isOrganizationAdmin) {
           throw new ForbiddenError("Forbidden");
         }
       }
 
-      const { meeting } = await this.meetingMediatorService.createMeeting({ name, createdBy: userId, dueDate, teamId });
+      const { meeting } = await this.meetingMediatorService.createMeeting({ name, createdBy: jwtId, dueDate, organizationId, teamId });
 
       const response: CreateMeetingResponse = { meeting };
 
@@ -260,6 +268,34 @@ export class MeetingController extends BaseController implements MeetingControll
       return this.generateErrorResponse(error);
     }
   }
+
+  public async getMeetingsByOrganizationId(request: Request): Promise<Response> {
+    try {
+      this.loggerService.trace("getMeetingsByOrganizationId called", { request }, this.constructor.name);
+
+      const {
+        jwtId,
+        pathParameters: { organizationId },
+        queryStringParameters: { exclusiveStartKey, limit },
+      } = this.validationService.validate({ dto: GetMeetingsByOrganizationIdDto, request, getUserIdFromJwt: true });
+
+      const { isOrganizationMember } = await this.organizationMediatorService.isOrganizationMember({ organizationId, userId: jwtId });
+
+      if (!isOrganizationMember) {
+        throw new ForbiddenError("Forbidden");
+      }
+
+      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+
+      const response: GetMeetingsByOrganizationIdResponse = { meetings, lastEvaluatedKey };
+
+      return this.generateSuccessResponse(response);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMeetingsByOrganizationId", { error, request }, this.constructor.name);
+
+      return this.generateErrorResponse(error);
+    }
+  }
 }
 
 export interface MeetingControllerInterface {
@@ -271,6 +307,7 @@ export interface MeetingControllerInterface {
   getMeetingImageUploadUrl(request: Request): Promise<Response>;
   getMeetingsByUserId(request: Request): Promise<Response>;
   getMeetingsByTeamId(request: Request): Promise<Response>;
+  getMeetingsByOrganizationId(request: Request): Promise<Response>;
 }
 
 interface CreateMeetingResponse {
@@ -305,6 +342,11 @@ interface GetMeetingsByUserIdResponse {
 }
 
 interface GetMeetingsByTeamIdResponse {
+  meetings: Meeting[];
+  lastEvaluatedKey?: string;
+}
+
+interface GetMeetingsByOrganizationIdResponse {
   meetings: Meeting[];
   lastEvaluatedKey?: string;
 }

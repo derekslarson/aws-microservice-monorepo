@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { MakeRequired, Role } from "@yac/util";
+import { MakeRequired, OrganizationId, Role } from "@yac/util";
 import axios from "axios";
 import { generateRandomString, ISO_DATE_REGEX, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -27,6 +27,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
 
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
   const mimeType = MessageMimeType.AudioMp3;
 
   describe("under normal conditions", () => {
@@ -41,7 +42,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
     beforeEach(async () => {
       ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
         createRandomUser(),
-        createGroupConversation({ createdBy: userId, name: generateRandomString(5) }),
+        createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
       ]));
 
       await Promise.all([
@@ -63,6 +64,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
             id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Message}.*`)),
             to: {
               id: group.id,
+              organizationId: mockOrganizationId,
               name: group.name,
               createdBy: group.createdBy,
               createdAt: group.createdAt,

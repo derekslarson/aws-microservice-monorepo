@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { GroupMessageCreatedSnsMessage, MeetingMessageCreatedSnsMessage, MessageTranscribedSnsMessage, Role } from "@yac/util";
+import { GroupMessageCreatedSnsMessage, MeetingMessageCreatedSnsMessage, MessageTranscribedSnsMessage, OrganizationId, Role } from "@yac/util";
 import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, sns, URL_REGEX } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
@@ -32,6 +32,7 @@ describe("Message Transcribed SNS Topic", () => {
   const messageTranscribedSnsTopicArn = process.env["message-transcribed-sns-topic-arn"] as string;
   const mockTranscript = "mock-transcript";
   const mockMimeType = MessageMimeType.AudioMp3;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     describe("when a message is published to the SNS topic", () => {
@@ -244,7 +245,7 @@ describe("Message Transcribed SNS Topic", () => {
         beforeEach(async () => {
           ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
             createRandomUser(),
-            createGroupConversation({ createdBy: userId, name: generateRandomString(5) }),
+            createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
           ]));
 
           ([ { conversationUserRelationship }, { conversationUserRelationship: conversationUserRelationshipTwo }, { pendingMessage } ] = await Promise.all([
@@ -400,6 +401,7 @@ describe("Message Transcribed SNS Topic", () => {
                     id: message.id,
                     to: {
                       id: group.id,
+                      organizationId: mockOrganizationId,
                       name: group.name,
                       createdBy: group.createdBy,
                       createdAt: group.createdAt,
@@ -443,7 +445,7 @@ describe("Message Transcribed SNS Topic", () => {
         beforeEach(async () => {
           ([ { user: otherUser }, { conversation: meeting } ] = await Promise.all([
             createRandomUser(),
-            createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+            createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
           ]));
 
           ([ { conversationUserRelationship }, { conversationUserRelationship: conversationUserRelationshipTwo }, { pendingMessage } ] = await Promise.all([
@@ -599,6 +601,7 @@ describe("Message Transcribed SNS Topic", () => {
                     id: message.id,
                     to: {
                       id: meeting.id,
+                      organizationId: mockOrganizationId,
                       name: meeting.name,
                       createdBy: meeting.createdBy,
                       createdAt: meeting.createdAt,

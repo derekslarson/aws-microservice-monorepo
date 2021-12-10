@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import { createConversationUserRelationship, createMeetingConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
@@ -17,12 +17,13 @@ describe("GET /meetings/{meetingId} (Get Meeting)", () => {
   const accessToken = process.env.accessToken as string;
 
   const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     let meeting: RawConversation<MeetingConversation>;
 
     beforeAll(async () => {
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString(), teamId: mockTeamId }));
+      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString(), teamId: mockTeamId }));
 
       await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin });
     });
@@ -37,6 +38,7 @@ describe("GET /meetings/{meetingId} (Get Meeting)", () => {
         expect(data).toEqual({
           meeting: {
             id: meeting.id,
+            organizationId: mockOrganizationId,
             name: meeting.name,
             createdBy: meeting.createdBy,
             createdAt: meeting.createdAt,
@@ -75,7 +77,7 @@ describe("GET /meetings/{meetingId} (Get Meeting)", () => {
       let meeting: RawConversation<MeetingConversation>;
 
       beforeAll(async () => {
-        ({ conversation: meeting } = await createMeetingConversation({ createdBy: mockUserId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+        ({ conversation: meeting } = await createMeetingConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
       });
 
       it("throws a 403 error", async () => {

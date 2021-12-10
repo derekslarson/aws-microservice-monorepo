@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Role, UserAddedToMeetingSnsMessage } from "@yac/util";
+import { OrganizationId, Role, UserAddedToMeetingSnsMessage } from "@yac/util";
 import axios from "axios";
 import { Static } from "runtypes";
 import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
@@ -31,6 +31,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
   const accessToken = process.env.accessToken as string;
   const userAddedToMeetingSnsTopicArn = process.env["user-added-to-meeting-sns-topic-arn"] as string;
 
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
   const mockMeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
@@ -47,7 +48,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
 
       ([ { user: otherUser }, { conversation: meeting } ] = await Promise.all([
         createRandomUser(),
-        createMeetingConversation({ createdBy: userId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+        createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
       ]));
 
       await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin });
@@ -290,6 +291,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
               meeting: {
                 createdBy: userId,
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: meeting.name,
                 dueDate: meeting.dueDate,
@@ -313,6 +315,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
               meeting: {
                 createdBy: userId,
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: meeting.name,
                 dueDate: meeting.dueDate,
@@ -332,6 +335,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
               meeting: {
                 createdBy: userId,
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 image: jasmine.stringMatching(URL_REGEX),
                 name: meeting.name,
                 dueDate: meeting.dueDate,
@@ -373,7 +377,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
       const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
-        ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserIdTwo, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+        ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
         await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meetingTwo.id, userId, role: Role.User });
       });

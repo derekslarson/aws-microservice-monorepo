@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Role } from "@yac/util";
+import { LoggerServiceInterface, OrganizationId, Role, TeamId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { ConversationServiceInterface } from "../entity-services/conversation.service";
 import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
@@ -22,9 +22,9 @@ export class FriendshipMediatorService implements FriendshipMediatorServiceInter
     try {
       this.loggerService.trace("createFriendship called", { params }, this.constructor.name);
 
-      const { userIds, createdBy } = params;
+      const { userIds, createdBy, organizationId, teamId } = params;
 
-      const { conversation } = await this.conversationService.createFriendConversation({ userIds, createdBy });
+      const { conversation } = await this.conversationService.createFriendConversation({ userIds, createdBy, organizationId, teamId });
 
       await Promise.all(userIds.map((userId) => this.conversationUserRelationshipService.createConversationUserRelationship({
         type: ConversationType.Friend,
@@ -111,6 +111,8 @@ export interface Friendship {
 export interface CreateFriendshipInput {
   userIds: [UserId, UserId];
   createdBy: UserId;
+  organizationId?: OrganizationId;
+  teamId?: TeamId;
 }
 
 export interface CreateFriendshipOutput {

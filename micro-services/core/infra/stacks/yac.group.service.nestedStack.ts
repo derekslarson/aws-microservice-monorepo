@@ -94,6 +94,17 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
       timeout: CDK.Duration.seconds(15),
     });
 
+    const getGroupsByOrganizationIdHandler = new Lambda.Function(this, `GetGroupsByOrganizationId_${id}`, {
+      runtime: Lambda.Runtime.NODEJS_12_X,
+      code: Lambda.Code.fromAsset("dist/handlers/getGroupsByOrganizationId"),
+      handler: "getGroupsByOrganizationId.handler",
+      layers: [ dependencyLayer ],
+      environment: environmentVariables,
+      memorySize: 2048,
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      timeout: CDK.Duration.seconds(15),
+    });
+
     const getGroupImageUploadUrlHandler = new Lambda.Function(this, `GetGroupImageUploadUrl_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getGroupImageUploadUrl"),
@@ -107,9 +118,15 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
 
     const routes: RouteProps[] = [
       {
-        path: "/users/{userId}/groups",
+        path: "/organizations/{organizationId}/groups",
         method: ApiGatewayV2.HttpMethod.POST,
         handler: createGroupHandler,
+        restricted: true,
+      },
+      {
+        path: "/organizations/{organizationId}/groups",
+        method: ApiGatewayV2.HttpMethod.GET,
+        handler: getGroupsByOrganizationIdHandler,
         restricted: true,
       },
       {

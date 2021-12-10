@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import axios from "axios";
 import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationFetchType } from "../../src/enums/conversationFetchType.enum";
@@ -22,6 +22,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
     const searchParamUserName = "two";
     const searchParamEmail = "three";
     const searchParamPhone = generateRandomPhone();
+    const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
     let user: CreateRandomAuthServiceUserOutput;
     let otherUser: CreateUserOutput["user"];
@@ -56,9 +57,9 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
 
       ([ { accessToken }, { conversation: meeting }, { conversation: meetingTwo }, { conversation: group }, { conversation: friendship } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createMeetingConversation({ createdBy: user.id, name: `${generateRandomString(5)} ${searchParamNamename}`, dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
-        createMeetingConversation({ createdBy: otherUser.id, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
-        createGroupConversation({ createdBy: otherUser.id, name: generateRandomString(5) }),
+        createMeetingConversation({ createdBy: user.id, organizationId: mockOrganizationId, name: `${generateRandomString(5)} ${searchParamNamename}`, dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
+        createMeetingConversation({ createdBy: otherUser.id, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
+        createGroupConversation({ createdBy: otherUser.id, organizationId: mockOrganizationId, name: generateRandomString(5) }),
         createFriendConversation({ userId: user.id, friendId: otherUser.id }),
       ]));
 
@@ -100,6 +101,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               {
                 createdAt: group.createdAt,
                 id: group.id,
+                organizationId: mockOrganizationId,
                 createdBy: group.createdBy,
                 name: group.name,
                 type: group.type,
@@ -113,6 +115,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   title: message.title,
                   to: {
                     id: group.id,
+                    organizationId: mockOrganizationId,
                     name: group.name,
                     createdBy: group.createdBy,
                     createdAt: group.createdAt,
@@ -141,6 +144,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 dueDate: meetingTwo.dueDate,
                 createdAt: meetingTwo.createdAt,
                 id: meetingTwo.id,
+                organizationId: mockOrganizationId,
                 createdBy: meetingTwo.createdBy,
                 name: meetingTwo.name,
                 type: meetingTwo.type,
@@ -153,6 +157,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 dueDate: meeting.dueDate,
                 createdAt: meeting.createdAt,
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 createdBy: meeting.createdBy,
                 teamId: meeting.teamId,
                 name: meeting.name,
@@ -197,6 +202,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               {
                 createdAt: group.createdAt,
                 id: group.id,
+                organizationId: mockOrganizationId,
                 createdBy: group.createdBy,
                 name: group.name,
                 type: group.type,
@@ -212,6 +218,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   reactions: message.reactions,
                   to: {
                     id: group.id,
+                    organizationId: mockOrganizationId,
                     name: group.name,
                     createdBy: group.createdBy,
                     createdAt: group.createdAt,
@@ -249,6 +256,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 dueDate: meetingTwo.dueDate,
                 createdAt: meetingTwo.createdAt,
                 id: meetingTwo.id,
+                organizationId: mockOrganizationId,
                 createdBy: meetingTwo.createdBy,
                 name: meetingTwo.name,
                 type: meetingTwo.type,
@@ -261,6 +269,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 dueDate: meeting.dueDate,
                 createdAt: meeting.createdAt,
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 createdBy: meeting.createdBy,
                 teamId: meeting.teamId,
                 name: meeting.name,
@@ -324,6 +333,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               {
                 createdAt: group.createdAt,
                 id: group.id,
+                organizationId: mockOrganizationId,
                 createdBy: group.createdBy,
                 name: group.name,
                 type: group.type,
@@ -339,6 +349,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   reactions: message.reactions,
                   to: {
                     id: group.id,
+                    organizationId: mockOrganizationId,
                     name: group.name,
                     createdBy: group.createdBy,
                     createdAt: group.createdAt,
@@ -384,6 +395,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 dueDate: meetingTwo.dueDate,
                 createdAt: meetingTwo.createdAt,
                 id: meetingTwo.id,
+                organizationId: mockOrganizationId,
                 createdBy: meetingTwo.createdBy,
                 name: meetingTwo.name,
                 type: meetingTwo.type,
@@ -396,6 +408,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 dueDate: meeting.dueDate,
                 createdAt: meeting.createdAt,
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 createdBy: meeting.createdBy,
                 teamId: meeting.teamId,
                 name: meeting.name,
@@ -428,6 +441,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 dueDate: meeting.dueDate,
                 createdAt: meeting.createdAt,
                 id: meeting.id,
+                organizationId: mockOrganizationId,
                 createdBy: meeting.createdBy,
                 teamId: meeting.teamId,
                 name: meeting.name,
@@ -441,6 +455,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                 dueDate: meetingTwo.dueDate,
                 createdAt: meetingTwo.createdAt,
                 id: meetingTwo.id,
+                organizationId: mockOrganizationId,
                 createdBy: meetingTwo.createdBy,
                 name: meetingTwo.name,
                 type: meetingTwo.type,
@@ -471,6 +486,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
               {
                 createdAt: group.createdAt,
                 id: group.id,
+                organizationId: mockOrganizationId,
                 createdBy: group.createdBy,
                 name: group.name,
                 type: group.type,
@@ -486,6 +502,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   reactions: message.reactions,
                   to: {
                     id: group.id,
+                    organizationId: mockOrganizationId,
                     name: group.name,
                     createdBy: group.createdBy,
                     createdAt: group.createdAt,
@@ -546,6 +563,7 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
                   dueDate: meeting.dueDate,
                   createdAt: meeting.createdAt,
                   id: meeting.id,
+                  organizationId: mockOrganizationId,
                   createdBy: meeting.createdBy,
                   teamId: meeting.teamId,
                   name: meeting.name,

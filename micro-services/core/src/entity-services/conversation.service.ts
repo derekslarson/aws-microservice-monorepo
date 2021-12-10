@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { FileOperation, IdServiceInterface, LoggerServiceInterface } from "@yac/util";
+import { FileOperation, IdServiceInterface, LoggerServiceInterface, OrganizationId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { 
   Conversation as ConversationEntity,
@@ -39,7 +39,7 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createFriendConversation called", { params }, this.constructor.name);
 
-      const { userIds, teamId, createdBy } = params;
+      const { userIds, organizationId, teamId, createdBy } = params;
 
       const conversationId = `${KeyPrefix.FriendConversation}${userIds.sort().join("-")}` as FriendConvoId;
 
@@ -48,6 +48,7 @@ export class ConversationService implements ConversationServiceInterface {
         type: ConversationTypeEnum.Friend,
         createdBy,
         createdAt: new Date().toISOString(),
+        ...(organizationId && { organizationId }),        
         ...(teamId && { teamId }),
       };
 
@@ -83,7 +84,7 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createGroupConversation called", { params }, this.constructor.name);
 
-      const { name, createdBy, teamId } = params;
+      const { name, createdBy, organizationId, teamId } = params;
 
       const conversationId = `${KeyPrefix.GroupConversation}${this.idService.generateId()}` as GroupId;
       
@@ -92,6 +93,7 @@ export class ConversationService implements ConversationServiceInterface {
       const conversationEntity: GroupConversationEntity = {
         imageMimeType,
         id: conversationId,
+        organizationId,
         name,
         createdBy,
         type: ConversationTypeEnum.Group,
@@ -118,7 +120,7 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("createMeetingConversation called", { params }, this.constructor.name);
 
-      const {  name, createdBy, teamId, dueDate } = params;
+      const {  name, createdBy, organizationId, teamId, dueDate } = params;
 
       const conversationId = `${KeyPrefix.MeetingConversation}${this.idService.generateId()}` as MeetingId;
       
@@ -127,6 +129,7 @@ export class ConversationService implements ConversationServiceInterface {
       const conversationEntity: MeetingConversationEntity = {
         imageMimeType,
         id: conversationId,
+        organizationId,
         name,
         createdBy,
         dueDate,
@@ -244,6 +247,28 @@ export class ConversationService implements ConversationServiceInterface {
       return { conversations, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getConversationsByTeamId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getConversationsByOrganizationId<T extends ConversationType>(params: GetConversationsByOrganizationIdInput<T>): Promise<GetConversationsByOrganizationIdOutput<T>> {
+    try {
+      this.loggerService.trace("getConversationsByOrganizationId called", { params }, this.constructor.name);
+
+      const { organizationId, type, exclusiveStartKey, limit } = params;
+
+      const { conversations: conversationEntities, lastEvaluatedKey } = await this.conversationRepository.getConversationsByOrganizationId({ organizationId, type, exclusiveStartKey, limit });
+
+      const conversations = conversationEntities.map((conversationEntity) => {
+        const { conversation } = this.convertConversationEntityToConversation({ conversationEntity })
+
+        return conversation;
+      });
+
+      return { conversations, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getConversationsByOrganizationId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -420,6 +445,7 @@ export interface ConversationServiceInterface {
   deleteConversation(params: DeleteConversationInput): Promise<DeleteConversationOutput>;
   getConversations<T extends ConversationId>(params: GetConversationsInput<T>): Promise<GetConversationsOutput<T>>;
   getConversationsByTeamId<T extends ConversationType>(params: GetConversationsByTeamIdInput<T>): Promise<GetConversationsByTeamIdOutput<T>>;
+  getConversationsByOrganizationId<T extends ConversationType>(params: GetConversationsByOrganizationIdInput<T>): Promise<GetConversationsByOrganizationIdOutput<T>>;
   getConversationImageUploadUrl<T extends ConversationTypeEnum.Group | ConversationTypeEnum.Meeting>(params: GetConversationImageUploadUrlInput<T>): GetConversationImageUploadUrlOutput;
   indexGroupConversationForSearch(params: IndexGroupConversationForSearchInput): Promise<IndexGroupConversationForSearchOutput>;
   deindexGroupConversationForSearch(params: DeindexGroupConversationForSearchInput): Promise<DeindexGroupConversationForSearchOutput>;
@@ -448,6 +474,7 @@ export type Conversation<T extends ConversationTypeEnum> =
 export interface CreateFriendConversationInput {
   userIds: [UserId, UserId];
   createdBy: UserId;
+  organizationId?: OrganizationId;
   teamId?: TeamId;
 }
 
@@ -458,6 +485,7 @@ export interface CreateFriendConversationOutput {
 export interface CreateGroupConversationInput {
   name: string;
   createdBy: UserId;
+  organizationId: OrganizationId;
   teamId?: TeamId;
 }
 
@@ -469,6 +497,7 @@ export interface CreateMeetingConversationInput {
   name: string;
   createdBy: UserId;
   dueDate: string;
+  organizationId: OrganizationId;
   teamId?: TeamId;
 }
 
@@ -510,6 +539,18 @@ export interface GetConversationsByTeamIdInput<T extends ConversationType>  {
 }
 
 export interface GetConversationsByTeamIdOutput<T extends ConversationType> {
+  conversations: Conversation<T>[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetConversationsByOrganizationIdInput<T extends ConversationType>  {
+  organizationId: OrganizationId;
+  type?: T;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetConversationsByOrganizationIdOutput<T extends ConversationType> {
   conversations: Conversation<T>[];
   lastEvaluatedKey?: string;
 }

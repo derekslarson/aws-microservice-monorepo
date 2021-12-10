@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role } from "@yac/util";
+import { OrganizationId, Role } from "@yac/util";
 import { createConversationUserRelationship, createGroupConversation } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
@@ -15,13 +15,14 @@ describe("GET /groups/{groupId} (Get Group)", () => {
   const baseUrl = process.env.baseUrl as string;
   const userId = process.env.userId as UserId;
   const accessToken = process.env.accessToken as string;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
     let group: RawConversation<GroupConversation>;
 
     beforeAll(async () => {
-      ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5), teamId: mockTeamId }));
+      ({ conversation: group } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: mockTeamId }));
 
       await createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin });
     });
@@ -36,6 +37,7 @@ describe("GET /groups/{groupId} (Get Group)", () => {
         expect(data).toEqual({
           group: {
             id: group.id,
+            organizationId: mockOrganizationId,
             name: group.name,
             createdBy: group.createdBy,
             createdAt: group.createdAt,
@@ -73,7 +75,7 @@ describe("GET /groups/{groupId} (Get Group)", () => {
       let group: RawConversation<GroupConversation>;
 
       beforeAll(async () => {
-        ({ conversation: group } = await createGroupConversation({ createdBy: mockUserId, name: generateRandomString(5) }));
+        ({ conversation: group } = await createGroupConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
       });
 
       it("throws a 403 error", async () => {

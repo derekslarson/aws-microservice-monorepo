@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
-import { Role, UserRemovedFromGroupSnsMessage } from "@yac/util";
+import { OrganizationId, Role, UserRemovedFromGroupSnsMessage } from "@yac/util";
 import { createRandomUser, createConversationUserRelationship, createGroupConversation, getConversationUserRelationship, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
@@ -18,6 +18,7 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
   const mockGroupId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+  const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
     let group: RawConversation<GroupConversation>;
@@ -28,7 +29,7 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
     });
 
     beforeEach(async () => {
-      ({ conversation: group } = await createGroupConversation({ createdBy: userId, name: generateRandomString(5) }));
+      ({ conversation: group } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
       await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Group, userId, conversationId: group.id, role: Role.Admin }),
@@ -86,6 +87,7 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
             group: {
               createdBy: userId,
               id: group.id,
+              organizationId: mockOrganizationId,
               image: jasmine.stringMatching(URL_REGEX),
               name: group.name,
               createdAt: jasmine.stringMatching(ISO_DATE_REGEX),
@@ -129,7 +131,7 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
       const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
-        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserIdTwo, name: generateRandomString(5) }));
+        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
         await createConversationUserRelationship({ type: ConversationType.Group, userId, conversationId: groupTwo.id, role: Role.User });
       });
