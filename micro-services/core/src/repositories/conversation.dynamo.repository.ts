@@ -18,8 +18,6 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
   private gsiTwoIndexName: string;
 
-  private gsiThreeIndexName: string;
-
   private readonly typeToSkPrefixMap = {
     [ConversationTypeEnum.Friend]: KeyPrefix.FriendConversation,
     [ConversationTypeEnum.Group]: KeyPrefix.GroupConversation,
@@ -35,7 +33,6 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
     this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
     this.gsiTwoIndexName = envConfig.globalSecondaryIndexNames.two;
-    this.gsiThreeIndexName = envConfig.globalSecondaryIndexNames.three;
   }
 
   public async createConversation<T extends Conversation>(params: CreateConversationInput<T>): Promise<CreateConversationOutput<T>> {
@@ -49,14 +46,13 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
         pk: conversation.id,
         sk: conversation.id,
         ...(conversation.teamId && { gsi1pk: conversation.teamId, gsi1sk: conversation.id }),
-        ...(conversation.organizationId && { gsi2pk: conversation.organizationId, gsi2sk: conversation.id }),
-        ...(conversation.organizationId && !conversation.teamId && { gsi3pk: conversation.organizationId, gsi3sk: conversation.id }),
+        ...(conversation.organizationId && !conversation.teamId && { gsi2pk: conversation.organizationId, gsi2sk: conversation.id }),
         ...conversation,
       };
 
       await this.documentClient.put({
         TableName: this.tableName,
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
+        ConditionExpression: "attribute_not_exists(pk)",
         Item: conversationEntity,
       }).promise();
 
@@ -175,21 +171,21 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
     try {
       this.loggerService.trace("getConversationsByOrganizationId called", { params }, this.constructor.name);
 
-      const { organizationId, rootOnly, type, exclusiveStartKey, limit } = params;
+      const { organizationId, type, exclusiveStartKey, limit } = params;
 
       const skPrefix = type ? this.typeToSkPrefixMap[type] : KeyPrefix.Conversation;
 
       const { Items: conversations, LastEvaluatedKey } = await this.query<Conversation<T>>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
-        IndexName: rootOnly ? this.gsiThreeIndexName : this.gsiTwoIndexName,
-        KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :skPrefix)",
+        IndexName: this.gsiTwoIndexName,
+        KeyConditionExpression: "#gsi2pk = :gsi1pk AND begins_with(#gsi2sk, :skPrefix)",
         ExpressionAttributeNames: {
-          "#pk": rootOnly ? "gsi3pk" : "gsi2pk",
-          "#sk": rootOnly ? "gsi3sk" : "gsi2sk",
+          "#gsi2pk": "gsi2pk",
+          "#gsi2sk": "gsi2sk",
         },
         ExpressionAttributeValues: {
-          ":pk": organizationId,
+          ":gsi1pk": organizationId,
           ":skPrefix": skPrefix,
         },
       });
@@ -227,15 +223,16 @@ export class ConversationDynamoRepository extends BaseDynamoRepositoryV2<Convers
 
   public convertRawConversationToConversation<T extends RawConversation<Conversation>>(params: ConvertRawConversationToConversationInput<T>): ConvertRawConversationToConversationOutput<T> {
     try {
-      this.loggerService.trace("cleanseReactionsSet called", { params }, this.constructor.name);
+      this.loggerService.trace("convertRawConversationToConversation called", { params }, this.constructor.name);
 
       const { rawConversation } = params;
 
-      const conversation = this.cleanse(rawConversation);
+      // TODO: remove unknown here
+      const conversation = this.cleanse(rawConversation as unknown as RawConversation<ConversationTypeToConversation<T["type"]>>);
 
-      return { conversation: conversation as ConversationTypeToConversation<T["type"]> };
+      return { conversation };
     } catch (error: unknown) {
-      this.loggerService.error("Error in cleanseReactionsSet", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in convertRawConversationToConversation", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -294,7 +291,7 @@ export type RawConversation<T extends Conversation> = T & {
   sk: ConversationId;
   gsi1pk?: TeamId;
   gsi1sk?: ConversationId;
-  // for fetching all convos in an org, regardless of if within a team or not
+  // for fetching all root-level convos in an org
   gsi2pk?: OrganizationId;
   gsi2sk?: ConversationId;
 };

@@ -225,7 +225,6 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { conversations: meetings, lastEvaluatedKey } = await this.conversationService.getConversationsByOrganizationId({
         organizationId,
-        rootOnly: true,
         type: ConversationType.Meeting,
         exclusiveStartKey,
         limit,

@@ -44,7 +44,7 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
     });
 
     describe("when passed a 'seen' value", () => {
-      fdescribe("when 'seen: true'", () => {
+      describe("when 'seen: true'", () => {
         const seen = true;
 
         beforeEach(async () => {

@@ -518,8 +518,6 @@ export async function createGroupConversation(params: CreateGroupConversationInp
       imageMimeType: mimeType,
       pk: conversationId,
       sk: conversationId,
-      gsi2pk: organizationId,
-      gsi2sk: conversationId,
       id: conversationId,
       organizationId,
       type: ConversationTypeEnum.Group,
@@ -528,6 +526,7 @@ export async function createGroupConversation(params: CreateGroupConversationInp
       createdBy,
       ...(teamId && { gsi1pk: teamId, gsi1sk: conversationId }),
       ...(teamId && { teamId }),
+      ...(!teamId && { gsi2pk: organizationId, gsi2sk: conversationId }),
     };
 
     const s3UploadInput: S3.Types.PutObjectRequest = {
@@ -568,8 +567,6 @@ export async function createMeetingConversation(params: CreateMeetingConversatio
       imageMimeType: mimeType,
       pk: conversationId,
       sk: conversationId,
-      gsi2pk: organizationId,
-      gsi2sk: conversationId,
       id: conversationId,
       organizationId,
       type: ConversationTypeEnum.Meeting,
@@ -579,6 +576,7 @@ export async function createMeetingConversation(params: CreateMeetingConversatio
       createdBy,
       ...(teamId && { gsi1pk: teamId, gsi1sk: conversationId }),
       ...(teamId && { teamId }),
+      ...(!teamId && { gsi2pk: organizationId, gsi2sk: conversationId }),
     };
 
     const s3UploadInput: S3.Types.PutObjectRequest = {
