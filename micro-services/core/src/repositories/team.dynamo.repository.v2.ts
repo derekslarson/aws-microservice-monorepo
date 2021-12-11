@@ -33,7 +33,7 @@ export class TeamDynamoRepositoryV2 extends BaseDynamoRepositoryV2<Team> impleme
         pk: team.id,
         sk: EntityTypeV2.Team,
         gsi1pk: team.organizationId,
-        gsi1sk: `${KeyPrefixV2.Team}${KeyPrefixV2.Active}${team.updatedAt}`,
+        gsi1sk: `${KeyPrefixV2.Team}${KeyPrefixV2.Active}${team.activeAt}`,
         ...team,
       };
 
@@ -110,14 +110,14 @@ export class TeamDynamoRepositoryV2 extends BaseDynamoRepositoryV2<Team> impleme
         Limit: limit ?? 25,
         ScanIndexForward: false,
         IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :organizationId AND begins_with(#gsi1sk, :team)",
+        KeyConditionExpression: "#gsi1pk = :organizationId AND begins_with(#gsi1sk, :teamActive)",
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
           "#gsi1sk": "gsi1sk",
         },
         ExpressionAttributeValues: {
           ":organizationId": organizationId,
-          ":team": KeyPrefixV2.Team,
+          ":teamActive": `${KeyPrefixV2.Team}${KeyPrefixV2.Active}`,
         },
       });
 
@@ -167,6 +167,7 @@ export interface Team {
   name: string;
   createdAt: string;
   updatedAt: string;
+  activeAt: string;
 }
 
 export interface RawTeam extends Team {

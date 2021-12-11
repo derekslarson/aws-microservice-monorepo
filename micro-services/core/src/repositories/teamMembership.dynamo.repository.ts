@@ -98,14 +98,14 @@ export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamM
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :teamId AND begins_with(#gsi1sk, :userUpdated)",
+        KeyConditionExpression: "#gsi1pk = :teamId AND begins_with(#gsi1sk, :userActive)",
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
           "#gsi1sk": "gsi1sk",
         },
         ExpressionAttributeValues: {
           ":teamId": teamId,
-          ":userUpdated": `${KeyPrefixV2.User}${KeyPrefixV2.Active}`,
+          ":userActive": `${KeyPrefixV2.User}${KeyPrefixV2.Active}`,
         },
       });
 
@@ -130,14 +130,14 @@ export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamM
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         IndexName: this.gsiTwoIndexName,
-        KeyConditionExpression: "#gsi2pk = :userId AND begins_with(#gsi2sk, :teamUpdated)",
+        KeyConditionExpression: "#gsi2pk = :userId AND begins_with(#gsi2sk, :teamActive)",
         ExpressionAttributeNames: {
           "#gsi2pk": "gsi2pk",
           "#gsi2sk": "gsi2sk",
         },
         ExpressionAttributeValues: {
           ":userId": userId,
-          ":teamUpdated": `${KeyPrefixV2.Team}${KeyPrefixV2.Active}`,
+          ":teamActive": `${KeyPrefixV2.Team}${KeyPrefixV2.Active}`,
         },
       });
 
