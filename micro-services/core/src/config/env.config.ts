@@ -10,26 +10,30 @@ export const envConfig: EnvConfigInterface = {
   },
   snsTopicArns: {
     userCreated: process.env.USER_CREATED_SNS_TOPIC_ARN || "",
-    userAddedToTeam: process.env.USER_ADDED_TO_TEAM_SNS_TOPIC_ARN || "",
-    userRemovedFromTeam: process.env.USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN || "",
-    userAddedToGroup: process.env.USER_ADDED_TO_GROUP_SNS_TOPIC_ARN || "",
-    userRemovedFromGroup: process.env.USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN || "",
-    userAddedToMeeting: process.env.USER_ADDED_TO_MEETING_SNS_TOPIC_ARN || "",
-    userRemovedFromMeeting: process.env.USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN || "",
-    userAddedAsFriend: process.env.USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN || "",
-    userRemovedAsFriend: process.env.USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN || "",
+    organizationCreated: process.env.ORGANIZATION_CREATED_SNS_TOPIC_ARN || "",
     teamCreated: process.env.TEAM_CREATED_SNS_TOPIC_ARN || "",
-    meetingCreated: process.env.MEETING_CREATED_SNS_TOPIC_ARN || "",
     groupCreated: process.env.GROUP_CREATED_SNS_TOPIC_ARN || "",
+    meetingCreated: process.env.MEETING_CREATED_SNS_TOPIC_ARN || "",
+    userAddedToOrganization: process.env.USER_ADDED_TO_ORGANIZATION_SNS_TOPIC_ARN || "",
+    userAddedToTeam: process.env.USER_ADDED_TO_TEAM_SNS_TOPIC_ARN || "",
+    userAddedToGroup: process.env.USER_ADDED_TO_GROUP_SNS_TOPIC_ARN || "",
+    userAddedToMeeting: process.env.USER_ADDED_TO_MEETING_SNS_TOPIC_ARN || "",
+    userAddedAsFriend: process.env.USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN || "",
+    userRemovedFromOrganization: process.env.USER_REMOVED_FROM_ORGANIZATION_SNS_TOPIC_ARN || "",
+    userRemovedFromTeam: process.env.USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN || "",
+    userRemovedFromGroup: process.env.USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN || "",
+    userRemovedFromMeeting: process.env.USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN || "",
+    userRemovedAsFriend: process.env.USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN || "",
     friendMessageCreated: process.env.FRIEND_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
-    friendMessageUpdated: process.env.FRIEND_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
     groupMessageCreated: process.env.GROUP_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
-    groupMessageUpdated: process.env.GROUP_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
     meetingMessageCreated: process.env.MEETING_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
+    friendMessageUpdated: process.env.FRIEND_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
+    groupMessageUpdated: process.env.GROUP_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
     meetingMessageUpdated: process.env.MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
     messageTranscoded: process.env.MESSAGE_TRANSCODED_SNS_TOPIC_ARN || "",
     messageTranscribed: process.env.MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN || "",
     createUserRequest: process.env.CREATE_USER_REQUEST_SNS_TOPIC_ARN || "",
+    billingPlanUpdated: process.env.BILLING_PLAN_UPDATED_SNS_TOPIC_ARN || "",
   },
   globalSecondaryIndexNames: {
     one: process.env.GSI_ONE_INDEX_NAME || "",
@@ -46,26 +50,30 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
   };
   snsTopicArns: {
     userCreated: string;
-    userAddedToTeam: string;
-    userRemovedFromTeam: string;
-    userAddedToGroup: string;
-    userRemovedFromGroup: string;
-    userAddedToMeeting: string;
-    userRemovedFromMeeting: string;
-    userAddedAsFriend: string;
-    userRemovedAsFriend: string;
+    organizationCreated: string;
     teamCreated: string;
     meetingCreated: string;
     groupCreated: string;
+    userAddedToOrganization: string;
+    userAddedToTeam: string;
+    userAddedToGroup: string;
+    userAddedToMeeting: string;
+    userAddedAsFriend: string;
+    userRemovedFromOrganization: string;
+    userRemovedFromTeam: string;
+    userRemovedFromGroup: string;
+    userRemovedFromMeeting: string;
+    userRemovedAsFriend: string;
     friendMessageCreated: string;
-    friendMessageUpdated: string;
     groupMessageCreated: string;
-    groupMessageUpdated: string;
     meetingMessageCreated: string;
+    friendMessageUpdated: string;
+    groupMessageUpdated: string;
     meetingMessageUpdated: string;
     messageTranscoded: string;
     messageTranscribed: string;
     createUserRequest: string;
+    billingPlanUpdated: string;
   };
   bucketNames: {
     rawMessage: string;

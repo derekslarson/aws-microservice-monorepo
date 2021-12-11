@@ -9,3 +9,4 @@ export * from "./message.mimeType.enum";
 export * from "./fileOperation.enum";
 export * from "./ssmParameterNames.enum";
 export * from "./transactItemType.enum";
+export * from "./billingPlan.enum";

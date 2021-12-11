@@ -25,14 +25,6 @@ import {
   RouteProps,
   generateExportNames,
   ProxyRouteProps,
-  AuthServiceLoginPath,
-  AuthServiceLoginMethod,
-  AuthServiceConfirmPath,
-  AuthServiceConfirmMethod,
-  AuthServiceCreateClientPath,
-  AuthServiceCreateClientMethod,
-  AuthServiceOauth2AuthorizePath,
-  AuthServiceOauth2AuthorizeMethod,
 } from "@yac/util";
 import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
@@ -365,7 +357,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       },
     });
 
-    const loginRoute: RouteProps<AuthServiceLoginPath, AuthServiceLoginMethod> = {
+    const loginRoute: RouteProps = {
       path: "/login",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: loginHandler,
@@ -377,19 +369,19 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: loginViaExternalProviderHandler,
     };
 
-    const confirmRoute: RouteProps<AuthServiceConfirmPath, AuthServiceConfirmMethod> = {
+    const confirmRoute: RouteProps = {
       path: "/confirm",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: confirmHandler,
     };
 
-    const createClientRoute: RouteProps<AuthServiceCreateClientPath, AuthServiceCreateClientMethod> = {
+    const createClientRoute: RouteProps = {
       path: "/oauth2/clients",
       method: ApiGatewayV2.HttpMethod.POST,
       handler: createClientHandler,
     };
 
-    const oauth2AuthorizeRoute: RouteProps<AuthServiceOauth2AuthorizePath, AuthServiceOauth2AuthorizeMethod> = {
+    const oauth2AuthorizeRoute: RouteProps = {
       path: "/oauth2/authorize",
       method: ApiGatewayV2.HttpMethod.GET,
       handler: oauth2AuthorizeHandler,

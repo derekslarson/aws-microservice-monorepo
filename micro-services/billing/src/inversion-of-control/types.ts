@@ -10,6 +10,17 @@ const TYPES = {
   BillingServiceInterface: Symbol.for("BillingServiceInterface"),
   OrganizationServiceInterface: Symbol.for("OrganizationServiceInterface"),
 
+  // SNS Processor Services
+  UserAddedToOrganizationSnsProcessorServiceInterface: Symbol.for("UserAddedToOrganizationSnsProcessorServiceInterface"),
+  UserRemovedFromOrganizationSnsProcessorServiceInterface: Symbol.for("UserRemovedFromOrganizationSnsProcessorServiceInterface"),
+  OrganizationCreatedSnsProcessorServiceInterface: Symbol.for("OrganizationCreatedSnsProcessorServiceInterface"),
+
+  // Dynamo Processor Services
+  BillingPlanUpdatedDynamoProcessorServiceInterface: Symbol.for("BillingPlanUpdatedDynamoProcessorServiceInterface"),
+
+  // SNS Services
+  BillingPlanUpdatedSnsServiceInterface: Symbol.for("BillingPlanUpdatedSnsServiceInterface"),
+
   // Repositories
   OrganizationAdminMappingRepositoryInterface: Symbol.for("OrganizationAdminMappingRepositoryInterface"),
   OrganizationStripeMappingRepositoryInterface: Symbol.for("OrganizationStripeMappingRepositoryInterface"),

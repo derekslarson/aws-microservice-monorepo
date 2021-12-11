@@ -86,6 +86,13 @@ import { OrganizationUserRelationshipDynamoRepository, OrganizationUserRelations
 import { OrganizationUserRelationshipService, OrganizationUserRelationshipServiceInterface } from "../entity-services/organizationUserRelationship.service";
 import { OrganizationMediatorService, OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 import { OrganizationController, OrganizationControllerInterface } from "../controllers/organization.controller";
+import { OrganizationCreatedSnsService, OrganizationCreatedSnsServiceInterface } from "../sns-services/organizationCreated.sns.service";
+import { OrganizationCreatedDynamoProcessorService } from "../processor-services/organizationCreated.dynamo.processor.service";
+import { UserAddedToOrganizationSnsService, UserAddedToOrganizationSnsServiceInterface } from "../sns-services/userAddedToOrganization.sns.service";
+import { UserRemovedFromOrganizationSnsService, UserRemovedFromOrganizationSnsServiceInterface } from "../sns-services/userRemovedFromOrganization.sns.service";
+import { UserAddedToOrganizationDynamoProcessorService } from "../processor-services/userAddedToOrganization.dynamo.processor.service";
+import { UserRemovedFromOrganizationDynamoProcessorService } from "../processor-services/userRemovedFromOrganization.dynamo.processor.service";
+import { BillingPlanUpdatedSnsProcessorService } from "../processor-services/billingPlanUpdated.sns.processor.service";
 
 const container = new Container();
 
@@ -125,9 +132,13 @@ try {
   container.bind<SnsProcessorServiceInterface>(TYPES.MessageTranscodedSnsProcessorServiceInterface).to(MessageTranscodedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.MessageTranscribedSnsProcessorServiceInterface).to(MessageTranscribedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.UserCreatedSnsProcessorServiceInterface).to(UserCreatedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.BillingPlanUpdatedSnsProcessorServiceInterface).to(BillingPlanUpdatedSnsProcessorService);
 
   // Dynamo Processor Services
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserCreatedDynamoProcessorServiceInterface).to(UserCreatedDynamoProcessorService);
+  container.bind<DynamoProcessorServiceInterface>(TYPES.OrganizationCreatedDynamoProcessorServiceInterface).to(OrganizationCreatedDynamoProcessorService);
+  container.bind<DynamoProcessorServiceInterface>(TYPES.UserAddedToOrganizationDynamoProcessorServiceInterface).to(UserAddedToOrganizationDynamoProcessorService);
+  container.bind<DynamoProcessorServiceInterface>(TYPES.UserRemovedFromOrganizationDynamoProcessorServiceInterface).to(UserRemovedFromOrganizationDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserAddedToTeamDynamoProcessorServiceInterface).to(UserAddedToTeamDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserRemovedFromTeamDynamoProcessorServiceInterface).to(UserRemovedFromTeamDynamoProcessorService);
   container.bind<DynamoProcessorServiceInterface>(TYPES.UserAddedToGroupDynamoProcessorServiceInterface).to(UserAddedToGroupDynamoProcessorService);
@@ -149,6 +160,9 @@ try {
 
   // SNS Services
   container.bind<UserCreatedSnsServiceInterface>(TYPES.UserCreatedSnsServiceInterface).to(UserCreatedSnsService);
+  container.bind<OrganizationCreatedSnsServiceInterface>(TYPES.OrganizationCreatedSnsServiceInterface).to(OrganizationCreatedSnsService);
+  container.bind<UserAddedToOrganizationSnsServiceInterface>(TYPES.UserAddedToOrganizationSnsServiceInterface).to(UserAddedToOrganizationSnsService);
+  container.bind<UserRemovedFromOrganizationSnsServiceInterface>(TYPES.UserRemovedFromOrganizationSnsServiceInterface).to(UserRemovedFromOrganizationSnsService);
   container.bind<UserAddedToTeamSnsServiceInterface>(TYPES.UserAddedToTeamSnsServiceInterface).to(UserAddedToTeamSnsService);
   container.bind<UserRemovedFromTeamSnsServiceInterface>(TYPES.UserRemovedFromTeamSnsServiceInterface).to(UserRemovedFromTeamSnsService);
   container.bind<UserAddedToGroupSnsServiceInterface>(TYPES.UserAddedToGroupSnsServiceInterface).to(UserAddedToGroupSnsService);
@@ -204,6 +218,7 @@ try {
     container.get(TYPES.MessageTranscodedSnsProcessorServiceInterface),
     container.get(TYPES.MessageTranscribedSnsProcessorServiceInterface),
     container.get(TYPES.UserCreatedSnsProcessorServiceInterface),
+    container.get(TYPES.BillingPlanUpdatedSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([
@@ -212,6 +227,9 @@ try {
 
   container.bind<DynamoProcessorServiceInterface[]>(TYPES.DynamoProcessorServicesInterface).toConstantValue([
     container.get(TYPES.UserCreatedDynamoProcessorServiceInterface),
+    container.get(TYPES.OrganizationCreatedDynamoProcessorServiceInterface),
+    container.get(TYPES.UserAddedToOrganizationDynamoProcessorServiceInterface),
+    container.get(TYPES.UserRemovedFromOrganizationDynamoProcessorServiceInterface),
     container.get(TYPES.UserAddedToTeamDynamoProcessorServiceInterface),
     container.get(TYPES.UserRemovedFromTeamDynamoProcessorServiceInterface),
     container.get(TYPES.UserAddedToGroupDynamoProcessorServiceInterface),

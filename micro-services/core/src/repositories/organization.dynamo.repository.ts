@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, OrganizationId } from "@yac/util";
+import { BaseDynamoRepositoryV2, BillingPlan, DocumentClientFactory, LoggerServiceInterface, OrganizationId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
@@ -124,6 +124,7 @@ export interface Organization {
   imageMimeType: ImageMimeType;
   createdBy: UserId;
   name: string;
+  billingPlan: BillingPlan;
 }
 
 export interface RawOrganization extends Organization {
@@ -148,7 +149,7 @@ export interface GetOrganizationOutput {
   organization: Organization;
 }
 
-export type OrganizationUpdates = Partial<Pick<Organization, "name" | "imageMimeType">>;
+export type OrganizationUpdates = Partial<Pick<Organization, "name" | "imageMimeType" | "billingPlan">>;
 
 export interface UpdateOrganizationInput {
   organizationId: OrganizationId;
