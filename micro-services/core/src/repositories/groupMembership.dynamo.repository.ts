@@ -1,15 +1,16 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, Role } from "@yac/util";
+import { DocumentClientFactory, LoggerServiceInterface, Role } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
 import { UserId } from "../types/userId.type";
 import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
 import { GroupId } from "./group.dynamo.repository";
+import { BaseConversationMembership, BaseConversationMembershipDynamoRepository } from "./base.conversationMembership.repository";
 
 @injectable()
-export class GroupMembershipDynamoRepository extends BaseDynamoRepositoryV2<GroupMembership> implements GroupMembershipRepositoryInterface {
+export class GroupMembershipDynamoRepository extends BaseConversationMembershipDynamoRepository<GroupMembership> implements GroupMembershipRepositoryInterface {
   private gsiOneIndexName: string;
 
   private gsiTwoIndexName: string;
@@ -31,6 +32,7 @@ export class GroupMembershipDynamoRepository extends BaseDynamoRepositoryV2<Grou
 
       const { groupMembership } = params;
 
+      const { c } = await this.removeUnreadMessageFromConversationMembership({ userId: "user_124", conversationId: "", messageId: "message_1234" });
       const groupMembershipEntity: RawGroupMembership = {
         entityType: EntityTypeV2.GroupMembership,
         pk: groupMembership.userId,
@@ -163,7 +165,7 @@ export interface GroupMembershipRepositoryInterface {
 
 type GroupMembershipRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
-export interface GroupMembership {
+export interface GroupMembership extends BaseConversationMembership {
   userId: UserId;
   groupId: GroupId;
   role: Role;
