@@ -4,12 +4,14 @@ import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, 
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
-import { UserId } from "../types/userId.type";
 import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
 import { MeetingId } from "./meeting.dynamo.repository";
+import { BaseConversationMembership, BaseConversationMembershipDynamoRepository } from "./base.conversationMembership.repository";
+import { UserId } from "./user.dynamo.repository.v2";
+import { MessageId } from "./message.dynamo.repository.v2";
 
 @injectable()
-export class MeetingMembershipDynamoRepository extends BaseDynamoRepositoryV2<MeetingMembership> implements MeetingMembershipRepositoryInterface {
+export class MeetingMembershipDynamoRepository extends BaseConversationMembershipDynamoRepository<MeetingMembership, MeetingId> implements MeetingMembershipRepositoryInterface {
   private gsiOneIndexName: string;
 
   private gsiTwoIndexName: string;
@@ -156,6 +158,38 @@ export class MeetingMembershipDynamoRepository extends BaseDynamoRepositoryV2<Me
       throw error;
     }
   }
+
+  public async addUnreadMessageToMeetingMembership(params: AddUnreadMessageToMeetingMembershipInput): Promise<AddUnreadMessageToMeetingMembershipOutput> {
+    try {
+      this.loggerService.trace("addUnreadMessageToMeetingMembership called", { params }, this.constructor.name);
+
+      const { userId, meetingId, messageId } = params;
+
+      const { conversationMembership } = await this.addUnreadMessageToConversationMembership({ userId, conversationId: meetingId, messageId });
+
+      return { meetingMembership: conversationMembership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addUnreadMessageToMeetingMembership", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async removeUnreadMessageFromMeetingMembership(params: RemoveUnreadMessageFromMeetingMembershipInput): Promise<RemoveUnreadMessageFromMeetingMembershipOutput> {
+    try {
+      this.loggerService.trace("removeUnreadMessageFromMeetingMembership called", { params }, this.constructor.name);
+
+      const { userId, meetingId, messageId } = params;
+
+      const { conversationMembership } = await this.removeUnreadMessageFromConversationMembership({ userId, conversationId: meetingId, messageId });
+
+      return { meetingMembership: conversationMembership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in removeUnreadMessageFromMeetingMembership", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface MeetingMembershipRepositoryInterface {
@@ -164,11 +198,13 @@ export interface MeetingMembershipRepositoryInterface {
   deleteMeetingMembership(params: DeleteMeetingMembershipInput): Promise<DeleteMeetingMembershipOutput>;
   getMeetingMembershipsByMeetingId(params: GetMeetingMembershipsByMeetingIdInput): Promise<GetMeetingMembershipsByMeetingIdOutput>;
   getMeetingMembershipsByUserId(params: GetMeetingMembershipsByUserIdInput): Promise<GetMeetingMembershipsByUserIdOutput>;
+  addUnreadMessageToMeetingMembership(params: AddUnreadMessageToMeetingMembershipInput): Promise<AddUnreadMessageToMeetingMembershipOutput>;
+  removeUnreadMessageFromMeetingMembership(params: RemoveUnreadMessageFromMeetingMembershipInput): Promise<RemoveUnreadMessageFromMeetingMembershipOutput>
 }
 
 type MeetingMembershipRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
-export interface MeetingMembership {
+export interface MeetingMembership extends BaseConversationMembership {
   userId: UserId;
   meetingId: MeetingId;
   role: Role;
@@ -234,4 +270,24 @@ export interface GetMeetingMembershipsByUserIdInput {
 export interface GetMeetingMembershipsByUserIdOutput {
   meetingMemberships: MeetingMembership[];
   lastEvaluatedKey?: string;
+}
+
+export interface AddUnreadMessageToMeetingMembershipInput {
+  userId: UserId;
+  meetingId: MeetingId;
+  messageId: MessageId;
+}
+
+export interface AddUnreadMessageToMeetingMembershipOutput{
+  meetingMembership: MeetingMembership;
+}
+
+export interface RemoveUnreadMessageFromMeetingMembershipInput {
+  userId: UserId;
+  meetingId: MeetingId;
+  messageId: MessageId;
+}
+
+export interface RemoveUnreadMessageFromMeetingMembershipOutput {
+  meetingMembership: MeetingMembership;
 }

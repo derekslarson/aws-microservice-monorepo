@@ -4,13 +4,14 @@ import { DocumentClientFactory, LoggerServiceInterface, Role } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
-import { UserId } from "../types/userId.type";
 import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
 import { GroupId } from "./group.dynamo.repository";
 import { BaseConversationMembership, BaseConversationMembershipDynamoRepository } from "./base.conversationMembership.repository";
+import { MessageId } from "./message.dynamo.repository.v2";
+import { UserId } from "./user.dynamo.repository.v2";
 
 @injectable()
-export class GroupMembershipDynamoRepository extends BaseConversationMembershipDynamoRepository<GroupMembership> implements GroupMembershipRepositoryInterface {
+export class GroupMembershipDynamoRepository extends BaseConversationMembershipDynamoRepository<GroupMembership, GroupId> implements GroupMembershipRepositoryInterface {
   private gsiOneIndexName: string;
 
   private gsiTwoIndexName: string;
@@ -32,7 +33,6 @@ export class GroupMembershipDynamoRepository extends BaseConversationMembershipD
 
       const { groupMembership } = params;
 
-      const { c } = await this.removeUnreadMessageFromConversationMembership({ userId: "user_124", conversationId: "", messageId: "message_1234" });
       const groupMembershipEntity: RawGroupMembership = {
         entityType: EntityTypeV2.GroupMembership,
         pk: groupMembership.userId,
@@ -153,6 +153,38 @@ export class GroupMembershipDynamoRepository extends BaseConversationMembershipD
       throw error;
     }
   }
+
+  public async addUnreadMessageToGroupMembership(params: AddUnreadMessageToGroupMembershipInput): Promise<AddUnreadMessageToGroupMembershipOutput> {
+    try {
+      this.loggerService.trace("addUnreadMessageToGroupMembership called", { params }, this.constructor.name);
+
+      const { userId, groupId, messageId } = params;
+
+      const { conversationMembership } = await this.addUnreadMessageToConversationMembership({ userId, conversationId: groupId, messageId });
+
+      return { groupMembership: conversationMembership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addUnreadMessageToGroupMembership", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async removeUnreadMessageFromGroupMembership(params: RemoveUnreadMessageFromGroupMembershipInput): Promise<RemoveUnreadMessageFromGroupMembershipOutput> {
+    try {
+      this.loggerService.trace("removeUnreadMessageFromGroupMembership called", { params }, this.constructor.name);
+
+      const { userId, groupId, messageId } = params;
+
+      const { conversationMembership } = await this.removeUnreadMessageFromConversationMembership({ userId, conversationId: groupId, messageId });
+
+      return { groupMembership: conversationMembership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in removeUnreadMessageFromGroupMembership", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface GroupMembershipRepositoryInterface {
@@ -161,6 +193,8 @@ export interface GroupMembershipRepositoryInterface {
   deleteGroupMembership(params: DeleteGroupMembershipInput): Promise<DeleteGroupMembershipOutput>;
   getGroupMembershipsByGroupId(params: GetGroupMembershipsByGroupIdInput): Promise<GetGroupMembershipsByGroupIdOutput>;
   getGroupMembershipsByUserId(params: GetGroupMembershipsByUserIdInput): Promise<GetGroupMembershipsByUserIdOutput>;
+  addUnreadMessageToGroupMembership(params: AddUnreadMessageToGroupMembershipInput): Promise<AddUnreadMessageToGroupMembershipOutput>;
+  removeUnreadMessageFromGroupMembership(params: RemoveUnreadMessageFromGroupMembershipInput): Promise<RemoveUnreadMessageFromGroupMembershipOutput>
 }
 
 type GroupMembershipRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
@@ -227,4 +261,24 @@ export interface GetGroupMembershipsByUserIdInput {
 export interface GetGroupMembershipsByUserIdOutput {
   groupMemberships: GroupMembership[];
   lastEvaluatedKey?: string;
+}
+
+export interface AddUnreadMessageToGroupMembershipInput {
+  userId: UserId;
+  groupId: GroupId;
+  messageId: MessageId;
+}
+
+export interface AddUnreadMessageToGroupMembershipOutput{
+  groupMembership: GroupMembership;
+}
+
+export interface RemoveUnreadMessageFromGroupMembershipInput {
+  userId: UserId;
+  groupId: GroupId;
+  messageId: MessageId;
+}
+
+export interface RemoveUnreadMessageFromGroupMembershipOutput {
+  groupMembership: GroupMembership;
 }

@@ -1,3 +1,4 @@
+/* eslint-disable import/no-cycle */
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseDynamoRepositoryV2, CleansedEntity, DocumentClientFactory, LoggerServiceInterface, MessageMimeType, RawEntity } from "@yac/util";
@@ -11,7 +12,6 @@ import { GroupId } from "./group.dynamo.repository";
 import { MeetingId } from "./meeting.dynamo.repository";
 import { UserId } from "./user.dynamo.repository.v2";
 import { OneOnOneId } from "./oneOnOneMembership.dynamo.repository";
-import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 
 @injectable()
 export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> implements MessageRepositoryInterface {
@@ -100,11 +100,11 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     }
   }
 
-  public async updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
+  public async markMessageSeen(params: MarkMessageSeenInput): Promise<MarkMessageSeenOutput> {
     try {
-      this.loggerService.trace("updateMessageSeenAt called", { params }, this.constructor.name);
+      this.loggerService.trace("markMessageSeen called", { params }, this.constructor.name);
 
-      const { messageId, userId, seenAtValue } = params;
+      const { messageId, userId } = params;
 
       const message = await this.update({
         Key: { pk: messageId, sk: EntityTypeV2.Message },
@@ -113,26 +113,50 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
           "#seenAt": "seenAt",
           "#userId": userId,
         },
-        ExpressionAttributeValues: { ":seenAtValue": seenAtValue },
+        ExpressionAttributeValues: { ":seenAtValue": new Date().toISOString() },
       });
 
       return { message };
     } catch (error: unknown) {
-      this.loggerService.error("Error in updateMessageSeenAt", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in markMessageSeen", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput> {
+  public async markMessageUnseen(params: MarkMessageUnseenInput): Promise<MarkMessageUnseenOutput> {
     try {
-      this.loggerService.trace("updateMessageReaction called", { params }, this.constructor.name);
+      this.loggerService.trace("markMessageUnseen called", { params }, this.constructor.name);
 
-      const { messageId, userId, reaction, action } = params;
+      const { messageId, userId } = params;
 
       const message = await this.update({
         Key: { pk: messageId, sk: EntityTypeV2.Message },
-        UpdateExpression: `${action === UpdateMessageReactionAction.Add ? "ADD" : "DELETE"} #reactions.#reaction :value`,
+        UpdateExpression: "SET #seenAt.#userId = :seenAtValue",
+        ExpressionAttributeNames: {
+          "#seenAt": "seenAt",
+          "#userId": userId,
+        },
+        ExpressionAttributeValues: { ":seenAtValue": null },
+      });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in markMessageUnseen", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async addMessageReaction(params: AddMessageReactionInput): Promise<AddMessageReactionOutput> {
+    try {
+      this.loggerService.trace("addMessageReaction called", { params }, this.constructor.name);
+
+      const { messageId, userId, reaction } = params;
+
+      const message = await this.update({
+        Key: { pk: messageId, sk: EntityTypeV2.Message },
+        UpdateExpression: "ADD #reactions.#reaction :value",
         ExpressionAttributeNames: {
           "#reactions": "reactions",
           "#reaction": reaction,
@@ -142,7 +166,31 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 
       return { message };
     } catch (error: unknown) {
-      this.loggerService.error("Error in updateMessageReaction", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in addMessageReaction", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async removeMessageReaction(params: RemoveMessageReactionInput): Promise<RemoveMessageReactionOutput> {
+    try {
+      this.loggerService.trace("removeMessageReaction called", { params }, this.constructor.name);
+
+      const { messageId, userId, reaction } = params;
+
+      const message = await this.update({
+        Key: { pk: messageId, sk: EntityTypeV2.Message },
+        UpdateExpression: "DELETE #reactions.#reaction :value",
+        ExpressionAttributeNames: {
+          "#reactions": "reactions",
+          "#reaction": reaction,
+        },
+        ExpressionAttributeValues: { ":value": this.documentClient.createSet([ userId ]) },
+      });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in removeMessageReaction", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -250,11 +298,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     try {
       this.loggerService.trace("cleanse called", { item }, this.constructor.name);
 
-      if (!this.isMessageWithReactionsSet(item)) {
-        return super.cleanse(item);
-      }
-
-      const { reactions: rawReactions, ...rest } = item;
+      const { reactions: rawReactions, ...rest } = item as unknown as RawMessage;
 
       const reactions: Record<string, UserId[]> = {};
 
@@ -269,36 +313,6 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
       throw error;
     }
   }
-
-  private isMessageWithReactionsSet(rawEntity: RawEntity): rawEntity is RawEntity<MessageWithReactionsSet> {
-    try {
-      this.loggerService.trace("isMessageWithReactionsSet called", { rawEntity }, this.constructor.name);
-
-      const isMessage = rawEntity.entityType === EntityTypeV2.Message;
-
-      const hasReactionsObj = "reactions" in rawEntity
-        && typeof rawEntity.reactions === "object"
-        && rawEntity.reactions != null;
-
-      if (isMessage && hasReactionsObj) {
-        if (Object.values(rawEntity.reactions).length === 0) {
-          return true;
-        }
-
-        const firstReactionUserIdSet = Object.values(rawEntity.reactions)[0];
-
-        return typeof firstReactionUserIdSet === "object"
-          && firstReactionUserIdSet != null
-          && "values" in firstReactionUserIdSet;
-      }
-
-      return false;
-    } catch (error: unknown) {
-      this.loggerService.error("Error in isMessageWithReactionsSet", { error, rawEntity }, this.constructor.name);
-
-      throw error;
-    }
-  }
 }
 
 export interface MessageRepositoryInterface {
@@ -307,8 +321,10 @@ export interface MessageRepositoryInterface {
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
-  updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>
-  updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>
+  markMessageSeen(params: MarkMessageSeenInput): Promise<MarkMessageSeenOutput>;
+  markMessageUnseen(params: MarkMessageUnseenInput): Promise<MarkMessageUnseenOutput>;
+  addMessageReaction(params: AddMessageReactionInput): Promise<AddMessageReactionOutput>;
+  removeMessageReaction(params: RemoveMessageReactionInput): Promise<RemoveMessageReactionOutput>
   convertRawMessageToMessage(params: ConvertRawMessageToMessageInput): ConvertRawMessageToMessageOutput;
 }
 
@@ -328,10 +344,6 @@ export interface Message {
   replyTo?: MessageId;
   agenda?: string;
   title?: string;
-}
-
-export interface MessageWithReactionsSet extends Omit<Message, "reactions"> {
-  reactions: Record<string, DynamoDB.DocumentClient.DynamoDbSet>;
 }
 
 export interface RawMessage extends Omit<Message, "reactions"> {
@@ -395,24 +407,41 @@ export interface UpdateMessageOutput {
   message: Message;
 }
 
-export interface UpdateMessageSeenAtInput {
+export interface MarkMessageSeenInput {
   messageId: MessageId;
   userId: UserId;
-  seenAtValue: string | null;
 }
 
-export interface UpdateMessageSeenAtOutput {
+export interface MarkMessageSeenOutput {
   message: Message;
 }
 
-export interface UpdateMessageReactionInput {
+export interface MarkMessageUnseenInput {
+  messageId: MessageId;
+  userId: UserId;
+}
+
+export interface MarkMessageUnseenOutput {
+  message: Message;
+}
+
+export interface AddMessageReactionInput {
   messageId: MessageId;
   userId: UserId;
   reaction: string;
-  action: UpdateMessageReactionAction;
 }
 
-export interface UpdateMessageReactionOutput {
+export interface AddMessageReactionOutput {
+  message: Message;
+}
+
+export interface RemoveMessageReactionInput {
+  messageId: MessageId;
+  userId: UserId;
+  reaction: string;
+}
+
+export interface RemoveMessageReactionOutput {
   message: Message;
 }
 
