@@ -109,9 +109,9 @@ export class MeetingDynamoRepository extends BaseDynamoRepositoryV2<Meeting> imp
     try {
       this.loggerService.trace("getMeetingsByOrganizationId called", { params }, this.constructor.name);
 
-      const { organizationId, byDueDate, exclusiveStartKey, limit } = params;
+      const { organizationId, byDueAt, exclusiveStartKey, limit } = params;
 
-      const { meetings, lastEvaluatedKey } = await this.getMeetingsByTeamIdOrOrganizationId({ teamIdOrOrganizationId: organizationId, byDueDate, exclusiveStartKey, limit });
+      const { meetings, lastEvaluatedKey } = await this.getMeetingsByTeamIdOrOrganizationId({ teamIdOrOrganizationId: organizationId, byDueAt, exclusiveStartKey, limit });
 
       return { meetings, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -125,9 +125,9 @@ export class MeetingDynamoRepository extends BaseDynamoRepositoryV2<Meeting> imp
     try {
       this.loggerService.trace("getMeetingsByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, byDueDate, exclusiveStartKey, limit } = params;
+      const { teamId, byDueAt, exclusiveStartKey, limit } = params;
 
-      const { meetings, lastEvaluatedKey } = await this.getMeetingsByTeamIdOrOrganizationId({ teamIdOrOrganizationId: teamId, byDueDate, exclusiveStartKey, limit });
+      const { meetings, lastEvaluatedKey } = await this.getMeetingsByTeamIdOrOrganizationId({ teamIdOrOrganizationId: teamId, byDueAt, exclusiveStartKey, limit });
 
       return { meetings, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -157,21 +157,21 @@ export class MeetingDynamoRepository extends BaseDynamoRepositoryV2<Meeting> imp
     try {
       this.loggerService.trace("getMeetingsByTeamIdOrOrganizationId called", { params }, this.constructor.name);
 
-      const { teamIdOrOrganizationId, byDueDate, exclusiveStartKey, limit } = params;
+      const { teamIdOrOrganizationId, byDueAt, exclusiveStartKey, limit } = params;
 
       const { Items: meetings, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         ScanIndexForward: false,
-        IndexName: byDueDate ? this.gsiTwoIndexName : this.gsiOneIndexName,
+        IndexName: byDueAt ? this.gsiTwoIndexName : this.gsiOneIndexName,
         KeyConditionExpression: "#pk = :teamIdOrOrgId AND begins_with(#sk, :skPrefix)",
         ExpressionAttributeNames: {
-          "#pk": byDueDate ? "gsi2pk" : "gsi1pk",
-          "#sk": byDueDate ? "gsi2sk" : "gsi1sk",
+          "#pk": byDueAt ? "gsi2pk" : "gsi1pk",
+          "#sk": byDueAt ? "gsi2sk" : "gsi1sk",
         },
         ExpressionAttributeValues: {
           ":teamIdOrOrgId": teamIdOrOrganizationId,
-          ":skPrefix": `${KeyPrefixV2.Meeting}${byDueDate ? KeyPrefixV2.Due : KeyPrefixV2.Active}`,
+          ":skPrefix": `${KeyPrefixV2.Meeting}${byDueAt ? KeyPrefixV2.Due : KeyPrefixV2.Active}`,
         },
       });
 
@@ -240,7 +240,7 @@ export interface GetMeetingOutput {
 
 export interface GetMeetingsByOrganizationIdInput {
   organizationId: OrganizationId;
-  byDueDate?: boolean;
+  byDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -252,7 +252,7 @@ export interface GetMeetingsByOrganizationIdOutput {
 
 export interface GetMeetingsByTeamIdInput {
   teamId: TeamId;
-  byDueDate?: boolean;
+  byDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -294,7 +294,7 @@ export type MeetingId = `${KeyPrefixV2.Meeting}${string}`;
 
 interface GetMeetingsByTeamIdOrOrganizationIdInput {
   teamIdOrOrganizationId: TeamId | OrganizationId;
-  byDueDate?: boolean;
+  byDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
