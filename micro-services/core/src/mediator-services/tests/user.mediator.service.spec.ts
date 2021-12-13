@@ -951,7 +951,7 @@
 //   describe("getUsersByGroupId", () => {
 //     describe("should fail correctly when", () => {
 //       it("conversationUserRelationshipService.getConversationUserRelationshipsByConversationId errors", async () => {
-//         const params: GetUsersByGroupIdInput = { groupId: "convo-group-mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
+//         const params: GetUsersByGroupIdInput = { groupId: "group_mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
 //         const mockError = new Error("Failed to continue");
 
 //         conversationUserRelationshipService.getConversationUserRelationshipsByConversationId.and.throwError(mockError);
@@ -969,7 +969,7 @@
 //       });
 
 //       it("userService.getUsers errors", async () => {
-//         const params: GetUsersByGroupIdInput = { groupId: "convo-group-mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
+//         const params: GetUsersByGroupIdInput = { groupId: "group_mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
 //         const mockError = new Error("Failed to continue");
 
 //         conversationUserRelationshipService.getConversationUserRelationshipsByConversationId.and.returnValue({ conversationUserRelationships: [ { userId: "mock1" }, { userId: "mock2" } ], lastEvaluatedKey: "mock-key" });
@@ -988,7 +988,7 @@
 //       });
 
 //       it("imageFileService.getSignedUrl errors", async () => {
-//         const params: GetUsersByGroupIdInput = { groupId: "convo-group-mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
+//         const params: GetUsersByGroupIdInput = { groupId: "group_mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
 //         const mockError = new Error("Failed to continue");
 
 //         conversationUserRelationshipService.getConversationUserRelationshipsByConversationId.and.returnValue({ conversationUserRelationships: [ { userId: "mock1" }, { userId: "mock2" } ], lastEvaluatedKey: "mock-key" });
@@ -1014,7 +1014,7 @@
 //     });
 //     describe("successfully completes when", () => {
 //       it("finds and returns an array of user based on `groupId`", async () => {
-//         const params: GetUsersByGroupIdInput = { groupId: "convo-group-mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
+//         const params: GetUsersByGroupIdInput = { groupId: "group_mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
 //         const mockSignedUrl = "mock-signed-url";
 
 //         conversationUserRelationshipService.getConversationUserRelationshipsByConversationId.and.returnValue({ conversationUserRelationships: [ { userId: "mock1", role: "mock1" }, { userId: "mock2", role: "mock2" } ], lastEvaluatedKey: "mock-key" });
@@ -1063,7 +1063,7 @@
 //   describe("getUsersByMeetingId", () => {
 //     describe("should fail correctly when", () => {
 //       it("conversationUserRelationshipService.getConversationUserRelationshipsByConversationId errors", async () => {
-//         const params: GetUsersByMeetingIdInput = { meetingId: "convo-meeting-mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
+//         const params: GetUsersByMeetingIdInput = { meetingId: "meeting_mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
 //         const mockError = new Error("Failed to continue");
 
 //         conversationUserRelationshipService.getConversationUserRelationshipsByConversationId.and.throwError(mockError);
@@ -1081,7 +1081,7 @@
 //       });
 
 //       it("userService.getUsers errors", async () => {
-//         const params: GetUsersByMeetingIdInput = { meetingId: "convo-meeting-mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
+//         const params: GetUsersByMeetingIdInput = { meetingId: "meeting_mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
 //         const mockError = new Error("Failed to continue");
 
 //         conversationUserRelationshipService.getConversationUserRelationshipsByConversationId.and.returnValue({ conversationUserRelationships: [ { userId: "mock1" }, { userId: "mock2" } ], lastEvaluatedKey: "mock-key" });
@@ -1100,7 +1100,7 @@
 //       });
 
 //       it("imageFileService.getSignedUrl errors", async () => {
-//         const params: GetUsersByMeetingIdInput = { meetingId: "convo-meeting-mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
+//         const params: GetUsersByMeetingIdInput = { meetingId: "meeting_mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
 //         const mockError = new Error("Failed to continue");
 
 //         conversationUserRelationshipService.getConversationUserRelationshipsByConversationId.and.returnValue({ conversationUserRelationships: [ { userId: "mock1" }, { userId: "mock2" } ], lastEvaluatedKey: "mock-key" });
@@ -1126,7 +1126,7 @@
 //     });
 //     describe("successfully completes when", () => {
 //       it("finds and returns an array of user based on `meetingId`", async () => {
-//         const params: GetUsersByMeetingIdInput = { meetingId: "convo-meeting-mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
+//         const params: GetUsersByMeetingIdInput = { meetingId: "meeting_mock-id", exclusiveStartKey: "mock-random-key", limit: 10 };
 //         const mockSignedUrl = "mock-signed-url";
 
 //         conversationUserRelationshipService.getConversationUserRelationshipsByConversationId.and.returnValue({ conversationUserRelationships: [ { userId: "mock1", role: "mock1" }, { userId: "mock2", role: "mock2" } ], lastEvaluatedKey: "mock-key" });

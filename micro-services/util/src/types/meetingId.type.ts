@@ -1,1 +1,1 @@
-export type MeetingId = `convo-meeting-${string}`;
+export type MeetingId = `meeting_${string}`;

@@ -26,7 +26,7 @@
 //   const mockMessageId: MessageId = "message-id";
 //   const mockUserIdOne: UserId = "user-mock-id-one";
 //   const mockUserIdTwo: UserId = "user-mock-id-two";
-//   const mockMeetingId: MeetingId = "convo-meeting-mock-id";
+//   const mockMeetingId: MeetingId = "meeting_mock-id";
 
 //   const mockUserOne: User = {
 //     id: mockUserIdOne,

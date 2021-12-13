@@ -13,7 +13,7 @@ import { S3Factory } from "../factories/s3.factory";
 import { LoggerServiceInterface } from "../services/logger.service";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
 import { MessageId } from "../types/messageId.type";
-import { FriendConvoId } from "../types/friendConvoId.type";
+import { OneOnOneId } from "../types/oneOnOneId.type";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
 import { FileOperation } from "../enums/fileOperation.enum";
@@ -121,7 +121,7 @@ export type FileExtension = "mp3" | "mp4" | "webm";
 interface GetSignedUrlByIdAndMimeTypeInput {
   operation: FileOperation,
   messageId: MessageId;
-  conversationId: FriendConvoId | GroupId | MeetingId;
+  conversationId: OneOnOneId | GroupId | MeetingId;
   mimeType: MessageMimeType;
 }
 
@@ -129,7 +129,7 @@ export type MessageGetSignedUrlInput = GetSignedUrlInput | GetSignedUrlByIdAndMi
 
 interface HeadObjectByIdAndMimeTypeInput {
   messageId: MessageId;
-  conversationId: FriendConvoId | GroupId | MeetingId;
+  conversationId: OneOnOneId | GroupId | MeetingId;
   mimeType: MessageMimeType;
 }
 
@@ -137,7 +137,7 @@ export type MessageHeadObjectInput = HeadObjectInput | HeadObjectByIdAndMimeType
 
 interface CreateKeyInput {
   messageId: MessageId;
-  conversationId: FriendConvoId | GroupId | MeetingId;
+  conversationId: OneOnOneId | GroupId | MeetingId;
   mimeType: MessageMimeType;
 }
 

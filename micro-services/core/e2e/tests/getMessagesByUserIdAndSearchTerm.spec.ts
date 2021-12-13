@@ -7,10 +7,10 @@ import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generat
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { GroupConversation, MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createGroupConversation, createMeetingConversation, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
+import { createConversationUserRelationship, createGroup, createMeeting, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
 
 describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -24,8 +24,8 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
     let otherUser: CreateRandomUserOutput["user"];
     let accessToken: string;
 
-    let meeting: RawConversation<MeetingConversation>;
-    let group: RawConversation<GroupConversation>;
+    let meeting: RawConversation<Meeting>;
+    let group: RawConversation<Group>;
 
     let message: RawMessage;
     let messageTwo: RawMessage;
@@ -36,8 +36,8 @@ describe("GET /users/{userId}/messages (Get Messages by User Id and Search Term)
 
       ([ { accessToken }, { conversation: meeting }, { conversation: group } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createMeetingConversation({ createdBy: user.id, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString() }),
-        createGroupConversation({ createdBy: otherUser.id, organizationId: mockOrganizationId, name: generateRandomString(5) }),
+        createMeeting({ createdBy: user.id, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString() }),
+        createGroup({ createdBy: otherUser.id, organizationId: mockOrganizationId, name: generateRandomString(5) }),
       ]));
 
       ([ { message }, { message: messageTwo } ] = await Promise.all([

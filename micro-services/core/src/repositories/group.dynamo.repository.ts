@@ -1,14 +1,11 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/util";
-
+import { BaseDynamoRepositoryV2, DocumentClientFactory, GroupId, LoggerServiceInterface, OrganizationId, TeamId, UserId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
+import { EntityType } from "../enums/entityType.enum";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
-import { OrganizationId } from "./organization.dynamo.repository.v2";
-import { TeamId } from "./team.dynamo.repository.v2";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
 export class GroupDynamoRepository extends BaseDynamoRepositoryV2<Group> implements GroupRepositoryInterface {
@@ -30,11 +27,11 @@ export class GroupDynamoRepository extends BaseDynamoRepositoryV2<Group> impleme
       const { group } = params;
 
       const groupEntity: RawGroup = {
-        entityType: EntityTypeV2.Group,
+        entityType: EntityType.Group,
         pk: group.id,
-        sk: EntityTypeV2.Group,
+        sk: EntityType.Group,
         gsi1pk: group.teamId || group.organizationId,
-        gsi1sk: `${KeyPrefixV2.Group}${KeyPrefixV2.Active}${group.activeAt}`,
+        gsi1sk: `${KeyPrefix.Group}${KeyPrefix.Active}${group.activeAt}`,
         ...group,
       };
 
@@ -58,7 +55,7 @@ export class GroupDynamoRepository extends BaseDynamoRepositoryV2<Group> impleme
 
       const { groupId } = params;
 
-      const group = await this.get({ Key: { pk: groupId, sk: EntityTypeV2.Group } }, "Group");
+      const group = await this.get({ Key: { pk: groupId, sk: EntityType.Group } }, "Group");
 
       return { group };
     } catch (error: unknown) {
@@ -74,7 +71,7 @@ export class GroupDynamoRepository extends BaseDynamoRepositoryV2<Group> impleme
 
       const { groupId, updates } = params;
 
-      const group = await this.partialUpdate(groupId, EntityTypeV2.Group, updates);
+      const group = await this.partialUpdate(groupId, EntityType.Group, updates);
 
       return { group };
     } catch (error: unknown) {
@@ -90,7 +87,7 @@ export class GroupDynamoRepository extends BaseDynamoRepositoryV2<Group> impleme
 
       const { groupIds } = params;
 
-      const groups = await this.batchGet({ Keys: groupIds.map((groupId) => ({ pk: groupId, sk: EntityTypeV2.Group })) });
+      const groups = await this.batchGet({ Keys: groupIds.map((groupId) => ({ pk: groupId, sk: EntityType.Group })) });
 
       return { groups };
     } catch (error: unknown) {
@@ -166,7 +163,7 @@ export class GroupDynamoRepository extends BaseDynamoRepositoryV2<Group> impleme
         },
         ExpressionAttributeValues: {
           ":teamIdOrOrgId": teamIdOrOrganizationId,
-          ":groupActive": `${KeyPrefixV2.Group}${KeyPrefixV2.Active}`,
+          ":groupActive": `${KeyPrefix.Group}${KeyPrefix.Active}`,
         },
       });
 
@@ -199,6 +196,7 @@ export interface Group {
   organizationId: OrganizationId;
   imageMimeType: ImageMimeType;
   name: string;
+  createdBy: UserId;
   createdAt: string;
   updatedAt: string;
   activeAt: string;
@@ -206,11 +204,11 @@ export interface Group {
 }
 
 export interface RawGroup extends Group {
-  entityType: EntityTypeV2.Group,
+  entityType: EntityType.Group,
   pk: GroupId;
-  sk: EntityTypeV2.Group;
+  sk: EntityType.Group;
   gsi1pk: OrganizationId | TeamId;
-  gsi1sk: `${KeyPrefixV2.Group}${KeyPrefixV2.Active}${string}`;
+  gsi1sk: `${KeyPrefix.Group}${KeyPrefix.Active}${string}`;
 }
 
 export interface CreateGroupInput {
@@ -278,8 +276,6 @@ export interface ConvertRawGroupToGroupInput {
 export interface ConvertRawGroupToGroupOutput {
   group: Group;
 }
-
-export type GroupId = `${KeyPrefixV2.Group}${string}`;
 
 interface GetGroupsByTeamIdOrOrganizationIdInput {
   teamIdOrOrganizationId: TeamId | OrganizationId;

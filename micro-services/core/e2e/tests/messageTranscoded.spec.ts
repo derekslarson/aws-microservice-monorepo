@@ -4,12 +4,12 @@ import { MessageTranscodedSnsMessage, OrganizationId } from "@yac/util";
 import { backoff, generateRandomString, sns } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawPendingMessage } from "../../src/repositories/pendingMessage.dynamo.repository";
 import { MessageId } from "../../src/types/messageId.type";
 import { UserId } from "../../src/types/userId.type";
 import {
-  createGroupConversation,
+  createGroup,
   createPendingMessage,
   getPendingMessage,
 } from "../util";
@@ -22,14 +22,14 @@ describe("Message Transcoded SNS Topic", () => {
 
   describe("under normal conditions", () => {
     describe("when a message is published to the SNS topic", () => {
-      let group: RawConversation<GroupConversation>;
+      let group: RawConversation<Group>;
       let pendingMessage: RawPendingMessage;
       let messageId: MessageId;
 
       const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
       beforeEach(async () => {
-        ({ conversation: group } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
+        ({ conversation: group } = await createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
         ({ pendingMessage } = await createPendingMessage({ conversationId: group.id, from: userId, mimeType: mockMimeType }));
 

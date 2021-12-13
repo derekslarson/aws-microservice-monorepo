@@ -11,16 +11,17 @@ import {
   GetSignedUrlOutput as BaseGetSignedUrlOutput,
   FileOperation,
   OrganizationId,
+  UserId,
+  TeamId,
+  GroupId,
+  MeetingId,
 } from "@yac/util";
 import { injectable, inject } from "inversify";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-import { UserId } from "../types/userId.type";
-import { TeamId } from "../types/teamId.type";
+
 import { EntityType } from "../enums/entityType.enum";
-import { GroupId } from "../types/groupId.type";
-import { MeetingId } from "../types/meetingId.type";
 import { Identicon, IdenticonFactory } from "../factories/identicon.factory";
 
 @injectable()
@@ -37,8 +38,8 @@ export class ImageS3Repository extends BaseS3Repository implements ImageFileRepo
     [EntityType.User]: "users",
     [EntityType.Organization]: "organizations",
     [EntityType.Team]: "teams",
-    [EntityType.GroupConversation]: "groups",
-    [EntityType.MeetingConversation]: "meetings",
+    [EntityType.Group]: "groups",
+    [EntityType.Meeting]: "meetings",
   };
 
   constructor(
@@ -191,7 +192,7 @@ type ImageS3RepositoryConfig = Pick<EnvConfigInterface, "bucketNames">;
 export type FileDirectory = "users" | "organizations" | "teams" | "groups" | "meetings";
 export type FileExtension = "jpeg" | "bmp" | "png";
 export type ImageEntityId = UserId | OrganizationId | TeamId | GroupId | MeetingId;
-export type ImageEntityType = EntityType.User | EntityType.Organization | EntityType.Team | EntityType.GroupConversation | EntityType.MeetingConversation;
+export type ImageEntityType = EntityType.User | EntityType.Organization | EntityType.Team | EntityType.Group | EntityType.Meeting;
 
 export interface CreateDefaultImageOutput {
   image: Buffer;

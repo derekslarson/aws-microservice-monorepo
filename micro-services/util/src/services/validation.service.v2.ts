@@ -110,4 +110,4 @@ export interface ValidateInput<T extends ValidatedRequest, U extends boolean> {
   scopes?: string[];
 }
 
-export type ValidateOutput<T extends ValidatedRequest, U extends boolean> = U extends true ? (T & { jwtId: `user-${string}`; jwtScope: string; }) : T;
+export type ValidateOutput<T extends ValidatedRequest, U extends boolean> = U extends true ? (T & { jwtId: `user_${string}`; jwtScope: string; }) : T;

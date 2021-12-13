@@ -87,7 +87,7 @@ describe("Meeting Message Updated (WebSocket Event)", () => {
         message: {
           id: "message-id",
           to: {
-            id: "convo-meeting-id",
+            id: "meeting_id",
             name: "mock-name",
             image: "mock-image",
             createdBy: "user-mock-id",

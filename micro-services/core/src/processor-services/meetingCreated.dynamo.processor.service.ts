@@ -5,9 +5,9 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
-import { RawConversation, MeetingConversation } from "../repositories/conversation.dynamo.repository";
+import { RawConversation, Meeting } from "../repositories/conversation.dynamo.repository";
 import { MeetingCreatedSnsServiceInterface } from "../sns-services/meetingCreated.sns.service";
-import { ConversationServiceInterface } from "../entity-services/conversation.service";
+import { ConversationServiceInterface } from "../entity-services/group.service";
 
 @injectable()
 export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -28,7 +28,7 @@ export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServ
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
       const isCoreTable = record.tableName === this.coreTableName;
-      const isMeeting = record.newImage.entityType === EntityType.MeetingConversation;
+      const isMeeting = record.newImage.entityType === EntityType.Meeting;
       const isCreation = record.eventName === "INSERT";
 
       return isCoreTable && isMeeting && isCreation;
@@ -39,7 +39,7 @@ export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServ
     }
   }
 
-  public async processRecord(record: DynamoProcessorServiceRecord<RawConversation<MeetingConversation>>): Promise<void> {
+  public async processRecord(record: DynamoProcessorServiceRecord<RawConversation<Meeting>>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
@@ -49,7 +49,7 @@ export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServ
 
       await Promise.allSettled([
         this.meetingCreatedSnsService.sendMessage({ meeting, meetingMemberIds: [ meeting.createdBy ] }),
-        this.conversationService.indexMeetingConversationForSearch({ meeting: record.newImage }),
+        this.conversationService.indexMeetingForSearch({ meeting: record.newImage }),
       ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);

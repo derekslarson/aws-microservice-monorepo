@@ -1,14 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { inject, injectable } from "inversify";
-import { FileOperation, IdServiceInterface, LoggerServiceInterface, MessageFileRepositoryInterface, MessageUploadTokenServiceInterface } from "@yac/util";
+import { FileOperation, IdServiceInterface, LoggerServiceInterface, MessageFileRepositoryInterface, MessageId, MessageUploadTokenServiceInterface, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { PendingMessageRepositoryInterface, PendingMessage as PendingMessageEntity, PendingMessageUpdates } from "../repositories/pendingMessage.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { UserId } from "../types/userId.type";
-import { ConversationId } from "../types/conversationId.type";
-import { PendingMessageId } from "../types/pendingMessageId.type";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
-import { MessageId } from "../types/messageId.type";
+import { ConversationId } from "../repositories/message.dynamo.repository";
 
 @injectable()
 export class PendingMessageService implements PendingMessageServiceInterface {
@@ -26,10 +22,10 @@ export class PendingMessageService implements PendingMessageServiceInterface {
 
       const { conversationId, from, mimeType } = params;
 
-      const pendingMessageId: PendingMessageId = `${KeyPrefix.PendingMessage}${this.idService.generateId()}`;
+      const messageId: MessageId = `${KeyPrefix.Message}${this.idService.generateId()}`;
 
       const pendingMessageEntity: PendingMessageEntity = {
-        id: pendingMessageId,
+        id: messageId,
         conversationId,
         from,
         mimeType,
@@ -37,8 +33,6 @@ export class PendingMessageService implements PendingMessageServiceInterface {
       };
 
       await this.pendingMessageRepository.createPendingMessage({ pendingMessage: pendingMessageEntity });
-
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
 
       const { signedUrl } = this.rawMessageFileRepository.getSignedUrl({
         messageId,
@@ -67,11 +61,9 @@ export class PendingMessageService implements PendingMessageServiceInterface {
     try {
       this.loggerService.trace("getPendingMessage called", { params }, this.constructor.name);
 
-      const { pendingMessageId } = params;
+      const { messageId } = params;
 
-      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageRepository.getPendingMessage({ pendingMessageId });
-
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
+      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageRepository.getPendingMessage({ messageId });
 
       const { signedUrl } = this.rawMessageFileRepository.getSignedUrl({
         messageId,
@@ -104,11 +96,9 @@ export class PendingMessageService implements PendingMessageServiceInterface {
     try {
       this.loggerService.trace("updatePendingMessage called", { params }, this.constructor.name);
 
-      const { pendingMessageId, updates } = params;
+      const { messageId, updates } = params;
 
-      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageRepository.updatePendingMessage({ pendingMessageId, updates });
-
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
+      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageRepository.updatePendingMessage({ messageId, updates });
 
       const { signedUrl } = this.rawMessageFileRepository.getSignedUrl({
         messageId,
@@ -141,27 +131,11 @@ export class PendingMessageService implements PendingMessageServiceInterface {
     try {
       this.loggerService.trace("deletePendingMessage called", { params }, this.constructor.name);
 
-      const { pendingMessageId } = params;
+      const { messageId } = params;
 
-      await this.pendingMessageRepository.deletePendingMessage({ pendingMessageId });
+      await this.pendingMessageRepository.deletePendingMessage({ messageId });
     } catch (error: unknown) {
       this.loggerService.error("Error in deletePendingMessage", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  private convertPendingToRegularMessageId(params: ConvertPendingToRegularMessageIdInput): ConvertPendingToRegularMessageIdOutput {
-    try {
-      this.loggerService.trace("convertPendingToRegularMessageId called", { params }, this.constructor.name);
-
-      const { pendingMessageId } = params;
-
-      const messageId = pendingMessageId.replace(KeyPrefix.PendingMessage, KeyPrefix.Message) as MessageId;
-
-      return { messageId };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in convertPendingToRegularMessageId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -191,7 +165,7 @@ export interface CreatePendingMessageOutput {
 }
 
 export interface GetPendingMessageInput {
-  pendingMessageId: PendingMessageId;
+  messageId: MessageId;
 }
 
 export interface GetPendingMessageOutput {
@@ -199,7 +173,7 @@ export interface GetPendingMessageOutput {
 }
 
 export interface UpdatePendingMessageInput {
-  pendingMessageId: PendingMessageId;
+  messageId: MessageId;
   updates: PendingMessageUpdates;
 }
 
@@ -208,13 +182,13 @@ export interface UpdatePendingMessageOutput {
 }
 
 export interface DeletePendingMessageInput {
-  pendingMessageId: PendingMessageId;
+  messageId: MessageId;
 }
 
 export type DeletePendingMessageOutput = void;
 
 interface ConvertPendingToRegularMessageIdInput {
-  pendingMessageId: PendingMessageId;
+  messageId: MessageId;
 }
 
 interface ConvertPendingToRegularMessageIdOutput {

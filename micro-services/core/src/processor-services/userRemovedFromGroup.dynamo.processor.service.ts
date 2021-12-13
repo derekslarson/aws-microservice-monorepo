@@ -30,10 +30,10 @@ export class UserRemovedFromGroupDynamoProcessorService implements DynamoProcess
 
       const isCoreTable = record.tableName === this.coreTableName;
       const isConversationUserRelationship = record.oldImage.entityType === EntityType.ConversationUserRelationship;
-      const isGroupConversationUserRelationship = (record.oldImage as RawConversationUserRelationship<ConversationType>).type === ConversationType.Group;
+      const isGroupUserRelationship = (record.oldImage as RawConversationUserRelationship<ConversationType>).type === ConversationType.Group;
       const isRemoval = record.eventName === "REMOVE";
 
-      return isCoreTable && isConversationUserRelationship && isGroupConversationUserRelationship && isRemoval;
+      return isCoreTable && isConversationUserRelationship && isGroupUserRelationship && isRemoval;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 

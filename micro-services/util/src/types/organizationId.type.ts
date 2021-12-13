@@ -1,1 +1,1 @@
-export type OrganizationId = `organization-${string}`;
+export type OrganizationId = `org_${string}`;

@@ -9,9 +9,9 @@ import { createWebSocketListener, deleteSnsEventsByTopicArn, getSnsEventsByTopic
 describe("User Added As Friend SNS Topic", () => {
   const userAddedAsFriendSnsTopicArn = process.env["user-added-as-friend-sns-topic-arn"] as string;
   const pushNotificationFailedSnsTopicArn = process.env["push-notification-failed-sns-topic-arn"] as string;
-  let userOneId: `user-${string}`;
-  let userTwoId: `user-${string}`;
-  let userThreeId: `user-${string}`;
+  let userOneId: `user_${string}`;
+  let userTwoId: `user_${string}`;
+  let userThreeId: `user_${string}`;
 
   beforeAll(async () => {
     // Create three users in cognito

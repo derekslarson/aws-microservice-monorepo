@@ -6,7 +6,7 @@ import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { FriendConversation, GroupConversation, MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { FriendConversation, Group, Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawPendingMessage } from "../../src/repositories/pendingMessage.dynamo.repository";
 import { MessageId } from "../../src/types/messageId.type";
@@ -15,7 +15,7 @@ import {
   createRandomUser,
   CreateRandomUserOutput,
   createConversationUserRelationship,
-  createGroupConversation,
+  createGroup,
   createPendingMessage,
   getMessage,
   getPendingMessage,
@@ -23,7 +23,7 @@ import {
   deleteSnsEventsByTopicArn,
   getUser,
   getSnsEventsByTopicArn,
-  createMeetingConversation,
+  createMeeting,
   createFriendConversation,
 } from "../util";
 
@@ -236,7 +236,7 @@ describe("Message Transcribed SNS Topic", () => {
         const groupMessageCreatedSnsTopicArn = process.env["group-message-created-sns-topic-arn"] as string;
 
         let otherUser: CreateRandomUserOutput["user"];
-        let group: RawConversation<GroupConversation>;
+        let group: RawConversation<Group>;
         let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Group>;
         let conversationUserRelationshipTwo: RawConversationUserRelationship<ConversationType.Group>;
         let pendingMessage: RawPendingMessage;
@@ -245,7 +245,7 @@ describe("Message Transcribed SNS Topic", () => {
         beforeEach(async () => {
           ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
             createRandomUser(),
-            createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
+            createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
           ]));
 
           ([ { conversationUserRelationship }, { conversationUserRelationship: conversationUserRelationshipTwo }, { pendingMessage } ] = await Promise.all([
@@ -341,7 +341,7 @@ describe("Message Transcribed SNS Topic", () => {
             expect(conversationUserRelationshipUpdated?.gsi1sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)));
             expect(conversationUserRelationshipUpdated?.gsi1sk).not.toEqual(conversationUserRelationship.gsi1sk);
 
-            expect(conversationUserRelationshipUpdated?.gsi2sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.GroupConversation}.*`)));
+            expect(conversationUserRelationshipUpdated?.gsi2sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Group}.*`)));
             expect(conversationUserRelationshipUpdated?.gsi2sk).not.toEqual(conversationUserRelationship.gsi2sk);
 
             expect(conversationUserRelationshipUpdated?.unreadMessages).toEqual(conversationUserRelationship.unreadMessages);
@@ -352,7 +352,7 @@ describe("Message Transcribed SNS Topic", () => {
             expect(conversationUserRelationshipTwoUpdated?.gsi1sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)));
             expect(conversationUserRelationshipTwoUpdated?.gsi1sk).not.toEqual(conversationUserRelationshipTwo.gsi1sk);
 
-            expect(conversationUserRelationshipTwoUpdated?.gsi2sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.GroupConversation}.*`)));
+            expect(conversationUserRelationshipTwoUpdated?.gsi2sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Group}.*`)));
             expect(conversationUserRelationshipTwoUpdated?.gsi2sk).not.toEqual(conversationUserRelationshipTwo.gsi2sk);
 
             expect(conversationUserRelationshipTwoUpdated?.unreadMessages).toEqual(documentClient.createSet([ messageId ]));
@@ -436,7 +436,7 @@ describe("Message Transcribed SNS Topic", () => {
         const meetingMessageCreatedSnsTopicArn = process.env["meeting-message-created-sns-topic-arn"] as string;
 
         let otherUser: CreateRandomUserOutput["user"];
-        let meeting: RawConversation<MeetingConversation>;
+        let meeting: RawConversation<Meeting>;
         let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Meeting>;
         let conversationUserRelationshipTwo: RawConversationUserRelationship<ConversationType.Meeting>;
         let pendingMessage: RawPendingMessage;
@@ -445,7 +445,7 @@ describe("Message Transcribed SNS Topic", () => {
         beforeEach(async () => {
           ([ { user: otherUser }, { conversation: meeting } ] = await Promise.all([
             createRandomUser(),
-            createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+            createMeeting({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
           ]));
 
           ([ { conversationUserRelationship }, { conversationUserRelationship: conversationUserRelationshipTwo }, { pendingMessage } ] = await Promise.all([
@@ -541,7 +541,7 @@ describe("Message Transcribed SNS Topic", () => {
             expect(conversationUserRelationshipUpdated?.gsi1sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)));
             expect(conversationUserRelationshipUpdated?.gsi1sk).not.toEqual(conversationUserRelationship.gsi1sk);
 
-            expect(conversationUserRelationshipUpdated?.gsi2sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)));
+            expect(conversationUserRelationshipUpdated?.gsi2sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Meeting}.*`)));
             expect(conversationUserRelationshipUpdated?.gsi2sk).not.toEqual(conversationUserRelationship.gsi2sk);
 
             expect(conversationUserRelationshipUpdated?.unreadMessages).toEqual(conversationUserRelationship.unreadMessages);
@@ -552,7 +552,7 @@ describe("Message Transcribed SNS Topic", () => {
             expect(conversationUserRelationshipTwoUpdated?.gsi1sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)));
             expect(conversationUserRelationshipTwoUpdated?.gsi1sk).not.toEqual(conversationUserRelationshipTwo.gsi1sk);
 
-            expect(conversationUserRelationshipTwoUpdated?.gsi2sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)));
+            expect(conversationUserRelationshipTwoUpdated?.gsi2sk).toEqual(jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Meeting}.*`)));
             expect(conversationUserRelationshipTwoUpdated?.gsi2sk).not.toEqual(conversationUserRelationshipTwo.gsi2sk);
 
             expect(conversationUserRelationshipTwoUpdated?.unreadMessages).toEqual(documentClient.createSet([ messageId ]));

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { inject, injectable } from "inversify";
 import { BadRequestError, LoggerServiceInterface, Role } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";

@@ -16,7 +16,7 @@
 
 //   const mockMeetingCreatedSnsTopicArn = "mock-meeting-created-sns-topic-arn";
 //   const mockConfig = { snsTopicArns: { meetingCreated: mockMeetingCreatedSnsTopicArn } };
-//   const mockMeetingId = "convo-meeting-mock-id";
+//   const mockMeetingId = "meeting_mock-id";
 //   const mockUserId: User["id"] = "user-mock-id";
 //   const mockDateA = new Date().toISOString();
 //   const mockDateB = new Date().toISOString();

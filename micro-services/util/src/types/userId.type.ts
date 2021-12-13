@@ -1,1 +1,1 @@
-export type UserId = `user-${string}`;
+export type UserId = `user_${string}`;

@@ -1,13 +1,11 @@
 /* eslint-disable import/no-cycle */
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, UserId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
-import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
-import { UserId } from "./user.dynamo.repository.v2";
-import { MessageId } from "./message.dynamo.repository.v2";
+import { EntityType } from "../enums/entityType.enum";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
 export class OneOnOneMembershipDynamoRepository extends BaseDynamoRepositoryV2<OneOnOneMembership> implements OneOnOneMembershipRepositoryInterface {
@@ -30,11 +28,11 @@ export class OneOnOneMembershipDynamoRepository extends BaseDynamoRepositoryV2<O
       const { oneOnOneMembership } = params;
 
       const oneOnOneMembershipEntity: RawOneOnOneMembership = {
-        entityType: EntityTypeV2.OneOnOneMembership,
+        entityType: EntityType.OneOnOneMembership,
         pk: oneOnOneMembership.userId,
         sk: oneOnOneMembership.otherUserId,
         gsi1pk: oneOnOneMembership.userId,
-        gsi1sk: `${KeyPrefixV2.OneOnOne}${KeyPrefixV2.Active}${oneOnOneMembership.activeAt}`,
+        gsi1sk: `${KeyPrefix.OneOnOne}${KeyPrefix.Active}${oneOnOneMembership.activeAt}`,
         ...oneOnOneMembership,
       };
 
@@ -77,7 +75,7 @@ export class OneOnOneMembershipDynamoRepository extends BaseDynamoRepositoryV2<O
       const rawUpdates: UpdateOneOnOneMembershipRawUpdates = { ...updates };
 
       if (updates.activeAt) {
-        rawUpdates.gsi1sk = `${KeyPrefixV2.OneOnOne}${KeyPrefixV2.Active}${updates.activeAt}`;
+        rawUpdates.gsi1sk = `${KeyPrefix.OneOnOne}${KeyPrefix.Active}${updates.activeAt}`;
       }
 
       const oneOnOneMembership = await this.partialUpdate(userId, otherUserId, rawUpdates);
@@ -123,7 +121,7 @@ export class OneOnOneMembershipDynamoRepository extends BaseDynamoRepositoryV2<O
         },
         ExpressionAttributeValues: {
           ":userId": userId,
-          ":oneOnOneActive": `${KeyPrefixV2.OneOnOne}${KeyPrefixV2.Active}`,
+          ":oneOnOneActive": `${KeyPrefix.OneOnOne}${KeyPrefix.Active}`,
         },
       });
 
@@ -156,7 +154,7 @@ export interface OneOnOneMembership {
   activeAt: string;
 }
 export interface RawOneOnOneMembership extends OneOnOneMembership {
-  entityType: EntityTypeV2.OneOnOneMembership,
+  entityType: EntityType.OneOnOneMembership,
   pk: UserId;
   // otherUserId
   sk: UserId;
@@ -181,6 +179,16 @@ export interface GetOneOnOneMembershipOutput {
   oneOnOneMembership: OneOnOneMembership;
 }
 
+export interface UpdateOneOnOneMembershipInput {
+  userId: UserId;
+  otherUserId: UserId;
+  updates: UpdateOneOnOneMembershipUpdates;
+}
+
+export interface UpdateOneOnOneMembershipOutput {
+  oneOnOneMembership: OneOnOneMembership;
+}
+
 export interface DeleteOneOnOneMembershipInput {
   userId: UserId;
   otherUserId: UserId;
@@ -199,39 +207,7 @@ export interface GetOneOnOneMembershipsByUserIdOutput {
   lastEvaluatedKey?: string;
 }
 
-export interface AddUnreadMessageToOneOnOneMembershipInput {
-  userId: UserId;
-  oneOnOneId: OneOnOneId;
-  messageId: MessageId;
-}
-
-export interface AddUnreadMessageToOneOnOneMembershipOutput{
-  oneOnOneMembership: OneOnOneMembership;
-}
-
-export interface RemoveUnreadMessageFromOneOnOneMembershipInput {
-  userId: UserId;
-  oneOnOneId: OneOnOneId;
-  messageId: MessageId;
-}
-
-export interface RemoveUnreadMessageFromOneOnOneMembershipOutput {
-  oneOnOneMembership: OneOnOneMembership;
-}
-
-export type OneOnOneId = `${UserId}_${UserId}`;
-
-export interface UpdateOneOnOneMembershipInput {
-  userId: UserId;
-  otherUserId: UserId;
-  updates: UpdateOneOnOneMembershipUpdates;
-}
-
-export interface UpdateOneOnOneMembershipOutput {
-  oneOnOneMembership: OneOnOneMembership;
-}
-
 type UpdateOneOnOneMembershipUpdates = Partial<Pick<OneOnOneMembership, "activeAt">>;
 type UpdateOneOnOneMembershipRawUpdates = UpdateOneOnOneMembershipUpdates & { gsi1sk?: Gsi1Sk; };
 
-type Gsi1Sk = `${KeyPrefixV2.OneOnOne}${KeyPrefixV2.Active}${string}`;
+type Gsi1Sk = `${KeyPrefix.OneOnOne}${KeyPrefix.Active}${string}`;

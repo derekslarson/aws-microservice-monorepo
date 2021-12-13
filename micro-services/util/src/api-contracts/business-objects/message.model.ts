@@ -18,5 +18,6 @@ export interface Message {
   fetchUrl: string;
   transcript?: string;
   replyTo?: MessageId;
+  agenda?: string;
   title?: string;
 }

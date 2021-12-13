@@ -27,7 +27,7 @@ describe("Chunked Message upload", () => {
       let uploadToken: string;
 
       beforeEach(async () => {
-        conversationId = `convo-group-${generateRandomString(10)}`;
+        conversationId = `group_${generateRandomString(10)}`;
         messageId = `message-${generateRandomString(10)}`;
         fileSystemDir = `${conversationId}_${messageId}`;
 
@@ -118,7 +118,7 @@ describe("Chunked Message upload", () => {
       let uploadToken: string;
 
       beforeEach(async () => {
-        conversationId = `convo-group-${generateRandomString(10)}`;
+        conversationId = `group_${generateRandomString(10)}`;
         messageId = `message-${generateRandomString(10)}`;
         fileSystemDir = `${conversationId}_${messageId}`;
         s3Key = `${conversationId}/${messageId}`;
@@ -270,7 +270,7 @@ describe("Chunked Message upload", () => {
       let uploadToken: string;
 
       beforeEach(async () => {
-        conversationId = `convo-group-${generateRandomString(10)}`;
+        conversationId = `group_${generateRandomString(10)}`;
         messageId = `message-${generateRandomString(10)}`;
         fileSystemDir = `${conversationId}_${messageId}`;
 
@@ -361,7 +361,7 @@ describe("Chunked Message upload", () => {
       let uploadToken: string;
 
       beforeEach(async () => {
-        conversationId = `convo-group-${generateRandomString(10)}`;
+        conversationId = `group_${generateRandomString(10)}`;
         messageId = `message-${generateRandomString(10)}`;
         fileSystemDir = `${conversationId}_${messageId}`;
         s3Key = `${conversationId}/${messageId}`;
@@ -513,7 +513,7 @@ describe("Chunked Message upload", () => {
       let uploadToken: string;
 
       beforeEach(async () => {
-        conversationId = `convo-group-${generateRandomString(10)}`;
+        conversationId = `group_${generateRandomString(10)}`;
         messageId = `message-${generateRandomString(10)}`;
         fileSystemDir = `${conversationId}_${messageId}`;
 
@@ -604,7 +604,7 @@ describe("Chunked Message upload", () => {
       let uploadToken: string;
 
       beforeEach(async () => {
-        conversationId = `convo-group-${generateRandomString(10)}`;
+        conversationId = `group_${generateRandomString(10)}`;
         messageId = `message-${generateRandomString(10)}`;
         fileSystemDir = `${conversationId}_${messageId}`;
         s3Key = `${conversationId}/${messageId}`;

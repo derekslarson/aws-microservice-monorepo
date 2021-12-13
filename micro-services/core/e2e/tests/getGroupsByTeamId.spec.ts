@@ -4,10 +4,10 @@ import axios from "axios";
 import { OrganizationId, Role } from "@yac/util";
 import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createConversationUserRelationship, createGroupConversation, createRandomTeam, createTeamUserRelationship } from "../util";
+import { createConversationUserRelationship, createGroup, createRandomTeam, createTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { TeamId } from "../../src/types/teamId.type";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 
@@ -22,18 +22,18 @@ describe("GET /teams/{teamId}/groups (Get Groups by Team Id)", () => {
 
   describe("under normal conditions", () => {
     let team: RawTeam;
-    let group: RawConversation<GroupConversation>;
-    let groupTwo: RawConversation<GroupConversation>;
+    let group: RawConversation<Group>;
+    let groupTwo: RawConversation<Group>;
 
     beforeAll(async () => {
       ({ team } = await createRandomTeam({ createdBy: mockUserId, organizationId: mockOrganizationId }));
 
       // We need to wait create the groups in sequence, so that we can be sure of the return order in the test
-      ({ conversation: group } = await createGroupConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id }));
+      ({ conversation: group } = await createGroup({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id }));
 
       await wait(1000);
 
-      ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id }));
+      ({ conversation: groupTwo } = await createGroup({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id }));
 
       await Promise.all([
         createTeamUserRelationship({ userId, teamId: team.id, role: Role.User }),

@@ -3,11 +3,11 @@
 import axios from "axios";
 import { OrganizationId, Role, WithRole } from "@yac/util";
 import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
-import { createRandomUser, createConversationUserRelationship, createMeetingConversation, CreateRandomUserOutput } from "../util";
+import { createRandomUser, createConversationUserRelationship, createMeeting, CreateRandomUserOutput } from "../util";
 import { User } from "../../src/mediator-services/user.mediator.service";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MeetingId } from "../../src/types/meetingId.type";
-import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 
 describe("GET /meetings/{meetingId}/users (Get Users by Meeting Id)", () => {
@@ -15,7 +15,7 @@ describe("GET /meetings/{meetingId}/users (Get Users by Meeting Id)", () => {
   let user: CreateRandomAuthServiceUserOutput;
   let accessToken: string;
 
-  const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
+  const mockMeetingId: MeetingId = `${KeyPrefix.Meeting}${generateRandomString(5)}`;
   const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   beforeAll(async () => {
@@ -25,13 +25,13 @@ describe("GET /meetings/{meetingId}/users (Get Users by Meeting Id)", () => {
   });
 
   describe("under normal conditions", () => {
-    let meeting: RawConversation<MeetingConversation>;
+    let meeting: RawConversation<Meeting>;
     let otherUser: CreateRandomUserOutput["user"];
 
     beforeAll(async () => {
       ({ user: otherUser } = await createRandomUser());
 
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: user.id, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeeting({ createdBy: user.id, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Meeting, userId: user.id, conversationId: meeting.id, role: Role.Admin }),

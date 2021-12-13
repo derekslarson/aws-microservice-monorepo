@@ -5,10 +5,12 @@ import { UserId } from "../../types/userId.type";
 
 export interface Group {
   id: GroupId;
+  organizationId: OrganizationId;
   name: string;
   createdBy: UserId;
   createdAt: string;
+  updatedAt: string;
+  activeAt: string;
   image: string;
-  organizationId: OrganizationId;
   teamId?: TeamId;
 }

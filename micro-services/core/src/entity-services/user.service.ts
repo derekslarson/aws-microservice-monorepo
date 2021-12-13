@@ -26,9 +26,12 @@ export class UserService implements UserServiceInterface {
 
       const { image, mimeType: imageMimeType } = this.imageFileRepository.createDefaultImage();
 
+      const now = new Date().toISOString();
+
       const userEntity: UserEntity = {
         id,
         imageMimeType,
+        createdAt: now,
         email,
         phone,
         username,

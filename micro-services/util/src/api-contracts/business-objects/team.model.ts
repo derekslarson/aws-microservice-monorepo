@@ -7,5 +7,7 @@ export interface Team {
   organizationId: OrganizationId;
   image: string;
   createdBy: UserId;
+  createdAt: string;
+  updatedAt: string;
   name: string;
 }

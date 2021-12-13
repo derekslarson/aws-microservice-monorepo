@@ -1,1 +1,1 @@
-export type TeamId = `team-${string}`;
+export type TeamId = `team_${string}`;

@@ -4,14 +4,14 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
+import { ConversationUserRelationshipServiceInterface } from "../entity-services/groupMembership.service";
 import { MessageServiceInterface, Message as MessageEntity } from "../entity-services/message.service";
 import { ConversationId } from "../types/conversationId.type";
 import { UserId } from "../types/userId.type";
 import { MessageId } from "../types/messageId.type";
 import { GroupId } from "../types/groupId.type";
 import { MeetingId } from "../types/meetingId.type";
-import { ConversationServiceInterface, GroupConversation, MeetingConversation } from "../entity-services/conversation.service";
+import { ConversationServiceInterface, Group, Meeting } from "../entity-services/group.service";
 import { PendingMessage as PendingMessageEntity, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
 import { PendingMessageId } from "../types/pendingMessageId.type";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
@@ -299,7 +299,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         this.conversationService.getConversations({ conversationIds: Array.from(groupMeetingIdSet) }),
       ]);
 
-      const entityMap: Record<string, User | GroupConversation | MeetingConversation> = {};
+      const entityMap: Record<string, User | Group | Meeting> = {};
       [ ...users, ...groupsAndMeetings ].forEach((toEntity) => entityMap[toEntity.id] = toEntity);
 
       const messages = messagesWithEntityId.map((message) => {
@@ -561,7 +561,7 @@ export interface MessageMediatorServiceInterface {
   updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
 }
 
-type To = User | GroupConversation | MeetingConversation;
+type To = User | Group | Meeting;
 
 export interface PendingMessage extends Omit<PendingMessageEntity, "id" | "conversationId" | "from"> {
   id: MessageId;

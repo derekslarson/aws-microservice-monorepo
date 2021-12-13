@@ -253,7 +253,7 @@ export async function createAuthServiceUser(params: CreateUserInput): Promise<{ 
   try {
     const { name, username, email, phone } = params;
 
-    const id: `user-${string}` = `user-${ksuid.randomSync().string}`;
+    const id: `user_${string}` = `user_${ksuid.randomSync().string}`;
 
     const userEntity: RawUser = {
       entityType: EntityType.User,

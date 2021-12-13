@@ -18,7 +18,7 @@
 //   const mockConfig = { tableNames: { core: mockCoreTableName } };
 //   const mockUserIdOne = "user-mock-id-one";
 //   const mockUserIdTwo = "user-mock-id-two";
-//   const mockGroupId = "convo-group-mock-id";
+//   const mockGroupId = "group_mock-id";
 
 //   const mockUserOne: User = {
 //     id: mockUserIdOne,

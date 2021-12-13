@@ -5,7 +5,7 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { UserServiceInterface } from "../entity-services/user.service";
 import { TeamServiceInterface } from "../entity-services/team.service";
-import { ConversationServiceInterface } from "../entity-services/conversation.service";
+import { ConversationServiceInterface } from "../entity-services/group.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";

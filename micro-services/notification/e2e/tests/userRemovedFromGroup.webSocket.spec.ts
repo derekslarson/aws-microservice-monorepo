@@ -85,7 +85,7 @@ describe("User Removed From Group (WebSocket Event)", () => {
       const message: UserRemovedFromGroupSnsMessage = {
         groupMemberIds: [ userOneId, userTwoId ],
         group: {
-          id: "convo-group-123",
+          id: "group_123",
           name: "test group",
           image: "test-image",
           createdBy: "user-123",

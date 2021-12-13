@@ -8,7 +8,7 @@ import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createGroupConversation, CreateGroupConversationOutput, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
+import { createConversationUserRelationship, createGroup, CreateGroupOutput, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
 
 describe("GET /messages/{messageId} (Get Message)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -16,13 +16,13 @@ describe("GET /messages/{messageId} (Get Message)", () => {
   const accessToken = process.env.accessToken as string;
   const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
-  let group: CreateGroupConversationOutput["conversation"];
+  let group: CreateGroupOutput["conversation"];
   let otherUser: CreateRandomUserOutput["user"];
 
   beforeAll(async () => {
     ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
       createRandomUser(),
-      createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
+      createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
     ]));
   });
 
@@ -100,11 +100,11 @@ describe("GET /messages/{messageId} (Get Message)", () => {
     });
 
     describe("when an id of a message in a conversation that the user is not a member of is passed in", () => {
-      let groupTwo: CreateGroupConversationOutput["conversation"];
+      let groupTwo: CreateGroupOutput["conversation"];
       let message: RawMessage;
 
       beforeAll(async () => {
-        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
+        ({ conversation: groupTwo } = await createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
         ({ message } = await createMessage({ from: otherUser.id, conversationId: groupTwo.id, conversationMemberIds: [ userId ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }));
       });

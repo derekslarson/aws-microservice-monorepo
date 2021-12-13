@@ -85,7 +85,7 @@ describe("User Removed From Meeting (WebSocket Event)", () => {
       const message: UserRemovedFromMeetingSnsMessage = {
         meetingMemberIds: [ userOneId, userTwoId ],
         meeting: {
-          id: "convo-meeting-123",
+          id: "meeting_123",
           name: "test meeting",
           image: "test-image",
           createdBy: "user-123",

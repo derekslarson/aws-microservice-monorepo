@@ -1,12 +1,9 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, OrganizationId } from "@yac/util";
-
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, OrganizationId, TeamId, UserId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
-import { TeamId } from "../types/teamId.type";
-import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 
@@ -40,7 +37,7 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
 
       await this.documentClient.put({
         TableName: this.tableName,
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
+        ConditionExpression: "attribute_not_exists(pk)",
         Item: teamEntity,
       }).promise();
 
@@ -111,14 +108,14 @@ export class TeamDynamoRepository extends BaseDynamoRepositoryV2<Team> implement
         Limit: limit ?? 25,
         ScanIndexForward: false,
         IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :teamId)",
+        KeyConditionExpression: "#gsi1pk = :organizationId AND begins_with(#gsi1sk, :teamIdPrefix)",
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
           "#gsi1sk": "gsi1sk",
         },
         ExpressionAttributeValues: {
-          ":gsi1pk": organizationId,
-          ":teamId": KeyPrefix.Team,
+          ":organizationId": organizationId,
+          ":teamIdPrefix": KeyPrefix.Team,
         },
       });
 
@@ -165,8 +162,10 @@ export interface Team {
   id: TeamId;
   organizationId: OrganizationId;
   imageMimeType: ImageMimeType;
-  createdBy: UserId;
   name: string;
+  createdBy: UserId;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RawTeam extends Team {

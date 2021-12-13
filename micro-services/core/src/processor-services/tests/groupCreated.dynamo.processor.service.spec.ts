@@ -15,7 +15,7 @@
 
 //   const mockCoreTableName = "mock-core-table-name";
 //   const mockConfig = { tableNames: { core: mockCoreTableName } };
-//   const mockGroupId = "convo-group-mock-id";
+//   const mockGroupId = "group_mock-id";
 //   const mockDate = new Date().toISOString();
 //   const mockUserOneId = "user-1";
 //   const mockGroupMembersId = [ mockUserOneId ];
@@ -33,7 +33,7 @@
 //     tableName: mockCoreTableName,
 //     oldImage: {},
 //     newImage: {
-//       entityType: EntityType.GroupConversation,
+//       entityType: EntityType.Group,
 //       ...mockGroup,
 //     },
 //   };

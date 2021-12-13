@@ -1,11 +1,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, BillingPlan, DocumentClientFactory, LoggerServiceInterface, OrganizationId } from "@yac/util";
+import { BaseDynamoRepositoryV2, BillingPlan, DocumentClientFactory, LoggerServiceInterface, OrganizationId, UserId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { EntityType } from "../enums/entityType.enum";
-import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
+import { EntityType } from "../enums/entityType.enum";
 
 @injectable()
 export class OrganizationDynamoRepository extends BaseDynamoRepositoryV2<Organization> implements OrganizationRepositoryInterface {
@@ -32,7 +31,7 @@ export class OrganizationDynamoRepository extends BaseDynamoRepositoryV2<Organiz
 
       await this.documentClient.put({
         TableName: this.tableName,
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
+        ConditionExpression: "attribute_not_exists(pk)",
         Item: organizationEntity,
       }).promise();
 
@@ -122,9 +121,11 @@ type OrganizationRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
 export interface Organization {
   id: OrganizationId;
   imageMimeType: ImageMimeType;
-  createdBy: UserId;
   name: string;
   billingPlan: BillingPlan;
+  createdBy: UserId;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RawOrganization extends Organization {

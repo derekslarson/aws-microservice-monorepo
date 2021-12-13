@@ -7,12 +7,12 @@ import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGE
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { MeetingId } from "../../src/types/meetingId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createMeetingConversation, createMessage, createRandomUser, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getConversationUserRelationship, getMessage, getSnsEventsByTopicArn } from "../util";
+import { createConversationUserRelationship, createMeeting, createMessage, createRandomUser, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getConversationUserRelationship, getMessage, getSnsEventsByTopicArn } from "../util";
 
 describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Messages by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -23,7 +23,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
 
   describe("under normal conditions", () => {
     let fromUser: CreateRandomUserOutput["user"];
-    let meeting: RawConversation<MeetingConversation>;
+    let meeting: RawConversation<Meeting>;
     let message: RawMessage;
     let messageTwo: RawMessage;
 
@@ -32,10 +32,10 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
     beforeEach(async () => {
       ([ { user: fromUser }, { conversation: meeting } ] = await Promise.all([
         createRandomUser(),
-        createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+        createMeeting({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
       ]));
 
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeeting({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       ([ { message }, { message: messageTwo } ] = await Promise.all([
         createMessage({ from: fromUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, fromUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
@@ -296,7 +296,7 @@ describe("PATCH /users/{userId}/meetings/{meetingId}/messages (Update Meeting Me
   });
 
   describe("under error conditions", () => {
-    const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
+    const mockMeetingId: MeetingId = `${KeyPrefix.Meeting}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {

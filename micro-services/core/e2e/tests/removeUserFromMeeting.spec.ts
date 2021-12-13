@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { OrganizationId, Role, UserRemovedFromMeetingSnsMessage } from "@yac/util";
-import { createRandomUser, createConversationUserRelationship, createMeetingConversation, getConversationUserRelationship, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn } from "../util";
+import { createRandomUser, createConversationUserRelationship, createMeeting, getConversationUserRelationship, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { MeetingId } from "../../src/types/meetingId.type";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 
@@ -17,11 +17,11 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
   const userRemovedFromMeetingSnsTopicArn = process.env["user-removed-from-meeting-sns-topic-arn"] as string;
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
-  const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
+  const mockMeetingId: MeetingId = `${KeyPrefix.Meeting}${generateRandomString(5)}`;
   const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
-    let meeting: RawConversation<MeetingConversation>;
+    let meeting: RawConversation<Meeting>;
     let otherUser: CreateRandomUserOutput["user"];
 
     beforeAll(async () => {
@@ -29,7 +29,7 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
     });
 
     beforeEach(async () => {
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeeting({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Meeting, userId, conversationId: meeting.id, role: Role.Admin }),
@@ -128,11 +128,11 @@ describe("DELETE /meetings/{meetingId}/users/{userId} (Remove User from Meeting)
     });
 
     describe("when an id of a meeting the user is not an admin of is passed in", () => {
-      let meetingTwo: RawConversation<MeetingConversation>;
+      let meetingTwo: RawConversation<Meeting>;
       const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
-        ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+        ({ conversation: meetingTwo } = await createMeeting({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
         await createConversationUserRelationship({ type: ConversationType.Meeting, userId, conversationId: meetingTwo.id, role: Role.User });
       });

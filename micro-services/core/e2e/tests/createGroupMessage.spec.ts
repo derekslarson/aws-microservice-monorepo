@@ -7,14 +7,14 @@ import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawUser } from "../../src/repositories/user.dynamo.repository";
 import { MessageId } from "../../src/types/messageId.type";
 import { PendingMessageId } from "../../src/types/pendingMessageId.type";
 import { UserId } from "../../src/types/userId.type";
 import {
   createConversationUserRelationship,
-  createGroupConversation,
+  createGroup,
   createRandomUser,
   getMessage,
   getPendingMessage,
@@ -33,7 +33,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
   describe("under normal conditions", () => {
     let user: RawUser;
     let otherUser: RawUser;
-    let group: RawConversation<GroupConversation>;
+    let group: RawConversation<Group>;
 
     beforeAll(async () => {
       ({ user } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
@@ -42,7 +42,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
     beforeEach(async () => {
       ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
         createRandomUser(),
-        createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
+        createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
       ]));
 
       await Promise.all([
@@ -134,7 +134,7 @@ describe("POST /groups/{groupId}/messages (Create Group Message)", () => {
   });
 
   describe("under error conditions", () => {
-    const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+    const mockGroupId = `${KeyPrefix.Group}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {

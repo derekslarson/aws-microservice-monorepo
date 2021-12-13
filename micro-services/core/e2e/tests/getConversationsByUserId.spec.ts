@@ -8,11 +8,11 @@ import { ConversationFetchType } from "../../src/enums/conversationFetchType.enu
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { FriendConversation, GroupConversation, MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { FriendConversation, Group, Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createFriendConversation, createGroupConversation, createMeetingConversation, createMessage, createUser, generateRandomPhone, CreateUserOutput } from "../util";
+import { createConversationUserRelationship, createFriendConversation, createGroup, createMeeting, createMessage, createUser, generateRandomPhone, CreateUserOutput } from "../util";
 
 describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -28,13 +28,13 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
     let otherUser: CreateUserOutput["user"];
     let accessToken: string;
 
-    let meeting: RawConversation<MeetingConversation>;
+    let meeting: RawConversation<Meeting>;
     let meetingUserRelationship: RawConversationUserRelationship<ConversationType.Meeting>;
 
-    let meetingTwo: RawConversation<MeetingConversation>;
+    let meetingTwo: RawConversation<Meeting>;
     let meetingUserRelationshipTwo: RawConversationUserRelationship<ConversationType.Meeting>;
 
-    let group: RawConversation<GroupConversation>;
+    let group: RawConversation<Group>;
     let groupUserRelationship: RawConversationUserRelationship<ConversationType.Group>;
 
     let friendship: RawConversation<FriendConversation>;
@@ -57,9 +57,9 @@ describe("GET /users/{userId}/conversations (Get Conversations by User Id)", () 
 
       ([ { accessToken }, { conversation: meeting }, { conversation: meetingTwo }, { conversation: group }, { conversation: friendship } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createMeetingConversation({ createdBy: user.id, organizationId: mockOrganizationId, name: `${generateRandomString(5)} ${searchParamNamename}`, dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
-        createMeetingConversation({ createdBy: otherUser.id, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
-        createGroupConversation({ createdBy: otherUser.id, organizationId: mockOrganizationId, name: generateRandomString(5) }),
+        createMeeting({ createdBy: user.id, organizationId: mockOrganizationId, name: `${generateRandomString(5)} ${searchParamNamename}`, dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
+        createMeeting({ createdBy: otherUser.id, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
+        createGroup({ createdBy: otherUser.id, organizationId: mockOrganizationId, name: generateRandomString(5) }),
         createFriendConversation({ userId: user.id, friendId: otherUser.id }),
       ]));
 

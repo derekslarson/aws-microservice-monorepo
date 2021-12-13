@@ -6,12 +6,12 @@ import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { RawUser } from "../../src/repositories/user.dynamo.repository";
 import { MeetingId } from "../../src/types/meetingId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createMeetingConversation, createMessage, createRandomUser, getUser, GetUserOutput } from "../util";
+import { createConversationUserRelationship, createMeeting, createMessage, createRandomUser, getUser, GetUserOutput } from "../util";
 
 describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -30,13 +30,13 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
   });
 
   describe("under normal conditions", () => {
-    let meeting: RawConversation<MeetingConversation>;
+    let meeting: RawConversation<Meeting>;
 
     let message: RawMessage;
     let messageTwo: RawMessage;
 
     beforeAll(async () => {
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeeting({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       ([ { message } ] = await Promise.all([
         createMessage({ from: otherUser.id, conversationId: meeting.id, conversationMemberIds: [ userId, otherUser.id ], mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
@@ -221,7 +221,7 @@ describe("GET /meetings/{meetingId}/messages (Get Messages by Meeting Id)", () =
   });
 
   describe("under error conditions", () => {
-    const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
+    const mockMeetingId: MeetingId = `${KeyPrefix.Meeting}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {

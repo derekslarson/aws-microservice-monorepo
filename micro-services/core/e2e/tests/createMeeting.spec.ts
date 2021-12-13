@@ -10,7 +10,7 @@ import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
-import { MeetingConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Meeting } from "../../src/repositories/conversation.dynamo.repository";
 import { RawOrganization } from "../../src/repositories/organization.dynamo.repository";
 
 describe("POST /organizations/{organizationId}/meetings (Create Meeting)", () => {
@@ -46,7 +46,7 @@ describe("POST /organizations/{organizationId}/meetings (Create Meeting)", () =>
         expect(status).toBe(201);
         expect(data).toEqual({
           meeting: {
-            id: jasmine.stringMatching(new RegExp(`${KeyPrefix.MeetingConversation}.*`)),
+            id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Meeting}.*`)),
             name,
             dueDate,
             teamId: team.id,
@@ -75,7 +75,7 @@ describe("POST /organizations/{organizationId}/meetings (Create Meeting)", () =>
           const { conversation } = await getConversation({ conversationId: data.meeting.id });
 
           expect(conversation).toEqual({
-            entityType: EntityType.MeetingConversation,
+            entityType: EntityType.Meeting,
             pk: data.meeting.id,
             sk: data.meeting.id,
             gsi1pk: team.id,
@@ -109,7 +109,7 @@ describe("POST /organizations/{organizationId}/meetings (Create Meeting)", () =>
           const { conversation } = await getConversation({ conversationId: data.meeting.id });
 
           expect(conversation).toEqual({
-            entityType: EntityType.MeetingConversation,
+            entityType: EntityType.Meeting,
             pk: data.meeting.id,
             sk: data.meeting.id,
             gsi2pk: organization.id,
@@ -147,7 +147,7 @@ describe("POST /organizations/{organizationId}/meetings (Create Meeting)", () =>
           gsi1pk: userId,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: userId,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Meeting}.*`)),
           gsi3pk: userId,
           gsi3sk: `${KeyPrefix.Time}${data.meeting.dueDate as string}`,
           role: Role.Admin,
@@ -177,7 +177,7 @@ describe("POST /organizations/{organizationId}/meetings (Create Meeting)", () =>
 
         const [ { user }, { conversation: meeting } ] = await Promise.all([
           getUser({ userId }),
-          getConversation<MeetingConversation["id"]>({ conversationId: data.meeting.id }),
+          getConversation<Meeting["id"]>({ conversationId: data.meeting.id }),
         ]);
 
         if (!user || !meeting) {

@@ -1,12 +1,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, Role } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, Role, TeamId, UserId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
-import { UserId } from "../types/userId.type";
-import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
-import { TeamId } from "./team.dynamo.repository.v2";
+import { EntityType } from "../enums/entityType.enum";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
 export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamMembership> implements TeamMembershipRepositoryInterface {
@@ -29,7 +27,7 @@ export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamM
       const { teamMembership } = params;
 
       const teamMembershipEntity: RawTeamMembership = {
-        entityType: EntityTypeV2.TeamMembership,
+        entityType: EntityType.TeamMembership,
         pk: teamMembership.userId,
         sk: teamMembership.teamId,
         gsi1pk: teamMembership.teamId,
@@ -116,7 +114,7 @@ export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamM
         },
         ExpressionAttributeValues: {
           ":teamId": teamId,
-          ":userIdPrefix": KeyPrefixV2.User,
+          ":userIdPrefix": KeyPrefix.User,
         },
       });
 
@@ -147,7 +145,7 @@ export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamM
         },
         ExpressionAttributeValues: {
           ":userId": userId,
-          ":teamIdPrefix": KeyPrefixV2.Team,
+          ":teamIdPrefix": KeyPrefix.Team,
         },
       });
 
@@ -181,7 +179,7 @@ export interface TeamMembership {
   createdAt: string;
 }
 export interface RawTeamMembership extends TeamMembership {
-  entityType: EntityTypeV2.TeamMembership,
+  entityType: EntityType.TeamMembership,
   pk: UserId;
   sk: TeamId;
   gsi1pk: TeamId;

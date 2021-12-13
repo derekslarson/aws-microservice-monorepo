@@ -3,10 +3,10 @@
 import axios from "axios";
 import { Role } from "@yac/util";
 import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
-import { createGroupConversation, createMeetingConversation, createOrganization, createOrganizationUserRelationship } from "../util";
+import { createGroup, createMeeting, createOrganization, createOrganizationUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { TeamId } from "../../src/types/teamId.type";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { RawOrganization } from "../../src/repositories/organization.dynamo.repository";
@@ -20,24 +20,24 @@ describe("GET /organizations/{organizationId}/meetings (Get Meetings by Organiza
   const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
 
   let organization: RawOrganization;
-  let meeting: RawConversation<MeetingConversation>;
-  let meetingTwo: RawConversation<MeetingConversation>;
+  let meeting: RawConversation<Meeting>;
+  let meetingTwo: RawConversation<Meeting>;
 
   beforeAll(async () => {
     ({ organization } = await createOrganization({ createdBy: mockUserId, name: generateRandomString() }));
     await createOrganizationUserRelationship({ userId, organizationId: organization.id, role: Role.User });
 
     // We need to wait create the meetings in sequence, so that we can be sure of the return order in the test
-    ({ conversation: meeting } = await createMeetingConversation({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+    ({ conversation: meeting } = await createMeeting({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
     await wait(1000);
 
-    ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+    ({ conversation: meetingTwo } = await createMeeting({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
     // Create a team meeting and a group to assert that they are not returned, as only organization-level meetings should be
     await Promise.all([
-      createMeetingConversation({ createdBy: mockUserId, organizationId: organization.id, teamId: mockTeamId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
-      createGroupConversation({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5) }),
+      createMeeting({ createdBy: mockUserId, organizationId: organization.id, teamId: mockTeamId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+      createGroup({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5) }),
     ]);
   });
 

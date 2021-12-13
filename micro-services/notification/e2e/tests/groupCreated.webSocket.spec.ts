@@ -85,7 +85,7 @@ describe("Group Created (WebSocket Event)", () => {
       const message: GroupCreatedSnsMessage = {
         groupMemberIds: [ userOneId, userThreeId ],
         group: {
-          id: "convo-group-123",
+          id: "group_123",
           name: "test group",
           image: "test-image",
           createdBy: userOneId,

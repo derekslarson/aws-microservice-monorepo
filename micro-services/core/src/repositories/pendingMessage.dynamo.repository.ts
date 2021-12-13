@@ -1,14 +1,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, MessageId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
-import { PendingMessageId } from "../types/pendingMessageId.type";
-import { ConversationId } from "../types/conversationId.type";
-import { UserId } from "../types/userId.type";
-import { MessageId } from "../types/messageId.type";
-import { MessageMimeType } from "../enums/message.mimeType.enum";
+import { Message } from "./message.dynamo.repository";
 
 @injectable()
 export class PendingMessageDynamoRepository extends BaseDynamoRepositoryV2<PendingMessage> implements PendingMessageRepositoryInterface {
@@ -29,12 +25,12 @@ export class PendingMessageDynamoRepository extends BaseDynamoRepositoryV2<Pendi
       const pendingMessageEntity: RawPendingMessage = {
         entityType: EntityType.PendingMessage,
         pk: pendingMessage.id,
-        sk: pendingMessage.id,
+        sk: EntityType.PendingMessage,
         ...pendingMessage,
       };
 
       await this.documentClient.put({
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
+        ConditionExpression: "attribute_not_exists(pk)",
         TableName: this.tableName,
         Item: pendingMessageEntity,
       }).promise();
@@ -51,9 +47,9 @@ export class PendingMessageDynamoRepository extends BaseDynamoRepositoryV2<Pendi
     try {
       this.loggerService.trace("getPendingMessage called", { params }, this.constructor.name);
 
-      const { pendingMessageId } = params;
+      const { messageId } = params;
 
-      const pendingMessage = await this.get({ Key: { pk: pendingMessageId, sk: pendingMessageId } }, "Pending Message");
+      const pendingMessage = await this.get({ Key: { pk: messageId, sk: EntityType.PendingMessage } }, "Pending Message");
 
       return { pendingMessage };
     } catch (error: unknown) {
@@ -67,9 +63,9 @@ export class PendingMessageDynamoRepository extends BaseDynamoRepositoryV2<Pendi
     try {
       this.loggerService.trace("updatePendingMessage called", { params }, this.constructor.name);
 
-      const { pendingMessageId, updates } = params;
+      const { messageId, updates } = params;
 
-      const pendingMessage = await this.partialUpdate(pendingMessageId, pendingMessageId, updates);
+      const pendingMessage = await this.partialUpdate(messageId, EntityType.PendingMessage, updates);
 
       return { pendingMessage };
     } catch (error: unknown) {
@@ -83,11 +79,11 @@ export class PendingMessageDynamoRepository extends BaseDynamoRepositoryV2<Pendi
     try {
       this.loggerService.trace("deletePendingMessage called", { params }, this.constructor.name);
 
-      const { pendingMessageId } = params;
+      const { messageId } = params;
 
       await this.documentClient.delete({
         TableName: this.tableName,
-        Key: { pk: pendingMessageId, sk: pendingMessageId },
+        Key: { pk: messageId, sk: EntityType.PendingMessage },
       }).promise();
     } catch (error: unknown) {
       this.loggerService.error("Error in deletePendingMessage", { error, params }, this.constructor.name);
@@ -106,20 +102,12 @@ export interface PendingMessageRepositoryInterface {
 
 type PendingMessageRepositoryConfig = Pick<EnvConfigInterface, "tableNames">;
 
-export interface PendingMessage {
-  id: PendingMessageId;
-  conversationId: ConversationId;
-  from: UserId;
-  createdAt: string;
-  mimeType: MessageMimeType;
-  replyTo?: MessageId;
-  title?: string;
-}
+export type PendingMessage = Pick<Message, "id" | "conversationId" | "from" | "createdAt" | "mimeType" | "replyTo" | "title">;
 
 export interface RawPendingMessage extends PendingMessage {
   entityType: EntityType.PendingMessage;
-  pk: PendingMessageId;
-  sk: PendingMessageId;
+  pk: MessageId;
+  sk: EntityType.PendingMessage;
 }
 
 export interface CreatePendingMessageInput {
@@ -131,7 +119,7 @@ export interface CreatePendingMessageOutput {
 }
 
 export interface GetPendingMessageInput {
-  pendingMessageId: PendingMessageId;
+  messageId: MessageId;
 }
 
 export interface GetPendingMessageOutput {
@@ -139,8 +127,9 @@ export interface GetPendingMessageOutput {
 }
 
 export type PendingMessageUpdates = Partial<Pick<PendingMessage, "mimeType">>;
+
 export interface UpdatePendingMessageInput {
-  pendingMessageId: PendingMessageId;
+  messageId: MessageId;
   updates: PendingMessageUpdates;
 }
 
@@ -149,7 +138,7 @@ export interface UpdatePendingMessageOutput {
 }
 
 export interface DeletePendingMessageInput {
-  pendingMessageId: PendingMessageId;
+  messageId: MessageId;
 }
 
 export type DeletePendingMessageOutput = void;

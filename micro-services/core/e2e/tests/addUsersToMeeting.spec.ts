@@ -9,11 +9,11 @@ import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
 import {
   createConversationUserRelationship,
-  createMeetingConversation,
+  createMeeting,
   createRandomUser,
   CreateRandomUserOutput,
   deleteSnsEventsByTopicArn,
@@ -32,11 +32,11 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
   const userAddedToMeetingSnsTopicArn = process.env["user-added-to-meeting-sns-topic-arn"] as string;
 
   const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
-  const mockMeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
+  const mockMeetingId = `${KeyPrefix.Meeting}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let otherUser: CreateRandomUserOutput["user"];
-    let meeting: RawConversation<MeetingConversation>;
+    let meeting: RawConversation<Meeting>;
     let randomEmail: string;
     let randomPhone: string;
     let randomUsername: string;
@@ -48,7 +48,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
 
       ([ { user: otherUser }, { conversation: meeting } ] = await Promise.all([
         createRandomUser(),
-        createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+        createMeeting({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
       ]));
 
       await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin });
@@ -186,7 +186,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
           gsi1pk: otherUser.id,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: otherUser.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Meeting}.*`)),
           gsi3pk: otherUser.id,
           gsi3sk: `${KeyPrefix.Time}${meeting.dueDate}`,
           role: Role.Admin,
@@ -205,7 +205,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
           gsi1pk: emailUser.id,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: emailUser.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Meeting}.*`)),
           gsi3pk: emailUser.id,
           gsi3sk: `${KeyPrefix.Time}${meeting.dueDate}`,
           role: Role.User,
@@ -224,7 +224,7 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
           gsi1pk: phoneUser.id,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: phoneUser.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.MeetingConversation}.*`)),
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Meeting}.*`)),
           gsi3pk: phoneUser.id,
           gsi3sk: `${KeyPrefix.Time}${meeting.dueDate}`,
           role: Role.Admin,
@@ -373,11 +373,11 @@ describe("POST /meetings/{meetingId}/users (Add Users to Meeting)", () => {
     });
 
     describe("when an id of a meeting that the user is not an admin of is passed in", () => {
-      let meetingTwo: RawConversation<MeetingConversation>;
+      let meetingTwo: RawConversation<Meeting>;
       const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
-        ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+        ({ conversation: meetingTwo } = await createMeeting({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
         await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meetingTwo.id, userId, role: Role.User });
       });

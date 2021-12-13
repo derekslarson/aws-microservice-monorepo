@@ -3,10 +3,10 @@
 import axios from "axios";
 import { Role } from "@yac/util";
 import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
-import { createGroupConversation, createMeetingConversation, createOrganization, createOrganizationUserRelationship } from "../util";
+import { createGroup, createMeeting, createOrganization, createOrganizationUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { TeamId } from "../../src/types/teamId.type";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { RawOrganization } from "../../src/repositories/organization.dynamo.repository";
@@ -20,24 +20,24 @@ describe("GET /organizations/{organizationId}/groups (Get Groups by Organization
   const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
 
   let organization: RawOrganization;
-  let group: RawConversation<GroupConversation>;
-  let groupTwo: RawConversation<GroupConversation>;
+  let group: RawConversation<Group>;
+  let groupTwo: RawConversation<Group>;
 
   beforeAll(async () => {
     ({ organization } = await createOrganization({ createdBy: mockUserId, name: generateRandomString() }));
     await createOrganizationUserRelationship({ userId, organizationId: organization.id, role: Role.User });
 
     // We need to wait create the groups in sequence, so that we can be sure of the return order in the test
-    ({ conversation: group } = await createGroupConversation({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5) }));
+    ({ conversation: group } = await createGroup({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5) }));
 
     await wait(1000);
 
-    ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5) }));
+    ({ conversation: groupTwo } = await createGroup({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5) }));
 
     // Create a team group and a meeting to assert that they are not returned, as only organization-level groups should be
     await Promise.all([
-      createGroupConversation({ createdBy: mockUserId, organizationId: organization.id, teamId: mockTeamId, name: generateRandomString(5) }),
-      createMeetingConversation({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+      createGroup({ createdBy: mockUserId, organizationId: organization.id, teamId: mockTeamId, name: generateRandomString(5) }),
+      createMeeting({ createdBy: mockUserId, organizationId: organization.id, name: generateRandomString(5), dueDate: new Date().toISOString() }),
     ]);
   });
 

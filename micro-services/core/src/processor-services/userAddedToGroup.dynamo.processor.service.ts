@@ -30,10 +30,10 @@ export class UserAddedToGroupDynamoProcessorService implements DynamoProcessorSe
 
       const isCoreTable = record.tableName === this.coreTableName;
       const isConversationUserRelationship = record.newImage.entityType === EntityType.ConversationUserRelationship;
-      const isGroupConversationUserRelationship = (record.newImage as RawConversationUserRelationship<ConversationType>).type === ConversationType.Group;
+      const isGroupUserRelationship = (record.newImage as RawConversationUserRelationship<ConversationType>).type === ConversationType.Group;
       const isCreation = record.eventName === "INSERT";
 
-      return isCoreTable && isConversationUserRelationship && isGroupConversationUserRelationship && isCreation;
+      return isCoreTable && isConversationUserRelationship && isGroupUserRelationship && isCreation;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 

@@ -1,12 +1,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, Role } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, OrganizationId, Role, UserId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
-import { UserId } from "../types/userId.type";
-import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
-import { OrganizationId } from "./organization.dynamo.repository.v2";
+import { EntityType } from "../enums/entityType.enum";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
 export class OrganizationMembershipDynamoRepository extends BaseDynamoRepositoryV2<OrganizationMembership> implements OrganizationMembershipRepositoryInterface {
@@ -29,7 +27,7 @@ export class OrganizationMembershipDynamoRepository extends BaseDynamoRepository
       const { organizationMembership } = params;
 
       const organizationMembershipEntity: RawOrganizationMembership = {
-        entityType: EntityTypeV2.OrganizationMembership,
+        entityType: EntityType.OrganizationMembership,
         pk: organizationMembership.userId,
         sk: organizationMembership.organizationId,
         gsi1pk: organizationMembership.organizationId,
@@ -116,7 +114,7 @@ export class OrganizationMembershipDynamoRepository extends BaseDynamoRepository
         },
         ExpressionAttributeValues: {
           ":organizationId": organizationId,
-          ":userIdPrefix": KeyPrefixV2.User,
+          ":userIdPrefix": KeyPrefix.User,
         },
       });
 
@@ -147,7 +145,7 @@ export class OrganizationMembershipDynamoRepository extends BaseDynamoRepository
         },
         ExpressionAttributeValues: {
           ":userId": userId,
-          ":organizationIdPrefix": KeyPrefixV2.Organization,
+          ":organizationIdPrefix": KeyPrefix.Organization,
         },
       });
 
@@ -179,10 +177,9 @@ export interface OrganizationMembership {
   organizationId: OrganizationId;
   role: Role;
   createdAt: string;
-  activeAt: string;
 }
 export interface RawOrganizationMembership extends OrganizationMembership {
-  entityType: EntityTypeV2.OrganizationMembership,
+  entityType: EntityType.OrganizationMembership,
   pk: UserId;
   sk: OrganizationId;
   gsi1pk: OrganizationId;
@@ -203,6 +200,16 @@ export interface GetOrganizationMembershipInput {
 }
 
 export interface GetOrganizationMembershipOutput {
+  organizationMembership: OrganizationMembership;
+}
+
+export interface UpdateOrganizationMembershipInput {
+  userId: UserId;
+  organizationId: OrganizationId;
+  updates: UpdateOrganizationMembershipUpdates;
+}
+
+export interface UpdateOrganizationMembershipOutput {
   organizationMembership: OrganizationMembership;
 }
 
@@ -233,16 +240,6 @@ export interface GetOrganizationMembershipsByUserIdInput {
 export interface GetOrganizationMembershipsByUserIdOutput {
   organizationMemberships: OrganizationMembership[];
   lastEvaluatedKey?: string;
-}
-
-export interface UpdateOrganizationMembershipInput {
-  userId: UserId;
-  organizationId: OrganizationId;
-  updates: UpdateOrganizationMembershipUpdates;
-}
-
-export interface UpdateOrganizationMembershipOutput {
-  organizationMembership: OrganizationMembership;
 }
 
 type UpdateOrganizationMembershipUpdates = Partial<Pick<OrganizationMembership, "role">>;

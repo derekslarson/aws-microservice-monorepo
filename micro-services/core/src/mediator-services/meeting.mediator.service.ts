@@ -1,8 +1,8 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationServiceInterface, MeetingConversation } from "../entity-services/conversation.service";
-import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
+import { ConversationServiceInterface, Meeting } from "../entity-services/group.service";
+import { ConversationUserRelationshipServiceInterface } from "../entity-services/groupMembership.service";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { MeetingId } from "../types/meetingId.type";
@@ -24,7 +24,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { name, createdBy, dueDate, organizationId, teamId } = params;
 
-      const { conversation: meeting } = await this.conversationService.createMeetingConversation({
+      const { conversation: meeting } = await this.conversationService.createMeeting({
         name,
         createdBy,
         dueDate,
@@ -298,7 +298,7 @@ export interface MeetingMediatorServiceInterface {
   isMeetingAdmin(params: IsMeetingAdminInput): Promise<IsMeetingAdminOutput>;
 }
 
-export interface Meeting extends Omit<MeetingConversation, "type" | "imageMimeType"> {
+export interface Meeting extends Omit<Meeting, "type" | "imageMimeType"> {
   image: string;
 }
 

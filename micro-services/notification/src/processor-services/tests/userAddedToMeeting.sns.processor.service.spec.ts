@@ -24,7 +24,7 @@ describe("UserAddedToMeetingSnsProcessorService", () => {
   };
 
   const mockMeeting: Meeting = {
-    id: "convo-meeting-mock-id",
+    id: "meeting_mock-id",
     name: "mock-name",
     image: "mock-image",
     createdBy: "user-mock-id",

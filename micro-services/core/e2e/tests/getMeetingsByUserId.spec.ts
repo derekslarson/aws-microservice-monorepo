@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
 import { OrganizationId, Role } from "@yac/util";
-import { createConversationUserRelationship, createMeetingConversation } from "../util";
+import { createConversationUserRelationship, createMeeting } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { createRandomAuthServiceUser, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { ConversationType } from "../../src/enums/conversationType.enum";
@@ -18,8 +18,8 @@ describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
   describe("under normal conditions", () => {
     let userId: UserId;
     let accessToken: string;
-    let meeting: RawConversation<MeetingConversation>;
-    let meetingTwo: RawConversation<MeetingConversation>;
+    let meeting: RawConversation<Meeting>;
+    let meetingTwo: RawConversation<Meeting>;
 
     beforeAll(async () => {
       // We have to fetch a new base user and access token here to prevent bleed over from other tests
@@ -28,8 +28,8 @@ describe("GET /users/{userId}/meetings (Get Meetings by User Id)", () => {
 
       ([ { accessToken }, { conversation: meeting }, { conversation: meetingTwo } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
-        createMeetingConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
+        createMeeting({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/25/2021").toISOString(), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
+        createMeeting({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date("12/26/2021").toISOString() }),
       ]));
 
       // We need to wait create the relationships in sequence, so that we can be sure of the return order in the test

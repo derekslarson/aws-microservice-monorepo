@@ -8,12 +8,11 @@ import { MeetingController, MeetingControllerInterface } from "../controllers/me
 import { MessageController, MessageControllerInterface } from "../controllers/message.controller";
 import { TeamController, TeamControllerInterface } from "../controllers/team.controller";
 import { UserController, UserControllerInterface } from "../controllers/user.controller";
-import { ConversationService, ConversationServiceInterface } from "../entity-services/conversation.service";
-import { ConversationUserRelationshipService, ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
+import { GroupService, GroupServiceInterface } from "../entity-services/group.service";
+import { GroupMembershipService, GroupMembershipServiceInterface } from "../entity-services/groupMembership.service";
 import { MessageService, MessageServiceInterface } from "../entity-services/message.service";
 import { PendingMessageService, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
 import { TeamService, TeamServiceInterface } from "../entity-services/team.service";
-import { TeamUserRelationshipService, TeamUserRelationshipServiceInterface } from "../entity-services/teamUserRelationship.service";
 import { UserService, UserServiceInterface } from "../entity-services/user.service";
 import { identiconFactory, IdenticonFactory } from "../factories/identicon.factory";
 import { ConversationMediatorService, ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
@@ -40,13 +39,10 @@ import { UserRemovedAsFriendDynamoProcessorService } from "../processor-services
 import { UserRemovedFromGroupDynamoProcessorService } from "../processor-services/userRemovedFromGroup.dynamo.processor.service";
 import { UserRemovedFromMeetingDynamoProcessorService } from "../processor-services/userRemovedFromMeeting.dynamo.processor.service";
 import { UserRemovedFromTeamDynamoProcessorService } from "../processor-services/userRemovedFromTeam.dynamo.processor.service";
-import { ConversationDynamoRepository, ConversationRepositoryInterface } from "../repositories/conversation.dynamo.repository";
-import { ConversationUserRelationshipDynamoRepository, ConversationUserRelationshipRepositoryInterface } from "../repositories/conversationUserRelationship.dynamo.repository";
 import { ImageFileRepositoryInterface, ImageS3Repository } from "../repositories/image.s3.repository";
 import { MessageDynamoRepository, MessageRepositoryInterface } from "../repositories/message.dynamo.repository";
 import { PendingMessageDynamoRepository, PendingMessageRepositoryInterface } from "../repositories/pendingMessage.dynamo.repository";
 import { TeamDynamoRepository, TeamRepositoryInterface } from "../repositories/team.dynamo.repository";
-import { TeamUserRelationshipDynamoRepository, TeamUserRelationshipRepositoryInterface } from "../repositories/teamUserRelationship.dynamo.repository";
 import { UserDynamoRepository, UserRepositoryInterface } from "../repositories/user.dynamo.repository";
 import { MeetingCreatedSnsService, MeetingCreatedSnsServiceInterface } from "../sns-services/meetingCreated.sns.service";
 import { FriendMessageCreatedSnsService, FriendMessageCreatedSnsServiceInterface } from "../sns-services/friendMessageCreated.sns.service";
@@ -82,8 +78,7 @@ import { CreateUserRequestSnsService, CreateUserRequestSnsServiceInterface } fro
 import { PendingInvitationCreatedDynamoProcessorService } from "../processor-services/pendingInvitationCreated.dynamo.processor.service";
 import { OrganizationDynamoRepository, OrganizationRepositoryInterface } from "../repositories/organization.dynamo.repository";
 import { OrganizationService, OrganizationServiceInterface } from "../entity-services/organization.service";
-import { OrganizationUserRelationshipDynamoRepository, OrganizationUserRelationshipRepositoryInterface } from "../repositories/organizationUserRelationship.dynamo.repository";
-import { OrganizationUserRelationshipService, OrganizationUserRelationshipServiceInterface } from "../entity-services/organizationUserRelationship.service";
+import { OrganizationMembershipService, OrganizationMembershipServiceInterface } from "../entity-services/organizationMembership.service";
 import { OrganizationMediatorService, OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 import { OrganizationController, OrganizationControllerInterface } from "../controllers/organization.controller";
 import { OrganizationCreatedSnsService, OrganizationCreatedSnsServiceInterface } from "../sns-services/organizationCreated.sns.service";
@@ -93,6 +88,15 @@ import { UserRemovedFromOrganizationSnsService, UserRemovedFromOrganizationSnsSe
 import { UserAddedToOrganizationDynamoProcessorService } from "../processor-services/userAddedToOrganization.dynamo.processor.service";
 import { UserRemovedFromOrganizationDynamoProcessorService } from "../processor-services/userRemovedFromOrganization.dynamo.processor.service";
 import { BillingPlanUpdatedSnsProcessorService } from "../processor-services/billingPlanUpdated.sns.processor.service";
+import { OrganizationMembershipDynamoRepository, OrganizationMembershipRepositoryInterface } from "../repositories/organizationMembership.dynamo.repository";
+import { TeamMembershipDynamoRepository, TeamMembershipRepositoryInterface } from "../repositories/teamMembership.dynamo.repository";
+import { MeetingDynamoRepository, MeetingRepositoryInterface } from "../repositories/meeting.dynamo.repository";
+import { MeetingMembershipDynamoRepository, MeetingMembershipRepositoryInterface } from "../repositories/meetingMembership.dynamo.repository";
+import { GroupDynamoRepository, GroupRepositoryInterface } from "../repositories/group.dynamo.repository";
+import { GroupMembershipDynamoRepository, GroupMembershipRepositoryInterface } from "../repositories/groupMembership.dynamo.repository";
+import { TeamMembershipService, TeamMembershipServiceInterface } from "../entity-services/teamMembership.service";
+import { MeetingService, MeetingServiceInterface } from "../entity-services/meeting.service";
+import { MeetingMembershipService, MeetingMembershipServiceInterface } from "../entity-services/meetingMembership.service";
 
 const container = new Container();
 
@@ -183,30 +187,34 @@ try {
   container.bind<CreateUserRequestSnsServiceInterface>(TYPES.CreateUserRequestSnsServiceInterface).to(CreateUserRequestSnsService);
 
   // Entity Services
-  container.bind<ConversationServiceInterface>(TYPES.ConversationServiceInterface).to(ConversationService);
-  container.bind<ConversationUserRelationshipServiceInterface>(TYPES.ConversationUserRelationshipServiceInterface).to(ConversationUserRelationshipService);
+  container.bind<GroupServiceInterface>(TYPES.GroupServiceInterface).to(GroupService);
+  container.bind<GroupMembershipServiceInterface>(TYPES.GroupMembershipServiceInterface).to(GroupMembershipService);
+  container.bind<MeetingServiceInterface>(TYPES.MeetingServiceInterface).to(MeetingService);
+  container.bind<MeetingMembershipServiceInterface>(TYPES.MeetingMembershipServiceInterface).to(MeetingMembershipService);
   container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);
   container.bind<OrganizationServiceInterface>(TYPES.OrganizationServiceInterface).to(OrganizationService);
-  container.bind<OrganizationUserRelationshipServiceInterface>(TYPES.OrganizationUserRelationshipServiceInterface).to(OrganizationUserRelationshipService);
+  container.bind<OrganizationMembershipServiceInterface>(TYPES.OrganizationMembershipServiceInterface).to(OrganizationMembershipService);
   container.bind<PendingInvitationServiceInterface>(TYPES.PendingInvitationServiceInterface).to(PendingInvitationService);
   container.bind<PendingMessageServiceInterface>(TYPES.PendingMessageServiceInterface).to(PendingMessageService);
   container.bind<TeamServiceInterface>(TYPES.TeamServiceInterface).to(TeamService);
-  container.bind<TeamUserRelationshipServiceInterface>(TYPES.TeamUserRelationshipServiceInterface).to(TeamUserRelationshipService);
+  container.bind<TeamMembershipServiceInterface>(TYPES.TeamMembershipServiceInterface).to(TeamMembershipService);
   container.bind<UserServiceInterface>(TYPES.UserServiceInterface).to(UserService);
   container.bind<UserGroupMeetingSearchServiceInterface>(TYPES.UserGroupMeetingSearchServiceInterface).to(UserGroupMeetingSearchService);
 
   // Repositories
-  container.bind<ConversationRepositoryInterface>(TYPES.ConversationRepositoryInterface).to(ConversationDynamoRepository);
-  container.bind<ConversationUserRelationshipRepositoryInterface>(TYPES.ConversationUserRelationshipRepositoryInterface).to(ConversationUserRelationshipDynamoRepository);
+  container.bind<GroupRepositoryInterface>(TYPES.GroupRepositoryInterface).to(GroupDynamoRepository);
+  container.bind<GroupMembershipRepositoryInterface>(TYPES.GroupMembershipRepositoryInterface).to(GroupMembershipDynamoRepository);
   container.bind<ImageFileRepositoryInterface>(TYPES.ImageFileRepositoryInterface).to(ImageS3Repository);
+  container.bind<MeetingRepositoryInterface>(TYPES.MeetingRepositoryInterface).to(MeetingDynamoRepository);
+  container.bind<MeetingMembershipRepositoryInterface>(TYPES.MeetingMembershipRepositoryInterface).to(MeetingMembershipDynamoRepository);
   container.bind<MessageRepositoryInterface>(TYPES.MessageRepositoryInterface).to(MessageDynamoRepository);
   container.bind<OrganizationRepositoryInterface>(TYPES.OrganizationRepositoryInterface).to(OrganizationDynamoRepository);
-  container.bind<OrganizationUserRelationshipRepositoryInterface>(TYPES.OrganizationUserRelationshipRepositoryInterface).to(OrganizationUserRelationshipDynamoRepository);
+  container.bind<OrganizationMembershipRepositoryInterface>(TYPES.OrganizationMembershipRepositoryInterface).to(OrganizationMembershipDynamoRepository);
   container.bind<PendingMessageRepositoryInterface>(TYPES.PendingMessageRepositoryInterface).to(PendingMessageDynamoRepository);
   container.bind<PendingInvitationRepositoryInterface>(TYPES.PendingInvitationRepositoryInterface).to(PendingInvitationDynamoRepository);
-  container.bind<TeamRepositoryInterface>(TYPES.TeamRepositoryInterface).to(TeamDynamoRepository);
   container.bind<SearchRepositoryInterface>(TYPES.SearchRepositoryInterface).to(OpenSearchRepository);
-  container.bind<TeamUserRelationshipRepositoryInterface>(TYPES.TeamUserRelationshipRepositoryInterface).to(TeamUserRelationshipDynamoRepository);
+  container.bind<TeamRepositoryInterface>(TYPES.TeamRepositoryInterface).to(TeamDynamoRepository);
+  container.bind<TeamMembershipRepositoryInterface>(TYPES.TeamMembershipRepositoryInterface).to(TeamMembershipDynamoRepository);
   container.bind<UserRepositoryInterface>(TYPES.UserRepositoryInterface).to(UserDynamoRepository);
 
   // Factories

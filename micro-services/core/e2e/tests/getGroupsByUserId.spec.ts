@@ -5,9 +5,9 @@ import axios from "axios";
 import { createRandomAuthServiceUser, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createGroupConversation } from "../util";
+import { createConversationUserRelationship, createGroup } from "../util";
 
 describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -18,8 +18,8 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
   describe("under normal conditions", () => {
     let userId: UserId;
     let accessToken: string;
-    let group: RawConversation<GroupConversation>;
-    let groupTwo: RawConversation<GroupConversation>;
+    let group: RawConversation<Group>;
+    let groupTwo: RawConversation<Group>;
 
     beforeAll(async () => {
       // We have to fetch a new base user and access token here to prevent bleed over from other tests
@@ -28,8 +28,8 @@ describe("GET /users/{userId}/groups (Get Groups by User Id)", () => {
 
       ([ { accessToken }, { conversation: group }, { conversation: groupTwo } ] = await Promise.all([
         getAccessTokenByEmail(user.email),
-        createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
-        createGroupConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
+        createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: `${KeyPrefix.Team}${generateRandomString(5)}` }),
+        createGroup({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
       ]));
 
       // We need to wait create the relationships in sequence, so that we can be sure of the return order in the test

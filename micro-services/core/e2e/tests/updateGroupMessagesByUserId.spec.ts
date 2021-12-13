@@ -6,12 +6,12 @@ import { backoff, documentClient, generateRandomString, ISO_DATE_REGEX, URL_REGE
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { GroupId } from "../../src/types/groupId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createGroupConversation, createMessage, createRandomUser, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getConversationUserRelationship, getMessage, getSnsEventsByTopicArn } from "../util";
+import { createConversationUserRelationship, createGroup, createMessage, createRandomUser, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getConversationUserRelationship, getMessage, getSnsEventsByTopicArn } from "../util";
 
 describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -22,7 +22,7 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
 
   describe("under normal conditions", () => {
     let fromUser: CreateRandomUserOutput["user"];
-    let group: RawConversation<GroupConversation>;
+    let group: RawConversation<Group>;
     let message: RawMessage;
     let messageTwo: RawMessage;
     let conversationUserRelationship: RawConversationUserRelationship<ConversationType.Group>;
@@ -30,7 +30,7 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
     beforeEach(async () => {
       ([ { user: fromUser }, { conversation: group } ] = await Promise.all([
         createRandomUser(),
-        createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
+        createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
       ]));
 
       ([ { message }, { message: messageTwo } ] = await Promise.all([
@@ -290,7 +290,7 @@ describe("PATCH /users/{userId}/groups/{groupId}/messages (Update Group Messages
   });
 
   describe("under error conditions", () => {
-    const mockGroupId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+    const mockGroupId: GroupId = `${KeyPrefix.Group}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {

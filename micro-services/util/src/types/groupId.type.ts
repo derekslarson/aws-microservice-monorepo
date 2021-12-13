@@ -1,1 +1,1 @@
-export type GroupId = `convo-group-${string}`;
+export type GroupId = `group_${string}`;

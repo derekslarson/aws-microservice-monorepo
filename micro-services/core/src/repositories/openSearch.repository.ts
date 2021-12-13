@@ -1,21 +1,16 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, AxiosFactory, Axios, BadRequestError, MakeRequired, OrganizationId } from "@yac/util";
+import { LoggerServiceInterface, AxiosFactory, Axios, BadRequestError, MakeRequired, UserId, GroupId, MeetingId, TeamId, MessageId, OrganizationId } from "@yac/util";
 import { Aws4, Aws4Factory } from "../factories/aws4.factory";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
-import { TeamId } from "../types/teamId.type";
 import { SearchIndex } from "../enums/searchIndex.enum";
 import { Team } from "./team.dynamo.repository";
 import { User } from "./user.dynamo.repository";
-import { GroupConversation, MeetingConversation } from "./conversation.dynamo.repository";
-import { Message } from "./message.dynamo.repository";
-import { UserId } from "../types/userId.type";
-import { GroupId } from "../types/groupId.type";
-import { MeetingId } from "../types/meetingId.type";
-import { MessageId } from "../types/messageId.type";
-import { ConversationId } from "../types/conversationId.type";
+import { Message, ConversationId } from "./message.dynamo.repository";
 import { Organization } from "./organization.dynamo.repository";
+import { Group } from "./group.dynamo.repository";
+import { Meeting } from "./meeting.dynamo.repository";
 
 @injectable()
 export class OpenSearchRepository implements SearchRepositoryInterface {
@@ -90,7 +85,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
 
       return {
-        groups: results as GroupConversationOnlyIdRequired[],
+        groups: results as GroupOnlyIdRequired[],
         lastEvaluatedKey,
       };
     } catch (error: unknown) {
@@ -119,7 +114,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
 
       return {
-        meetings: results as MeetingConversationOnlyIdRequired[],
+        meetings: results as MeetingOnlyIdRequired[],
         lastEvaluatedKey,
       };
     } catch (error: unknown) {
@@ -214,7 +209,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
 
       return {
-        teams: results as Team[],
+        teams: results as TeamOnlyIdRequired[],
         lastEvaluatedKey,
       };
     } catch (error: unknown) {
@@ -243,7 +238,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
 
       return {
-        organizations: results as Organization[],
+        organizations: results as OrganizationOnlyIdRequired[],
         lastEvaluatedKey,
       };
     } catch (error: unknown) {
@@ -338,15 +333,18 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       };
 
       const results = datarows.map((datarow) => {
-        const entity = datarow.reduce((acc: Partial<QueryResult>, val, i) => {
+        const entity: Partial<QueryResult> = {};
+        datarow.forEach((val, i) => {
           const propName = schema[i].name;
 
           if (val !== null) {
-            acc[propName] = propName === "id" ? val as QueryResult["id"] : val as keyof Omit<QueryResult, "id">;
+            if (propName === "id") {
+              entity[propName] = val as QueryResult["id"];
+            } else {
+              entity[propName] = val as keyof Omit<QueryResult, "id">;
+            }
           }
-
-          return acc;
-        }, { });
+        });
 
         return entity;
       }) as QueryResult[];
@@ -460,7 +458,7 @@ export interface GetGroupsBySearchTermInput {
 }
 
 export interface GetGroupsBySearchTermOutput {
-  groups: GroupConversationOnlyIdRequired[];
+  groups: GroupOnlyIdRequired[];
   lastEvaluatedKey?: string;
 }
 
@@ -472,7 +470,7 @@ export interface GetMeetingsBySearchTermInput {
 }
 
 export interface GetMeetingsBySearchTermOutput {
-  meetings: MeetingConversationOnlyIdRequired[];
+  meetings: MeetingOnlyIdRequired[];
   lastEvaluatedKey?: string;
 }
 
@@ -550,7 +548,7 @@ export interface QueryOutput {
 }
 
 export type UserGroupOrMeetingId = UserId | GroupId | MeetingId;
-export type UserGroupOrMeetingOnlyIdRequired = UserOnlyIdRequired | GroupConversationOnlyIdRequired | MeetingConversationOnlyIdRequired;
+export type UserGroupOrMeetingOnlyIdRequired = UserOnlyIdRequired | GroupOnlyIdRequired | MeetingOnlyIdRequired;
 
 interface EncodeSearchKeyInput {
   key: SearchKey;
@@ -569,13 +567,13 @@ interface DecodeSearchKeyOutput {
 }
 
 type UserOnlyIdRequired = MakeRequired<Partial<User>, "id">;
-type GroupConversationOnlyIdRequired = MakeRequired<Partial<GroupConversation>, "id">;
-type MeetingConversationOnlyIdRequired = MakeRequired<Partial<MeetingConversation>, "id">;
+type GroupOnlyIdRequired = MakeRequired<Partial<Group>, "id">;
+type MeetingOnlyIdRequired = MakeRequired<Partial<Meeting>, "id">;
 type TeamOnlyIdRequired = MakeRequired<Partial<Team>, "id">;
 type MessageOnlyIdRequired = MakeRequired<Partial<Message>, "id">;
 type OrganizationOnlyIdRequired = MakeRequired<Partial<Organization>, "id">;
 
-type QueryResult = UserOnlyIdRequired | OrganizationOnlyIdRequired | GroupConversationOnlyIdRequired | MeetingConversationOnlyIdRequired | TeamOnlyIdRequired | MessageOnlyIdRequired;
+type QueryResult = UserOnlyIdRequired | OrganizationOnlyIdRequired | GroupOnlyIdRequired | MeetingOnlyIdRequired | TeamOnlyIdRequired | MessageOnlyIdRequired;
 
 interface SearchKey {
   offset: number;
@@ -583,8 +581,8 @@ interface SearchKey {
 
 type IndexToDocument<T extends SearchIndex> =
   T extends SearchIndex.User ? User :
-    T extends SearchIndex.Group ? GroupConversation :
-      T extends SearchIndex.Meeting ? MeetingConversation :
+    T extends SearchIndex.Group ? Group :
+      T extends SearchIndex.Meeting ? Meeting :
         T extends SearchIndex.Team ? Team :
           T extends SearchIndex.Organization ? Organization : Message;
 

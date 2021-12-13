@@ -1,8 +1,8 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, OrganizationId, Role, TeamId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationServiceInterface } from "../entity-services/conversation.service";
-import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
+import { ConversationServiceInterface } from "../entity-services/group.service";
+import { ConversationUserRelationshipServiceInterface } from "../entity-services/groupMembership.service";
 import { UserServiceInterface, User } from "../entity-services/user.service";
 import { UserId } from "../types/userId.type";
 import { KeyPrefix } from "../enums/keyPrefix.enum";

@@ -3,11 +3,11 @@
 import axios from "axios";
 import { OrganizationId, Role, WithRole } from "@yac/util";
 import { createRandomAuthServiceUser, CreateRandomAuthServiceUserOutput, generateRandomString, getAccessTokenByEmail, URL_REGEX } from "../../../../e2e/util";
-import { createRandomUser, createConversationUserRelationship, createGroupConversation, CreateRandomUserOutput } from "../util";
+import { createRandomUser, createConversationUserRelationship, createGroup, CreateRandomUserOutput } from "../util";
 import { User } from "../../src/mediator-services/user.mediator.service";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { GroupId } from "../../src/types/groupId.type";
-import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 
 describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
@@ -15,7 +15,7 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
   let user: CreateRandomAuthServiceUserOutput;
   let accessToken: string;
 
-  const mockGroupId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+  const mockGroupId: GroupId = `${KeyPrefix.Group}${generateRandomString(5)}`;
   const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   beforeAll(async () => {
@@ -25,13 +25,13 @@ describe("GET /groups/{groupId}/users (Get Users by Group Id)", () => {
   });
 
   describe("under normal conditions", () => {
-    let group: RawConversation<GroupConversation>;
+    let group: RawConversation<Group>;
     let otherUser: CreateRandomUserOutput["user"];
 
     beforeAll(async () => {
       ({ user: otherUser } = await createRandomUser());
 
-      ({ conversation: group } = await createGroupConversation({ createdBy: user.id, organizationId: mockOrganizationId, name: generateRandomString(5) }));
+      ({ conversation: group } = await createGroup({ createdBy: user.id, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
       await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Group, userId: user.id, conversationId: group.id, role: Role.Admin }),

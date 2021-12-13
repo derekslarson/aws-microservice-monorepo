@@ -6,8 +6,8 @@ import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { GroupCreatedSnsServiceInterface } from "../sns-services/groupCreated.sns.service";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
-import { GroupConversation, RawConversation } from "../repositories/conversation.dynamo.repository";
-import { ConversationServiceInterface } from "../entity-services/conversation.service";
+import { Group, RawConversation } from "../repositories/conversation.dynamo.repository";
+import { ConversationServiceInterface } from "../entity-services/group.service";
 
 @injectable()
 export class GroupCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -28,7 +28,7 @@ export class GroupCreatedDynamoProcessorService implements DynamoProcessorServic
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
       const isCoreTable = record.tableName === this.coreTableName;
-      const isGroup = record.newImage.entityType === EntityType.GroupConversation;
+      const isGroup = record.newImage.entityType === EntityType.Group;
       const isCreation = record.eventName === "INSERT";
 
       return isCoreTable && isGroup && isCreation;
@@ -39,7 +39,7 @@ export class GroupCreatedDynamoProcessorService implements DynamoProcessorServic
     }
   }
 
-  public async processRecord(record: DynamoProcessorServiceRecord<RawConversation<GroupConversation>>): Promise<void> {
+  public async processRecord(record: DynamoProcessorServiceRecord<RawConversation<Group>>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
@@ -49,7 +49,7 @@ export class GroupCreatedDynamoProcessorService implements DynamoProcessorServic
 
       await Promise.allSettled([
         this.groupCreatedSnsService.sendMessage({ group, groupMemberIds: [ group.createdBy ] }),
-        this.conversationService.indexGroupConversationForSearch({ group: record.newImage }),
+        this.conversationService.indexGroupForSearch({ group: record.newImage }),
       ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);

@@ -16,7 +16,7 @@
 
 //   const mockGroupCreatedSnsTopicArn = "mock-group-created-sns-topic-arn";
 //   const mockConfig = { snsTopicArns: { groupCreated: mockGroupCreatedSnsTopicArn } };
-//   const mockGroupId = "convo-group-id";
+//   const mockGroupId = "group_id";
 //   const mockUserA: User["id"] = "user-mock-id";
 //   const mockUserB: User["id"] = "user-mock-b-id";
 

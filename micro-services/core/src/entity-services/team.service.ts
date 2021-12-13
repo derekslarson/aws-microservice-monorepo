@@ -1,10 +1,8 @@
 import { inject, injectable } from "inversify";
-import { FileOperation, IdServiceInterface, LoggerServiceInterface, OrganizationId } from "@yac/util";
+import { FileOperation, IdServiceInterface, LoggerServiceInterface, OrganizationId, TeamId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamRepositoryInterface, Team as TeamEntity, TeamUpdates, RawTeam } from "../repositories/team.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { TeamId } from "../types/teamId.type";
-import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
@@ -31,12 +29,16 @@ export class TeamService implements TeamServiceInterface {
 
       const { image, mimeType: imageMimeType } = this.imageFileRepository.createDefaultImage();
 
+      const now = new Date().toISOString();
+
       const teamEntity: TeamEntity = {
         id: teamId,
         imageMimeType,
         name,
         createdBy,
         organizationId,
+        createdAt: now,
+        updatedAt: now,
       };
 
       await Promise.all([

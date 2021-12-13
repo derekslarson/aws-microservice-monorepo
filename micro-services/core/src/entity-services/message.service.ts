@@ -1,12 +1,8 @@
 import { inject, injectable } from "inversify";
-import { FileOperation, LoggerServiceInterface, MessageFileRepositoryInterface } from "@yac/util";
+import { FileOperation, LoggerServiceInterface, MessageFileRepositoryInterface, MessageId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { MessageRepositoryInterface, Message as MessageEntity, RawMessage } from "../repositories/message.dynamo.repository";
-import { UserId } from "../types/userId.type";
-import { ConversationId } from "../types/conversationId.type";
-import { MessageId } from "../types/messageId.type";
+import { MessageRepositoryInterface, Message as MessageEntity, RawMessage, ConversationId, MessageUpdates } from "../repositories/message.dynamo.repository";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
-import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
 
@@ -25,6 +21,8 @@ export class MessageService implements MessageServiceInterface {
 
       const { messageId, conversationId, from, mimeType, seenAt, transcript, replyTo, title } = params;
 
+      const now = new Date().toISOString();
+
       const messageEntity: MessageEntity = {
         id: messageId,
         conversationId,
@@ -33,7 +31,8 @@ export class MessageService implements MessageServiceInterface {
         replyTo,
         mimeType,
         transcript,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
         replyCount: 0,
         reactions: {},
         title,
@@ -119,13 +118,13 @@ export class MessageService implements MessageServiceInterface {
     }
   }
 
-  public async updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
+  public async markMessageSeen(params: MarkMessageSeenInput): Promise<MarkMessageSeenOutput> {
     try {
-      this.loggerService.trace("updateMessageSeenAt called", { params }, this.constructor.name);
+      this.loggerService.trace("markMessageSeen called", { params }, this.constructor.name);
 
-      const { messageId, userId, seenAtValue } = params;
+      const { messageId, userId } = params;
 
-      const { message: messageEntity } = await this.messageRepository.updateMessageSeenAt({ messageId, userId, seenAtValue });
+      const { message: messageEntity } = await this.messageRepository.markMessageSeen({ messageId, userId });
 
       const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
         messageId: messageEntity.id,
@@ -141,19 +140,19 @@ export class MessageService implements MessageServiceInterface {
 
       return { message };
     } catch (error: unknown) {
-      this.loggerService.error("Error in updateMessageSeenAt", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in markMessageSeen", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  public async updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput> {
+  public async addMessageReaction(params: AddMessageReactionInput): Promise<AddMessageReactionOutput> {
     try {
-      this.loggerService.trace("updateMessageReaction called", { params }, this.constructor.name);
+      this.loggerService.trace("addMessageReaction called", { params }, this.constructor.name);
 
-      const { messageId, userId, reaction, action } = params;
+      const { messageId, userId, reaction } = params;
 
-      const { message: messageEntity } = await this.messageRepository.updateMessageReaction({ messageId, userId, reaction, action });
+      const { message: messageEntity } = await this.messageRepository.addMessageReaction({ messageId, userId, reaction });
 
       const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
         messageId: messageEntity.id,
@@ -169,7 +168,35 @@ export class MessageService implements MessageServiceInterface {
 
       return { message };
     } catch (error: unknown) {
-      this.loggerService.error("Error in updateMessageReaction", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in addMessageReaction", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async removeMessageReaction(params: RemoveMessageReactionInput): Promise<RemoveMessageReactionOutput> {
+    try {
+      this.loggerService.trace("removeMessageReaction called", { params }, this.constructor.name);
+
+      const { messageId, userId, reaction } = params;
+
+      const { message: messageEntity } = await this.messageRepository.removeMessageReaction({ messageId, userId, reaction });
+
+      const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
+        messageId: messageEntity.id,
+        conversationId: messageEntity.conversationId,
+        mimeType: messageEntity.mimeType,
+        operation: FileOperation.Get,
+      });
+
+      const message = {
+        ...messageEntity,
+        fetchUrl: signedUrl,
+      };
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in removeMessageReaction", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -223,7 +250,7 @@ export class MessageService implements MessageServiceInterface {
 
       const { messageId, exclusiveStartKey, limit } = params;
 
-      const { replies: messageEntities, lastEvaluatedKey } = await this.messageRepository.getRepliesByMessageId({ messageId, exclusiveStartKey, limit });
+      const { messages: messageEntities, lastEvaluatedKey } = await this.messageRepository.getRepliesByMessageId({ messageId, exclusiveStartKey, limit });
 
       const replies = messageEntities.map((messageEntity) => {
         const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
@@ -302,8 +329,9 @@ export interface MessageServiceInterface {
   createMessage(params: CreateMessageInput): Promise<CreateMessageOutput>;
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
-  updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>;
-  updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
+  markMessageSeen(params: MarkMessageSeenInput): Promise<MarkMessageSeenOutput>;
+  addMessageReaction(params: AddMessageReactionInput): Promise<AddMessageReactionOutput>;
+  removeMessageReaction(params: RemoveMessageReactionInput): Promise<RemoveMessageReactionOutput>;
   updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
@@ -347,32 +375,39 @@ export interface GetMessagesOutput {
   messages: Message[];
 }
 
-export interface UpdateMessageSeenAtInput {
+export interface MarkMessageSeenInput {
   messageId: MessageId;
   userId: UserId;
   seenAtValue: string | null;
 }
 
-export interface UpdateMessageSeenAtOutput {
+export interface MarkMessageSeenOutput {
   message: Message;
 }
 
-export interface UpdateMessageReactionInput {
+export interface AddMessageReactionInput {
   messageId: MessageId;
   userId: UserId;
   reaction: string;
-  action: UpdateMessageReactionAction;
 }
 
-export interface UpdateMessageReactionOutput {
+export interface AddMessageReactionOutput {
+  message: Message;
+}
+
+export interface RemoveMessageReactionInput {
+  messageId: MessageId;
+  userId: UserId;
+  reaction: string;
+}
+
+export interface RemoveMessageReactionOutput {
   message: Message;
 }
 
 export interface UpdateMessageInput {
   messageId: MessageId;
-  updates: {
-    transcript: string;
-  }
+  updates: MessageUpdates;
 }
 
 export type UpdateMessageOutput = void;

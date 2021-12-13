@@ -1,12 +1,11 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, NotFoundError } from "@yac/util";
-
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { EntityType } from "../enums/entityType.enum";
-import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
+import { EntityType } from "../enums/entityType.enum";
 
 @injectable()
 export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implements UserRepositoryInterface {
@@ -39,9 +38,9 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
         pk: user.id,
         sk: EntityType.User,
         ...user,
-        ...(user.email && { gsi1pk: user.email, gsi1sk: EntityType.User }),
-        ...(user.phone && { gsi2pk: user.phone, gsi2sk: EntityType.User }),
-        ...(user.username && { gsi3pk: user.username, gsi3sk: EntityType.User }),
+        ...(user.email && { gsi1pk: `${KeyPrefix.Email}${user.email}`, gsi1sk: EntityType.User }),
+        ...(user.phone && { gsi2pk: `${KeyPrefix.Phone}${user.phone}`, gsi2sk: EntityType.User }),
+        ...(user.username && { gsi3pk: `${KeyPrefix.Username}${user.username}`, gsi3sk: EntityType.User }),
       };
 
       await this.documentClient.put({
@@ -88,7 +87,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
           "#gsi1sk": "gsi1sk",
         },
         ExpressionAttributeValues: {
-          ":email": email,
+          ":email": `${KeyPrefix.Email}${email}`,
           ":userEntityType": EntityType.User,
         },
       });
@@ -119,7 +118,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
           "#gsi2sk": "gsi2sk",
         },
         ExpressionAttributeValues: {
-          ":phone": phone,
+          ":phone": `${KeyPrefix.Phone}${phone}`,
           ":userEntityType": EntityType.User,
         },
       });
@@ -150,7 +149,7 @@ export class UserDynamoRepository extends BaseDynamoRepositoryV2<User> implement
           "#gsi3sk": "gsi3sk",
         },
         ExpressionAttributeValues: {
-          ":username": username,
+          ":username": `${KeyPrefix.Username}${username}`,
           ":userEntityType": EntityType.User,
         },
       });
@@ -232,6 +231,7 @@ type UserRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecon
 export interface User {
   id: UserId;
   imageMimeType: ImageMimeType;
+  createdAt: string;
   email?: string;
   phone?: string;
   username?: string;
@@ -244,13 +244,13 @@ export interface RawUser extends User {
   pk: UserId;
   sk: EntityType.User;
   // email
-  gsi1pk?: string;
+  gsi1pk?: `${KeyPrefix.Email}${string}`;
   gsi1sk?: EntityType.User;
   // phone
-  gsi2pk?: string;
+  gsi2pk?: `${KeyPrefix.Phone}${string}`;
   gsi2sk?: EntityType.User;
   // username
-  gsi3pk?: string;
+  gsi3pk?: `${KeyPrefix.Username}${string}`;
   gsi3sk?: EntityType.User
 }
 

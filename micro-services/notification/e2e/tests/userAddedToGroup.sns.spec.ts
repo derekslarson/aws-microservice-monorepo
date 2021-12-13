@@ -9,9 +9,9 @@ import { createWebSocketListener, deleteSnsEventsByTopicArn, getSnsEventsByTopic
 describe("User Added To Group SNS Topic", () => {
   const userAddedToGroupSnsTopicArn = process.env["user-added-to-group-sns-topic-arn"] as string;
   const pushNotificationFailedSnsTopicArn = process.env["push-notification-failed-sns-topic-arn"] as string;
-  let userOneId: `user-${string}`;
-  let userTwoId: `user-${string}`;
-  let userThreeId: `user-${string}`;
+  let userOneId: `user_${string}`;
+  let userTwoId: `user_${string}`;
+  let userThreeId: `user_${string}`;
 
   beforeAll(async () => {
     // Create three users in cognito
@@ -56,7 +56,7 @@ describe("User Added To Group SNS Topic", () => {
           const message: UserAddedToGroupSnsMessage = {
             groupMemberIds: [ userOneId, userTwoId ],
             group: {
-              id: "convo-group-123",
+              id: "group_123",
               name: "test group",
               image: "test-image",
               createdBy: "user-123",
@@ -134,7 +134,7 @@ describe("User Added To Group SNS Topic", () => {
           const message: UserAddedToGroupSnsMessage = {
             groupMemberIds: [ userOneId, userTwoId ],
             group: {
-              id: "convo-group-123",
+              id: "group_123",
               name: "test group",
               image: "test-image",
               createdBy: "user-123",

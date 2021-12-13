@@ -76,7 +76,7 @@ describe("Meeting Created (WebSocket Event)", () => {
       const message: MeetingCreatedSnsMessage = {
         meetingMemberIds: [ userOneId ],
         meeting: {
-          id: "convo-meeting-123",
+          id: "meeting_123",
           name: "test meeting",
           image: "test-image",
           createdBy: userOneId,

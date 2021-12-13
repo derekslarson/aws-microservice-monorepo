@@ -45,7 +45,7 @@ describe("POST /organizations/{organizationId}/groups (Create Group)", () => {
         expect(status).toBe(201);
         expect(data).toEqual({
           group: {
-            id: jasmine.stringMatching(new RegExp(`${KeyPrefix.GroupConversation}.*`)),
+            id: jasmine.stringMatching(new RegExp(`${KeyPrefix.Group}.*`)),
             organizationId: organization.id,
             name,
             teamId: team.id,
@@ -72,7 +72,7 @@ describe("POST /organizations/{organizationId}/groups (Create Group)", () => {
           const { conversation } = await getConversation({ conversationId: data.group.id });
 
           expect(conversation).toEqual({
-            entityType: EntityType.GroupConversation,
+            entityType: EntityType.Group,
             pk: data.group.id,
             sk: data.group.id,
             gsi1pk: team.id,
@@ -104,7 +104,7 @@ describe("POST /organizations/{organizationId}/groups (Create Group)", () => {
           const { conversation } = await getConversation({ conversationId: data.group.id });
 
           expect(conversation).toEqual({
-            entityType: EntityType.GroupConversation,
+            entityType: EntityType.Group,
             pk: data.group.id,
             sk: data.group.id,
             gsi2pk: organization.id,
@@ -140,7 +140,7 @@ describe("POST /organizations/{organizationId}/groups (Create Group)", () => {
           gsi1pk: userId,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: userId,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.GroupConversation}.*`)),
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Group}.*`)),
           role: Role.Admin,
           conversationId: data.group.id,
           type: ConversationType.Group,

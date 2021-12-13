@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { OrganizationId, Role, UserRemovedFromGroupSnsMessage } from "@yac/util";
-import { createRandomUser, createConversationUserRelationship, createGroupConversation, getConversationUserRelationship, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn } from "../util";
+import { createRandomUser, createConversationUserRelationship, createGroup, getConversationUserRelationship, CreateRandomUserOutput, deleteSnsEventsByTopicArn, getSnsEventsByTopicArn } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { backoff, generateRandomString, ISO_DATE_REGEX, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { GroupId } from "../../src/types/groupId.type";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 
@@ -17,11 +17,11 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
   const userRemovedFromGroupSnsTopicArn = process.env["user-removed-from-group-sns-topic-arn"] as string;
 
   const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
-  const mockGroupId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+  const mockGroupId: GroupId = `${KeyPrefix.Group}${generateRandomString(5)}`;
   const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
-    let group: RawConversation<GroupConversation>;
+    let group: RawConversation<Group>;
     let otherUser: CreateRandomUserOutput["user"];
 
     beforeAll(async () => {
@@ -29,7 +29,7 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
     });
 
     beforeEach(async () => {
-      ({ conversation: group } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
+      ({ conversation: group } = await createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
       await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Group, userId, conversationId: group.id, role: Role.Admin }),
@@ -127,11 +127,11 @@ describe("DELETE /groups/{groupId}/users/{userId} (Remove User from Group)", () 
     });
 
     describe("when an id of a group the user is not an admin of is passed in", () => {
-      let groupTwo: RawConversation<GroupConversation>;
+      let groupTwo: RawConversation<Group>;
       const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
-        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5) }));
+        ({ conversation: groupTwo } = await createGroup({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
         await createConversationUserRelationship({ type: ConversationType.Group, userId, conversationId: groupTwo.id, role: Role.User });
       });

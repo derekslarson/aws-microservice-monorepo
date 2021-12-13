@@ -5,7 +5,7 @@
 // import { EntityType } from "../../enums/entityType.enum";
 // import { ImageMimeType } from "../../enums/image.mimeType.enum";
 // import { MeetingMediatorService, MeetingMediatorServiceInterface } from "../../mediator-services/meeting.mediator.service";
-// import { MeetingConversation } from "../../repositories/conversation.dynamo.repository";
+// import { Meeting } from "../../repositories/conversation.dynamo.repository";
 // import { MeetingCreatedSnsService, MeetingCreatedSnsServiceInterface } from "../../sns-services/meetingCreated.sns.service";
 // import { MeetingCreatedDynamoProcessorService } from "../meetingCreated.dynamo.processor.service";
 
@@ -18,12 +18,12 @@
 
 //   const mockCoreTableName = "mock-core-table-name";
 //   const mockConfig = { tableNames: { core: mockCoreTableName } };
-//   const mockMeetingId = "convo-meeting-mock-id";
+//   const mockMeetingId = "meeting_mock-id";
 //   const mockUserId = "user-mock-id";
 //   const mockDateA = new Date().toISOString();
 //   const mockDateB = new Date().toISOString();
 
-//   const mockMeeting: MeetingConversation = {
+//   const mockMeeting: Meeting = {
 //     id: mockMeetingId,
 //     name: "mock-name",
 //     createdBy: mockUserId,
@@ -38,7 +38,7 @@
 //     tableName: mockCoreTableName,
 //     oldImage: {},
 //     newImage: {
-//       entityType: EntityType.MeetingConversation,
+//       entityType: EntityType.Meeting,
 //       ...mockMeeting,
 //     },
 //   };

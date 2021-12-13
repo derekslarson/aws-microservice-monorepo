@@ -6,11 +6,11 @@ import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { GroupId } from "../../src/types/groupId.type";
 import { UserId } from "../../src/types/userId.type";
-import { createConversationUserRelationship, createGroupConversation, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
+import { createConversationUserRelationship, createGroup, createMessage, createRandomUser, CreateRandomUserOutput } from "../util";
 
 describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -25,13 +25,13 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
   });
 
   describe("under normal conditions", () => {
-    let group: RawConversation<GroupConversation>;
+    let group: RawConversation<Group>;
 
     let message: RawMessage;
     let messageTwo: RawMessage;
 
     beforeAll(async () => {
-      ({ conversation: group } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
+      ({ conversation: group } = await createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
       ([ { message } ] = await Promise.all([
         createMessage({ from: otherUser.id, conversationId: group.id, conversationMemberIds: [ userId, otherUser.id ], replyCount: 1, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),
@@ -219,7 +219,7 @@ describe("GET /groups/{groupId}/messages (Get Messages by Group Id)", () => {
   });
 
   describe("under error conditions", () => {
-    const mockGroupId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+    const mockGroupId: GroupId = `${KeyPrefix.Group}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {

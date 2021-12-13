@@ -9,9 +9,9 @@ import { createWebSocketListener, deleteSnsEventsByTopicArn, getSnsEventsByTopic
 describe("Meeting Message Created SNS Topic", () => {
   const meetingMessageCreatedSnsTopicArn = process.env["meeting-message-created-sns-topic-arn"] as string;
   const pushNotificationFailedSnsTopicArn = process.env["push-notification-failed-sns-topic-arn"] as string;
-  let userOneId: `user-${string}`;
-  let userTwoId: `user-${string}`;
-  let userThreeId: `user-${string}`;
+  let userOneId: `user_${string}`;
+  let userTwoId: `user_${string}`;
+  let userThreeId: `user_${string}`;
 
   beforeAll(async () => {
     // Create three users in cognito
@@ -57,7 +57,7 @@ describe("Meeting Message Created SNS Topic", () => {
             message: {
               id: "message-id",
               to: {
-                id: "convo-meeting-id",
+                id: "meeting_id",
                 name: "mock-name",
                 image: "mock-image",
                 createdBy: "user-mock-id",
@@ -138,7 +138,7 @@ describe("Meeting Message Created SNS Topic", () => {
             message: {
               id: "message-id",
               to: {
-                id: "convo-meeting-id",
+                id: "meeting_id",
                 name: "mock-name",
                 image: "mock-image",
                 createdBy: "user-mock-id",

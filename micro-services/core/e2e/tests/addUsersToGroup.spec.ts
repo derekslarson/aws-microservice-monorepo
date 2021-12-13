@@ -9,11 +9,11 @@ import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { ImageMimeType } from "../../src/enums/image.mimeType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
 import {
   createConversationUserRelationship,
-  createGroupConversation,
+  createGroup,
   createRandomUser,
   CreateRandomUserOutput,
   deleteSnsEventsByTopicArn,
@@ -32,11 +32,11 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
   const userAddedToGroupSnsTopicArn = process.env["user-added-to-group-sns-topic-arn"] as string;
 
   const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
-  const mockGroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+  const mockGroupId = `${KeyPrefix.Group}${generateRandomString(5)}`;
 
   describe("under normal conditions", () => {
     let otherUser: CreateRandomUserOutput["user"];
-    let group: RawConversation<GroupConversation>;
+    let group: RawConversation<Group>;
     let randomEmail: string;
     let randomPhone: string;
     let randomUsername: string;
@@ -48,7 +48,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
 
       ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
         createRandomUser(),
-        createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
+        createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
       ]));
 
       await createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin });
@@ -186,7 +186,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
           gsi1pk: otherUser.id,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: otherUser.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.GroupConversation}.*`)),
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Group}.*`)),
           role: Role.Admin,
           type: ConversationType.Group,
           conversationId: group.id,
@@ -202,7 +202,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
           gsi1pk: emailUser.id,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: emailUser.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.GroupConversation}.*`)),
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Group}.*`)),
           role: Role.User,
           type: ConversationType.Group,
           conversationId: group.id,
@@ -218,7 +218,7 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
           gsi1pk: phoneUser.id,
           gsi1sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}.*`)),
           gsi2pk: phoneUser.id,
-          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.GroupConversation}.*`)),
+          gsi2sk: jasmine.stringMatching(new RegExp(`${KeyPrefix.Time}${KeyPrefix.Group}.*`)),
           role: Role.Admin,
           type: ConversationType.Group,
           conversationId: group.id,
@@ -361,11 +361,11 @@ describe("POST /groups/{groupId}/users (Add Users to Group)", () => {
     });
 
     describe("when an id of a group that the user is not an admin of is passed in", () => {
-      let groupTwo: RawConversation<GroupConversation>;
+      let groupTwo: RawConversation<Group>;
       const mockUserIdTwo: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
 
       beforeEach(async () => {
-        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5) }));
+        ({ conversation: groupTwo } = await createGroup({ createdBy: mockUserIdTwo, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
         await createConversationUserRelationship({ type: ConversationType.Group, conversationId: groupTwo.id, userId, role: Role.User });
       });

@@ -4,10 +4,10 @@ import axios from "axios";
 import { OrganizationId, Role } from "@yac/util";
 import { generateRandomString, URL_REGEX, wait } from "../../../../e2e/util";
 import { RawTeam } from "../../src/repositories/team.dynamo.repository";
-import { createConversationUserRelationship, createMeetingConversation, createRandomTeam, createTeamUserRelationship } from "../util";
+import { createConversationUserRelationship, createMeeting, createRandomTeam, createTeamUserRelationship } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
-import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { TeamId } from "../../src/types/teamId.type";
 import { ConversationType } from "../../src/enums/conversationType.enum";
 
@@ -22,18 +22,18 @@ describe("GET /teams/{teamId}/meetings (Get Meetings by Team Id)", () => {
 
   describe("under normal conditions", () => {
     let team: RawTeam;
-    let meeting: RawConversation<MeetingConversation>;
-    let meetingTwo: RawConversation<MeetingConversation>;
+    let meeting: RawConversation<Meeting>;
+    let meetingTwo: RawConversation<Meeting>;
 
     beforeAll(async () => {
       ({ team } = await createRandomTeam({ createdBy: mockUserId, organizationId: mockOrganizationId }));
 
       // We need to wait create the meetings in sequence, so that we can be sure of the return order in the test
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id, dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeeting({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id, dueDate: new Date().toISOString() }));
 
       await wait(1000);
 
-      ({ conversation: meetingTwo } = await createMeetingConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id, dueDate: new Date().toISOString() }));
+      ({ conversation: meetingTwo } = await createMeeting({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: team.id, dueDate: new Date().toISOString() }));
 
       await Promise.all([
         createTeamUserRelationship({ userId, teamId: team.id, role: Role.User }),

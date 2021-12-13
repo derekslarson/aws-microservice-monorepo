@@ -17,7 +17,7 @@
 //   const mockUserAddedToMeetingSnsTopicArn = "mock-user-added-to-meeting-sns-topic-arn";
 //   const mockConfig = { snsTopicArns: { userAddedToMeeting: mockUserAddedToMeetingSnsTopicArn } };
 //   const mockUserId = "user-mock-id";
-//   const mockMeetingId = "convo-meeting-mock-id";
+//   const mockMeetingId = "meeting_mock-id";
 
 //   const mockUser: User = {
 //     id: mockUserId,

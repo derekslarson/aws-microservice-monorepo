@@ -5,12 +5,14 @@ import { UserId } from "../../types/userId.type";
 
 export interface Meeting {
   id: MeetingId;
+  organizationId: OrganizationId;
   name: string;
   createdBy: UserId;
   createdAt: string;
+  updatedAt: string;
+  dueAt: string;
+  activeAt: string;
   image: string;
-  dueDate: string;
-  organizationId: OrganizationId;
   teamId?: TeamId;
   outcomes?: string;
 }

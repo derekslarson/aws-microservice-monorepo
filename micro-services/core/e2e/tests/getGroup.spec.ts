@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import { OrganizationId, Role } from "@yac/util";
-import { createConversationUserRelationship, createGroupConversation } from "../util";
+import { createConversationUserRelationship, createGroup } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { GroupConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Group, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { GroupId } from "../../src/types/groupId.type";
@@ -19,10 +19,10 @@ describe("GET /groups/{groupId} (Get Group)", () => {
 
   describe("under normal conditions", () => {
     const mockTeamId: TeamId = `${KeyPrefix.Team}${generateRandomString(5)}`;
-    let group: RawConversation<GroupConversation>;
+    let group: RawConversation<Group>;
 
     beforeAll(async () => {
-      ({ conversation: group } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: mockTeamId }));
+      ({ conversation: group } = await createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), teamId: mockTeamId }));
 
       await createConversationUserRelationship({ type: ConversationType.Group, conversationId: group.id, userId, role: Role.Admin });
     });
@@ -54,7 +54,7 @@ describe("GET /groups/{groupId} (Get Group)", () => {
 
   describe("under error conditions", () => {
     const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
-    const mockGroupId: GroupId = `${KeyPrefix.GroupConversation}${generateRandomString(5)}`;
+    const mockGroupId: GroupId = `${KeyPrefix.Group}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
@@ -72,10 +72,10 @@ describe("GET /groups/{groupId} (Get Group)", () => {
     });
 
     describe("when a groupId of a group the user is not a member of is passed in", () => {
-      let group: RawConversation<GroupConversation>;
+      let group: RawConversation<Group>;
 
       beforeAll(async () => {
-        ({ conversation: group } = await createGroupConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
+        ({ conversation: group } = await createGroup({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
       });
 
       it("throws a 403 error", async () => {

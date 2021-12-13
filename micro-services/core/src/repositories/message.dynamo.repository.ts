@@ -1,19 +1,14 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/util";
+import { BaseDynamoRepositoryV2, CleansedEntity, DocumentClientFactory, GroupId, LoggerServiceInterface, MeetingId, MessageId, MessageMimeType, OneOnOneId, RawEntity, UserId } from "@yac/util";
 import DynamoDB from "aws-sdk/clients/dynamodb";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { EntityType } from "../enums/entityType.enum";
-import { MessageId } from "../types/messageId.type";
-import { ConversationId } from "../types/conversationId.type";
-import { UserId } from "../types/userId.type";
-import { MessageMimeType } from "../enums/message.mimeType.enum";
-import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
-export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithReactionsSet> implements MessageRepositoryInterface {
+export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> implements MessageRepositoryInterface {
   private gsiOneIndexName: string;
 
   private gsiTwoIndexName: string;
@@ -36,29 +31,26 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
 
       const { reactions, ...restOfMessage } = message;
 
-      const rawReactions = Object.entries(reactions).reduce((acc: Record<string, DynamoDB.DocumentClient.DynamoDbSet>, entry) => {
-        const [ reaction, userIds ] = entry;
-
-        acc[reaction] = this.documentClient.createSet(userIds);
-
-        return acc;
-      }, {});
+      const rawReactions: Record<string, DynamoDB.DocumentClient.DynamoDbSet> = {};
+      Object.entries(reactions).forEach(([ reaction, userIds ]) => {
+        rawReactions[reaction] = this.documentClient.createSet(userIds);
+      });
 
       const messageEntity: RawMessage = {
         entityType: EntityType.Message,
         pk: message.id,
-        sk: message.id,
-        gsi1pk: message.conversationId,
-        gsi1sk: message.id,
-        gsi2pk: message.replyTo,
-        gsi2sk: message.replyTo && message.id,
+        sk: EntityType.Message,
+        gsi1pk: message.replyTo ? `${KeyPrefix.ReplyTo}${message.replyTo}` : message.conversationId,
+        gsi1sk: `${KeyPrefix.Message}${KeyPrefix.Created}${message.createdAt}`,
+        gsi2pk: !message.replyTo && message.agenda ? `${KeyPrefix.Agenda}${message.agenda}_${message.conversationId}` : undefined,
+        gsi2sk: `${KeyPrefix.Message}${KeyPrefix.Created}${message.createdAt}`,
         reactions: rawReactions,
         ...restOfMessage,
       };
 
       await this.documentClient.put({
         TableName: this.tableName,
-        ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
+        ConditionExpression: "attribute_not_exists(pk)",
         Item: messageEntity,
       }).promise();
 
@@ -76,13 +68,99 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
 
       const { messageId } = params;
 
-      const rawMessage = await this.get({ Key: { pk: messageId, sk: messageId } }, "Message");
-
-      const message = this.cleanseReactionsSet(rawMessage);
+      const message = await this.get({ Key: { pk: messageId, sk: EntityType.Message } }, "Message");
 
       return { message };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput> {
+    try {
+      this.loggerService.trace("updateMessage called", { params }, this.constructor.name);
+
+      const { messageId, updates } = params;
+
+      const message = await this.partialUpdate(messageId, EntityType.Message, updates);
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async markMessageSeen(params: MarkMessageSeenInput): Promise<MarkMessageSeenOutput> {
+    try {
+      this.loggerService.trace("markMessageSeen called", { params }, this.constructor.name);
+
+      const { messageId, userId } = params;
+
+      const message = await this.update({
+        Key: { pk: messageId, sk: EntityType.Message },
+        UpdateExpression: "SET #seenAt.#userId = :seenAtValue",
+        ExpressionAttributeNames: {
+          "#seenAt": "seenAt",
+          "#userId": userId,
+        },
+        ExpressionAttributeValues: { ":seenAtValue": new Date().toISOString() },
+      });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in markMessageSeen", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async addMessageReaction(params: AddMessageReactionInput): Promise<AddMessageReactionOutput> {
+    try {
+      this.loggerService.trace("addMessageReaction called", { params }, this.constructor.name);
+
+      const { messageId, userId, reaction } = params;
+
+      const message = await this.update({
+        Key: { pk: messageId, sk: EntityType.Message },
+        UpdateExpression: "ADD #reactions.#reaction :value",
+        ExpressionAttributeNames: {
+          "#reactions": "reactions",
+          "#reaction": reaction,
+        },
+        ExpressionAttributeValues: { ":value": this.documentClient.createSet([ userId ]) },
+      });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in addMessageReaction", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async removeMessageReaction(params: RemoveMessageReactionInput): Promise<RemoveMessageReactionOutput> {
+    try {
+      this.loggerService.trace("removeMessageReaction called", { params }, this.constructor.name);
+
+      const { messageId, userId, reaction } = params;
+
+      const message = await this.update({
+        Key: { pk: messageId, sk: EntityType.Message },
+        UpdateExpression: "DELETE #reactions.#reaction :value",
+        ExpressionAttributeNames: {
+          "#reactions": "reactions",
+          "#reaction": reaction,
+        },
+        ExpressionAttributeValues: { ":value": this.documentClient.createSet([ userId ]) },
+      });
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in removeMessageReaction", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -94,9 +172,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
 
       const { messageIds } = params;
 
-      const rawMessages = await this.batchGet({ Keys: messageIds.map((messageId) => ({ pk: messageId, sk: messageId })) });
-
-      const messages = rawMessages.map((message) => this.cleanseReactionsSet(message));
+      const messages = await this.batchGet({ Keys: messageIds.map((messageId) => ({ pk: messageId, sk: EntityType.Message })) });
 
       return { messages };
     } catch (error: unknown) {
@@ -106,140 +182,35 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
     }
   }
 
-  public async updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
-    try {
-      this.loggerService.trace("updateMessageSeenAt called", { params }, this.constructor.name);
-
-      const { messageId, userId, seenAtValue } = params;
-
-      const rawMessage = await this.update({
-        Key: {
-          pk: messageId,
-          sk: messageId,
-        },
-        UpdateExpression: "SET #seenAt.#userId = :seenAtValue",
-        ExpressionAttributeNames: {
-          "#seenAt": "seenAt",
-          "#userId": userId,
-        },
-        ExpressionAttributeValues: { ":seenAtValue": seenAtValue },
-      });
-
-      const message = this.cleanseReactionsSet(rawMessage);
-
-      return { message };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in updateMessageSeenAt", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput> {
-    try {
-      this.loggerService.trace("updateMessageReaction called", { params }, this.constructor.name);
-
-      const { messageId, userId, reaction, action } = params;
-
-      const rawMessage = await this.update({
-        Key: {
-          pk: messageId,
-          sk: messageId,
-        },
-        UpdateExpression: `${action === UpdateMessageReactionAction.Add ? "ADD" : "DELETE"} #reactions.#reaction :value`,
-        ExpressionAttributeNames: {
-          "#reactions": "reactions",
-          "#reaction": reaction,
-        },
-        ExpressionAttributeValues: { ":value": this.documentClient.createSet([ userId ]) },
-      });
-
-      const message = this.cleanseReactionsSet(rawMessage);
-
-      return { message };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in updateMessageReaction", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput> {
-    try {
-      this.loggerService.trace("updateMessage called", { params }, this.constructor.name);
-
-      const { messageId, updates } = params;
-      const { transcript } = updates;
-
-      const rawMessage = await this.update({
-        Key: {
-          pk: messageId,
-          sk: messageId,
-        },
-        UpdateExpression: "SET #transcript = :transcript",
-        ExpressionAttributeNames: { "#transcript": "transcript" },
-        ExpressionAttributeValues: { ":transcript": transcript },
-      });
-
-      const message = this.cleanseReactionsSet(rawMessage);
-
-      return { message };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in updateMessage", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async incrementMessageReplyCount(params: IncrementMessageReplyCountInput): Promise<IncrementMessageReplyCountOutput> {
-    try {
-      this.loggerService.trace("incrementMessageReplyCount called", { params }, this.constructor.name);
-
-      const { messageId } = params;
-
-      const rawMessage = await this.update({
-        Key: {
-          pk: messageId,
-          sk: messageId,
-        },
-        UpdateExpression: "ADD #replyCount :one",
-        ExpressionAttributeNames: { "#replyCount": "replyCount" },
-        ExpressionAttributeValues: { ":one": 1 },
-      });
-
-      const message = this.cleanseReactionsSet(rawMessage);
-
-      return { message };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in incrementMessageReplyCount", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
   public async getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput> {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
 
-      const { conversationId, exclusiveStartKey, limit } = params;
+      const { conversationId, minCreatedAt, agenda, exclusiveStartKey, limit } = params;
 
-      const { Items: rawMessages, LastEvaluatedKey } = await this.query({
+      const skPrefix = `${KeyPrefix.Message}${KeyPrefix.Created}`;
+
+      const expressionAttributeValues: DynamoDB.DocumentClient.ExpressionAttributeValueMap = { ":pk": agenda ? `${KeyPrefix.Agenda}${agenda}_${conversationId}` : conversationId };
+
+      if (minCreatedAt) {
+        expressionAttributeValues[":minCreatedAt"] = `${skPrefix}${minCreatedAt}`;
+        expressionAttributeValues[":now"] = `${skPrefix}${new Date().toISOString()}`;
+      } else {
+        expressionAttributeValues[":skPrefix"] = skPrefix;
+      }
+
+      const { Items: messages, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
-        ScanIndexForward: false,
-        IndexName: this.gsiOneIndexName,
         Limit: limit ?? 25,
-        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :message)",
+        ScanIndexForward: false,
+        IndexName: agenda ? this.gsiTwoIndexName : this.gsiOneIndexName,
+        KeyConditionExpression: `#pk = :pk AND ${minCreatedAt ? "#sk BETWEEN :minCreatedAt AND :now" : "begins_with(#sk, :skPrefix)"}`,
         ExpressionAttributeNames: {
-          "#gsi1pk": "gsi1pk",
-          "#gsi1sk": "gsi1sk",
+          "#pk": agenda ? "gsi2pk" : "gsi1pk",
+          "#sk": agenda ? "gsi2sk" : "gsi1sk",
         },
-        ExpressionAttributeValues: {
-          ":gsi1pk": conversationId,
-          ":message": KeyPrefix.Message,
-        },
+        ExpressionAttributeValues: expressionAttributeValues,
       });
-
-      const messages = rawMessages.map((message) => this.cleanseReactionsSet(message));
 
       return {
         messages,
@@ -256,57 +227,38 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
     try {
       this.loggerService.trace("getRepliesByMessageId called", { params }, this.constructor.name);
 
-      const { messageId, exclusiveStartKey, limit } = params;
+      const { messageId, minCreatedAt, exclusiveStartKey, limit } = params;
 
-      const { Items: rawReplies, LastEvaluatedKey } = await this.query({
+      const skPrefix = `${KeyPrefix.Message}${KeyPrefix.Created}`;
+
+      const expressionAttributeValues: DynamoDB.DocumentClient.ExpressionAttributeValueMap = { ":gsi1pk": `${KeyPrefix.ReplyTo}${messageId}` };
+
+      if (minCreatedAt) {
+        expressionAttributeValues[":minCreatedAt"] = `${skPrefix}${minCreatedAt}`;
+        expressionAttributeValues[":now"] = `${skPrefix}${new Date().toISOString()}`;
+      } else {
+        expressionAttributeValues[":skPrefix"] = skPrefix;
+      }
+
+      const { Items: messages, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         ScanIndexForward: false,
-        IndexName: this.gsiTwoIndexName,
-        KeyConditionExpression: "#gsi2pk = :gsi2pk AND begins_with(#gsi2sk, :reply)",
+        IndexName: this.gsiOneIndexName,
+        KeyConditionExpression: `#gsi1pk = :gsi1pk AND ${minCreatedAt ? "#gsi1sk BETWEEN :minCreatedAt AND :now" : "begins_with(#gsi1sk, :skPrefix)"}`,
         ExpressionAttributeNames: {
-          "#gsi2pk": "gsi2pk",
-          "#gsi2sk": "gsi2sk",
+          "#gsi1pk": "gsi1pk",
+          "#gsi1sk": "gsi1sk",
         },
-        ExpressionAttributeValues: {
-          ":gsi2pk": messageId,
-          ":reply": KeyPrefix.Reply,
-        },
+        ExpressionAttributeValues: expressionAttributeValues,
       });
 
-      const replies = rawReplies.map((reply) => this.cleanseReactionsSet(reply));
-
       return {
-        replies,
+        messages,
         ...(LastEvaluatedKey && { lastEvaluatedKey: this.encodeLastEvaluatedKey(LastEvaluatedKey) }),
       };
     } catch (error: unknown) {
       this.loggerService.error("Error in getRepliesByMessageId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public cleanseReactionsSet(messageWithReactionsSet: MessageWithReactionsSet): Message {
-    try {
-      this.loggerService.trace("cleanseReactionsSet called", { messageWithReactionsSet }, this.constructor.name);
-
-      const { reactions: rawReactions, ...rest } = messageWithReactionsSet;
-
-      const reactions = Object.entries(rawReactions).reduce((acc: Record<string, UserId[]>, entry) => {
-        const [ reaction, userIdSet ] = entry;
-
-        acc[reaction] = userIdSet.values as UserId[];
-
-        return acc;
-      }, {});
-
-      return {
-        ...rest,
-        reactions,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in cleanseReactionsSet", { error, messageWithReactionsSet }, this.constructor.name);
 
       throw error;
     }
@@ -318,12 +270,31 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<MessageWithR
 
       const { rawMessage } = params;
 
-      const messageWithReactionsSet = this.cleanse(rawMessage);
-      const message = this.cleanseReactionsSet(messageWithReactionsSet);
+      const message = this.cleanse(rawMessage);
 
       return { message };
     } catch (error: unknown) {
       this.loggerService.error("Error in convertRawMessageToMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public override cleanse<T>(item: RawEntity<T>): CleansedEntity<T> {
+    try {
+      this.loggerService.trace("cleanse called", { item }, this.constructor.name);
+
+      const { reactions: rawReactions, ...rest } = item as unknown as RawMessage;
+
+      const reactions: Record<string, UserId[]> = {};
+
+      Object.entries(rawReactions).forEach(([ reaction, userIdSet ]) => {
+        reactions[reaction] = userIdSet.values as UserId[];
+      }, {});
+
+      return super.cleanse({ ...rest, reactions });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in cleanse", { error, item }, this.constructor.name);
 
       throw error;
     }
@@ -334,44 +305,42 @@ export interface MessageRepositoryInterface {
   createMessage(params: CreateMessageInput): Promise<CreateMessageOutput>;
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
-  updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput>;
-  updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
-  updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
-  incrementMessageReplyCount(params: IncrementMessageReplyCountInput): Promise<IncrementMessageReplyCountOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
+  updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
+  markMessageSeen(params: MarkMessageSeenInput): Promise<MarkMessageSeenOutput>;
+  addMessageReaction(params: AddMessageReactionInput): Promise<AddMessageReactionOutput>;
+  removeMessageReaction(params: RemoveMessageReactionInput): Promise<RemoveMessageReactionOutput>
   convertRawMessageToMessage(params: ConvertRawMessageToMessageInput): ConvertRawMessageToMessageOutput;
 }
 
 type MessageRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
+
 export interface Message {
   id: MessageId;
   conversationId: ConversationId;
   from: UserId;
   createdAt: string;
+  updatedAt: string;
   seenAt: Record<UserId, string | null>;
   reactions: Record<string, UserId[]>;
   replyCount: number;
   mimeType: MessageMimeType;
-  transcript: string;
+  transcript?: string;
   replyTo?: MessageId;
+  agenda?: string;
   title?: string;
-}
-
-export interface MessageWithReactionsSet extends Omit<Message, "reactions"> {
-  reactions: Record<string, DynamoDB.DocumentClient.DynamoDbSet>;
 }
 
 export interface RawMessage extends Omit<Message, "reactions"> {
   entityType: EntityType.Message,
   pk: MessageId;
-  sk: MessageId;
-  gsi1pk: ConversationId;
-  gsi1sk: MessageId;
-  // Message replying to (if a reply)
-  gsi2pk?: MessageId;
-  gsi2sk?: MessageId;
+  sk: EntityType.Message;
   reactions: Record<string, DynamoDB.DocumentClient.DynamoDbSet>;
+  gsi1pk?: ConversationId | `${KeyPrefix.ReplyTo}${MessageId}`;
+  gsi1sk?: `${KeyPrefix.Message}${KeyPrefix.Created}${string}`;
+  gsi2pk?: `${KeyPrefix.Agenda}${string}_${ConversationId}`;
+  gsi2sk?: `${KeyPrefix.Message}${KeyPrefix.Created}${string}`;
 }
 
 export interface CreateMessageInput {
@@ -390,37 +359,10 @@ export interface GetMessageOutput {
   message: Message;
 }
 
-export interface GetMessagesInput {
-  messageIds: MessageId[];
-}
-
-export interface GetMessagesOutput {
-  messages: Message[];
-}
-
-export interface UpdateMessageSeenAtInput {
-  messageId: MessageId;
-  userId: UserId;
-  seenAtValue: string | null;
-}
-
-export interface UpdateMessageSeenAtOutput {
-  message: Message;
-}
-
-export interface UpdateMessageInput {
-  messageId: MessageId;
-  updates: {
-    transcript: string;
-  }
-}
-
-export interface UpdateMessageOutput {
-  message: Message;
-}
-
 export interface GetMessagesByConversationIdInput {
   conversationId: ConversationId;
+  minCreatedAt?: string;
+  agenda?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -432,33 +374,71 @@ export interface GetMessagesByConversationIdOutput {
 
 export interface GetRepliesByMessageIdInput {
   messageId: MessageId;
+  minCreatedAt?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
 
 export interface GetRepliesByMessageIdOutput {
-  replies: Message[];
+  messages: Message[];
   lastEvaluatedKey?: string;
 }
 
-export interface UpdateMessageReactionInput {
+export type MessageUpdates = Partial<Pick<Message, "transcript">>;
+
+export interface UpdateMessageInput {
+  messageId: MessageId;
+  updates: MessageUpdates;
+}
+
+export interface UpdateMessageOutput {
+  message: Message;
+}
+
+export interface MarkMessageSeenInput {
+  messageId: MessageId;
+  userId: UserId;
+}
+
+export interface MarkMessageSeenOutput {
+  message: Message;
+}
+
+export interface MarkMessageUnseenInput {
+  messageId: MessageId;
+  userId: UserId;
+}
+
+export interface MarkMessageUnseenOutput {
+  message: Message;
+}
+
+export interface AddMessageReactionInput {
   messageId: MessageId;
   userId: UserId;
   reaction: string;
-  action: UpdateMessageReactionAction;
 }
 
-export interface UpdateMessageReactionOutput {
+export interface AddMessageReactionOutput {
   message: Message;
 }
 
-export interface IncrementMessageReplyCountInput {
+export interface RemoveMessageReactionInput {
   messageId: MessageId;
-
+  userId: UserId;
+  reaction: string;
 }
 
-export interface IncrementMessageReplyCountOutput {
+export interface RemoveMessageReactionOutput {
   message: Message;
+}
+
+export interface GetMessagesInput {
+  messageIds: MessageId[];
+}
+
+export interface GetMessagesOutput {
+  messages: Message[];
 }
 
 export interface ConvertRawMessageToMessageInput {
@@ -469,3 +449,5 @@ export interface ConvertRawMessageToMessageInput {
 export interface ConvertRawMessageToMessageOutput {
   message: Message;
 }
+
+export type ConversationId = GroupId | MeetingId | OneOnOneId;

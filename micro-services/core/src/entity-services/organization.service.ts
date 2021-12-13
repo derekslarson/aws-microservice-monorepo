@@ -1,9 +1,8 @@
 import { inject, injectable } from "inversify";
-import { BillingPlan, FileOperation, IdServiceInterface, LoggerServiceInterface, OrganizationId } from "@yac/util";
+import { BillingPlan, FileOperation, IdServiceInterface, LoggerServiceInterface, OrganizationId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { OrganizationRepositoryInterface, Organization as OrganizationEntity, OrganizationUpdates, RawOrganization } from "../repositories/organization.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { UserId } from "../types/userId.type";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
@@ -30,12 +29,16 @@ export class OrganizationService implements OrganizationServiceInterface {
 
       const { image, mimeType: imageMimeType } = this.imageFileRepository.createDefaultImage();
 
+      const now = new Date().toISOString();
+
       const organizationEntity: OrganizationEntity = {
         id: organizationId,
+        createdBy,
         imageMimeType,
         name,
-        createdBy,
         billingPlan: BillingPlan.Free,
+        createdAt: now,
+        updatedAt: now,
       };
 
       await Promise.all([

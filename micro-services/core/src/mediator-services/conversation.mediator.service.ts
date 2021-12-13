@@ -4,8 +4,8 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationServiceInterface, Conversation as ConversationEntity, GroupConversation, MeetingConversation } from "../entity-services/conversation.service";
-import { ConversationUserRelationshipServiceInterface, ConversationFetchTypeToConversationType, ConversationUserRelationship } from "../entity-services/conversationUserRelationship.service";
+import { ConversationServiceInterface, Conversation as ConversationEntity, Group, Meeting } from "../entity-services/group.service";
+import { ConversationUserRelationshipServiceInterface, ConversationFetchTypeToConversationType, ConversationUserRelationship } from "../entity-services/groupMembership.service";
 import { UserId } from "../types/userId.type";
 import { ConversationType } from "../types/conversationType.type";
 import { ConversationType as ConversationTypeEnum } from "../enums/conversationType.enum";
@@ -116,7 +116,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
       // We need to create maps of each of the responses by their ids
       // so that we can fetch each one with O(1) time complexity
       // when generating the final conversation objects
-      const entityMap: Record<string, User | GroupConversation | MeetingConversation> = {};
+      const entityMap: Record<string, User | Group | Meeting> = {};
       [ ...friends, ...groupsAndMeetings ].forEach((entity) => entityMap[entity.id] = entity);
 
       const recentMessageMap: Record<string, Message> = {};
@@ -198,7 +198,7 @@ export class ConversationMediatorService implements ConversationMediatorServiceI
         this.conversationService.getConversations({ conversationIds: Array.from(groupMeetingIdSet) }),
       ]);
 
-      const entityMap: Record<string, User | GroupConversation | MeetingConversation> = {};
+      const entityMap: Record<string, User | Group | Meeting> = {};
       [ ...users, ...groupsAndMeetings ].forEach((toEntity) => entityMap[toEntity.id] = toEntity);
 
       const recentMessages = recentMessageEntitiesWithToEntityId.map((message) => {
@@ -265,7 +265,7 @@ export interface IsConversationMemberOutput {
   isConversationMember: boolean;
 }
 
-type To = User | GroupConversation | MeetingConversation;
+type To = User | Group | Meeting;
 
 interface GetRecentMessagesInput {
   recentMessageIds: MessageId[];

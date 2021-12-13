@@ -1,13 +1,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, Role } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, MeetingId, Role, UserId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
-import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
-import { MeetingId } from "./meeting.dynamo.repository";
-import { UserId } from "./user.dynamo.repository.v2";
-import { MessageId } from "./message.dynamo.repository.v2";
+import { EntityType } from "../enums/entityType.enum";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
 export class MeetingMembershipDynamoRepository extends BaseDynamoRepositoryV2<MeetingMembership> implements MeetingMembershipRepositoryInterface {
@@ -36,15 +33,15 @@ export class MeetingMembershipDynamoRepository extends BaseDynamoRepositoryV2<Me
       const { meetingMembership } = params;
 
       const meetingMembershipEntity: RawMeetingMembership = {
-        entityType: EntityTypeV2.MeetingMembership,
+        entityType: EntityType.MeetingMembership,
         pk: meetingMembership.userId,
         sk: meetingMembership.meetingId,
         gsi1pk: meetingMembership.meetingId,
-        gsi1sk: `${KeyPrefixV2.User}${KeyPrefixV2.Active}${meetingMembership.userActiveAt}`,
+        gsi1sk: `${KeyPrefix.User}${KeyPrefix.Active}${meetingMembership.userActiveAt}`,
         gsi2pk: meetingMembership.userId,
-        gsi2sk: `${KeyPrefixV2.Meeting}${KeyPrefixV2.Active}${meetingMembership.meetingActiveAt}`,
+        gsi2sk: `${KeyPrefix.Meeting}${KeyPrefix.Active}${meetingMembership.meetingActiveAt}`,
         gsi3pk: meetingMembership.userId,
-        gsi3sk: `${KeyPrefixV2.Meeting}${KeyPrefixV2.Due}${meetingMembership.meetingDueAt}`,
+        gsi3sk: `${KeyPrefix.Meeting}${KeyPrefix.Due}${meetingMembership.meetingDueAt}`,
         ...meetingMembership,
       };
 
@@ -87,15 +84,15 @@ export class MeetingMembershipDynamoRepository extends BaseDynamoRepositoryV2<Me
       const rawUpdates: UpdateMeetingMembershipRawUpdates = { ...updates };
 
       if (updates.userActiveAt) {
-        rawUpdates.gsi1sk = `${KeyPrefixV2.User}${KeyPrefixV2.Active}${updates.userActiveAt}`;
+        rawUpdates.gsi1sk = `${KeyPrefix.User}${KeyPrefix.Active}${updates.userActiveAt}`;
       }
 
       if (updates.meetingActiveAt) {
-        rawUpdates.gsi2sk = `${KeyPrefixV2.Meeting}${KeyPrefixV2.Active}${updates.meetingActiveAt}`;
+        rawUpdates.gsi2sk = `${KeyPrefix.Meeting}${KeyPrefix.Active}${updates.meetingActiveAt}`;
       }
 
       if (updates.meetingDueAt) {
-        rawUpdates.gsi3sk = `${KeyPrefixV2.Meeting}${KeyPrefixV2.Due}${updates.meetingDueAt}`;
+        rawUpdates.gsi3sk = `${KeyPrefix.Meeting}${KeyPrefix.Due}${updates.meetingDueAt}`;
       }
 
       const meetingMembership = await this.partialUpdate(userId, meetingId, rawUpdates);
@@ -141,7 +138,7 @@ export class MeetingMembershipDynamoRepository extends BaseDynamoRepositoryV2<Me
         },
         ExpressionAttributeValues: {
           ":meetingId": meetingId,
-          ":userActive": `${KeyPrefixV2.User}${KeyPrefixV2.Active}`,
+          ":userActive": `${KeyPrefix.User}${KeyPrefix.Active}`,
         },
       });
 
@@ -160,20 +157,20 @@ export class MeetingMembershipDynamoRepository extends BaseDynamoRepositoryV2<Me
     try {
       this.loggerService.trace("getMeetingMembershipsByUserId called", { params }, this.constructor.name);
 
-      const { userId, byDueAt, exclusiveStartKey, limit } = params;
+      const { userId, byMeetingDueAt, exclusiveStartKey, limit } = params;
 
       const { Items: meetingMemberships, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
-        IndexName: byDueAt ? this.gsiThreeIndexName : this.gsiTwoIndexName,
+        IndexName: byMeetingDueAt ? this.gsiThreeIndexName : this.gsiTwoIndexName,
         KeyConditionExpression: "#pk = :userId AND begins_with(#sk, :skPrefix)",
         ExpressionAttributeNames: {
-          "#pk": byDueAt ? "gsi3pk" : "gsi2pk",
-          "#sk": byDueAt ? "gsi3pk" : "gsi2sk",
+          "#pk": byMeetingDueAt ? "gsi3pk" : "gsi2pk",
+          "#sk": byMeetingDueAt ? "gsi3pk" : "gsi2sk",
         },
         ExpressionAttributeValues: {
           ":userId": userId,
-          ":skPrefix": `${KeyPrefixV2.Meeting}${byDueAt ? KeyPrefixV2.Due : KeyPrefixV2.Active}`,
+          ":skPrefix": `${KeyPrefix.Meeting}${byMeetingDueAt ? KeyPrefix.Due : KeyPrefix.Active}`,
         },
       });
 
@@ -210,7 +207,7 @@ export interface MeetingMembership {
   meetingDueAt: string;
 }
 export interface RawMeetingMembership extends MeetingMembership {
-  entityType: EntityTypeV2.MeetingMembership,
+  entityType: EntityType.MeetingMembership,
   pk: UserId;
   sk: MeetingId;
   gsi1pk: MeetingId;
@@ -238,6 +235,16 @@ export interface GetMeetingMembershipOutput {
   meetingMembership: MeetingMembership;
 }
 
+export interface UpdateMeetingMembershipInput {
+  userId: UserId;
+  meetingId: MeetingId;
+  updates: UpdateMeetingMembershipUpdates;
+}
+
+export interface UpdateMeetingMembershipOutput {
+  meetingMembership: MeetingMembership;
+}
+
 export interface DeleteMeetingMembershipInput {
   meetingId: MeetingId;
   userId: UserId;
@@ -258,7 +265,7 @@ export interface GetMeetingMembershipsByMeetingIdOutput {
 
 export interface GetMeetingMembershipsByUserIdInput {
   userId: UserId;
-  byDueAt?: boolean;
+  byMeetingDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -268,39 +275,9 @@ export interface GetMeetingMembershipsByUserIdOutput {
   lastEvaluatedKey?: string;
 }
 
-export interface AddUnreadMessageToMeetingMembershipInput {
-  userId: UserId;
-  meetingId: MeetingId;
-  messageId: MessageId;
-}
-
-export interface AddUnreadMessageToMeetingMembershipOutput{
-  meetingMembership: MeetingMembership;
-}
-
-export interface RemoveUnreadMessageFromMeetingMembershipInput {
-  userId: UserId;
-  meetingId: MeetingId;
-  messageId: MessageId;
-}
-
-export interface RemoveUnreadMessageFromMeetingMembershipOutput {
-  meetingMembership: MeetingMembership;
-}
-
-export interface UpdateMeetingMembershipInput {
-  userId: UserId;
-  meetingId: MeetingId;
-  updates: UpdateMeetingMembershipUpdates;
-}
-
-export interface UpdateMeetingMembershipOutput {
-  meetingMembership: MeetingMembership;
-}
-
 type UpdateMeetingMembershipUpdates = Partial<Pick<MeetingMembership, "role" | "meetingDueAt" | "userActiveAt" | "meetingActiveAt">>;
 type UpdateMeetingMembershipRawUpdates = UpdateMeetingMembershipUpdates & { gsi1sk?: Gsi1Sk; gsi2sk?: Gsi2Sk; gsi3sk?: Gsi3Sk; };
 
-type Gsi1Sk = `${KeyPrefixV2.User}${KeyPrefixV2.Active}${string}`;
-type Gsi2Sk = `${KeyPrefixV2.Meeting}${KeyPrefixV2.Active}${string}`;
-type Gsi3Sk = `${KeyPrefixV2.Meeting}${KeyPrefixV2.Due}${string}`;
+type Gsi1Sk = `${KeyPrefix.User}${KeyPrefix.Active}${string}`;
+type Gsi2Sk = `${KeyPrefix.Meeting}${KeyPrefix.Active}${string}`;
+type Gsi3Sk = `${KeyPrefix.Meeting}${KeyPrefix.Due}${string}`;

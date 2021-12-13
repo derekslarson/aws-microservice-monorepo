@@ -33,7 +33,7 @@ export class MeetingMessageCreatedDynamoProcessorService implements DynamoProces
 
       const isCoreTable = record.tableName === this.coreTableName;
       const isMessage = record.newImage.entityType === EntityType.Message;
-      const isMeetingMessage = isMessage && (record.newImage as RawMessage).conversationId.startsWith(KeyPrefix.MeetingConversation);
+      const isMeetingMessage = isMessage && (record.newImage as RawMessage).conversationId.startsWith(KeyPrefix.Meeting);
       const isCreation = record.eventName === "INSERT";
 
       return isCoreTable && isMeetingMessage && isCreation;

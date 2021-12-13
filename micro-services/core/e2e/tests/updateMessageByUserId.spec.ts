@@ -9,7 +9,7 @@ import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
 import { RawConversationUserRelationship } from "../../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { UserId } from "../../src/types/userId.type";
-import { createRandomUser, createConversationUserRelationship, createMessage, CreateRandomUserOutput, getConversationUserRelationship, getMessage, CreateGroupConversationOutput, createGroupConversation } from "../util";
+import { createRandomUser, createConversationUserRelationship, createMessage, CreateRandomUserOutput, getConversationUserRelationship, getMessage, CreateGroupOutput, createGroup } from "../util";
 
 describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)", () => {
   const baseUrl = process.env.baseUrl as string;
@@ -17,13 +17,13 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
   const accessToken = process.env.accessToken as string;
   const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
-  let group: CreateGroupConversationOutput["conversation"];
+  let group: CreateGroupOutput["conversation"];
   let otherUser: CreateRandomUserOutput["user"];
 
   beforeAll(async () => {
     ([ { user: otherUser }, { conversation: group } ] = await Promise.all([
       createRandomUser(),
-      createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
+      createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }),
     ]));
   });
 
@@ -442,11 +442,11 @@ describe("PATCH /users/{userId}/messages/{messageId} (Update Message by User Id)
     });
 
     describe("when an id of a message that the user is not a member of the conversation is passed in", () => {
-      let groupTwo: CreateGroupConversationOutput["conversation"];
+      let groupTwo: CreateGroupOutput["conversation"];
       let message: RawMessage;
 
       beforeAll(async () => {
-        ({ conversation: groupTwo } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
+        ({ conversation: groupTwo } = await createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) }));
 
         ([ { message } ] = await Promise.all([
           createMessage({ from: otherUser.id, conversationId: groupTwo.id, conversationMemberIds: [ otherUser.id ], replyCount: 0, mimeType: MessageMimeType.AudioMp3, title: generateRandomString(5) }),

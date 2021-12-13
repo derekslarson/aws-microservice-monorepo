@@ -7,14 +7,14 @@ import { ConversationType } from "../../src/enums/conversationType.enum";
 import { EntityType } from "../../src/enums/entityType.enum";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { MessageMimeType } from "../../src/enums/message.mimeType.enum";
-import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { RawUser } from "../../src/repositories/user.dynamo.repository";
 import { MessageId } from "../../src/types/messageId.type";
 import { PendingMessageId } from "../../src/types/pendingMessageId.type";
 import { UserId } from "../../src/types/userId.type";
 import {
   createConversationUserRelationship,
-  createMeetingConversation,
+  createMeeting,
   createRandomUser,
   getMessage,
   getPendingMessage,
@@ -32,7 +32,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
   describe("under normal conditions", () => {
     let user: RawUser;
     let otherUser: RawUser;
-    let meeting: RawConversation<MeetingConversation>;
+    let meeting: RawConversation<Meeting>;
 
     beforeAll(async () => {
       ({ user } = await getUser({ userId }) as MakeRequired<GetUserOutput, "user">);
@@ -41,10 +41,10 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
     beforeEach(async () => {
       ([ { user: otherUser }, { conversation: meeting } ] = await Promise.all([
         createRandomUser(),
-        createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
+        createMeeting({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }),
       ]));
 
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+      ({ conversation: meeting } = await createMeeting({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
 
       await Promise.all([
         createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin }),
@@ -136,7 +136,7 @@ describe("POST /meetings/{meetingId}/messages (Create Meeting Message)", () => {
   });
 
   describe("under error conditions", () => {
-    const mockMeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
+    const mockMeetingId = `${KeyPrefix.Meeting}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {

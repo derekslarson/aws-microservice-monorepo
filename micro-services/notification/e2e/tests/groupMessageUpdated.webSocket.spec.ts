@@ -87,7 +87,7 @@ describe("Group Message Updated (WebSocket Event)", () => {
         message: {
           id: "message-id",
           to: {
-            id: "convo-group-id",
+            id: "group_id",
             name: "mock-name",
             image: "mock-image",
             createdBy: "user-mock-id",

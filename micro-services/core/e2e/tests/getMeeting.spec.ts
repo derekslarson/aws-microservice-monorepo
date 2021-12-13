@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios from "axios";
 import { OrganizationId, Role } from "@yac/util";
-import { createConversationUserRelationship, createMeetingConversation } from "../util";
+import { createConversationUserRelationship, createMeeting } from "../util";
 import { UserId } from "../../src/types/userId.type";
-import { MeetingConversation, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
+import { Meeting, RawConversation } from "../../src/repositories/conversation.dynamo.repository";
 import { generateRandomString, URL_REGEX } from "../../../../e2e/util";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
 import { TeamId } from "../../src/types/teamId.type";
@@ -20,10 +20,10 @@ describe("GET /meetings/{meetingId} (Get Meeting)", () => {
   const mockOrganizationId: OrganizationId = `${KeyPrefix.Organization}${generateRandomString()}`;
 
   describe("under normal conditions", () => {
-    let meeting: RawConversation<MeetingConversation>;
+    let meeting: RawConversation<Meeting>;
 
     beforeAll(async () => {
-      ({ conversation: meeting } = await createMeetingConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString(), teamId: mockTeamId }));
+      ({ conversation: meeting } = await createMeeting({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString(), teamId: mockTeamId }));
 
       await createConversationUserRelationship({ type: ConversationType.Meeting, conversationId: meeting.id, userId, role: Role.Admin });
     });
@@ -56,7 +56,7 @@ describe("GET /meetings/{meetingId} (Get Meeting)", () => {
 
   describe("under error conditions", () => {
     const mockUserId: UserId = `${KeyPrefix.User}${generateRandomString(5)}`;
-    const mockMeetingId: MeetingId = `${KeyPrefix.MeetingConversation}${generateRandomString(5)}`;
+    const mockMeetingId: MeetingId = `${KeyPrefix.Meeting}${generateRandomString(5)}`;
 
     describe("when an access token is not passed in the headers", () => {
       it("throws a 401 error", async () => {
@@ -74,10 +74,10 @@ describe("GET /meetings/{meetingId} (Get Meeting)", () => {
     });
 
     describe("when a meetingId of a group the user is not a member of is passed in", () => {
-      let meeting: RawConversation<MeetingConversation>;
+      let meeting: RawConversation<Meeting>;
 
       beforeAll(async () => {
-        ({ conversation: meeting } = await createMeetingConversation({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
+        ({ conversation: meeting } = await createMeeting({ createdBy: mockUserId, organizationId: mockOrganizationId, name: generateRandomString(5), dueDate: new Date().toISOString() }));
       });
 
       it("throws a 403 error", async () => {

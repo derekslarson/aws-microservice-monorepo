@@ -3,7 +3,7 @@
 import axios from "axios";
 import { MessageMimeType, OrganizationId } from "@yac/util";
 import { generateRandomString, getAccessToken } from "../../../../e2e/util";
-import { createGroupConversation, createMessage, createRandomUser, getMessage } from "../util";
+import { createGroup, createMessage, createRandomUser, getMessage } from "../util";
 import { UserId } from "../../src/types/userId.type";
 import { RawMessage } from "../../src/repositories/message.dynamo.repository";
 import { KeyPrefix } from "../../src/enums/keyPrefix.enum";
@@ -16,7 +16,7 @@ describe("PATCH /messages/{messageId} (Update Message)", () => {
 
   let message: RawMessage;
   beforeEach(async () => {
-    const { conversation } = await createGroupConversation({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) });
+    const { conversation } = await createGroup({ createdBy: userId, organizationId: mockOrganizationId, name: generateRandomString(5) });
     ({ message } = await createMessage({
       from: userId,
       conversationId: conversation.id,

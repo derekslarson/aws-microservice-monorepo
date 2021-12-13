@@ -1,6 +1,5 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/util";
-
 import { TYPES } from "../inversion-of-control/types";
 import { SearchRepositoryInterface, UserGroupOrMeetingOnlyIdRequired, UserGroupOrMeetingId } from "../repositories/openSearch.repository";
 

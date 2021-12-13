@@ -119,7 +119,7 @@ describe("FriendMessageUpdatedDynamoProcessorService", () => {
           ...mockRecord,
           newImage: {
             ...mockRecord.newImage,
-            conversationId: `${KeyPrefix.GroupConversation}-id`,
+            conversationId: `${KeyPrefix.Group}-id`,
           },
         };
 

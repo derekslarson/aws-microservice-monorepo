@@ -18,7 +18,7 @@ export class UserService implements UserServiceInterface {
       const { name, username, email, phone } = params;
 
       const userEntity: User = {
-        id: `user-${this.idService.generateId()}`,
+        id: `user_${this.idService.generateId()}`,
         createdAt: new Date().toISOString(),
         name,
         username,

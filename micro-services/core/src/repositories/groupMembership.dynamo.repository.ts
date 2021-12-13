@@ -1,13 +1,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, Role } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, GroupId, LoggerServiceInterface, Role, UserId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
-import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
-import { GroupId } from "./group.dynamo.repository";
-import { MessageId } from "./message.dynamo.repository.v2";
-import { UserId } from "./user.dynamo.repository.v2";
+import { EntityType } from "../enums/entityType.enum";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
 export class GroupMembershipDynamoRepository extends BaseDynamoRepositoryV2<GroupMembership> implements GroupMembershipRepositoryInterface {
@@ -33,13 +30,13 @@ export class GroupMembershipDynamoRepository extends BaseDynamoRepositoryV2<Grou
       const { groupMembership } = params;
 
       const groupMembershipEntity: RawGroupMembership = {
-        entityType: EntityTypeV2.GroupMembership,
+        entityType: EntityType.GroupMembership,
         pk: groupMembership.userId,
         sk: groupMembership.groupId,
         gsi1pk: groupMembership.groupId,
-        gsi1sk: `${KeyPrefixV2.User}${KeyPrefixV2.Active}${groupMembership.userActiveAt}`,
+        gsi1sk: `${KeyPrefix.User}${KeyPrefix.Active}${groupMembership.userActiveAt}`,
         gsi2pk: groupMembership.userId,
-        gsi2sk: `${KeyPrefixV2.Group}${KeyPrefixV2.Active}${groupMembership.groupActiveAt}`,
+        gsi2sk: `${KeyPrefix.Group}${KeyPrefix.Active}${groupMembership.groupActiveAt}`,
         ...groupMembership,
       };
 
@@ -82,11 +79,11 @@ export class GroupMembershipDynamoRepository extends BaseDynamoRepositoryV2<Grou
       const rawUpdates: UpdateGroupMembershipRawUpdates = { ...updates };
 
       if (updates.userActiveAt) {
-        rawUpdates.gsi1sk = `${KeyPrefixV2.User}${KeyPrefixV2.Active}${updates.userActiveAt}`;
+        rawUpdates.gsi1sk = `${KeyPrefix.User}${KeyPrefix.Active}${updates.userActiveAt}`;
       }
 
       if (updates.groupActiveAt) {
-        rawUpdates.gsi2sk = `${KeyPrefixV2.Group}${KeyPrefixV2.Active}${updates.groupActiveAt}`;
+        rawUpdates.gsi2sk = `${KeyPrefix.Group}${KeyPrefix.Active}${updates.groupActiveAt}`;
       }
 
       const groupMembership = await this.partialUpdate(userId, groupId, rawUpdates);
@@ -132,7 +129,7 @@ export class GroupMembershipDynamoRepository extends BaseDynamoRepositoryV2<Grou
         },
         ExpressionAttributeValues: {
           ":groupId": groupId,
-          ":userActive": `${KeyPrefixV2.User}${KeyPrefixV2.Active}`,
+          ":userActive": `${KeyPrefix.User}${KeyPrefix.Active}`,
         },
       });
 
@@ -164,7 +161,7 @@ export class GroupMembershipDynamoRepository extends BaseDynamoRepositoryV2<Grou
         },
         ExpressionAttributeValues: {
           ":userId": userId,
-          ":groupActive": `${KeyPrefixV2.Group}${KeyPrefixV2.Active}`,
+          ":groupActive": `${KeyPrefix.Group}${KeyPrefix.Active}`,
         },
       });
 
@@ -201,7 +198,7 @@ export interface GroupMembership {
 }
 
 export interface RawGroupMembership extends GroupMembership {
-  entityType: EntityTypeV2.GroupMembership,
+  entityType: EntityType.GroupMembership,
   pk: UserId;
   sk: GroupId;
   gsi1pk: GroupId;
@@ -224,6 +221,16 @@ export interface GetGroupMembershipInput {
 }
 
 export interface GetGroupMembershipOutput {
+  groupMembership: GroupMembership;
+}
+
+export interface UpdateGroupMembershipInput {
+  userId: UserId;
+  groupId: GroupId;
+  updates: UpdateGroupMembershipUpdates;
+}
+
+export interface UpdateGroupMembershipOutput {
   groupMembership: GroupMembership;
 }
 
@@ -256,18 +263,8 @@ export interface GetGroupMembershipsByUserIdOutput {
   lastEvaluatedKey?: string;
 }
 
-export interface UpdateGroupMembershipInput {
-  userId: UserId;
-  groupId: GroupId;
-  updates: UpdateGroupMembershipUpdates;
-}
-
-export interface UpdateGroupMembershipOutput {
-  groupMembership: GroupMembership;
-}
-
 type UpdateGroupMembershipUpdates = Partial<Pick<GroupMembership, "role" | "userActiveAt" | "groupActiveAt">>;
 type UpdateGroupMembershipRawUpdates = UpdateGroupMembershipUpdates & { gsi1sk?: Gsi1Sk; gsi2sk?: Gsi2Sk; };
 
-type Gsi1Sk = `${KeyPrefixV2.User}${KeyPrefixV2.Active}${string}`;
-type Gsi2Sk = `${KeyPrefixV2.Group}${KeyPrefixV2.Active}${string}`;
+type Gsi1Sk = `${KeyPrefix.User}${KeyPrefix.Active}${string}`;
+type Gsi2Sk = `${KeyPrefix.Group}${KeyPrefix.Active}${string}`;

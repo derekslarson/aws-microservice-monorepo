@@ -30,10 +30,10 @@ export class UserAddedToMeetingDynamoProcessorService implements DynamoProcessor
 
       const isCoreTable = record.tableName === this.coreTableName;
       const isConversationUserRelationship = record.newImage.entityType === EntityType.ConversationUserRelationship;
-      const isMeetingConversationUserRelationship = (record.newImage as RawConversationUserRelationship<ConversationType>).type === ConversationType.Meeting;
+      const isMeetingUserRelationship = (record.newImage as RawConversationUserRelationship<ConversationType>).type === ConversationType.Meeting;
       const isCreation = record.eventName === "INSERT";
 
-      return isCoreTable && isConversationUserRelationship && isMeetingConversationUserRelationship && isCreation;
+      return isCoreTable && isConversationUserRelationship && isMeetingUserRelationship && isCreation;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 

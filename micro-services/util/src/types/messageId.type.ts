@@ -1,1 +1,1 @@
-export type MessageId = `message-${string}`;
+export type MessageId = `message_${string}`;

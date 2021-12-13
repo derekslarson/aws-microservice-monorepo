@@ -1,14 +1,12 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, MeetingId, OrganizationId, TeamId, UserId } from "@yac/util";
 
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
-import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
+import { EntityType } from "../enums/entityType.enum";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
-import { OrganizationId } from "./organization.dynamo.repository.v2";
-import { TeamId } from "./team.dynamo.repository.v2";
+import { KeyPrefix } from "../enums/keyPrefix.enum";
 
 @injectable()
 export class MeetingDynamoRepository extends BaseDynamoRepositoryV2<Meeting> implements MeetingRepositoryInterface {
@@ -33,13 +31,13 @@ export class MeetingDynamoRepository extends BaseDynamoRepositoryV2<Meeting> imp
       const { meeting } = params;
 
       const meetingEntity: RawMeeting = {
-        entityType: EntityTypeV2.Meeting,
+        entityType: EntityType.Meeting,
         pk: meeting.id,
-        sk: EntityTypeV2.Meeting,
+        sk: EntityType.Meeting,
         gsi1pk: meeting.teamId || meeting.organizationId,
-        gsi1sk: `${KeyPrefixV2.Meeting}${KeyPrefixV2.Active}${meeting.activeAt}`,
+        gsi1sk: `${KeyPrefix.Meeting}${KeyPrefix.Active}${meeting.activeAt}`,
         gsi2pk: meeting.teamId || meeting.organizationId,
-        gsi2sk: `${KeyPrefixV2.Meeting}${KeyPrefixV2.Due}${meeting.dueAt}`,
+        gsi2sk: `${KeyPrefix.Meeting}${KeyPrefix.Due}${meeting.dueAt}`,
         ...meeting,
       };
 
@@ -63,7 +61,7 @@ export class MeetingDynamoRepository extends BaseDynamoRepositoryV2<Meeting> imp
 
       const { meetingId } = params;
 
-      const meeting = await this.get({ Key: { pk: meetingId, sk: EntityTypeV2.Meeting } }, "Meeting");
+      const meeting = await this.get({ Key: { pk: meetingId, sk: EntityType.Meeting } }, "Meeting");
 
       return { meeting };
     } catch (error: unknown) {
@@ -79,7 +77,7 @@ export class MeetingDynamoRepository extends BaseDynamoRepositoryV2<Meeting> imp
 
       const { meetingId, updates } = params;
 
-      const meeting = await this.partialUpdate(meetingId, EntityTypeV2.Meeting, updates);
+      const meeting = await this.partialUpdate(meetingId, EntityType.Meeting, updates);
 
       return { meeting };
     } catch (error: unknown) {
@@ -95,7 +93,7 @@ export class MeetingDynamoRepository extends BaseDynamoRepositoryV2<Meeting> imp
 
       const { meetingIds } = params;
 
-      const meetings = await this.batchGet({ Keys: meetingIds.map((meetingId) => ({ pk: meetingId, sk: EntityTypeV2.Meeting })) });
+      const meetings = await this.batchGet({ Keys: meetingIds.map((meetingId) => ({ pk: meetingId, sk: EntityType.Meeting })) });
 
       return { meetings };
     } catch (error: unknown) {
@@ -171,7 +169,7 @@ export class MeetingDynamoRepository extends BaseDynamoRepositoryV2<Meeting> imp
         },
         ExpressionAttributeValues: {
           ":teamIdOrOrgId": teamIdOrOrganizationId,
-          ":skPrefix": `${KeyPrefixV2.Meeting}${byDueAt ? KeyPrefixV2.Due : KeyPrefixV2.Active}`,
+          ":skPrefix": `${KeyPrefix.Meeting}${byDueAt ? KeyPrefix.Due : KeyPrefix.Active}`,
         },
       });
 
@@ -204,6 +202,7 @@ export interface Meeting {
   organizationId: OrganizationId;
   imageMimeType: ImageMimeType;
   name: string;
+  createdBy: UserId;
   createdAt: string;
   updatedAt: string;
   activeAt: string;
@@ -213,13 +212,13 @@ export interface Meeting {
 }
 
 export interface RawMeeting extends Meeting {
-  entityType: EntityTypeV2.Meeting,
+  entityType: EntityType.Meeting,
   pk: MeetingId;
-  sk: EntityTypeV2.Meeting;
+  sk: EntityType.Meeting;
   gsi1pk: OrganizationId | TeamId;
-  gsi1sk: `${KeyPrefixV2.Meeting}${KeyPrefixV2.Active}${string}`;
+  gsi1sk: `${KeyPrefix.Meeting}${KeyPrefix.Active}${string}`;
   gsi2pk: OrganizationId | TeamId;
-  gsi2sk: `${KeyPrefixV2.Meeting}${KeyPrefixV2.Due}${string}`;
+  gsi2sk: `${KeyPrefix.Meeting}${KeyPrefix.Due}${string}`;
 }
 
 export interface CreateMeetingInput {
@@ -289,8 +288,6 @@ export interface ConvertRawMeetingToMeetingInput {
 export interface ConvertRawMeetingToMeetingOutput {
   meeting: Meeting;
 }
-
-export type MeetingId = `${KeyPrefixV2.Meeting}${string}`;
 
 interface GetMeetingsByTeamIdOrOrganizationIdInput {
   teamIdOrOrganizationId: TeamId | OrganizationId;

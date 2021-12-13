@@ -17,7 +17,7 @@
 //   const mockUserRemovedFromGroupSnsTopicArn = "mock-user-removed-from-group-sns-topic-arn";
 //   const mockConfig = { snsTopicArns: { userRemovedFromGroup: mockUserRemovedFromGroupSnsTopicArn } };
 //   const mockUserId = "user-mock-id";
-//   const mockGroupId = "convo-group-mock-id";
+//   const mockGroupId = "group_mock-id";
 
 //   const mockUser: User = {
 //     id: mockUserId,

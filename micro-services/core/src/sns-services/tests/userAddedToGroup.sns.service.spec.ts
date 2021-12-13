@@ -17,7 +17,7 @@
 //   const mockUserAddedToGroupSnsTopicArn = "mock-user-added-to-group-sns-topic-arn";
 //   const mockConfig = { snsTopicArns: { userAddedToGroup: mockUserAddedToGroupSnsTopicArn } };
 //   const mockUserId = "user-mock-id";
-//   const mockGroupId = "convo-group-mock-id";
+//   const mockGroupId = "group_mock-id";
 
 //   const mockUser: User = {
 //     id: mockUserId,

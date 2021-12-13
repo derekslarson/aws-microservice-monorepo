@@ -21,7 +21,7 @@ describe("UserRemovedFromGroupSnsProcessorService", () => {
   };
 
   const mockGroup: Group = {
-    id: "convo-group-mock-id",
+    id: "group_mock-id",
     name: "mock-name",
     image: "mock-image",
     createdBy: "user-mock-id",

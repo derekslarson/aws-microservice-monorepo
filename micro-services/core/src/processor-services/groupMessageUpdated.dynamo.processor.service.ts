@@ -33,7 +33,7 @@ export class GroupMessageUpdatedDynamoProcessorService implements DynamoProcesso
 
       const isCoreTable = record.tableName === this.coreTableName;
       const isMessage = record.newImage.entityType === EntityType.Message;
-      const isGroupMessage = isMessage && (record.newImage as RawMessage).conversationId.startsWith(KeyPrefix.GroupConversation);
+      const isGroupMessage = isMessage && (record.newImage as RawMessage).conversationId.startsWith(KeyPrefix.Group);
       const isUpdate = record.eventName === "MODIFY";
 
       return isCoreTable && isGroupMessage && isUpdate;

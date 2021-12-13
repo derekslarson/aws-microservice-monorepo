@@ -1,8 +1,8 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationServiceInterface, GroupConversation } from "../entity-services/conversation.service";
-import { ConversationUserRelationshipServiceInterface } from "../entity-services/conversationUserRelationship.service";
+import { ConversationServiceInterface, Group } from "../entity-services/group.service";
+import { ConversationUserRelationshipServiceInterface } from "../entity-services/groupMembership.service";
 import { UserId } from "../types/userId.type";
 import { TeamId } from "../types/teamId.type";
 import { GroupId } from "../types/groupId.type";
@@ -24,7 +24,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { name, createdBy, organizationId, teamId } = params;
 
-      const { conversation: group } = await this.conversationService.createGroupConversation({
+      const { conversation: group } = await this.conversationService.createGroup({
         name,
         createdBy,
         organizationId,
@@ -289,7 +289,7 @@ export interface GroupMediatorServiceInterface {
   isGroupAdmin(params: IsGroupAdminInput): Promise<IsGroupAdminOutput>;
 }
 
-export interface Group extends Omit<GroupConversation, "type" | "imageMimeType"> {
+export interface Group extends Omit<Group, "type" | "imageMimeType"> {
   image: string;
 }
 

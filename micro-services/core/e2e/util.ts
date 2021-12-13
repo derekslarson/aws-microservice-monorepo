@@ -11,7 +11,7 @@ import { ConversationType as ConversationTypeEnum } from "../src/enums/conversat
 import { ConversationType } from "../src/types/conversationType.type";
 import { EntityType } from "../src/enums/entityType.enum";
 import { KeyPrefix } from "../src/enums/keyPrefix.enum";
-import { Conversation, FriendConversation, GroupConversation, MeetingConversation, RawConversation } from "../src/repositories/conversation.dynamo.repository";
+import { Conversation, FriendConversation, Group, Meeting, RawConversation } from "../src/repositories/conversation.dynamo.repository";
 import { RawConversationUserRelationship } from "../src/repositories/conversationUserRelationship.dynamo.repository";
 import { RawTeam } from "../src/repositories/team.dynamo.repository";
 import { RawTeamUserRelationship } from "../src/repositories/teamUserRelationship.dynamo.repository";
@@ -505,16 +505,16 @@ export async function createFriendConversation(params: CreateFriendConversationI
   }
 }
 
-export async function createGroupConversation(params: CreateGroupConversationInput): Promise<CreateGroupConversationOutput> {
+export async function createGroup(params: CreateGroupInput): Promise<CreateGroupOutput> {
   try {
     const { name, createdBy, organizationId, teamId } = params;
 
     const { image, mimeType } = createDefaultImage();
 
-    const conversationId: GroupId = `${KeyPrefix.GroupConversation}${ksuid.randomSync().string}`;
+    const conversationId: GroupId = `${KeyPrefix.Group}${ksuid.randomSync().string}`;
 
-    const conversation: RawConversation<GroupConversation> = {
-      entityType: EntityType.GroupConversation,
+    const conversation: RawConversation<Group> = {
+      entityType: EntityType.Group,
       imageMimeType: mimeType,
       pk: conversationId,
       sk: conversationId,
@@ -554,16 +554,16 @@ export async function createGroupConversation(params: CreateGroupConversationInp
   }
 }
 
-export async function createMeetingConversation(params: CreateMeetingConversationInput): Promise<CreateMeetingConversationOutput> {
+export async function createMeeting(params: CreateMeetingInput): Promise<CreateMeetingOutput> {
   try {
     const { name, createdBy, organizationId, teamId, dueDate } = params;
 
     const { image, mimeType } = createDefaultImage();
 
-    const conversationId: MeetingId = `${KeyPrefix.MeetingConversation}${ksuid.randomSync().string}`;
+    const conversationId: MeetingId = `${KeyPrefix.Meeting}${ksuid.randomSync().string}`;
 
-    const conversation: RawConversation<MeetingConversation> = {
-      entityType: EntityType.MeetingConversation,
+    const conversation: RawConversation<Meeting> = {
+      entityType: EntityType.Meeting,
       imageMimeType: mimeType,
       pk: conversationId,
       sk: conversationId,
@@ -631,8 +631,8 @@ export async function createConversationUserRelationship<T extends ConversationT
 
     // eslint-disable-next-line no-nested-ternary
     const convoPrefix = conversationId.startsWith(KeyPrefix.FriendConversation) ? KeyPrefix.FriendConversation
-      : conversationId.startsWith(KeyPrefix.GroupConversation) ? KeyPrefix.GroupConversation
-        : KeyPrefix.MeetingConversation;
+      : conversationId.startsWith(KeyPrefix.Group) ? KeyPrefix.Group
+        : KeyPrefix.Meeting;
 
     const conversationUserRelationship: RawConversationUserRelationship<T> = {
       entityType: EntityType.ConversationUserRelationship,
@@ -964,18 +964,18 @@ export interface CreateFriendConversationOutput {
   conversation: RawConversation<FriendConversation>;
 }
 
-export interface CreateGroupConversationInput {
+export interface CreateGroupInput {
   createdBy: UserId;
   name: string;
   organizationId: OrganizationId;
   teamId?: TeamId;
 }
 
-export interface CreateGroupConversationOutput {
-  conversation: RawConversation<GroupConversation>;
+export interface CreateGroupOutput {
+  conversation: RawConversation<Group>;
 }
 
-export interface CreateMeetingConversationInput {
+export interface CreateMeetingInput {
   createdBy: UserId;
   name: string;
   dueDate: string;
@@ -983,8 +983,8 @@ export interface CreateMeetingConversationInput {
   teamId?: TeamId;
 }
 
-export interface CreateMeetingConversationOutput {
-  conversation: RawConversation<MeetingConversation>;
+export interface CreateMeetingOutput {
+  conversation: RawConversation<Meeting>;
 }
 
 export interface GetConversationInput<T extends ConversationId> {
