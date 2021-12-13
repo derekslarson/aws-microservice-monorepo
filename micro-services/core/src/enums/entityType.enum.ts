@@ -12,4 +12,5 @@ export enum EntityType {
   PendingMessage = "entity_pending_message",
   Message = "enttiy_message",
   PendingInvitation = "entity_pending_invitation",
+  Membership = "entity_membership",
 }

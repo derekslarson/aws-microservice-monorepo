@@ -85,36 +85,28 @@ const TYPES = {
 
   // Entity Services
   GroupServiceInterface: Symbol.for("GroupServiceInterface"),
-  GroupMembershipServiceInterface: Symbol.for("GroupMembershipServiceInterface"),
   MeetingServiceInterface: Symbol.for("MeetingServiceInterface"),
-  MeetingMembershipServiceInterface: Symbol.for("MeetingMembershipServiceInterface"),
+  MembershipServiceInterface: Symbol.for("MeetingMembershipServiceInterface"),
   MessageServiceInterface: Symbol.for("MessageServiceInterface"),
-  OneOnOneMembershipServiceInterface: Symbol.for("OneOnOneMembershipServiceInterface"),
   OrganizationServiceInterface: Symbol.for("OrganizationServiceInterface"),
-  OrganizationMembershipServiceInterface: Symbol.for("OrganizationMembershipServiceInterface"),
   PendingMessageServiceInterface: Symbol.for("PendingMessageServiceInterface"),
   PendingInvitationServiceInterface: Symbol.for("PendingInvitationServiceInterface"),
   SearchServiceInterface: Symbol.for("SearchServiceInterface"),
   TeamServiceInterface: Symbol.for("TeamServiceInterface"),
-  TeamMembershipServiceInterface: Symbol.for("TeamMembershipServiceInterface"),
   UserServiceInterface: Symbol.for("UserServiceInterface"),
   UserGroupMeetingSearchServiceInterface: Symbol.for("UserGroupMeetingSearchServiceInterface"),
 
   // Repositories
   GroupRepositoryInterface: Symbol.for("GroupRepositoryInterface"),
-  GroupMembershipRepositoryInterface: Symbol.for("GroupMembershipRepositoryInterface"),
   ImageFileRepositoryInterface: Symbol.for("ImageFileRepositoryInterface"),
   MeetingRepositoryInterface: Symbol.for("MeetingRepositoryInterface"),
-  MeetingMembershipRepositoryInterface: Symbol.for("MeetingMembershipRepositoryInterface"),
+  MembershipRepositoryInterface: Symbol.for("MembershipRepositoryInterface"),
   MessageRepositoryInterface: Symbol.for("MessageRepositoryInterface"),
-  OneOnOneMembershipRepositoryInterface: Symbol.for("OneOnOneMembershipRepositoryInterface"),
   OrganizationRepositoryInterface: Symbol.for("OrganizationRepositoryInterface"),
-  OrganizationMembershipRepositoryInterface: Symbol.for("OrganizationMembershipRepositoryInterface"),
   PendingMessageRepositoryInterface: Symbol.for("PendingMessageRepositoryInterface"),
   PendingInvitationRepositoryInterface: Symbol.for("PendingInvitationRepositoryInterface"),
   SearchRepositoryInterface: Symbol.for("SearchRepositoryInterface"),
   TeamRepositoryInterface: Symbol.for("TeamRepositoryInterface"),
-  TeamMembershipRepositoryInterface: Symbol.for("TeamMembershipRepositoryInterface"),
   UserRepositoryInterface: Symbol.for("UserRepositoryInterface"),
 
   // Factories

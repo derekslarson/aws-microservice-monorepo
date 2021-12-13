@@ -2,21 +2,16 @@ import { inject, injectable } from "inversify";
 import { GroupId, LoggerServiceInterface, MeetingId, OrganizationId, TeamId, UserId, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { UserServiceInterface, User as UserEntity } from "../entity-services/user.service";
-import { TeamMembershipServiceInterface, TeamMembership as TeamMembershipEntity } from "../entity-services/teamMembership.service";
-import { GroupMembershipServiceInterface } from "../entity-services/groupMembership.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-import { OrganizationMembershipServiceInterface } from "../entity-services/organizationMembership.service";
-import { MeetingMembershipServiceInterface } from "../entity-services/meetingMembership.service";
+import { MembershipServiceInterface } from "../entity-services/membership.service";
+import { EntityId } from "../repositories/membership.dynamo.repository";
 
 @injectable()
 export class UserMediatorService implements UserMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
-    @inject(TYPES.TeamMembershipServiceInterface) private teamMembershipService: TeamMembershipServiceInterface,
-    @inject(TYPES.GroupMembershipServiceInterface) private groupMembershipService: GroupMembershipServiceInterface,
-    @inject(TYPES.MeetingMembershipServiceInterface) private meetingMembershipService: MeetingMembershipServiceInterface,
-    @inject(TYPES.OrganizationMembershipServiceInterface) private organizationMembershipService: OrganizationMembershipServiceInterface,
+    @inject(TYPES.MembershipServiceInterface) private membershipService: MembershipServiceInterface,
   ) {}
 
   public async updateUser(params: UpdateUserInput): Promise<UpdateUserOutput> {
@@ -121,20 +116,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const { organizationId, exclusiveStartKey, limit } = params;
 
-      const { organizationMemberships, lastEvaluatedKey } = await this.organizationMembershipService.getOrganizationMembershipsByOrganizationId({ organizationId, exclusiveStartKey, limit });
-
-      const userIds = organizationMemberships.map((relationship) => relationship.userId);
-
-      const { users: userEntities } = await this.userService.getUsers({ userIds });
-
-      const users = userEntities.map((userEntity, i) => {
-        const user: WithRole<User> = {
-          ...userEntity,
-          role: organizationMemberships[i].role,
-        };
-
-        return user;
-      });
+      const { users, lastEvaluatedKey } = await this.getUsersByEntityId({ entityId: organizationId, exclusiveStartKey, limit });
 
       return { users, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -150,20 +132,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const { teamId, exclusiveStartKey, limit } = params;
 
-      const { teamMemberships, lastEvaluatedKey } = await this.teamMembershipService.getTeamMembershipsByTeamId({ teamId, exclusiveStartKey, limit });
-
-      const userIds = teamMemberships.map((relationship) => relationship.userId);
-
-      const { users: userEntities } = await this.userService.getUsers({ userIds });
-
-      const users = userEntities.map((userEntity, i) => {
-        const user: WithRole<User> = {
-          ...userEntity,
-          role: teamMemberships[i].role,
-        };
-
-        return user;
-      });
+      const { users, lastEvaluatedKey } = await this.getUsersByEntityId({ entityId: teamId, exclusiveStartKey, limit });
 
       return { users, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -179,24 +148,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const { groupId, exclusiveStartKey, limit } = params;
 
-      const { groupMemberships, lastEvaluatedKey } = await this.groupMembershipService.getGroupMembershipsByGroupId({
-        groupId,
-        exclusiveStartKey,
-        limit,
-      });
-
-      const userIds = groupMemberships.map((membership) => membership.userId);
-
-      const { users: userEntities } = await this.userService.getUsers({ userIds });
-
-      const users = userEntities.map((userEntity, i) => {
-        const user: WithRole<User> = {
-          ...userEntity,
-          role: groupMemberships[i].role,
-        };
-
-        return user;
-      });
+      const { users, lastEvaluatedKey } = await this.getUsersByEntityId({ entityId: groupId, exclusiveStartKey, limit });
 
       return { users, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -212,20 +164,36 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       const { meetingId, exclusiveStartKey, limit } = params;
 
-      const { meetingMemberships, lastEvaluatedKey } = await this.meetingMembershipService.getMeetingMembershipsByMeetingId({
-        meetingId,
+      const { users, lastEvaluatedKey } = await this.getUsersByEntityId({ entityId: meetingId, exclusiveStartKey, limit });
+
+      return { users, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersByMeetingId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private async getUsersByEntityId(params: GetUsersByEntityIdInput): Promise<GetUsersByEntityIdOutput> {
+    try {
+      this.loggerService.trace("getUsersByEntityId called", { params }, this.constructor.name);
+
+      const { entityId, exclusiveStartKey, limit } = params;
+
+      const { memberships, lastEvaluatedKey } = await this.membershipService.getMembershipsByEntityId({
+        entityId,
         exclusiveStartKey,
         limit,
       });
 
-      const userIds = meetingMemberships.map((membership) => membership.userId);
+      const userIds = memberships.map((membership) => membership.userId);
 
       const { users: userEntities } = await this.userService.getUsers({ userIds });
 
       const users = userEntities.map((userEntity, i) => {
         const user: WithRole<User> = {
           ...userEntity,
-          role: meetingMemberships[i].role,
+          role: memberships[i].role,
         };
 
         return user;
@@ -233,7 +201,7 @@ export class UserMediatorService implements UserMediatorServiceInterface {
 
       return { users, lastEvaluatedKey };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersByMeetingId", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getUsersByEntityId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -254,7 +222,6 @@ export interface UserMediatorServiceInterface {
 }
 
 export type User = UserEntity;
-export type TeamMembership = TeamMembershipEntity;
 
 interface BaseCreateUserInput {
   email?: string;
@@ -363,6 +330,17 @@ export interface GetUsersByMeetingIdInput {
 }
 
 export interface GetUsersByMeetingIdOutput {
+  users: WithRole<User>[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetUsersByEntityIdInput {
+  entityId: EntityId;
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetUsersByEntityIdOutput {
   users: WithRole<User>[];
   lastEvaluatedKey?: string;
 }

@@ -14,4 +14,5 @@ export enum KeyPrefix {
   Created = "created_",
   Due = "due_",
   Agenda = "agenda_",
+  Membership = "membership_",
 }

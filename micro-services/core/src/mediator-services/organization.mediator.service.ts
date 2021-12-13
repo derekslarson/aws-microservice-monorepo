@@ -2,15 +2,16 @@ import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, UserId, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { OrganizationServiceInterface, Organization as OrganizationEntity } from "../entity-services/organization.service";
-import { OrganizationMembershipServiceInterface, OrganizationMembership as OrganizationMembershipEntity } from "../entity-services/organizationMembership.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
+import { Membership as MembershipEntity, MembershipServiceInterface } from "../entity-services/membership.service";
+import { MembershipType } from "../enums/membershipType.enum";
 
 @injectable()
 export class OrganizationMediatorService implements OrganizationMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.OrganizationServiceInterface) private organizationService: OrganizationServiceInterface,
-    @inject(TYPES.OrganizationMembershipServiceInterface) private organizationMembershipService: OrganizationMembershipServiceInterface,
+    @inject(TYPES.MembershipServiceInterface) private membershipService: MembershipServiceInterface,
   ) {}
 
   public async createOrganization(params: CreateOrganizationInput): Promise<CreateOrganizationOutput> {
@@ -24,11 +25,11 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
         createdBy,
       });
 
-      const { organizationMembership } = await this.organizationMembershipService.createOrganizationMembership({ organizationId: organizationEntity.id, userId: createdBy, role: Role.Admin });
+      const { membership } = await this.membershipService.createMembership({ entityId: organizationEntity.id, userId: createdBy, type: MembershipType.Organization, role: Role.Admin });
 
       const organization: WithRole<Organization> = {
         ...organizationEntity,
-        role: organizationMembership.role,
+        role: membership.role,
       };
 
       return { organization };
@@ -77,9 +78,9 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { organizationId, userId, role } = params;
 
-      const { organizationMembership } = await this.organizationMembershipService.createOrganizationMembership({ organizationId, userId, role });
+      const { membership } = await this.membershipService.createMembership({ entityId: organizationId, userId, type: MembershipType.Organization, role });
 
-      return { organizationMembership };
+      return { organizationMembership: membership };
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToOrganization", { error, params }, this.constructor.name);
 
@@ -93,7 +94,7 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { organizationId, userId } = params;
 
-      await this.organizationMembershipService.deleteOrganizationMembership({ organizationId, userId });
+      await this.membershipService.deleteMembership({ entityId: organizationId, userId });
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromOrganization", { error, params }, this.constructor.name);
 
@@ -123,15 +124,15 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { userId, exclusiveStartKey, limit } = params;
 
-      const { organizationMemberships, lastEvaluatedKey } = await this.organizationMembershipService.getOrganizationMembershipsByUserId({ userId, exclusiveStartKey, limit });
+      const { memberships, lastEvaluatedKey } = await this.membershipService.getMembershipsByUserId({ userId, type: MembershipType.Organization, exclusiveStartKey, limit });
 
-      const organizationIds = organizationMemberships.map((relationship) => relationship.organizationId);
+      const organizationIds = memberships.map((membership) => membership.entityId) as OrganizationId[];
 
       const { organizations } = await this.organizationService.getOrganizations({ organizationIds });
 
       const organizationsWithRoles = organizations.map((organization, i) => ({
         ...organization,
-        role: organizationMemberships[i].role,
+        role: memberships[i].role,
       }));
 
       return { organizations: organizationsWithRoles, lastEvaluatedKey };
@@ -148,7 +149,7 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { organizationId, userId } = params;
 
-      await this.organizationMembershipService.getOrganizationMembership({ organizationId, userId });
+      await this.membershipService.getMembership({ entityId: organizationId, userId });
 
       return { isOrganizationMember: true };
     } catch (error: unknown) {
@@ -168,9 +169,9 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { organizationId, userId } = params;
 
-      const { organizationMembership } = await this.organizationMembershipService.getOrganizationMembership({ organizationId, userId });
+      const { membership } = await this.membershipService.getMembership({ entityId: organizationId, userId });
 
-      return { isOrganizationAdmin: organizationMembership.role === Role.Admin };
+      return { isOrganizationAdmin: membership.role === Role.Admin };
     } catch (error: unknown) {
       if (error instanceof NotFoundError) {
         return { isOrganizationAdmin: false };
@@ -198,7 +199,7 @@ export interface Organization extends Omit<OrganizationEntity, "imageMimeType"> 
   image: string;
 }
 
-export type OrganizationMembership = OrganizationMembershipEntity;
+export type OrganizationMembership = MembershipEntity;
 
 export interface CreateOrganizationInput {
   name: string;

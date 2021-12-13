@@ -149,18 +149,17 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         conversationMemberIds = conversationId.split(/_(?=user_)/) as UserId[];
       }
 
-      const timestamp = new Date().toISOString();
+      const now = new Date().toISOString();
 
       const seenAt: Record<string, string | null> = {};
-      conversationMemberIds.forEach((memberId) => {
-        seenAt[memberId] = memberId === fromId ? timestamp : null;
-      });
+      conversationMemberIds.forEach((memberId) => seenAt[memberId] = memberId === fromId ? now : null);
 
       await this.messageService.createMessage({ messageId, conversationId, from: fromId, replyTo, mimeType, transcript, seenAt, title });
 
-      await this.pendingMessageService.deletePendingMessage({ messageId });
-
-      const { message } = await this.getMessage({ messageId });
+      const [ { message } ] = await Promise.all([
+        this.getMessage({ messageId }),
+        this.pendingMessageService.deletePendingMessage({ messageId }),
+      ]);
 
       return { message };
     } catch (error: unknown) {
@@ -406,8 +405,8 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         return {
           ...restOfMessage,
           to,
-          type: conversationType,
           from: entityMap[from] as User,
+          type: conversationType,
         };
       });
 
