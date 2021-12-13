@@ -1,5 +1,5 @@
 export enum ConversationType {
-  Friend = "friend",
+  OneOnOne = "one_on_one",
   Group = "group",
   Meeting = "meeting",
 }

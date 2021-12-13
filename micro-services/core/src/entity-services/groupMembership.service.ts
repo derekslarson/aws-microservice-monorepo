@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { GroupId, LoggerServiceInterface, Role, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { GroupMembershipRepositoryInterface, GroupMembership as GroupMembershipEntity } from "../repositories/groupMembership.dynamo.repository";
+import { GroupMembershipRepositoryInterface, GroupMembership as GroupMembershipEntity, GroupMembershipUpdates } from "../repositories/groupMembership.dynamo.repository";
 
 @injectable()
 export class GroupMembershipService implements GroupMembershipServiceInterface {
@@ -23,7 +23,6 @@ export class GroupMembershipService implements GroupMembershipServiceInterface {
         userId,
         role,
         createdAt: now,
-        userActiveAt: now,
         groupActiveAt: now,
       };
 
@@ -148,7 +147,7 @@ export interface GetGroupMembershipOutput {
 export interface UpdateGroupMembershipInput {
   groupId: GroupId;
   userId: UserId;
-  updates: UpdateGroupMembershipUpdates;
+  updates: GroupMembershipUpdates;
 }
 
 export interface UpdateGroupMembershipOutput {
@@ -181,5 +180,3 @@ export interface GetGroupMembershipsByUserIdOutput {
   groupMemberships: GroupMembership[];
   lastEvaluatedKey?: string;
 }
-
-type UpdateGroupMembershipUpdates = Partial<Pick<GroupMembership, "role" | "userActiveAt" | "groupActiveAt">>;

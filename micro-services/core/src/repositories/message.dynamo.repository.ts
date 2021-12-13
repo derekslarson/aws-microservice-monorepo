@@ -1,11 +1,12 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, CleansedEntity, DocumentClientFactory, GroupId, LoggerServiceInterface, MeetingId, MessageId, MessageMimeType, OneOnOneId, RawEntity, UserId } from "@yac/util";
+import { BaseDynamoRepositoryV2, CleansedEntity, ConversationId, DocumentClientFactory, LoggerServiceInterface, MessageId, MessageMimeType, RawEntity, UserId } from "@yac/util";
 import DynamoDB from "aws-sdk/clients/dynamodb";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
+import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 
 @injectable()
 export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> implements MessageRepositoryInterface {
@@ -118,15 +119,15 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     }
   }
 
-  public async addMessageReaction(params: AddMessageReactionInput): Promise<AddMessageReactionOutput> {
+  public async updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput> {
     try {
-      this.loggerService.trace("addMessageReaction called", { params }, this.constructor.name);
+      this.loggerService.trace("updateMessageReaction called", { params }, this.constructor.name);
 
-      const { messageId, userId, reaction } = params;
+      const { messageId, userId, reaction, action } = params;
 
       const message = await this.update({
         Key: { pk: messageId, sk: EntityType.Message },
-        UpdateExpression: "ADD #reactions.#reaction :value",
+        UpdateExpression: `${action === UpdateMessageReactionAction.Add ? "ADD" : "DELETE"} #reactions.#reaction :value`,
         ExpressionAttributeNames: {
           "#reactions": "reactions",
           "#reaction": reaction,
@@ -136,31 +137,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
 
       return { message };
     } catch (error: unknown) {
-      this.loggerService.error("Error in addMessageReaction", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async removeMessageReaction(params: RemoveMessageReactionInput): Promise<RemoveMessageReactionOutput> {
-    try {
-      this.loggerService.trace("removeMessageReaction called", { params }, this.constructor.name);
-
-      const { messageId, userId, reaction } = params;
-
-      const message = await this.update({
-        Key: { pk: messageId, sk: EntityType.Message },
-        UpdateExpression: "DELETE #reactions.#reaction :value",
-        ExpressionAttributeNames: {
-          "#reactions": "reactions",
-          "#reaction": reaction,
-        },
-        ExpressionAttributeValues: { ":value": this.documentClient.createSet([ userId ]) },
-      });
-
-      return { message };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in removeMessageReaction", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in updateMessageReaction", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -309,8 +286,7 @@ export interface MessageRepositoryInterface {
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
   updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
   markMessageSeen(params: MarkMessageSeenInput): Promise<MarkMessageSeenOutput>;
-  addMessageReaction(params: AddMessageReactionInput): Promise<AddMessageReactionOutput>;
-  removeMessageReaction(params: RemoveMessageReactionInput): Promise<RemoveMessageReactionOutput>
+  updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
   convertRawMessageToMessage(params: ConvertRawMessageToMessageInput): ConvertRawMessageToMessageOutput;
 }
 
@@ -413,23 +389,14 @@ export interface MarkMessageUnseenOutput {
   message: Message;
 }
 
-export interface AddMessageReactionInput {
+export interface UpdateMessageReactionInput {
   messageId: MessageId;
   userId: UserId;
   reaction: string;
+  action: UpdateMessageReactionAction;
 }
 
-export interface AddMessageReactionOutput {
-  message: Message;
-}
-
-export interface RemoveMessageReactionInput {
-  messageId: MessageId;
-  userId: UserId;
-  reaction: string;
-}
-
-export interface RemoveMessageReactionOutput {
+export interface UpdateMessageReactionOutput {
   message: Message;
 }
 
@@ -449,5 +416,3 @@ export interface ConvertRawMessageToMessageInput {
 export interface ConvertRawMessageToMessageOutput {
   message: Message;
 }
-
-export type ConversationId = GroupId | MeetingId | OneOnOneId;

@@ -232,14 +232,14 @@ export interface GetTeamMembershipsByUserIdOutput {
   lastEvaluatedKey?: string;
 }
 
+export type TeamMembershipUpdates = Partial<Pick<TeamMembership, "role">>;
+
 export interface UpdateTeamMembershipInput {
   userId: UserId;
   teamId: TeamId;
-  updates: UpdateTeamMembershipUpdates;
+  updates: TeamMembershipUpdates;
 }
 
 export interface UpdateTeamMembershipOutput {
   teamMembership: TeamMembership;
 }
-
-type UpdateTeamMembershipUpdates = Partial<Pick<TeamMembership, "role">>;

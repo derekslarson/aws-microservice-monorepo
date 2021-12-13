@@ -261,7 +261,7 @@ export interface GetMeetingsByTeamIdOutput {
   lastEvaluatedKey?: string;
 }
 
-export type MeetingUpdates = Partial<Pick<Meeting, "name" | "imageMimeType">>;
+export type MeetingUpdates = Partial<Pick<Meeting, "name" | "imageMimeType" | "dueAt">>;
 
 export interface UpdateMeetingInput {
   meetingId: MeetingId;

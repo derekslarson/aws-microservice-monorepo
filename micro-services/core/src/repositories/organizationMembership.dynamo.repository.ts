@@ -203,10 +203,12 @@ export interface GetOrganizationMembershipOutput {
   organizationMembership: OrganizationMembership;
 }
 
+export type OrganizationMembershipUpdates = Partial<Pick<OrganizationMembership, "role">>;
+
 export interface UpdateOrganizationMembershipInput {
   userId: UserId;
   organizationId: OrganizationId;
-  updates: UpdateOrganizationMembershipUpdates;
+  updates: OrganizationMembershipUpdates;
 }
 
 export interface UpdateOrganizationMembershipOutput {
@@ -241,5 +243,3 @@ export interface GetOrganizationMembershipsByUserIdOutput {
   organizationMemberships: OrganizationMembership[];
   lastEvaluatedKey?: string;
 }
-
-type UpdateOrganizationMembershipUpdates = Partial<Pick<OrganizationMembership, "role">>;

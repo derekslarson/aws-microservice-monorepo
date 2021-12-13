@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { OrganizationId, LoggerServiceInterface, Role, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { OrganizationMembershipRepositoryInterface, OrganizationMembership as OrganizationMembershipEntity } from "../repositories/organizationMembership.dynamo.repository";
+import { OrganizationMembershipRepositoryInterface, OrganizationMembership as OrganizationMembershipEntity, OrganizationMembershipUpdates } from "../repositories/organizationMembership.dynamo.repository";
 
 @injectable()
 export class OrganizationMembershipService implements OrganizationMembershipServiceInterface {
@@ -146,7 +146,7 @@ export interface GetOrganizationMembershipOutput {
 export interface UpdateOrganizationMembershipInput {
   organizationId: OrganizationId;
   userId: UserId;
-  updates: UpdateOrganizationMembershipUpdates;
+  updates: OrganizationMembershipUpdates;
 }
 
 export interface UpdateOrganizationMembershipOutput {
@@ -179,5 +179,3 @@ export interface GetOrganizationMembershipsByUserIdOutput {
   organizationMemberships: OrganizationMembership[];
   lastEvaluatedKey?: string;
 }
-
-type UpdateOrganizationMembershipUpdates = Partial<Pick<OrganizationMembership, "role">>;

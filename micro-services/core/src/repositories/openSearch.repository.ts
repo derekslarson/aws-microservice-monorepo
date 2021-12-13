@@ -1,13 +1,13 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, AxiosFactory, Axios, BadRequestError, MakeRequired, UserId, GroupId, MeetingId, TeamId, MessageId, OrganizationId } from "@yac/util";
+import { LoggerServiceInterface, AxiosFactory, Axios, BadRequestError, MakeRequired, UserId, GroupId, MeetingId, TeamId, MessageId, OrganizationId, ConversationId } from "@yac/util";
 import { Aws4, Aws4Factory } from "../factories/aws4.factory";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { SearchIndex } from "../enums/searchIndex.enum";
 import { Team } from "./team.dynamo.repository";
 import { User } from "./user.dynamo.repository";
-import { Message, ConversationId } from "./message.dynamo.repository";
+import { Message } from "./message.dynamo.repository";
 import { Organization } from "./organization.dynamo.repository";
 import { Group } from "./group.dynamo.repository";
 import { Meeting } from "./meeting.dynamo.repository";

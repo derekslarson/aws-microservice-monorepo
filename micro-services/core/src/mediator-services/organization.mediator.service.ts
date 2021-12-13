@@ -1,9 +1,8 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, WithRole } from "@yac/util";
+import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, UserId, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { OrganizationServiceInterface, Organization as OrganizationEntity } from "../entity-services/organization.service";
-import { OrganizationUserRelationshipServiceInterface, OrganizationUserRelationship as OrganizationUserRelationshipEntity } from "../entity-services/organizationUserRelationship.service";
-import { UserId } from "../types/userId.type";
+import { OrganizationMembershipServiceInterface, OrganizationMembership as OrganizationMembershipEntity } from "../entity-services/organizationMembership.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
@@ -11,7 +10,7 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.OrganizationServiceInterface) private organizationService: OrganizationServiceInterface,
-    @inject(TYPES.OrganizationUserRelationshipServiceInterface) private organizationUserRelationshipService: OrganizationUserRelationshipServiceInterface,
+    @inject(TYPES.OrganizationMembershipServiceInterface) private organizationMembershipService: OrganizationMembershipServiceInterface,
   ) {}
 
   public async createOrganization(params: CreateOrganizationInput): Promise<CreateOrganizationOutput> {
@@ -25,11 +24,11 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
         createdBy,
       });
 
-      const { organizationUserRelationship } = await this.organizationUserRelationshipService.createOrganizationUserRelationship({ organizationId: organizationEntity.id, userId: createdBy, role: Role.Admin });
+      const { organizationMembership } = await this.organizationMembershipService.createOrganizationMembership({ organizationId: organizationEntity.id, userId: createdBy, role: Role.Admin });
 
       const organization: WithRole<Organization> = {
         ...organizationEntity,
-        role: organizationUserRelationship.role,
+        role: organizationMembership.role,
       };
 
       return { organization };
@@ -78,9 +77,9 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { organizationId, userId, role } = params;
 
-      const { organizationUserRelationship } = await this.organizationUserRelationshipService.createOrganizationUserRelationship({ organizationId, userId, role });
+      const { organizationMembership } = await this.organizationMembershipService.createOrganizationMembership({ organizationId, userId, role });
 
-      return { organizationUserRelationship };
+      return { organizationMembership };
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToOrganization", { error, params }, this.constructor.name);
 
@@ -94,7 +93,7 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { organizationId, userId } = params;
 
-      await this.organizationUserRelationshipService.deleteOrganizationUserRelationship({ organizationId, userId });
+      await this.organizationMembershipService.deleteOrganizationMembership({ organizationId, userId });
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromOrganization", { error, params }, this.constructor.name);
 
@@ -124,15 +123,15 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { userId, exclusiveStartKey, limit } = params;
 
-      const { organizationUserRelationships, lastEvaluatedKey } = await this.organizationUserRelationshipService.getOrganizationUserRelationshipsByUserId({ userId, exclusiveStartKey, limit });
+      const { organizationMemberships, lastEvaluatedKey } = await this.organizationMembershipService.getOrganizationMembershipsByUserId({ userId, exclusiveStartKey, limit });
 
-      const organizationIds = organizationUserRelationships.map((relationship) => relationship.organizationId);
+      const organizationIds = organizationMemberships.map((relationship) => relationship.organizationId);
 
       const { organizations } = await this.organizationService.getOrganizations({ organizationIds });
 
       const organizationsWithRoles = organizations.map((organization, i) => ({
         ...organization,
-        role: organizationUserRelationships[i].role,
+        role: organizationMemberships[i].role,
       }));
 
       return { organizations: organizationsWithRoles, lastEvaluatedKey };
@@ -149,7 +148,7 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { organizationId, userId } = params;
 
-      await this.organizationUserRelationshipService.getOrganizationUserRelationship({ organizationId, userId });
+      await this.organizationMembershipService.getOrganizationMembership({ organizationId, userId });
 
       return { isOrganizationMember: true };
     } catch (error: unknown) {
@@ -169,9 +168,9 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { organizationId, userId } = params;
 
-      const { organizationUserRelationship } = await this.organizationUserRelationshipService.getOrganizationUserRelationship({ organizationId, userId });
+      const { organizationMembership } = await this.organizationMembershipService.getOrganizationMembership({ organizationId, userId });
 
-      return { isOrganizationAdmin: organizationUserRelationship.role === Role.Admin };
+      return { isOrganizationAdmin: organizationMembership.role === Role.Admin };
     } catch (error: unknown) {
       if (error instanceof NotFoundError) {
         return { isOrganizationAdmin: false };
@@ -199,7 +198,7 @@ export interface Organization extends Omit<OrganizationEntity, "imageMimeType"> 
   image: string;
 }
 
-export type OrganizationUserRelationship = OrganizationUserRelationshipEntity;
+export type OrganizationMembership = OrganizationMembershipEntity;
 
 export interface CreateOrganizationInput {
   name: string;
@@ -231,7 +230,7 @@ export interface AddUserToOrganizationInput {
 }
 
 export interface AddUserToOrganizationOutput {
-  organizationUserRelationship: OrganizationUserRelationship;
+  organizationMembership: OrganizationMembership;
 }
 
 export interface RemoveUserFromOrganizationInput {

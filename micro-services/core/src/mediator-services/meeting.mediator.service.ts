@@ -1,38 +1,33 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, WithRole } from "@yac/util";
+import { LoggerServiceInterface, MeetingId, NotFoundError, OrganizationId, Role, TeamId, UserId, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationServiceInterface, Meeting } from "../entity-services/group.service";
-import { ConversationUserRelationshipServiceInterface } from "../entity-services/groupMembership.service";
-import { UserId } from "../types/userId.type";
-import { TeamId } from "../types/teamId.type";
-import { MeetingId } from "../types/meetingId.type";
-import { ConversationType } from "../enums/conversationType.enum";
-import { ConversationFetchType } from "../enums/conversationFetchType.enum";
+import { MeetingServiceInterface, Meeting, MeetingUpdates } from "../entity-services/meeting.service";
+import { MeetingMembership as MeetingMembershipEntity, MeetingMembershipServiceInterface } from "../entity-services/meetingMembership.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
 export class MeetingMediatorService implements MeetingMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
-    @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
+    @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
+    @inject(TYPES.MeetingMembershipServiceInterface) private meetingMembershipService: MeetingMembershipServiceInterface,
   ) {}
 
   public async createMeeting(params: CreateMeetingInput): Promise<CreateMeetingOutput> {
     try {
       this.loggerService.trace("createMeeting called", { params }, this.constructor.name);
 
-      const { name, createdBy, dueDate, organizationId, teamId } = params;
+      const { name, createdBy, dueAt, organizationId, teamId } = params;
 
-      const { conversation: meeting } = await this.conversationService.createMeeting({
+      const { meeting } = await this.meetingService.createMeeting({
         name,
         createdBy,
-        dueDate,
+        dueAt,
         organizationId,
         teamId,
       });
 
-      await this.conversationUserRelationshipService.createConversationUserRelationship({ type: ConversationType.Meeting, userId: createdBy, conversationId: meeting.id, role: Role.Admin, dueDate });
+      await this.meetingMembershipService.createMeetingMembership({ userId: createdBy, meetingId: meeting.id, role: Role.Admin, meetingDueAt: dueAt });
 
       return { meeting };
     } catch (error: unknown) {
@@ -48,9 +43,13 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { meetingId, updates } = params;
 
-      await this.conversationService.updateConversation({ conversationId: meetingId, updates });
+      await this.meetingService.updateMeeting({ meetingId, updates });
 
-      return;
+      if (updates.dueAt) {
+        const { meetingMemberships } = await this.meetingMembershipService.getMeetingMembershipsByMeetingId({ meetingId });
+
+        await Promise.all(meetingMemberships.map(({ userId }) => this.meetingMembershipService.updateMeetingMembership({ userId, meetingId, updates: { meetingDueAt: updates.dueAt } })));
+      }
     } catch (error: unknown) {
       this.loggerService.error("Error in updateMeeting", { error, params }, this.constructor.name);
 
@@ -64,7 +63,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { meetingId } = params;
 
-      const { conversation: meeting } = await this.conversationService.getConversation({ conversationId: meetingId });
+      const { meeting } = await this.meetingService.getMeeting({ meetingId });
 
       return { meeting };
     } catch (error: unknown) {
@@ -80,35 +79,11 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { meetingId, mimeType } = params;
 
-      const { uploadUrl } = this.conversationService.getConversationImageUploadUrl({
-        conversationType: ConversationType.Meeting,
-        conversationId: meetingId,
-        mimeType,
-      });
+      const { uploadUrl } = this.meetingService.getMeetingImageUploadUrl({ meetingId, mimeType });
 
       return { uploadUrl };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingImageUploadUrl", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async deleteMeeting(params: DeleteMeetingInput): Promise<DeleteMeetingOutput> {
-    try {
-      this.loggerService.trace("deleteMeeting called", { params }, this.constructor.name);
-
-      const { meetingId } = params;
-
-      const { conversationUserRelationships } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByConversationId({ conversationId: meetingId });
-
-      const userIds = conversationUserRelationships.map((relationship) => relationship.userId);
-
-      await Promise.all(userIds.map((userId) => this.conversationUserRelationshipService.deleteConversationUserRelationship({ userId, conversationId: meetingId })));
-
-      await this.conversationService.deleteConversation({ conversationId: meetingId });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in deleteMeeting", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -122,21 +97,15 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { meeting } = await this.getMeeting({ meetingId });
 
-      await this.conversationUserRelationshipService.createConversationUserRelationship({
-        type: ConversationType.Meeting,
-        conversationId: meetingId,
-        dueDate: meeting.dueDate,
-        userId,
-        role,
-      });
+      await this.meetingMembershipService.createMeetingMembership({ meetingId, meetingDueAt: meeting.dueAt, userId, role });
 
-      const membership: Membership = {
+      const meetingMembership: MeetingMembership = {
         meetingId,
         userId,
         role,
       };
 
-      return { membership };
+      return { meetingMembership };
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToMeeting", { error, params }, this.constructor.name);
 
@@ -150,8 +119,8 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { meetingId, userId } = params;
 
-      await this.conversationUserRelationshipService.deleteConversationUserRelationship({
-        conversationId: meetingId,
+      await this.meetingMembershipService.deleteMeetingMembership({
+        meetingId,
         userId,
       });
     } catch (error: unknown) {
@@ -165,27 +134,22 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
     try {
       this.loggerService.trace("getMeetingsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey, limit, sortBy = "updatedAt" } = params;
+      const { userId, exclusiveStartKey, limit, byMeetingDueAt } = params;
 
-      const sortByToTypeMap: Record<"dueDate" | "updatedAt", ConversationFetchType.MeetingDueDate | ConversationFetchType.Meeting> = {
-        dueDate: ConversationFetchType.MeetingDueDate,
-        updatedAt: ConversationFetchType.Meeting,
-      };
-
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
+      const { meetingMemberships, lastEvaluatedKey } = await this.meetingMembershipService.getMeetingMembershipsByUserId({
         userId,
-        type: sortByToTypeMap[sortBy],
+        byMeetingDueAt,
         exclusiveStartKey,
         limit,
       });
 
-      const meetingIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
+      const meetingIds = meetingMemberships.map((relationship) => relationship.meetingId);
 
-      const { conversations: meetings } = await this.conversationService.getConversations({ conversationIds: meetingIds });
+      const { meetings } = await this.meetingService.getMeetings({ meetingIds });
 
       const meetingsWithRoles = meetings.map((meeting, i) => ({
         ...meeting,
-        role: conversationUserRelationships[i].role,
+        role: meetingMemberships[i].role,
       }));
 
       return { meetings: meetingsWithRoles, lastEvaluatedKey };
@@ -202,9 +166,8 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { teamId, exclusiveStartKey, limit } = params;
 
-      const { conversations: meetings, lastEvaluatedKey } = await this.conversationService.getConversationsByTeamId({
+      const { meetings, lastEvaluatedKey } = await this.meetingService.getMeetingsByTeamId({
         teamId,
-        type: ConversationType.Meeting,
         exclusiveStartKey,
         limit,
       });
@@ -223,9 +186,8 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { organizationId, exclusiveStartKey, limit } = params;
 
-      const { conversations: meetings, lastEvaluatedKey } = await this.conversationService.getConversationsByOrganizationId({
+      const { meetings, lastEvaluatedKey } = await this.meetingService.getMeetingsByOrganizationId({
         organizationId,
-        type: ConversationType.Meeting,
         exclusiveStartKey,
         limit,
       });
@@ -244,8 +206,8 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { meetingId, userId } = params;
 
-      await this.conversationUserRelationshipService.getConversationUserRelationship({
-        conversationId: meetingId,
+      await this.meetingMembershipService.getMeetingMembership({
+        meetingId,
         userId,
       });
 
@@ -266,12 +228,12 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { meetingId, userId } = params;
 
-      const { conversationUserRelationship } = await this.conversationUserRelationshipService.getConversationUserRelationship({
-        conversationId: meetingId,
+      const { meetingMembership } = await this.meetingMembershipService.getMeetingMembership({
+        meetingId,
         userId,
       });
 
-      return { isMeetingAdmin: conversationUserRelationship.role === Role.Admin };
+      return { isMeetingAdmin: meetingMembership.role === Role.Admin };
     } catch (error: unknown) {
       if (error instanceof NotFoundError) {
         return { isMeetingAdmin: false };
@@ -287,7 +249,6 @@ export interface MeetingMediatorServiceInterface {
   createMeeting(params: CreateMeetingInput): Promise<CreateMeetingOutput>;
   updateMeeting(params: UpdateMeetingInput): Promise<UpdateMeetingOutput>;
   getMeeting(params: GetMeetingInput): Promise<GetMeetingOutput>
-  deleteMeeting(params: DeleteMeetingInput): Promise<DeleteMeetingOutput>;
   addUserToMeeting(params: AddUserToMeetingInput): Promise<AddUserToMeetingOutput>;
   removeUserFromMeeting(params: RemoveUserFromMeetingInput): Promise<RemoveUserFromMeetingOutput>;
   getMeetingImageUploadUrl(params: GetMeetingImageUploadUrlInput): GetMeetingImageUploadUrlOutput;
@@ -298,16 +259,10 @@ export interface MeetingMediatorServiceInterface {
   isMeetingAdmin(params: IsMeetingAdminInput): Promise<IsMeetingAdminOutput>;
 }
 
-export interface Meeting extends Omit<Meeting, "type" | "imageMimeType"> {
-  image: string;
-}
-
-export interface Membership { meetingId: MeetingId; userId: UserId; role: Role; }
-
 export interface CreateMeetingInput {
   name: string;
   createdBy: UserId;
-  dueDate: string;
+  dueAt: string;
   organizationId: OrganizationId;
   teamId?: TeamId;
 }
@@ -318,7 +273,7 @@ export interface CreateMeetingOutput {
 
 export interface UpdateMeetingInput {
   meetingId: MeetingId;
-  updates: Partial<Pick<Meeting, "name" | "outcomes">>
+  updates: MeetingUpdates;
 }
 
 export type UpdateMeetingOutput = void;
@@ -340,11 +295,7 @@ export interface GetMeetingImageUploadUrlOutput {
   uploadUrl: string;
 }
 
-export interface DeleteMeetingInput {
-  meetingId: MeetingId;
-}
-
-export type DeleteMeetingOutput = void;
+export type MeetingMembership = Pick<MeetingMembershipEntity, "userId" | "meetingId" | "role">;
 
 export interface AddUserToMeetingInput {
   meetingId: MeetingId;
@@ -353,7 +304,7 @@ export interface AddUserToMeetingInput {
 }
 
 export interface AddUserToMeetingOutput {
-  membership: Membership;
+  meetingMembership: MeetingMembership;
 }
 
 export interface RemoveUserFromMeetingInput {
@@ -365,7 +316,7 @@ export type RemoveUserFromMeetingOutput = void;
 
 export interface GetMeetingsByUserIdInput {
   userId: UserId;
-  sortBy?: "dueDate" | "updatedAt";
+  byMeetingDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }

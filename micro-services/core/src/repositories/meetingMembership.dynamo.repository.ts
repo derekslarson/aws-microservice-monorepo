@@ -37,7 +37,7 @@ export class MeetingMembershipDynamoRepository extends BaseDynamoRepositoryV2<Me
         pk: meetingMembership.userId,
         sk: meetingMembership.meetingId,
         gsi1pk: meetingMembership.meetingId,
-        gsi1sk: `${KeyPrefix.User}${KeyPrefix.Active}${meetingMembership.userActiveAt}`,
+        gsi1sk: meetingMembership.userId,
         gsi2pk: meetingMembership.userId,
         gsi2sk: `${KeyPrefix.Meeting}${KeyPrefix.Active}${meetingMembership.meetingActiveAt}`,
         gsi3pk: meetingMembership.userId,
@@ -81,11 +81,7 @@ export class MeetingMembershipDynamoRepository extends BaseDynamoRepositoryV2<Me
 
       const { userId, meetingId, updates } = params;
 
-      const rawUpdates: UpdateMeetingMembershipRawUpdates = { ...updates };
-
-      if (updates.userActiveAt) {
-        rawUpdates.gsi1sk = `${KeyPrefix.User}${KeyPrefix.Active}${updates.userActiveAt}`;
-      }
+      const rawUpdates: RawMeetingMembershipUpdates = { ...updates };
 
       if (updates.meetingActiveAt) {
         rawUpdates.gsi2sk = `${KeyPrefix.Meeting}${KeyPrefix.Active}${updates.meetingActiveAt}`;
@@ -202,7 +198,6 @@ export interface MeetingMembership {
   meetingId: MeetingId;
   role: Role;
   createdAt: string;
-  userActiveAt: string;
   meetingActiveAt: string;
   meetingDueAt: string;
 }
@@ -211,7 +206,7 @@ export interface RawMeetingMembership extends MeetingMembership {
   pk: UserId;
   sk: MeetingId;
   gsi1pk: MeetingId;
-  gsi1sk: Gsi1Sk;
+  gsi1sk: UserId;
   gsi2pk: UserId;
   gsi2sk: Gsi2Sk;
   gsi3pk: UserId;
@@ -235,10 +230,12 @@ export interface GetMeetingMembershipOutput {
   meetingMembership: MeetingMembership;
 }
 
+export type MeetingMembershipUpdates = Partial<Pick<MeetingMembership, "role" | "meetingDueAt" | "meetingActiveAt">>;
+
 export interface UpdateMeetingMembershipInput {
   userId: UserId;
   meetingId: MeetingId;
-  updates: UpdateMeetingMembershipUpdates;
+  updates: MeetingMembershipUpdates;
 }
 
 export interface UpdateMeetingMembershipOutput {
@@ -275,9 +272,7 @@ export interface GetMeetingMembershipsByUserIdOutput {
   lastEvaluatedKey?: string;
 }
 
-type UpdateMeetingMembershipUpdates = Partial<Pick<MeetingMembership, "role" | "meetingDueAt" | "userActiveAt" | "meetingActiveAt">>;
-type UpdateMeetingMembershipRawUpdates = UpdateMeetingMembershipUpdates & { gsi1sk?: Gsi1Sk; gsi2sk?: Gsi2Sk; gsi3sk?: Gsi3Sk; };
+type RawMeetingMembershipUpdates = MeetingMembershipUpdates & { gsi2sk?: Gsi2Sk; gsi3sk?: Gsi3Sk; };
 
-type Gsi1Sk = `${KeyPrefix.User}${KeyPrefix.Active}${string}`;
 type Gsi2Sk = `${KeyPrefix.Meeting}${KeyPrefix.Active}${string}`;
 type Gsi3Sk = `${KeyPrefix.Meeting}${KeyPrefix.Due}${string}`;

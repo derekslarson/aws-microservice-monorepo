@@ -1,21 +1,16 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, WithRole } from "@yac/util";
+import { LoggerServiceInterface, GroupId, NotFoundError, OrganizationId, Role, TeamId, UserId, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationServiceInterface, Group } from "../entity-services/group.service";
-import { ConversationUserRelationshipServiceInterface } from "../entity-services/groupMembership.service";
-import { UserId } from "../types/userId.type";
-import { TeamId } from "../types/teamId.type";
-import { GroupId } from "../types/groupId.type";
-import { ConversationType } from "../enums/conversationType.enum";
+import { GroupServiceInterface, Group, GroupUpdates } from "../entity-services/group.service";
+import { GroupMembership as GroupMembershipEntity, GroupMembershipServiceInterface } from "../entity-services/groupMembership.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-import { ConversationFetchType } from "../enums/conversationFetchType.enum";
 
 @injectable()
 export class GroupMediatorService implements GroupMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
-    @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
+    @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
+    @inject(TYPES.GroupMembershipServiceInterface) private groupMembershipService: GroupMembershipServiceInterface,
   ) {}
 
   public async createGroup(params: CreateGroupInput): Promise<CreateGroupOutput> {
@@ -24,14 +19,14 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { name, createdBy, organizationId, teamId } = params;
 
-      const { conversation: group } = await this.conversationService.createGroup({
+      const { group } = await this.groupService.createGroup({
         name,
         createdBy,
         organizationId,
         teamId,
       });
 
-      await this.conversationUserRelationshipService.createConversationUserRelationship({ type: ConversationType.Group, userId: createdBy, conversationId: group.id, role: Role.Admin });
+      await this.groupMembershipService.createGroupMembership({ userId: createdBy, groupId: group.id, role: Role.Admin });
 
       return { group };
     } catch (error: unknown) {
@@ -47,9 +42,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { groupId, updates } = params;
 
-      const { conversation: group } = await this.conversationService.updateConversation({ conversationId: groupId, updates });
-
-      return { group };
+      await this.groupService.updateGroup({ groupId, updates });
     } catch (error: unknown) {
       this.loggerService.error("Error in updateGroup", { error, params }, this.constructor.name);
 
@@ -63,7 +56,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { groupId } = params;
 
-      const { conversation: group } = await this.conversationService.getConversation({ conversationId: groupId });
+      const { group } = await this.groupService.getGroup({ groupId });
 
       return { group };
     } catch (error: unknown) {
@@ -79,35 +72,11 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { groupId, mimeType } = params;
 
-      const { uploadUrl } = this.conversationService.getConversationImageUploadUrl({
-        conversationType: ConversationType.Group,
-        conversationId: groupId,
-        mimeType,
-      });
+      const { uploadUrl } = this.groupService.getGroupImageUploadUrl({ groupId, mimeType });
 
       return { uploadUrl };
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroupImageUploadUrl", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async deleteGroup(params: DeleteGroupInput): Promise<DeleteGroupOutput> {
-    try {
-      this.loggerService.trace("deleteGroup called", { params }, this.constructor.name);
-
-      const { groupId } = params;
-
-      const { conversationUserRelationships } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByConversationId({ conversationId: groupId });
-
-      const userIds = conversationUserRelationships.map((relationship) => relationship.userId);
-
-      await Promise.all(userIds.map((userId) => this.conversationUserRelationshipService.deleteConversationUserRelationship({ userId, conversationId: groupId })));
-
-      await this.conversationService.deleteConversation({ conversationId: groupId });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in deleteGroup", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -119,20 +88,15 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { groupId, userId, role } = params;
 
-      await this.conversationUserRelationshipService.createConversationUserRelationship({
-        type: ConversationType.Group,
-        conversationId: groupId,
-        userId,
-        role,
-      });
+      await this.groupMembershipService.createGroupMembership({ groupId, userId, role });
 
-      const membership: Membership = {
+      const groupMembership: GroupMembership = {
         groupId,
         userId,
         role,
       };
 
-      return { membership };
+      return { groupMembership };
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToGroup", { error, params }, this.constructor.name);
 
@@ -146,8 +110,8 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { groupId, userId } = params;
 
-      await this.conversationUserRelationshipService.deleteConversationUserRelationship({
-        conversationId: groupId,
+      await this.groupMembershipService.deleteGroupMembership({
+        groupId,
         userId,
       });
     } catch (error: unknown) {
@@ -163,20 +127,19 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { userId, exclusiveStartKey, limit } = params;
 
-      const { conversationUserRelationships, lastEvaluatedKey } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({
+      const { groupMemberships, lastEvaluatedKey } = await this.groupMembershipService.getGroupMembershipsByUserId({
         userId,
-        type: ConversationFetchType.Group,
         exclusiveStartKey,
         limit,
       });
 
-      const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
+      const groupIds = groupMemberships.map((relationship) => relationship.groupId);
 
-      const { conversations: groups } = await this.conversationService.getConversations({ conversationIds });
+      const { groups } = await this.groupService.getGroups({ groupIds });
 
       const groupsWithRoles = groups.map((group, i) => ({
         ...group,
-        role: conversationUserRelationships[i].role,
+        role: groupMemberships[i].role,
       }));
 
       return { groups: groupsWithRoles, lastEvaluatedKey };
@@ -193,9 +156,8 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { teamId, exclusiveStartKey, limit } = params;
 
-      const { conversations: groups, lastEvaluatedKey } = await this.conversationService.getConversationsByTeamId({
+      const { groups, lastEvaluatedKey } = await this.groupService.getGroupsByTeamId({
         teamId,
-        type: ConversationType.Group,
         exclusiveStartKey,
         limit,
       });
@@ -214,9 +176,8 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { organizationId, exclusiveStartKey, limit } = params;
 
-      const { conversations: groups, lastEvaluatedKey } = await this.conversationService.getConversationsByOrganizationId({
+      const { groups, lastEvaluatedKey } = await this.groupService.getGroupsByOrganizationId({
         organizationId,
-        type: ConversationType.Group,
         exclusiveStartKey,
         limit,
       });
@@ -235,8 +196,8 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { groupId, userId } = params;
 
-      await this.conversationUserRelationshipService.getConversationUserRelationship({
-        conversationId: groupId,
+      await this.groupMembershipService.getGroupMembership({
+        groupId,
         userId,
       });
 
@@ -257,12 +218,12 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { groupId, userId } = params;
 
-      const { conversationUserRelationship } = await this.conversationUserRelationshipService.getConversationUserRelationship({
-        conversationId: groupId,
+      const { groupMembership } = await this.groupMembershipService.getGroupMembership({
+        groupId,
         userId,
       });
 
-      return { isGroupAdmin: conversationUserRelationship.role === Role.Admin };
+      return { isGroupAdmin: groupMembership.role === Role.Admin };
     } catch (error: unknown) {
       if (error instanceof NotFoundError) {
         return { isGroupAdmin: false };
@@ -277,8 +238,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 export interface GroupMediatorServiceInterface {
   createGroup(params: CreateGroupInput): Promise<CreateGroupOutput>;
   updateGroup(params: UpdateGroupInput): Promise<UpdateGroupOutput>;
-  getGroup(params: GetGroupInput): Promise<GetGroupOutput>;
-  deleteGroup(params: DeleteGroupInput): Promise<DeleteGroupOutput>;
+  getGroup(params: GetGroupInput): Promise<GetGroupOutput>
   addUserToGroup(params: AddUserToGroupInput): Promise<AddUserToGroupOutput>;
   removeUserFromGroup(params: RemoveUserFromGroupInput): Promise<RemoveUserFromGroupOutput>;
   getGroupImageUploadUrl(params: GetGroupImageUploadUrlInput): GetGroupImageUploadUrlOutput;
@@ -288,12 +248,6 @@ export interface GroupMediatorServiceInterface {
   isGroupMember(params: IsGroupMemberInput): Promise<IsGroupMemberOutput>;
   isGroupAdmin(params: IsGroupAdminInput): Promise<IsGroupAdminOutput>;
 }
-
-export interface Group extends Omit<Group, "type" | "imageMimeType"> {
-  image: string;
-}
-
-export interface Membership { groupId: string; userId: string; role: Role; }
 
 export interface CreateGroupInput {
   name: string;
@@ -308,12 +262,10 @@ export interface CreateGroupOutput {
 
 export interface UpdateGroupInput {
   groupId: GroupId;
-  updates: Pick<Partial<Group>, "name">;
+  updates: GroupUpdates;
 }
 
-export interface UpdateGroupOutput {
-  group: Group;
-}
+export type UpdateGroupOutput = void;
 
 export interface GetGroupInput {
   groupId: GroupId;
@@ -332,11 +284,7 @@ export interface GetGroupImageUploadUrlOutput {
   uploadUrl: string;
 }
 
-export interface DeleteGroupInput {
-  groupId: GroupId;
-}
-
-export type DeleteGroupOutput = void;
+export type GroupMembership = Pick<GroupMembershipEntity, "userId" | "groupId" | "role">;
 
 export interface AddUserToGroupInput {
   groupId: GroupId;
@@ -345,7 +293,7 @@ export interface AddUserToGroupInput {
 }
 
 export interface AddUserToGroupOutput {
-  membership: Membership;
+  groupMembership: GroupMembership;
 }
 
 export interface RemoveUserFromGroupInput {

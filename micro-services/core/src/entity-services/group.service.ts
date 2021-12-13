@@ -3,7 +3,7 @@ import { FileOperation, GroupId, IdServiceInterface, LoggerServiceInterface, Org
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-import { GroupRepositoryInterface, Group as GroupEntity, RawGroup as RawGroupEntity, GroupUpdates } from "../repositories/group.dynamo.repository";
+import { GroupRepositoryInterface, Group as GroupEntity, RawGroup as RawGroupEntity, GroupUpdates as RepositoryGroupUpdates } from "../repositories/group.dynamo.repository";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
 import { EntityType } from "../enums/entityType.enum";
@@ -271,6 +271,8 @@ export interface GetGroupInput {
 export interface GetGroupOutput {
   group: Group;
 }
+
+export type GroupUpdates = RepositoryGroupUpdates;
 
 export interface UpdateGroupInput {
   groupId: GroupId;

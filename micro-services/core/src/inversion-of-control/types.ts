@@ -89,6 +89,7 @@ const TYPES = {
   MeetingServiceInterface: Symbol.for("MeetingServiceInterface"),
   MeetingMembershipServiceInterface: Symbol.for("MeetingMembershipServiceInterface"),
   MessageServiceInterface: Symbol.for("MessageServiceInterface"),
+  OneOnOneMembershipServiceInterface: Symbol.for("OneOnOneMembershipServiceInterface"),
   OrganizationServiceInterface: Symbol.for("OrganizationServiceInterface"),
   OrganizationMembershipServiceInterface: Symbol.for("OrganizationMembershipServiceInterface"),
   PendingMessageServiceInterface: Symbol.for("PendingMessageServiceInterface"),

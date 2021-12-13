@@ -97,6 +97,7 @@ import { GroupMembershipDynamoRepository, GroupMembershipRepositoryInterface } f
 import { TeamMembershipService, TeamMembershipServiceInterface } from "../entity-services/teamMembership.service";
 import { MeetingService, MeetingServiceInterface } from "../entity-services/meeting.service";
 import { MeetingMembershipService, MeetingMembershipServiceInterface } from "../entity-services/meetingMembership.service";
+import { OneOnOneMembershipService, OneOnOneMembershipServiceInterface } from "../entity-services/oneOnOneMembership.service";
 
 const container = new Container();
 
@@ -192,6 +193,7 @@ try {
   container.bind<MeetingServiceInterface>(TYPES.MeetingServiceInterface).to(MeetingService);
   container.bind<MeetingMembershipServiceInterface>(TYPES.MeetingMembershipServiceInterface).to(MeetingMembershipService);
   container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);
+  container.bind<OneOnOneMembershipServiceInterface>(TYPES.OneOnOneMembershipServiceInterface).to(OneOnOneMembershipService);
   container.bind<OrganizationServiceInterface>(TYPES.OrganizationServiceInterface).to(OrganizationService);
   container.bind<OrganizationMembershipServiceInterface>(TYPES.OrganizationMembershipServiceInterface).to(OrganizationMembershipService);
   container.bind<PendingInvitationServiceInterface>(TYPES.PendingInvitationServiceInterface).to(PendingInvitationService);

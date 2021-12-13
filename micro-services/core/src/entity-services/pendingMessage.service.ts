@@ -1,10 +1,9 @@
 import { inject, injectable } from "inversify";
-import { FileOperation, IdServiceInterface, LoggerServiceInterface, MessageFileRepositoryInterface, MessageId, MessageUploadTokenServiceInterface, UserId } from "@yac/util";
+import { ConversationId, FileOperation, IdServiceInterface, LoggerServiceInterface, MessageFileRepositoryInterface, MessageId, MessageUploadTokenServiceInterface, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { PendingMessageRepositoryInterface, PendingMessage as PendingMessageEntity, PendingMessageUpdates } from "../repositories/pendingMessage.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
-import { ConversationId } from "../repositories/message.dynamo.repository";
 
 @injectable()
 export class PendingMessageService implements PendingMessageServiceInterface {

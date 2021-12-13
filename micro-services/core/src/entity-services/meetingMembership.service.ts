@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { MeetingId, LoggerServiceInterface, Role, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { MeetingMembershipRepositoryInterface, MeetingMembership as MeetingMembershipEntity } from "../repositories/meetingMembership.dynamo.repository";
+import { MeetingMembershipRepositoryInterface, MeetingMembership as MeetingMembershipEntity, MeetingMembershipUpdates } from "../repositories/meetingMembership.dynamo.repository";
 
 @injectable()
 export class MeetingMembershipService implements MeetingMembershipServiceInterface {
@@ -24,7 +24,6 @@ export class MeetingMembershipService implements MeetingMembershipServiceInterfa
         role,
         meetingDueAt,
         createdAt: now,
-        userActiveAt: now,
         meetingActiveAt: now,
       };
 
@@ -120,6 +119,7 @@ export class MeetingMembershipService implements MeetingMembershipServiceInterfa
 export interface MeetingMembershipServiceInterface {
   createMeetingMembership(params: CreateMeetingMembershipInput): Promise<CreateMeetingMembershipOutput>;
   getMeetingMembership(params: GetMeetingMembershipInput): Promise<GetMeetingMembershipOutput>;
+  updateMeetingMembership(params: UpdateMeetingMembershipInput): Promise<UpdateMeetingMembershipOutput>;
   deleteMeetingMembership(params: DeleteMeetingMembershipInput): Promise<DeleteMeetingMembershipOutput>;
   getMeetingMembershipsByMeetingId(params: GetMeetingMembershipsByMeetingIdInput): Promise<GetMeetingMembershipsByMeetingIdOutput>;
   getMeetingMembershipsByUserId(params: GetMeetingMembershipsByUserIdInput): Promise<GetMeetingMembershipsByUserIdOutput>;
@@ -150,7 +150,7 @@ export interface GetMeetingMembershipOutput {
 export interface UpdateMeetingMembershipInput {
   meetingId: MeetingId;
   userId: UserId;
-  updates: UpdateMeetingMembershipUpdates;
+  updates: MeetingMembershipUpdates;
 }
 
 export interface UpdateMeetingMembershipOutput {
@@ -184,5 +184,3 @@ export interface GetMeetingMembershipsByUserIdOutput {
   meetingMemberships: MeetingMembership[];
   lastEvaluatedKey?: string;
 }
-
-type UpdateMeetingMembershipUpdates = Partial<Pick<MeetingMembership, "role" | "userActiveAt" | "meetingActiveAt">>;

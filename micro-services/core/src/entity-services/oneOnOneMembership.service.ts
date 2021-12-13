@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { OneOnOneMembershipRepositoryInterface, OneOnOneMembership as OneOnOneMembershipEntity } from "../repositories/oneOnOneMembership.dynamo.repository";
+import { OneOnOneMembershipRepositoryInterface, OneOnOneMembership as OneOnOneMembershipEntity, OneOnOneMembershipUpdates } from "../repositories/oneOnOneMembership.dynamo.repository";
 
 @injectable()
 export class OneOnOneMembershipService implements OneOnOneMembershipServiceInterface {
@@ -128,7 +128,7 @@ export interface GetOneOnOneMembershipOutput {
 export interface UpdateOneOnOneMembershipInput {
   userId: UserId;
   otherUserId: UserId;
-  updates: UpdateOneOnOneMembershipUpdates;
+  updates: OneOnOneMembershipUpdates;
 }
 
 export interface UpdateOneOnOneMembershipOutput {
@@ -151,5 +151,3 @@ export interface GetOneOnOneMembershipsByUserIdOutput {
   oneOnOneMemberships: OneOnOneMembership[];
   lastEvaluatedKey?: string;
 }
-
-type UpdateOneOnOneMembershipUpdates = Partial<Pick<OneOnOneMembership, "activeAt">>;

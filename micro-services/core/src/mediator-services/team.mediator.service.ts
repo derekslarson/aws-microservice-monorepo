@@ -1,10 +1,8 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, WithRole } from "@yac/util";
+import { LoggerServiceInterface, NotFoundError, OrganizationId, Role, TeamId, UserId, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { TeamServiceInterface, Team as TeamEntity } from "../entity-services/team.service";
-import { TeamUserRelationshipServiceInterface, TeamUserRelationship as TeamUserRelationshipEntity } from "../entity-services/teamUserRelationship.service";
-import { UserId } from "../types/userId.type";
-import { TeamId } from "../types/teamId.type";
+import { TeamMembershipServiceInterface, TeamMembership as TeamMembershipEntity } from "../entity-services/teamMembership.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 
 @injectable()
@@ -12,7 +10,7 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
-    @inject(TYPES.TeamUserRelationshipServiceInterface) private teamUserRelationshipService: TeamUserRelationshipServiceInterface,
+    @inject(TYPES.TeamMembershipServiceInterface) private teamMembershipService: TeamMembershipServiceInterface,
   ) {}
 
   public async createTeam(params: CreateTeamInput): Promise<CreateTeamOutput> {
@@ -27,11 +25,11 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
         organizationId,
       });
 
-      const { teamUserRelationship } = await this.teamUserRelationshipService.createTeamUserRelationship({ teamId: teamEntity.id, userId: createdBy, role: Role.Admin });
+      const { teamMembership } = await this.teamMembershipService.createTeamMembership({ teamId: teamEntity.id, userId: createdBy, role: Role.Admin });
 
       const team: WithRole<Team> = {
         ...teamEntity,
-        role: teamUserRelationship.role,
+        role: teamMembership.role,
       };
 
       return { team };
@@ -80,9 +78,9 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { teamId, userId, role } = params;
 
-      const { teamUserRelationship } = await this.teamUserRelationshipService.createTeamUserRelationship({ teamId, userId, role });
+      const { teamMembership } = await this.teamMembershipService.createTeamMembership({ teamId, userId, role });
 
-      return { teamUserRelationship };
+      return { teamMembership };
     } catch (error: unknown) {
       this.loggerService.error("Error in addUserToTeam", { error, params }, this.constructor.name);
 
@@ -96,7 +94,7 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { teamId, userId } = params;
 
-      await this.teamUserRelationshipService.deleteTeamUserRelationship({ teamId, userId });
+      await this.teamMembershipService.deleteTeamMembership({ teamId, userId });
     } catch (error: unknown) {
       this.loggerService.error("Error in removeUserFromTeam", { error, params }, this.constructor.name);
 
@@ -126,15 +124,15 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { userId, exclusiveStartKey, limit } = params;
 
-      const { teamUserRelationships, lastEvaluatedKey } = await this.teamUserRelationshipService.getTeamUserRelationshipsByUserId({ userId, exclusiveStartKey, limit });
+      const { teamMemberships, lastEvaluatedKey } = await this.teamMembershipService.getTeamMembershipsByUserId({ userId, exclusiveStartKey, limit });
 
-      const teamIds = teamUserRelationships.map((relationship) => relationship.teamId);
+      const teamIds = teamMemberships.map((relationship) => relationship.teamId);
 
       const { teams } = await this.teamService.getTeams({ teamIds });
 
       const teamsWithRoles = teams.map((team, i) => ({
         ...team,
-        role: teamUserRelationships[i].role,
+        role: teamMemberships[i].role,
       }));
 
       return { teams: teamsWithRoles, lastEvaluatedKey };
@@ -167,7 +165,7 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { teamId, userId } = params;
 
-      await this.teamUserRelationshipService.getTeamUserRelationship({ teamId, userId });
+      await this.teamMembershipService.getTeamMembership({ teamId, userId });
 
       return { isTeamMember: true };
     } catch (error: unknown) {
@@ -187,9 +185,9 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { teamId, userId } = params;
 
-      const { teamUserRelationship } = await this.teamUserRelationshipService.getTeamUserRelationship({ teamId, userId });
+      const { teamMembership } = await this.teamMembershipService.getTeamMembership({ teamId, userId });
 
-      return { isTeamAdmin: teamUserRelationship.role === Role.Admin };
+      return { isTeamAdmin: teamMembership.role === Role.Admin };
     } catch (error: unknown) {
       if (error instanceof NotFoundError) {
         return { isTeamAdmin: false };
@@ -218,7 +216,7 @@ export interface Team extends Omit<TeamEntity, "imageMimeType"> {
   image: string;
 }
 
-export type TeamUserRelationship = TeamUserRelationshipEntity;
+export type TeamMembership = TeamMembershipEntity;
 
 export interface CreateTeamInput {
   name: string;
@@ -251,7 +249,7 @@ export interface AddUserToTeamInput {
 }
 
 export interface AddUserToTeamOutput {
-  teamUserRelationship: TeamUserRelationship;
+  teamMembership: TeamMembership;
 }
 
 export interface RemoveUserFromTeamInput {

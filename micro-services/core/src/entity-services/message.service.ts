@@ -1,10 +1,11 @@
 import { inject, injectable } from "inversify";
-import { FileOperation, LoggerServiceInterface, MessageFileRepositoryInterface, MessageId, UserId } from "@yac/util";
+import { ConversationId, FileOperation, LoggerServiceInterface, MessageFileRepositoryInterface, MessageId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { MessageRepositoryInterface, Message as MessageEntity, RawMessage, ConversationId, MessageUpdates } from "../repositories/message.dynamo.repository";
+import { MessageRepositoryInterface, Message as MessageEntity, RawMessage, MessageUpdates } from "../repositories/message.dynamo.repository";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
+import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
@@ -146,13 +147,13 @@ export class MessageService implements MessageServiceInterface {
     }
   }
 
-  public async addMessageReaction(params: AddMessageReactionInput): Promise<AddMessageReactionOutput> {
+  public async updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput> {
     try {
       this.loggerService.trace("addMessageReaction called", { params }, this.constructor.name);
 
-      const { messageId, userId, reaction } = params;
+      const { messageId, userId, reaction, action } = params;
 
-      const { message: messageEntity } = await this.messageRepository.addMessageReaction({ messageId, userId, reaction });
+      const { message: messageEntity } = await this.messageRepository.updateMessageReaction({ messageId, userId, reaction, action });
 
       const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
         messageId: messageEntity.id,
@@ -174,34 +175,6 @@ export class MessageService implements MessageServiceInterface {
     }
   }
 
-  public async removeMessageReaction(params: RemoveMessageReactionInput): Promise<RemoveMessageReactionOutput> {
-    try {
-      this.loggerService.trace("removeMessageReaction called", { params }, this.constructor.name);
-
-      const { messageId, userId, reaction } = params;
-
-      const { message: messageEntity } = await this.messageRepository.removeMessageReaction({ messageId, userId, reaction });
-
-      const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
-        messageId: messageEntity.id,
-        conversationId: messageEntity.conversationId,
-        mimeType: messageEntity.mimeType,
-        operation: FileOperation.Get,
-      });
-
-      const message = {
-        ...messageEntity,
-        fetchUrl: signedUrl,
-      };
-
-      return { message };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in removeMessageReaction", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
   public async updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput> {
     try {
       this.loggerService.trace("updateMessage called", { params }, this.constructor.name);
@@ -218,9 +191,9 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
 
-      const { conversationId, exclusiveStartKey, limit } = params;
+      const { conversationId, minCreatedAt, exclusiveStartKey, limit } = params;
 
-      const { messages: messageEntities, lastEvaluatedKey } = await this.messageRepository.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit });
+      const { messages: messageEntities, lastEvaluatedKey } = await this.messageRepository.getMessagesByConversationId({ conversationId, minCreatedAt, exclusiveStartKey, limit });
 
       const messages = messageEntities.map((messageEntity) => {
         const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
@@ -330,8 +303,7 @@ export interface MessageServiceInterface {
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
   markMessageSeen(params: MarkMessageSeenInput): Promise<MarkMessageSeenOutput>;
-  addMessageReaction(params: AddMessageReactionInput): Promise<AddMessageReactionOutput>;
-  removeMessageReaction(params: RemoveMessageReactionInput): Promise<RemoveMessageReactionOutput>;
+  updateMessageReaction(params: UpdateMessageReactionInput): Promise<UpdateMessageReactionOutput>;
   updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
   getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>;
   getRepliesByMessageId(params: GetRepliesByMessageIdInput): Promise<GetRepliesByMessageIdOutput>;
@@ -378,30 +350,20 @@ export interface GetMessagesOutput {
 export interface MarkMessageSeenInput {
   messageId: MessageId;
   userId: UserId;
-  seenAtValue: string | null;
 }
 
 export interface MarkMessageSeenOutput {
   message: Message;
 }
 
-export interface AddMessageReactionInput {
+export interface UpdateMessageReactionInput {
   messageId: MessageId;
   userId: UserId;
   reaction: string;
+  action: UpdateMessageReactionAction;
 }
 
-export interface AddMessageReactionOutput {
-  message: Message;
-}
-
-export interface RemoveMessageReactionInput {
-  messageId: MessageId;
-  userId: UserId;
-  reaction: string;
-}
-
-export interface RemoveMessageReactionOutput {
+export interface UpdateMessageReactionOutput {
   message: Message;
 }
 
@@ -414,6 +376,7 @@ export type UpdateMessageOutput = void;
 
 export interface GetMessagesByConversationIdInput {
   conversationId: ConversationId;
+  minCreatedAt?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }

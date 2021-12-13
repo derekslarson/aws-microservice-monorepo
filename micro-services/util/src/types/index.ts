@@ -12,3 +12,4 @@ export * from "./teamId.type";
 export * from "./messageId.type";
 export * from "./organizationId.type";
 export * from "./oneOnOneId.type";
+export * from "./conversationId.type";

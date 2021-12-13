@@ -72,7 +72,7 @@ export class OneOnOneMembershipDynamoRepository extends BaseDynamoRepositoryV2<O
 
       const { userId, otherUserId, updates } = params;
 
-      const rawUpdates: UpdateOneOnOneMembershipRawUpdates = { ...updates };
+      const rawUpdates: RawOneOnOneMembershipUpdates = { ...updates };
 
       if (updates.activeAt) {
         rawUpdates.gsi1sk = `${KeyPrefix.OneOnOne}${KeyPrefix.Active}${updates.activeAt}`;
@@ -179,10 +179,12 @@ export interface GetOneOnOneMembershipOutput {
   oneOnOneMembership: OneOnOneMembership;
 }
 
+export type OneOnOneMembershipUpdates = Partial<Pick<OneOnOneMembership, "activeAt">>;
+
 export interface UpdateOneOnOneMembershipInput {
   userId: UserId;
   otherUserId: UserId;
-  updates: UpdateOneOnOneMembershipUpdates;
+  updates: OneOnOneMembershipUpdates;
 }
 
 export interface UpdateOneOnOneMembershipOutput {
@@ -207,7 +209,6 @@ export interface GetOneOnOneMembershipsByUserIdOutput {
   lastEvaluatedKey?: string;
 }
 
-type UpdateOneOnOneMembershipUpdates = Partial<Pick<OneOnOneMembership, "activeAt">>;
-type UpdateOneOnOneMembershipRawUpdates = UpdateOneOnOneMembershipUpdates & { gsi1sk?: Gsi1Sk; };
+type RawOneOnOneMembershipUpdates = OneOnOneMembershipUpdates & { gsi1sk?: Gsi1Sk; };
 
 type Gsi1Sk = `${KeyPrefix.OneOnOne}${KeyPrefix.Active}${string}`;

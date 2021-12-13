@@ -2,24 +2,22 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable no-nested-ternary */
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/util";
+import { ConversationId, GroupId, LoggerServiceInterface, MeetingId, MessageId, OneOnOneId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationUserRelationshipServiceInterface } from "../entity-services/groupMembership.service";
+import { GroupMembershipServiceInterface } from "../entity-services/groupMembership.service";
 import { MessageServiceInterface, Message as MessageEntity } from "../entity-services/message.service";
-import { ConversationId } from "../types/conversationId.type";
-import { UserId } from "../types/userId.type";
-import { MessageId } from "../types/messageId.type";
-import { GroupId } from "../types/groupId.type";
-import { MeetingId } from "../types/meetingId.type";
-import { ConversationServiceInterface, Group, Meeting } from "../entity-services/group.service";
+
+import { Group, GroupServiceInterface } from "../entity-services/group.service";
 import { PendingMessage as PendingMessageEntity, PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
-import { PendingMessageId } from "../types/pendingMessageId.type";
+
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMimeType } from "../enums/message.mimeType.enum";
 import { User, UserServiceInterface } from "../entity-services/user.service";
 import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 import { ConversationType } from "../enums/conversationType.enum";
-import { FriendConvoId } from "../types/friendConvoId.type";
+import { Meeting, MeetingServiceInterface } from "../entity-services/meeting.service";
+import { MeetingMembershipServiceInterface } from "../entity-services/meetingMembership.service";
+import { OneOnOneMembershipServiceInterface } from "../entity-services/oneOnOneMembership.service";
 
 @injectable()
 export class MessageMediatorService implements MessageMediatorServiceInterface {
@@ -28,36 +26,38 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     @inject(TYPES.PendingMessageServiceInterface) private pendingMessageService: PendingMessageServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
-    @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
-    @inject(TYPES.ConversationUserRelationshipServiceInterface) private conversationUserRelationshipService: ConversationUserRelationshipServiceInterface,
+    @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
+    @inject(TYPES.GroupMembershipServiceInterface) private groupMembershipService: GroupMembershipServiceInterface,
+    @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
+    @inject(TYPES.MeetingMembershipServiceInterface) private meetingMembershipService: MeetingMembershipServiceInterface,
+    @inject(TYPES.OneOnOneMembershipServiceInterface) private oneOnOneMembershipService: OneOnOneMembershipServiceInterface,
   ) {}
 
-  public async createFriendMessage(params: CreateFriendMessageInput): Promise<CreateFriendMessageOutput> {
+  public async createOneOnOneMessage(params: CreateOneOnOneMessageInput): Promise<CreateOneOnOneMessageOutput> {
     try {
-      this.loggerService.trace("createFriendMessage called", { params }, this.constructor.name);
+      this.loggerService.trace("createOneOnOneMessage called", { params }, this.constructor.name);
 
       const { to, from, mimeType } = params;
 
-      const { conversation } = await this.conversationService.getFriendConversationByUserIds({ userIds: [ to, from ] });
+      const oneOnOneId = [ to, from ].sort().join("_") as OneOnOneId;
 
-      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageService.createPendingMessage({ conversationId: conversation.id, from, mimeType });
-
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessageEntity.id });
+      const { pendingMessage: pendingMessageEntity } = await this.pendingMessageService.createPendingMessage({ conversationId: oneOnOneId, from, mimeType });
 
       const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
       const { users: [ toUser, fromUser ] } = await this.userService.getUsers({ userIds: [ to, from ] });
+
       const pendingMessage = {
         ...restOfPendingMessageEntity,
         to: toUser,
         from: fromUser,
-        type: ConversationType.Friend,
-        id: messageId,
+        type: ConversationType.OneOnOne,
+        id: pendingMessageEntity.id,
       };
 
       return { pendingMessage };
     } catch (error: unknown) {
-      this.loggerService.error("Error in createFriendMessage", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in createOneOnOneMessage", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -71,21 +71,19 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { pendingMessage: pendingMessageEntity } = await this.pendingMessageService.createPendingMessage({ conversationId: groupId, from, mimeType });
 
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessageEntity.id });
-
       const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
-      const [ { conversation: toGroup }, { user: fromUser } ] = await Promise.all([
-        this.conversationService.getConversation({ conversationId: groupId }),
+      const [ { group }, { user } ] = await Promise.all([
+        this.groupService.getGroup({ groupId }),
         this.userService.getUser({ userId: from }),
       ]);
 
       const pendingMessage = {
         ...restOfPendingMessageEntity,
-        to: toGroup,
-        from: fromUser,
+        to: group,
+        from: user,
         type: ConversationType.Group,
-        id: messageId,
+        id: pendingMessageEntity.id,
       };
 
       return { pendingMessage };
@@ -104,21 +102,19 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { pendingMessage: pendingMessageEntity } = await this.pendingMessageService.createPendingMessage({ conversationId: meetingId, from, mimeType });
 
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId: pendingMessageEntity.id });
-
       const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
 
-      const [ { conversation: toMeeting }, { user: fromUser } ] = await Promise.all([
-        this.conversationService.getConversation({ conversationId: meetingId }),
+      const [ { meeting }, { user } ] = await Promise.all([
+        this.meetingService.getMeeting({ meetingId }),
         this.userService.getUser({ userId: from }),
       ]);
 
       const pendingMessage = {
         ...restOfPendingMessageEntity,
-        to: toMeeting,
-        from: fromUser,
+        to: meeting,
+        from: user,
         type: ConversationType.Meeting,
-        id: messageId,
+        id: pendingMessageEntity.id,
       };
 
       return { pendingMessage };
@@ -133,32 +129,36 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("convertPendingToRegularMessage called", { params }, this.constructor.name);
 
-      const { pendingMessageId, transcript } = params;
+      const { messageId, transcript } = params;
 
-      const { pendingMessage: { conversationId, from: fromId, replyTo, mimeType, title } } = await this.pendingMessageService.getPendingMessage({ pendingMessageId });
+      const { pendingMessage: { conversationId, from: fromId, replyTo, mimeType, title } } = await this.pendingMessageService.getPendingMessage({ messageId });
 
-      const { messageId } = this.convertPendingToRegularMessageId({ pendingMessageId });
+      const { conversationType } = this.getConversationTypeFromConversationId({ conversationId });
 
-      const { conversationUserRelationships } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByConversationId({ conversationId });
+      let conversationMemberIds: UserId[];
+
+      if (conversationType === ConversationType.Group) {
+        const { groupMemberships } = await this.groupMembershipService.getGroupMembershipsByGroupId({ groupId: conversationId as GroupId });
+
+        conversationMemberIds = groupMemberships.map((groupMembership) => groupMembership.userId);
+      } else if (conversationType === ConversationType.Meeting) {
+        const { meetingMemberships } = await this.meetingMembershipService.getMeetingMembershipsByMeetingId({ meetingId: conversationId as MeetingId });
+
+        conversationMemberIds = meetingMemberships.map((meetingMembership) => meetingMembership.userId);
+      } else {
+        conversationMemberIds = conversationId.split(/_(?=user_)/) as UserId[];
+      }
 
       const timestamp = new Date().toISOString();
 
       const seenAt: Record<string, string | null> = {};
-      conversationUserRelationships.forEach((relationship) => {
-        seenAt[relationship.userId] = relationship.userId === fromId ? timestamp : null;
+      conversationMemberIds.forEach((memberId) => {
+        seenAt[memberId] = memberId === fromId ? timestamp : null;
       });
 
-      const { message: messageEntity } = await this.messageService.createMessage({ messageId, conversationId, from: fromId, replyTo, mimeType, transcript, seenAt, title });
+      await this.messageService.createMessage({ messageId, conversationId, from: fromId, replyTo, mimeType, transcript, seenAt, title });
 
-      await Promise.all(conversationUserRelationships.map((relationship) => this.conversationUserRelationshipService.addMessageToConversationUserRelationship({
-        conversationId,
-        userId: relationship.userId,
-        messageId: messageEntity.id,
-        sender: relationship.userId === fromId,
-        updateUpdatedAt: true,
-      })));
-
-      await this.pendingMessageService.deletePendingMessage({ pendingMessageId });
+      await this.pendingMessageService.deletePendingMessage({ messageId });
 
       const { message } = await this.getMessage({ messageId });
 
@@ -178,23 +178,25 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { message: messageEntity } = await this.messageService.getMessage({ messageId });
 
-      const { conversation } = await this.conversationService.getConversation({ conversationId: messageEntity.conversationId });
+      const { conversationType } = this.getConversationTypeFromConversationId({ conversationId: messageEntity.conversationId });
 
       let to: To;
-      let from: User;
-
-      if (conversation.type === ConversationType.Friend) {
-        const { userIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: conversation.id });
-        const { users } = await this.userService.getUsers({ userIds });
-
-        to = users.find((user) => user.id !== messageEntity.from) as User;
-        from = users.find((user) => user.id === messageEntity.from) as User;
+      if (conversationType === ConversationType.Group) {
+        ({ group: to } = await this.groupService.getGroup({ groupId: messageEntity.conversationId as GroupId }));
+      } else if (conversationType === ConversationType.Meeting) {
+        ({ meeting: to } = await this.meetingService.getMeeting({ meetingId: messageEntity.conversationId as MeetingId }));
       } else {
-        const { user } = await this.userService.getUser({ userId: messageEntity.from });
+        const toAndFromUserIds = messageEntity.conversationId.split(/_(?=user_)/) as UserId[];
+        const toUserId = toAndFromUserIds.find((userId) => userId !== messageEntity.from);
 
-        to = conversation;
-        from = user;
+        if (!toUserId) {
+          throw new Error(`Malformed conversationId: ${messageEntity.conversationId}`);
+        }
+
+        ({ user: to } = await this.userService.getUser({ userId: toUserId }));
       }
+
+      const { user: from } = await this.userService.getUser({ userId: messageEntity.from });
 
       const { conversationId, ...restOfMessageEntity } = messageEntity;
 
@@ -202,7 +204,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         ...restOfMessageEntity,
         to,
         from,
-        type: conversation.type,
+        type: conversationType,
       };
 
       return { message };
@@ -213,19 +215,38 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
-  public async getMessagesByUserAndFriendIds(params: GetMessagesByUserAndFriendIdsInput): Promise<GetMessagesByUserAndFriendIdsOutput> {
+  public async getMessagesByUserIdAndOtherUserId(params: GetMessagesByUserIdAndOtherUserIdInput): Promise<GetMessagesByUserIdAndOtherUserIdOutput> {
     try {
-      this.loggerService.trace("getMessagesByUserAndFriendIds called", { params }, this.constructor.name);
+      this.loggerService.trace("getMessagesByUserIdAndOtherUserId called", { params }, this.constructor.name);
 
-      const { userId, friendId, exclusiveStartKey, limit } = params;
+      const { requestingUserId, otherUserId, newOnly, exclusiveStartKey, limit } = params;
 
-      const { conversation } = await this.conversationService.getFriendConversationByUserIds({ userIds: [ userId, friendId ] });
+      const { oneOnOneMembership } = await this.oneOnOneMembershipService.getOneOnOneMembership({ userId: requestingUserId, otherUserId });
 
-      const { messages, lastEvaluatedKey } = await this.getMessagesByConversationId({ conversationId: conversation.id, exclusiveStartKey, limit });
+      const minCreatedAt = newOnly ? oneOnOneMembership.activeAt : undefined;
+
+      const conversationId = [ requestingUserId, otherUserId ].sort().join("_") as OneOnOneId;
+
+      const [ { messages: messageEntities, lastEvaluatedKey }, { users: [ user, otherUser ] } ] = await Promise.all([
+        this.messageService.getMessagesByConversationId({ conversationId, minCreatedAt, exclusiveStartKey, limit }),
+        this.userService.getUsers({ userIds: [ requestingUserId, otherUserId ] }),
+      ]);
+
+      const messages = messageEntities.map((messageEntity) => {
+        const { conversationId: _, from, ...restOfMessage } = messageEntity;
+
+        return {
+          to: from === user.id ? otherUser : user,
+          from: from === user.id ? user : otherUser,
+          type: ConversationType.OneOnOne,
+          new: messageEntity.createdAt > oneOnOneMembership.activeAt,
+          ...restOfMessage,
+        };
+      });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getMessagesByUserAndFriendIds", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getMessagesByUserIdAndOtherUserId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -235,9 +256,35 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("getMessagesByGroupId called", { params }, this.constructor.name);
 
-      const { groupId, exclusiveStartKey, limit } = params;
+      const { requestingUserId, groupId, newOnly, exclusiveStartKey, limit } = params;
 
-      const { messages, lastEvaluatedKey } = await this.getMessagesByConversationId({ conversationId: groupId, exclusiveStartKey, limit });
+      const { groupMembership } = await this.groupMembershipService.getGroupMembership({ userId: requestingUserId, groupId });
+
+      const minCreatedAt = newOnly ? groupMembership.groupActiveAt : undefined;
+
+      const [ { messages: messageEntities, lastEvaluatedKey }, { group } ] = await Promise.all([
+        this.messageService.getMessagesByConversationId({ conversationId: groupId, minCreatedAt, exclusiveStartKey, limit }),
+        this.groupService.getGroup({ groupId }),
+      ]);
+
+      const userIds = Array.from(new Set(messageEntities.map((messageEntity) => messageEntity.from)));
+
+      const { users } = await this.userService.getUsers({ userIds });
+
+      const userMap: Record<UserId, User> = {};
+      users.forEach((user) => userMap[user.id] = user);
+
+      const messages = messageEntities.map((messageEntity) => {
+        const { conversationId: _, from, ...restOfMessage } = messageEntity;
+
+        return {
+          to: group,
+          from: userMap[from] as User,
+          type: ConversationType.OneOnOne,
+          new: messageEntity.createdAt > groupMembership.groupActiveAt,
+          ...restOfMessage,
+        };
+      });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -251,9 +298,35 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     try {
       this.loggerService.trace("getMessagesByMeetingId called", { params }, this.constructor.name);
 
-      const { meetingId, exclusiveStartKey, limit } = params;
+      const { requestingUserId, meetingId, newOnly, exclusiveStartKey, limit } = params;
 
-      const { messages, lastEvaluatedKey } = await this.getMessagesByConversationId({ conversationId: meetingId, exclusiveStartKey, limit });
+      const { meetingMembership } = await this.meetingMembershipService.getMeetingMembership({ userId: requestingUserId, meetingId });
+
+      const minCreatedAt = newOnly ? meetingMembership.meetingActiveAt : undefined;
+
+      const [ { messages: messageEntities, lastEvaluatedKey }, { meeting } ] = await Promise.all([
+        this.messageService.getMessagesByConversationId({ conversationId: meetingId, minCreatedAt, exclusiveStartKey, limit }),
+        this.meetingService.getMeeting({ meetingId }),
+      ]);
+
+      const userIds = Array.from(new Set(messageEntities.map((messageEntity) => messageEntity.from)));
+
+      const { users } = await this.userService.getUsers({ userIds });
+
+      const userMap: Record<UserId, User> = {};
+      users.forEach((user) => userMap[user.id] = user);
+
+      const messages = messageEntities.map((messageEntity) => {
+        const { conversationId: _, from, ...restOfMessage } = messageEntity;
+
+        return {
+          to: meeting,
+          from: userMap[from] as User,
+          type: ConversationType.OneOnOne,
+          new: messageEntity.createdAt > meetingMembership.meetingActiveAt,
+          ...restOfMessage,
+        };
+      });
 
       return { messages, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -269,50 +342,72 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { userId, searchTerm, exclusiveStartKey, limit } = params;
 
-      const { conversationUserRelationships } = await this.conversationUserRelationshipService.getConversationUserRelationshipsByUserId({ userId });
+      const [ { groupMemberships }, { meetingMemberships }, { oneOnOneMemberships } ] = await Promise.all([
+        this.groupMembershipService.getGroupMembershipsByUserId({ userId }),
+        this.meetingMembershipService.getMeetingMembershipsByUserId({ userId }),
+        this.oneOnOneMembershipService.getOneOnOneMembershipsByUserId({ userId }),
+      ]);
 
-      const conversationIds = conversationUserRelationships.map((relationship) => relationship.conversationId);
+      const groupIds = groupMemberships.map((groupMembership) => groupMembership.groupId);
+      const meetingIds = meetingMemberships.map((meetingMembership) => meetingMembership.meetingId);
+      const oneOnOneIds = oneOnOneMemberships.map((oneOnOneMembership) => [ oneOnOneMembership.userId, oneOnOneMembership.otherUserId ].sort().join("_")) as OneOnOneId[];
+
+      const conversationIds = [ ...groupIds, ...meetingIds, ...oneOnOneIds ];
 
       const { messages: messageEntities, lastEvaluatedKey } = await this.messageService.getMessagesBySearchTerm({ conversationIds, searchTerm, exclusiveStartKey, limit });
 
       const userIdSet = new Set<UserId>();
-      const groupMeetingIdSet = new Set<GroupId | MeetingId>();
+      const groupIdSet = new Set<GroupId>();
+      const meetingIdSet = new Set<MeetingId>();
 
-      const messagesWithEntityId = messageEntities.map((message) => {
+      messageEntities.forEach((message) => {
         userIdSet.add(message.from);
 
-        if (message.conversationId.startsWith(KeyPrefix.FriendConversation)) {
-          const { userIds: conversationMemberIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: message.conversationId as FriendConvoId });
-          conversationMemberIds.forEach((memberId) => userIdSet.add(memberId));
-          const [ toUserId ] = conversationMemberIds.filter((memberId) => memberId !== message.from);
+        const { conversationType } = this.getConversationTypeFromConversationId({ conversationId: message.conversationId });
 
-          return { ...message, toEntityId: toUserId };
+        if (conversationType === ConversationType.Group) {
+          groupIdSet.add(message.conversationId as GroupId);
+        } else if (conversationType === ConversationType.Meeting) {
+          meetingIdSet.add(message.conversationId as MeetingId);
+        } else {
+          message.conversationId.split(/_(?=user_)/).forEach((id) => userIdSet.add(id as UserId));
         }
-
-        groupMeetingIdSet.add(message.conversationId as GroupId | MeetingId);
-
-        return { ...message, toEntityId: message.conversationId };
       });
 
-      const [ { users }, { conversations: groupsAndMeetings } ] = await Promise.all([
+      const [ { users }, { groups }, { meetings } ] = await Promise.all([
         this.userService.getUsers({ userIds: Array.from(userIdSet) }),
-        this.conversationService.getConversations({ conversationIds: Array.from(groupMeetingIdSet) }),
+        this.groupService.getGroups({ groupIds: Array.from(groupIdSet) }),
+        this.meetingService.getMeetings({ meetingIds: Array.from(meetingIdSet) }),
       ]);
 
-      const entityMap: Record<string, User | Group | Meeting> = {};
-      [ ...users, ...groupsAndMeetings ].forEach((toEntity) => entityMap[toEntity.id] = toEntity);
+      const entityMap: Record<UserId | GroupId | MeetingId, User | Group | Meeting> = {};
+      users.forEach((user) => entityMap[user.id] = user);
+      groups.forEach((group) => entityMap[group.id] = group);
+      meetings.forEach((meeting) => entityMap[meeting.id] = meeting);
 
-      const messages = messagesWithEntityId.map((message) => {
-        const { conversationId, toEntityId, ...restOfMessage } = message;
+      const messages = messageEntities.map((message) => {
+        const { conversationId, from, ...restOfMessage } = message;
+        const { conversationType } = this.getConversationTypeFromConversationId({ conversationId });
 
-        const to = entityMap[toEntityId];
-        const from = entityMap[message.from] as User;
+        let to: To;
+        if (conversationType === ConversationType.Group || conversationType === ConversationType.Meeting) {
+          to = entityMap[conversationId] as Group | Meeting;
+        } else {
+          const toAndFromUserIds = conversationId.split(/_(?=user_)/) as UserId[];
+          const toUserId = toAndFromUserIds.find((id) => id !== from);
+
+          if (!toUserId) {
+            throw new Error(`Malformed conversationId: ${conversationId}`);
+          }
+
+          to = entityMap[toUserId] as User;
+        }
 
         return {
           ...restOfMessage,
-          type: "type" in to ? to.type : ConversationType.Friend,
           to,
-          from,
+          type: conversationType,
+          from: entityMap[from] as User,
         };
       });
 
@@ -333,7 +428,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
       const updatePromises: Promise<unknown>[] = [];
 
       if (typeof seen === "boolean") {
-        updatePromises.push(this.updateMessageSeenAt({ messageId, userId, seen }));
+        updatePromises.push(this.markMessageSeen({ messageId, userId }));
       }
 
       if (reactions) {
@@ -357,77 +452,6 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
-  public async updateFriendMessagesByUserId(params: UpdateFriendMessagesByUserIdInput): Promise<UpdateFriendMessagesByUserIdOutput> {
-    try {
-      this.loggerService.trace("updateFriendMessagesByUserId called", { params }, this.constructor.name);
-
-      const { userId, friendId, updates } = params;
-
-      const { conversation } = await this.conversationService.getFriendConversationByUserIds({ userIds: [ userId, friendId ] });
-
-      await this.updateConversationMessagesByUserId({ userId, conversationId: conversation.id, updates });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in updateFriendMessagesByUserId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async updateGroupMessagesByUserId(params: UpdateGroupMessagesByUserIdInput): Promise<UpdateGroupMessagesByUserIdOutput> {
-    try {
-      this.loggerService.trace("updateGroupMessagesByUserId called", { params }, this.constructor.name);
-
-      const { userId, groupId, updates } = params;
-
-      await this.updateConversationMessagesByUserId({ userId, conversationId: groupId, updates });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in updateGroupMessagesByUserId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async updateMeetingMessagesByUserId(params: UpdateMeetingMessagesByUserIdInput): Promise<UpdateMeetingMessagesByUserIdOutput> {
-    try {
-      this.loggerService.trace("updateMeetingMessagesByUserId called", { params }, this.constructor.name);
-
-      const { userId, meetingId, updates } = params;
-
-      await this.updateConversationMessagesByUserId({ userId, conversationId: meetingId, updates });
-    } catch (error: unknown) {
-      this.loggerService.error("Error in updateMeetingMessagesByUserId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async updateConversationMessagesByUserId(params: UpdateConversationMessagesByUserIdInput): Promise<UpdateConversationMessagesByUserIdOutput> {
-    try {
-      this.loggerService.trace("updateConversationMessagesByUserId called", { params }, this.constructor.name);
-
-      const { userId, conversationId, updates: { seen } } = params;
-
-      const updatePromises: Promise<unknown>[] = [];
-
-      if (typeof seen === "boolean") {
-        const { conversationUserRelationship } = await this.conversationUserRelationshipService.getConversationUserRelationship({
-          userId,
-          conversationId,
-        });
-
-        const { unreadMessages = [] } = conversationUserRelationship;
-
-        updatePromises.push(...unreadMessages.map((messageId) => this.updateMessageSeenAt({ messageId, userId, seen })));
-      }
-
-      await Promise.all(updatePromises);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in updateConversationMessagesByUserId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
   public async updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput> {
     try {
       this.loggerService.trace("updateMessage called", { params }, this.constructor.name);
@@ -442,102 +466,37 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     }
   }
 
-  private async updateMessageSeenAt(params: UpdateMessageSeenAtInput): Promise<UpdateMessageSeenAtOutput> {
+  private async markMessageSeen(params: MarkMessageSeenInput): Promise<MarkMessageSeenOutput> {
     try {
-      this.loggerService.trace("updateMessageSeenAt called", { params }, this.constructor.name);
+      this.loggerService.trace("markMessageSeen called", { params }, this.constructor.name);
 
-      const { userId, messageId, seen } = params;
+      const { userId, messageId } = params;
 
-      const { message } = await this.messageService.updateMessageSeenAt({
-        messageId,
-        userId,
-        seenAtValue: seen ? new Date().toISOString() : null,
-      });
-
-      if (seen) {
-        await this.conversationUserRelationshipService.removeUnreadMessageFromConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
-      } else {
-        await this.conversationUserRelationshipService.addMessageToConversationUserRelationship({ conversationId: message.conversationId, userId, messageId });
-      }
+      await this.messageService.markMessageSeen({ messageId, userId });
     } catch (error: unknown) {
-      this.loggerService.error("Error in updateMessageSeenAt", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in markMessageSeen", { error, params }, this.constructor.name);
 
       throw error;
     }
   }
 
-  private async getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput> {
+  private getConversationTypeFromConversationId(params: GetConversationTypeFromConversationIdInput): GetConversationTypeFromConversationIdOutput {
     try {
-      this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
+      this.loggerService.trace("getConversationTypeFromConversationId called", { params }, this.constructor.name);
 
-      const { conversationId, exclusiveStartKey, limit } = params;
+      const { conversationId } = params;
 
-      const [ { messages: messageEntities, lastEvaluatedKey }, { conversation } ] = await Promise.all([
-        this.messageService.getMessagesByConversationId({ conversationId, exclusiveStartKey, limit }),
-        this.conversationService.getConversation({ conversationId }),
-      ]);
-
-      // create a set of all the sending users' ids so that we can fetch them
-      const userIdsSet = new Set(messageEntities.map((messageEntity) => messageEntity.from));
-
-      // if the convo is a friend conversation, we need to make sure to include each of the member's ids in the set,
-      // as each message will be to one of them
-      if (conversation.type === ConversationType.Friend) {
-        const { userIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: conversation.id });
-
-        userIds.forEach((userId) => userIdsSet.add(userId));
+      if (conversationId.startsWith(KeyPrefix.Group)) {
+        return { conversationType: ConversationType.Group };
       }
 
-      const { users } = await this.userService.getUsers({ userIds: Array.from(userIdsSet) });
+      if (conversationId.startsWith(KeyPrefix.Meeting)) {
+        return { conversationType: ConversationType.Meeting };
+      }
 
-      // Create a map so we can look up the users by id with O(1) time complexity
-      const usersMap: Record<string, User> = {};
-      users.forEach((user) => usersMap[user.id] = user);
-
-      const messages = messageEntities.map((messageEntity) => {
-        const { conversationId: _, ...restOfMessageEntity } = messageEntity;
-
-        const baseMessage = {
-          ...restOfMessageEntity,
-          type: conversation.type,
-          from: usersMap[messageEntity.from],
-        };
-
-        if (conversation.type === ConversationType.Friend) {
-          const { userIds: conversationMemberIds } = this.conversationService.getUserIdsFromFriendConversationId({ conversationId: conversation.id });
-          const [ toUserId ] = conversationMemberIds.filter((userId) => userId !== messageEntity.from);
-
-          return {
-            ...baseMessage,
-            to: usersMap[toUserId],
-          };
-        }
-
-        return {
-          ...baseMessage,
-          to: conversation,
-        };
-      });
-
-      return { messages, lastEvaluatedKey };
+      return { conversationType: ConversationType.OneOnOne };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getMessagesByConversationId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  private convertPendingToRegularMessageId(params: ConvertPendingToRegularMessageIdInput): ConvertPendingToRegularMessageIdOutput {
-    try {
-      this.loggerService.trace("convertPendingToRegularMessageId called", { params }, this.constructor.name);
-
-      const { pendingMessageId } = params;
-
-      const messageId = pendingMessageId.replace(KeyPrefix.PendingMessage, KeyPrefix.Message) as MessageId;
-
-      return { messageId };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in convertPendingToRegularMessageId", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getConversationTypeFromConversationId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -545,25 +504,22 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 }
 
 export interface MessageMediatorServiceInterface {
-  createFriendMessage(params: CreateFriendMessageInput): Promise<CreateFriendMessageOutput>;
+  createOneOnOneMessage(params: CreateOneOnOneMessageInput): Promise<CreateOneOnOneMessageOutput>;
   createGroupMessage(params: CreateGroupMessageInput): Promise<CreateGroupMessageOutput>;
   createMeetingMessage(params: CreateMeetingMessageInput): Promise<CreateMeetingMessageOutput>;
   convertPendingToRegularMessage(params: ConvertPendingToRegularMessageInput): Promise<ConvertPendingToRegularMessageOutput>;
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
-  getMessagesByUserAndFriendIds(params: GetMessagesByUserAndFriendIdsInput): Promise<GetMessagesByUserAndFriendIdsOutput>;
+  getMessagesByUserIdAndOtherUserId(params: GetMessagesByUserIdAndOtherUserIdInput): Promise<GetMessagesByUserIdAndOtherUserIdOutput>;
   getMessagesByGroupId(params: GetMessagesByGroupIdInput): Promise<GetMessagesByGroupIdOutput>;
   getMessagesByMeetingId(params: GetMessagesByMeetingIdInput): Promise<GetMessagesByMeetingIdOutput>;
   getMessagesByUserIdAndSearchTerm(params: GetMessagesByUserIdAndSearchTermInput): Promise<GetMessagesByUserIdAndSearchTermOutput>;
   updateMessageByUserId(params: UpdateMessageByUserIdInput): Promise<UpdateMessageByUserIdOutput>;
-  updateFriendMessagesByUserId(params: UpdateFriendMessagesByUserIdInput): Promise<UpdateFriendMessagesByUserIdOutput>;
-  updateMeetingMessagesByUserId(params: UpdateMeetingMessagesByUserIdInput): Promise<UpdateMeetingMessagesByUserIdOutput>;
-  updateGroupMessagesByUserId(params: UpdateGroupMessagesByUserIdInput): Promise<UpdateGroupMessagesByUserIdOutput>;
   updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
 }
 
 type To = User | Group | Meeting;
 
-export interface PendingMessage extends Omit<PendingMessageEntity, "id" | "conversationId" | "from"> {
+export interface PendingMessage extends Omit<PendingMessageEntity, "conversationId" | "from"> {
   id: MessageId;
   from: User;
   to: To;
@@ -574,15 +530,16 @@ export interface Message extends Omit<MessageEntity, "conversationId" | "from"> 
   from: User;
   to: To;
   type: ConversationType;
+  new?: boolean;
 }
 
-export interface CreateFriendMessageInput {
+export interface CreateOneOnOneMessageInput {
   to: UserId;
   from: UserId;
   mimeType: MessageMimeType;
 }
 
-export interface CreateFriendMessageOutput {
+export interface CreateOneOnOneMessageOutput {
   pendingMessage: PendingMessage;
 }
 
@@ -608,26 +565,30 @@ export interface CreateMeetingMessageOutput {
 
 export interface GetMessageInput {
   messageId: MessageId;
+  requestingUserId?: UserId;
 }
 
 export interface GetMessageOutput {
   message: Message;
 }
 
-export interface GetMessagesByUserAndFriendIdsInput {
-  userId: UserId;
-  friendId: UserId;
+export interface GetMessagesByUserIdAndOtherUserIdInput {
+  requestingUserId: UserId;
+  otherUserId: UserId;
+  newOnly?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
 
-export interface GetMessagesByUserAndFriendIdsOutput {
+export interface GetMessagesByUserIdAndOtherUserIdOutput {
   messages: Message[];
   lastEvaluatedKey?: string;
 }
 
 export interface GetMessagesByGroupIdInput {
+  requestingUserId: UserId;
   groupId: GroupId;
+  newOnly?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -638,7 +599,9 @@ export interface GetMessagesByGroupIdOutput {
 }
 
 export interface GetMessagesByMeetingIdInput {
+  requestingUserId: UserId;
   meetingId: MeetingId;
+  newOnly?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -664,11 +627,12 @@ interface ReactionChange {
   reaction: string;
   action: UpdateMessageReactionAction;
 }
+
 export interface UpdateMessageByUserIdInput {
   userId: UserId;
   messageId: MessageId;
   updates: {
-    seen?: boolean;
+    seen?: true;
     reactions?: ReactionChange[];
   }
 }
@@ -677,7 +641,7 @@ export interface UpdateMessageByUserIdOutput {
   message: Message;
 }
 
-export interface UpdateFriendMessagesByUserIdInput {
+export interface UpdateOneOnOneMessagesByUserIdInput {
   userId: UserId;
   friendId: UserId;
   updates: {
@@ -685,7 +649,7 @@ export interface UpdateFriendMessagesByUserIdInput {
   }
 }
 
-export type UpdateFriendMessagesByUserIdOutput = void;
+export type UpdateOneOnOneMessagesByUserIdOutput = void;
 
 export interface UpdateGroupMessagesByUserIdInput {
   userId: UserId;
@@ -717,7 +681,7 @@ export interface UpdateMessageInput {
 export type UpdateMessageOutput = void;
 
 export interface ConvertPendingToRegularMessageInput {
-  pendingMessageId: PendingMessageId;
+  messageId: MessageId;
   transcript: string;
 }
 
@@ -725,39 +689,17 @@ export interface ConvertPendingToRegularMessageOutput {
   message: Message;
 }
 
-interface UpdateConversationMessagesByUserIdInput {
-  userId: UserId;
-  conversationId: ConversationId;
-  updates: {
-    seen?: boolean;
-  }
-}
-
-type UpdateConversationMessagesByUserIdOutput = void;
-
-interface GetMessagesByConversationIdInput {
-  conversationId: ConversationId;
-  limit?: number;
-  exclusiveStartKey?: string;
-}
-
-interface GetMessagesByConversationIdOutput {
-  messages: Message[];
-  lastEvaluatedKey?: string;
-}
-
-interface UpdateMessageSeenAtInput {
+interface MarkMessageSeenInput {
   userId: UserId;
   messageId: MessageId;
-  seen: boolean;
 }
 
-type UpdateMessageSeenAtOutput = void;
+type MarkMessageSeenOutput = void;
 
-interface ConvertPendingToRegularMessageIdInput {
-  pendingMessageId: PendingMessageId;
+interface GetConversationTypeFromConversationIdInput {
+  conversationId: ConversationId;
 }
 
-interface ConvertPendingToRegularMessageIdOutput {
-  messageId: MessageId;
+interface GetConversationTypeFromConversationIdOutput {
+  conversationType: ConversationType;
 }

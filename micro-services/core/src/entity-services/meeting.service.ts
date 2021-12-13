@@ -3,7 +3,7 @@ import { FileOperation, MeetingId, IdServiceInterface, LoggerServiceInterface, O
 import { TYPES } from "../inversion-of-control/types";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-import { MeetingRepositoryInterface, Meeting as MeetingEntity, RawMeeting as RawMeetingEntity, MeetingUpdates } from "../repositories/meeting.dynamo.repository";
+import { MeetingRepositoryInterface, Meeting as MeetingEntity, RawMeeting as RawMeetingEntity, MeetingUpdates as RepositoryMeetingUpdates } from "../repositories/meeting.dynamo.repository";
 import { SearchRepositoryInterface } from "../repositories/openSearch.repository";
 import { SearchIndex } from "../enums/searchIndex.enum";
 import { EntityType } from "../enums/entityType.enum";
@@ -273,6 +273,8 @@ export interface GetMeetingInput {
 export interface GetMeetingOutput {
   meeting: Meeting;
 }
+
+export type MeetingUpdates = RepositoryMeetingUpdates;
 
 export interface UpdateMeetingInput {
   meetingId: MeetingId;

@@ -34,7 +34,7 @@ export class GroupMembershipDynamoRepository extends BaseDynamoRepositoryV2<Grou
         pk: groupMembership.userId,
         sk: groupMembership.groupId,
         gsi1pk: groupMembership.groupId,
-        gsi1sk: `${KeyPrefix.User}${KeyPrefix.Active}${groupMembership.userActiveAt}`,
+        gsi1sk: groupMembership.userId,
         gsi2pk: groupMembership.userId,
         gsi2sk: `${KeyPrefix.Group}${KeyPrefix.Active}${groupMembership.groupActiveAt}`,
         ...groupMembership,
@@ -76,11 +76,7 @@ export class GroupMembershipDynamoRepository extends BaseDynamoRepositoryV2<Grou
 
       const { userId, groupId, updates } = params;
 
-      const rawUpdates: UpdateGroupMembershipRawUpdates = { ...updates };
-
-      if (updates.userActiveAt) {
-        rawUpdates.gsi1sk = `${KeyPrefix.User}${KeyPrefix.Active}${updates.userActiveAt}`;
-      }
+      const rawUpdates: RawGroupMembershipUpdates = { ...updates };
 
       if (updates.groupActiveAt) {
         rawUpdates.gsi2sk = `${KeyPrefix.Group}${KeyPrefix.Active}${updates.groupActiveAt}`;
@@ -193,7 +189,6 @@ export interface GroupMembership {
   groupId: GroupId;
   role: Role;
   createdAt: string;
-  userActiveAt: string;
   groupActiveAt: string;
 }
 
@@ -202,7 +197,7 @@ export interface RawGroupMembership extends GroupMembership {
   pk: UserId;
   sk: GroupId;
   gsi1pk: GroupId;
-  gsi1sk: Gsi1Sk;
+  gsi1sk: UserId;
   gsi2pk: UserId;
   gsi2sk: Gsi2Sk;
 }
@@ -224,10 +219,12 @@ export interface GetGroupMembershipOutput {
   groupMembership: GroupMembership;
 }
 
+export type GroupMembershipUpdates = Partial<Pick<GroupMembership, "role" | "groupActiveAt">>;
+
 export interface UpdateGroupMembershipInput {
   userId: UserId;
   groupId: GroupId;
-  updates: UpdateGroupMembershipUpdates;
+  updates: GroupMembershipUpdates;
 }
 
 export interface UpdateGroupMembershipOutput {
@@ -263,8 +260,6 @@ export interface GetGroupMembershipsByUserIdOutput {
   lastEvaluatedKey?: string;
 }
 
-type UpdateGroupMembershipUpdates = Partial<Pick<GroupMembership, "role" | "userActiveAt" | "groupActiveAt">>;
-type UpdateGroupMembershipRawUpdates = UpdateGroupMembershipUpdates & { gsi1sk?: Gsi1Sk; gsi2sk?: Gsi2Sk; };
+type RawGroupMembershipUpdates = GroupMembershipUpdates & { gsi2sk?: Gsi2Sk; };
 
-type Gsi1Sk = `${KeyPrefix.User}${KeyPrefix.Active}${string}`;
 type Gsi2Sk = `${KeyPrefix.Group}${KeyPrefix.Active}${string}`;

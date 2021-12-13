@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { TeamId, LoggerServiceInterface, Role, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamMembershipRepositoryInterface, TeamMembership as TeamMembershipEntity } from "../repositories/teamMembership.dynamo.repository";
+import { TeamMembershipRepositoryInterface, TeamMembership as TeamMembershipEntity, TeamMembershipUpdates } from "../repositories/teamMembership.dynamo.repository";
 
 @injectable()
 export class TeamMembershipService implements TeamMembershipServiceInterface {
@@ -146,7 +146,7 @@ export interface GetTeamMembershipOutput {
 export interface UpdateTeamMembershipInput {
   teamId: TeamId;
   userId: UserId;
-  updates: UpdateTeamMembershipUpdates;
+  updates: TeamMembershipUpdates;
 }
 
 export interface UpdateTeamMembershipOutput {
@@ -179,5 +179,3 @@ export interface GetTeamMembershipsByUserIdOutput {
   teamMemberships: TeamMembership[];
   lastEvaluatedKey?: string;
 }
-
-type UpdateTeamMembershipUpdates = Partial<Pick<TeamMembership, "role">>;
