@@ -14,7 +14,7 @@ import { UserId } from "./user.dynamo.repository.v2";
 import { OneOnOneId } from "./oneOnOneMembership.dynamo.repository";
 
 @injectable()
-export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> implements MessageRepositoryInterface {
+export class MessageDynamoRepositoryV2 extends BaseDynamoRepositoryV2<Message> implements MessageRepositoryV2Interface {
   private gsiOneIndexName: string;
 
   private gsiTwoIndexName: string;
@@ -47,9 +47,9 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
         pk: message.id,
         sk: EntityTypeV2.Message,
         gsi1pk: message.replyTo ? `${KeyPrefixV2.ReplyTo}${message.replyTo}` : message.conversationId,
-        gsi1sk: `${KeyPrefixV2.Message}${KeyPrefixV2.Sent}${message.createdAt}`,
+        gsi1sk: `${KeyPrefixV2.Message}${KeyPrefixV2.Created}${message.createdAt}`,
         gsi2pk: !message.replyTo && message.agenda ? `${KeyPrefixV2.Agenda}${message.agenda}_${message.conversationId}` : undefined,
-        gsi2sk: `${KeyPrefixV2.Message}${KeyPrefixV2.Sent}${message.createdAt}`,
+        gsi2sk: `${KeyPrefixV2.Message}${KeyPrefixV2.Created}${message.createdAt}`,
         reactions: rawReactions,
         ...restOfMessage,
       };
@@ -216,22 +216,30 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     try {
       this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
 
-      const { conversationId, agenda, exclusiveStartKey, limit } = params;
+      const { conversationId, minCreatedAt, agenda, exclusiveStartKey, limit } = params;
+
+      const skPrefix = `${KeyPrefixV2.Message}${KeyPrefixV2.Created}`;
+
+      const expressionAttributeValues: DynamoDB.DocumentClient.ExpressionAttributeValueMap = { ":pk": agenda ? `${KeyPrefixV2.Agenda}${agenda}_${conversationId}` : conversationId };
+
+      if (minCreatedAt) {
+        expressionAttributeValues[":minCreatedAt"] = `${skPrefix}${minCreatedAt}`;
+        expressionAttributeValues[":now"] = `${skPrefix}${new Date().toISOString()}`;
+      } else {
+        expressionAttributeValues[":skPrefix"] = skPrefix;
+      }
 
       const { Items: messages, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         ScanIndexForward: false,
         IndexName: agenda ? this.gsiTwoIndexName : this.gsiOneIndexName,
-        KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :skPrefix)",
+        KeyConditionExpression: `#pk = :pk AND ${minCreatedAt ? "#sk BETWEEN :minCreatedAt AND :now" : "begins_with(#sk, :skPrefix)"}`,
         ExpressionAttributeNames: {
           "#pk": agenda ? "gsi2pk" : "gsi1pk",
           "#sk": agenda ? "gsi2sk" : "gsi1sk",
         },
-        ExpressionAttributeValues: {
-          ":pk": agenda ? `${KeyPrefixV2.Agenda}${agenda}_${conversationId}` : conversationId,
-          ":skPrefix": `${KeyPrefixV2.Message}${KeyPrefixV2.Sent}`,
-        },
+        ExpressionAttributeValues: expressionAttributeValues,
       });
 
       return {
@@ -249,22 +257,30 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
     try {
       this.loggerService.trace("getRepliesByMessageId called", { params }, this.constructor.name);
 
-      const { messageId, exclusiveStartKey, limit } = params;
+      const { messageId, minCreatedAt, exclusiveStartKey, limit } = params;
+
+      const skPrefix = `${KeyPrefixV2.Message}${KeyPrefixV2.Created}`;
+
+      const expressionAttributeValues: DynamoDB.DocumentClient.ExpressionAttributeValueMap = { ":gsi1pk": `${KeyPrefixV2.ReplyTo}${messageId}` };
+
+      if (minCreatedAt) {
+        expressionAttributeValues[":minCreatedAt"] = `${skPrefix}${minCreatedAt}`;
+        expressionAttributeValues[":now"] = `${skPrefix}${new Date().toISOString()}`;
+      } else {
+        expressionAttributeValues[":skPrefix"] = skPrefix;
+      }
 
       const { Items: messages, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         ScanIndexForward: false,
         IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :gsi1pk AND begins_with(#gsi1sk, :skPrefix)",
+        KeyConditionExpression: `#gsi1pk = :gsi1pk AND ${minCreatedAt ? "#gsi1sk BETWEEN :minCreatedAt AND :now" : "begins_with(#gsi1sk, :skPrefix)"}`,
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
           "#gsi1sk": "gsi1sk",
         },
-        ExpressionAttributeValues: {
-          ":gsi1pk": `${KeyPrefixV2.ReplyTo}${messageId}`,
-          ":skPrefix": `${KeyPrefixV2.Message}${KeyPrefixV2.Sent}`,
-        },
+        ExpressionAttributeValues: expressionAttributeValues,
       });
 
       return {
@@ -315,7 +331,7 @@ export class MessageDynamoRepository extends BaseDynamoRepositoryV2<Message> imp
   }
 }
 
-export interface MessageRepositoryInterface {
+export interface MessageRepositoryV2Interface {
   createMessage(params: CreateMessageInput): Promise<CreateMessageOutput>;
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
@@ -352,9 +368,9 @@ export interface RawMessage extends Omit<Message, "reactions"> {
   sk: EntityTypeV2.Message;
   reactions: Record<string, DynamoDB.DocumentClient.DynamoDbSet>;
   gsi1pk?: ConversationId | `${KeyPrefixV2.ReplyTo}${MessageId}`;
-  gsi1sk?: `${KeyPrefixV2.Message}${KeyPrefixV2.Sent}${string}`;
+  gsi1sk?: `${KeyPrefixV2.Message}${KeyPrefixV2.Created}${string}`;
   gsi2pk?: `${KeyPrefixV2.Agenda}${string}_${ConversationId}`;
-  gsi2sk?: `${KeyPrefixV2.Message}${KeyPrefixV2.Sent}${string}`;
+  gsi2sk?: `${KeyPrefixV2.Message}${KeyPrefixV2.Created}${string}`;
 }
 
 export interface CreateMessageInput {
@@ -375,6 +391,7 @@ export interface GetMessageOutput {
 
 export interface GetMessagesByConversationIdInput {
   conversationId: ConversationId;
+  minCreatedAt?: string;
   agenda?: string;
   limit?: number;
   exclusiveStartKey?: string;
@@ -387,6 +404,7 @@ export interface GetMessagesByConversationIdOutput {
 
 export interface GetRepliesByMessageIdInput {
   messageId: MessageId;
+  minCreatedAt?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }

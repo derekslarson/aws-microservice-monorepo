@@ -1,17 +1,16 @@
 /* eslint-disable import/no-cycle */
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { DocumentClientFactory, LoggerServiceInterface } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
 import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
 import { UserId } from "./user.dynamo.repository.v2";
-import { BaseConversationMembership, BaseConversationMembershipDynamoRepository } from "./base.conversationMembership.repository";
 import { MessageId } from "./message.dynamo.repository.v2";
 
 @injectable()
-export class OneOnOneMembershipDynamoRepository extends BaseConversationMembershipDynamoRepository<OneOnOneMembership, OneOnOneId> implements OneOnOneMembershipRepositoryInterface {
+export class OneOnOneMembershipDynamoRepository extends BaseDynamoRepositoryV2<OneOnOneMembership> implements OneOnOneMembershipRepositoryInterface {
   private gsiOneIndexName: string;
 
   constructor(
@@ -33,7 +32,7 @@ export class OneOnOneMembershipDynamoRepository extends BaseConversationMembersh
       const oneOnOneMembershipEntity: RawOneOnOneMembership = {
         entityType: EntityTypeV2.OneOnOneMembership,
         pk: oneOnOneMembership.userId,
-        sk: oneOnOneMembership.oneOnOneId,
+        sk: oneOnOneMembership.otherUserId,
         gsi1pk: oneOnOneMembership.userId,
         gsi1sk: `${KeyPrefixV2.OneOnOne}${KeyPrefixV2.Active}${oneOnOneMembership.activeAt}`,
         ...oneOnOneMembership,
@@ -64,6 +63,28 @@ export class OneOnOneMembershipDynamoRepository extends BaseConversationMembersh
       return { oneOnOneMembership };
     } catch (error: unknown) {
       this.loggerService.error("Error in getOneOnOneMembership", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async updateOneOnOneMembership(params: UpdateOneOnOneMembershipInput): Promise<UpdateOneOnOneMembershipOutput> {
+    try {
+      this.loggerService.trace("updateOneOnOneMembership called", { params }, this.constructor.name);
+
+      const { userId, otherUserId, updates } = params;
+
+      const rawUpdates: UpdateOneOnOneMembershipRawUpdates = { ...updates };
+
+      if (updates.activeAt) {
+        rawUpdates.gsi1sk = `${KeyPrefixV2.OneOnOne}${KeyPrefixV2.Active}${updates.activeAt}`;
+      }
+
+      const oneOnOneMembership = await this.partialUpdate(userId, otherUserId, rawUpdates);
+
+      return { oneOnOneMembership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateOneOnOneMembership", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -116,64 +137,31 @@ export class OneOnOneMembershipDynamoRepository extends BaseConversationMembersh
       throw error;
     }
   }
-
-  public async addUnreadMessageToOneOnOneMembership(params: AddUnreadMessageToOneOnOneMembershipInput): Promise<AddUnreadMessageToOneOnOneMembershipOutput> {
-    try {
-      this.loggerService.trace("addUnreadMessageToOneOnOneMembership called", { params }, this.constructor.name);
-
-      const { userId, oneOnOneId, messageId } = params;
-
-      const { conversationMembership } = await this.addUnreadMessageToConversationMembership({ userId, conversationId: oneOnOneId, messageId });
-
-      return { oneOnOneMembership: conversationMembership };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in addUnreadMessageToOneOnOneMembership", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async removeUnreadMessageFromOneOnOneMembership(params: RemoveUnreadMessageFromOneOnOneMembershipInput): Promise<RemoveUnreadMessageFromOneOnOneMembershipOutput> {
-    try {
-      this.loggerService.trace("removeUnreadMessageFromOneOnOneMembership called", { params }, this.constructor.name);
-
-      const { userId, oneOnOneId, messageId } = params;
-
-      const { conversationMembership } = await this.removeUnreadMessageFromConversationMembership({ userId, conversationId: oneOnOneId, messageId });
-
-      return { oneOnOneMembership: conversationMembership };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in removeUnreadMessageFromOneOnOneMembership", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
 }
 
 export interface OneOnOneMembershipRepositoryInterface {
   createOneOnOneMembership(params: CreateOneOnOneMembershipInput): Promise<CreateOneOnOneMembershipOutput>;
   getOneOnOneMembership(params: GetOneOnOneMembershipInput): Promise<GetOneOnOneMembershipOutput>;
+  updateOneOnOneMembership(params: UpdateOneOnOneMembershipInput): Promise<UpdateOneOnOneMembershipOutput>;
   deleteOneOnOneMembership(params: DeleteOneOnOneMembershipInput): Promise<DeleteOneOnOneMembershipOutput>;
   getOneOnOneMembershipsByUserId(params: GetOneOnOneMembershipsByUserIdInput): Promise<GetOneOnOneMembershipsByUserIdOutput>;
-  addUnreadMessageToOneOnOneMembership(params: AddUnreadMessageToOneOnOneMembershipInput): Promise<AddUnreadMessageToOneOnOneMembershipOutput>;
-  removeUnreadMessageFromOneOnOneMembership(params: RemoveUnreadMessageFromOneOnOneMembershipInput): Promise<RemoveUnreadMessageFromOneOnOneMembershipOutput>
 }
 
 type OneOnOneMembershipRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
-export interface OneOnOneMembership extends BaseConversationMembership {
+export interface OneOnOneMembership {
   userId: UserId;
   otherUserId: UserId;
-  oneOnOneId: OneOnOneId;
   createdAt: string;
   activeAt: string;
 }
 export interface RawOneOnOneMembership extends OneOnOneMembership {
   entityType: EntityTypeV2.OneOnOneMembership,
   pk: UserId;
-  sk: OneOnOneId;
+  // otherUserId
+  sk: UserId;
   gsi1pk: UserId;
-  gsi1sk: `${KeyPrefixV2.OneOnOne}${KeyPrefixV2.Active}${string}`;
+  gsi1sk: Gsi1Sk;
 }
 
 export interface CreateOneOnOneMembershipInput {
@@ -232,3 +220,18 @@ export interface RemoveUnreadMessageFromOneOnOneMembershipOutput {
 }
 
 export type OneOnOneId = `${UserId}_${UserId}`;
+
+export interface UpdateOneOnOneMembershipInput {
+  userId: UserId;
+  otherUserId: UserId;
+  updates: UpdateOneOnOneMembershipUpdates;
+}
+
+export interface UpdateOneOnOneMembershipOutput {
+  oneOnOneMembership: OneOnOneMembership;
+}
+
+type UpdateOneOnOneMembershipUpdates = Partial<Pick<OneOnOneMembership, "activeAt">>;
+type UpdateOneOnOneMembershipRawUpdates = UpdateOneOnOneMembershipUpdates & { gsi1sk?: Gsi1Sk; };
+
+type Gsi1Sk = `${KeyPrefixV2.OneOnOne}${KeyPrefixV2.Active}${string}`;

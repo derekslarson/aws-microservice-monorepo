@@ -11,7 +11,7 @@ export enum KeyPrefixV2 {
   Phone = "phone_",
   Username = "username_",
   Active = "active_",
-  Sent = "sent_",
+  Created = "created_",
   Due = "due_",
   Agenda = "agenda_",
 }

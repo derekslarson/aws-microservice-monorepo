@@ -33,7 +33,7 @@ export class OrganizationMembershipDynamoRepository extends BaseDynamoRepository
         pk: organizationMembership.userId,
         sk: organizationMembership.organizationId,
         gsi1pk: organizationMembership.organizationId,
-        gsi1sk: `${KeyPrefixV2.User}${KeyPrefixV2.Active}${organizationMembership.activeAt}`,
+        gsi1sk: organizationMembership.userId,
         ...organizationMembership,
       };
 
@@ -67,6 +67,22 @@ export class OrganizationMembershipDynamoRepository extends BaseDynamoRepository
     }
   }
 
+  public async updateOrganizationMembership(params: UpdateOrganizationMembershipInput): Promise<UpdateOrganizationMembershipOutput> {
+    try {
+      this.loggerService.trace("updateOrganizationMembership called", { params }, this.constructor.name);
+
+      const { userId, organizationId, updates } = params;
+
+      const organizationMembership = await this.partialUpdate(userId, organizationId, updates);
+
+      return { organizationMembership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateOrganizationMembership", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async deleteOrganizationMembership(params: DeleteOrganizationMembershipInput): Promise<DeleteOrganizationMembershipOutput> {
     try {
       this.loggerService.trace("deleteOrganizationMembership called", { params }, this.constructor.name);
@@ -93,14 +109,14 @@ export class OrganizationMembershipDynamoRepository extends BaseDynamoRepository
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :organizationId AND begins_with(#gsi1sk, :userUpdated)",
+        KeyConditionExpression: "#gsi1pk = :organizationId AND begins_with(#gsi1sk, :userIdPrefix)",
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
           "#gsi1sk": "gsi1sk",
         },
         ExpressionAttributeValues: {
           ":organizationId": organizationId,
-          ":userUpdated": `${KeyPrefixV2.User}${KeyPrefixV2.Active}`,
+          ":userIdPrefix": KeyPrefixV2.User,
         },
       });
 
@@ -124,14 +140,14 @@ export class OrganizationMembershipDynamoRepository extends BaseDynamoRepository
       const { Items: organizationMemberships, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
-        KeyConditionExpression: "#pk = :userId AND begins_with(#gsi1sk, :organization)",
+        KeyConditionExpression: "#pk = :userId AND begins_with(#sk, :organizationIdPrefix)",
         ExpressionAttributeNames: {
           "#pk": "pk",
-          "#gsi1sk": "gsi1sk",
+          "#sk": "sk",
         },
         ExpressionAttributeValues: {
           ":userId": userId,
-          ":organization": KeyPrefixV2.Organization,
+          ":organizationIdPrefix": KeyPrefixV2.Organization,
         },
       });
 
@@ -150,6 +166,7 @@ export class OrganizationMembershipDynamoRepository extends BaseDynamoRepository
 export interface OrganizationMembershipRepositoryInterface {
   createOrganizationMembership(params: CreateOrganizationMembershipInput): Promise<CreateOrganizationMembershipOutput>;
   getOrganizationMembership(params: GetOrganizationMembershipInput): Promise<GetOrganizationMembershipOutput>;
+  updateOrganizationMembership(params: UpdateOrganizationMembershipInput): Promise<UpdateOrganizationMembershipOutput>;
   deleteOrganizationMembership(params: DeleteOrganizationMembershipInput): Promise<DeleteOrganizationMembershipOutput>;
   getOrganizationMembershipsByOrganizationId(params: GetOrganizationMembershipsByOrganizationIdInput): Promise<GetOrganizationMembershipsByOrganizationIdOutput>;
   getOrganizationMembershipsByUserId(params: GetOrganizationMembershipsByUserIdInput): Promise<GetOrganizationMembershipsByUserIdOutput>;
@@ -169,7 +186,7 @@ export interface RawOrganizationMembership extends OrganizationMembership {
   pk: UserId;
   sk: OrganizationId;
   gsi1pk: OrganizationId;
-  gsi1sk: `${KeyPrefixV2.User}${KeyPrefixV2.Active}${string}`;
+  gsi1sk: UserId;
 }
 
 export interface CreateOrganizationMembershipInput {
@@ -217,3 +234,15 @@ export interface GetOrganizationMembershipsByUserIdOutput {
   organizationMemberships: OrganizationMembership[];
   lastEvaluatedKey?: string;
 }
+
+export interface UpdateOrganizationMembershipInput {
+  userId: UserId;
+  organizationId: OrganizationId;
+  updates: UpdateOrganizationMembershipUpdates;
+}
+
+export interface UpdateOrganizationMembershipOutput {
+  organizationMembership: OrganizationMembership;
+}
+
+type UpdateOrganizationMembershipUpdates = Partial<Pick<OrganizationMembership, "role">>;

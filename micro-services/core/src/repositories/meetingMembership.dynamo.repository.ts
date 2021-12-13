@@ -6,12 +6,11 @@ import { TYPES } from "../inversion-of-control/types";
 import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
 import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
 import { MeetingId } from "./meeting.dynamo.repository";
-import { BaseConversationMembership, BaseConversationMembershipDynamoRepository } from "./base.conversationMembership.repository";
 import { UserId } from "./user.dynamo.repository.v2";
 import { MessageId } from "./message.dynamo.repository.v2";
 
 @injectable()
-export class MeetingMembershipDynamoRepository extends BaseConversationMembershipDynamoRepository<MeetingMembership, MeetingId> implements MeetingMembershipRepositoryInterface {
+export class MeetingMembershipDynamoRepository extends BaseDynamoRepositoryV2<MeetingMembership> implements MeetingMembershipRepositoryInterface {
   private gsiOneIndexName: string;
 
   private gsiTwoIndexName: string;
@@ -74,6 +73,36 @@ export class MeetingMembershipDynamoRepository extends BaseConversationMembershi
       return { meetingMembership };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingMembership", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async updateMeetingMembership(params: UpdateMeetingMembershipInput): Promise<UpdateMeetingMembershipOutput> {
+    try {
+      this.loggerService.trace("updateMeetingMembership called", { params }, this.constructor.name);
+
+      const { userId, meetingId, updates } = params;
+
+      const rawUpdates: UpdateMeetingMembershipRawUpdates = { ...updates };
+
+      if (updates.userActiveAt) {
+        rawUpdates.gsi1sk = `${KeyPrefixV2.User}${KeyPrefixV2.Active}${updates.userActiveAt}`;
+      }
+
+      if (updates.meetingActiveAt) {
+        rawUpdates.gsi2sk = `${KeyPrefixV2.Meeting}${KeyPrefixV2.Active}${updates.meetingActiveAt}`;
+      }
+
+      if (updates.meetingDueAt) {
+        rawUpdates.gsi3sk = `${KeyPrefixV2.Meeting}${KeyPrefixV2.Due}${updates.meetingDueAt}`;
+      }
+
+      const meetingMembership = await this.partialUpdate(userId, meetingId, rawUpdates);
+
+      return { meetingMembership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateMeetingMembership", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -158,53 +187,20 @@ export class MeetingMembershipDynamoRepository extends BaseConversationMembershi
       throw error;
     }
   }
-
-  public async addUnreadMessageToMeetingMembership(params: AddUnreadMessageToMeetingMembershipInput): Promise<AddUnreadMessageToMeetingMembershipOutput> {
-    try {
-      this.loggerService.trace("addUnreadMessageToMeetingMembership called", { params }, this.constructor.name);
-
-      const { userId, meetingId, messageId } = params;
-
-      const { conversationMembership } = await this.addUnreadMessageToConversationMembership({ userId, conversationId: meetingId, messageId });
-
-      return { meetingMembership: conversationMembership };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in addUnreadMessageToMeetingMembership", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async removeUnreadMessageFromMeetingMembership(params: RemoveUnreadMessageFromMeetingMembershipInput): Promise<RemoveUnreadMessageFromMeetingMembershipOutput> {
-    try {
-      this.loggerService.trace("removeUnreadMessageFromMeetingMembership called", { params }, this.constructor.name);
-
-      const { userId, meetingId, messageId } = params;
-
-      const { conversationMembership } = await this.removeUnreadMessageFromConversationMembership({ userId, conversationId: meetingId, messageId });
-
-      return { meetingMembership: conversationMembership };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in removeUnreadMessageFromMeetingMembership", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
 }
 
 export interface MeetingMembershipRepositoryInterface {
   createMeetingMembership(params: CreateMeetingMembershipInput): Promise<CreateMeetingMembershipOutput>;
   getMeetingMembership(params: GetMeetingMembershipInput): Promise<GetMeetingMembershipOutput>;
+  updateMeetingMembership(params: UpdateMeetingMembershipInput): Promise<UpdateMeetingMembershipOutput>;
   deleteMeetingMembership(params: DeleteMeetingMembershipInput): Promise<DeleteMeetingMembershipOutput>;
   getMeetingMembershipsByMeetingId(params: GetMeetingMembershipsByMeetingIdInput): Promise<GetMeetingMembershipsByMeetingIdOutput>;
   getMeetingMembershipsByUserId(params: GetMeetingMembershipsByUserIdInput): Promise<GetMeetingMembershipsByUserIdOutput>;
-  addUnreadMessageToMeetingMembership(params: AddUnreadMessageToMeetingMembershipInput): Promise<AddUnreadMessageToMeetingMembershipOutput>;
-  removeUnreadMessageFromMeetingMembership(params: RemoveUnreadMessageFromMeetingMembershipInput): Promise<RemoveUnreadMessageFromMeetingMembershipOutput>
 }
 
 type MeetingMembershipRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
-export interface MeetingMembership extends BaseConversationMembership {
+export interface MeetingMembership {
   userId: UserId;
   meetingId: MeetingId;
   role: Role;
@@ -218,11 +214,11 @@ export interface RawMeetingMembership extends MeetingMembership {
   pk: UserId;
   sk: MeetingId;
   gsi1pk: MeetingId;
-  gsi1sk: `${KeyPrefixV2.User}${KeyPrefixV2.Active}${string}`;
+  gsi1sk: Gsi1Sk;
   gsi2pk: UserId;
-  gsi2sk: `${KeyPrefixV2.Meeting}${KeyPrefixV2.Active}${string}`;
+  gsi2sk: Gsi2Sk;
   gsi3pk: UserId;
-  gsi3sk: `${KeyPrefixV2.Meeting}${KeyPrefixV2.Due}${string}`;
+  gsi3sk: Gsi3Sk;
 }
 
 export interface CreateMeetingMembershipInput {
@@ -291,3 +287,20 @@ export interface RemoveUnreadMessageFromMeetingMembershipInput {
 export interface RemoveUnreadMessageFromMeetingMembershipOutput {
   meetingMembership: MeetingMembership;
 }
+
+export interface UpdateMeetingMembershipInput {
+  userId: UserId;
+  meetingId: MeetingId;
+  updates: UpdateMeetingMembershipUpdates;
+}
+
+export interface UpdateMeetingMembershipOutput {
+  meetingMembership: MeetingMembership;
+}
+
+type UpdateMeetingMembershipUpdates = Partial<Pick<MeetingMembership, "role" | "meetingDueAt" | "userActiveAt" | "meetingActiveAt">>;
+type UpdateMeetingMembershipRawUpdates = UpdateMeetingMembershipUpdates & { gsi1sk?: Gsi1Sk; gsi2sk?: Gsi2Sk; gsi3sk?: Gsi3Sk; };
+
+type Gsi1Sk = `${KeyPrefixV2.User}${KeyPrefixV2.Active}${string}`;
+type Gsi2Sk = `${KeyPrefixV2.Meeting}${KeyPrefixV2.Active}${string}`;
+type Gsi3Sk = `${KeyPrefixV2.Meeting}${KeyPrefixV2.Due}${string}`;

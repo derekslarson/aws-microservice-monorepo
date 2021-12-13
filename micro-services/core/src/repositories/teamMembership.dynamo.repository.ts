@@ -12,8 +12,6 @@ import { TeamId } from "./team.dynamo.repository.v2";
 export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamMembership> implements TeamMembershipRepositoryInterface {
   private gsiOneIndexName: string;
 
-  private gsiTwoIndexName: string;
-
   constructor(
   @inject(TYPES.DocumentClientFactory) documentClientFactory: DocumentClientFactory,
     @inject(TYPES.LoggerServiceInterface) loggerService: LoggerServiceInterface,
@@ -22,7 +20,6 @@ export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamM
     super(documentClientFactory, envConfig.tableNames.core, loggerService);
 
     this.gsiOneIndexName = envConfig.globalSecondaryIndexNames.one;
-    this.gsiTwoIndexName = envConfig.globalSecondaryIndexNames.two;
   }
 
   public async createTeamMembership(params: CreateTeamMembershipInput): Promise<CreateTeamMembershipOutput> {
@@ -36,9 +33,7 @@ export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamM
         pk: teamMembership.userId,
         sk: teamMembership.teamId,
         gsi1pk: teamMembership.teamId,
-        gsi1sk: `${KeyPrefixV2.User}${KeyPrefixV2.Active}${teamMembership.userActiveAt}`,
-        gsi2pk: teamMembership.userId,
-        gsi2sk: `${KeyPrefixV2.Team}${KeyPrefixV2.Active}${teamMembership.teamActiveAt}`,
+        gsi1sk: teamMembership.userId,
         ...teamMembership,
       };
 
@@ -72,6 +67,22 @@ export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamM
     }
   }
 
+  public async updateTeamMembership(params: UpdateTeamMembershipInput): Promise<UpdateTeamMembershipOutput> {
+    try {
+      this.loggerService.trace("updateTeamMembership called", { params }, this.constructor.name);
+
+      const { userId, teamId, updates } = params;
+
+      const teamMembership = await this.partialUpdate(userId, teamId, updates);
+
+      return { teamMembership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateTeamMembership", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async deleteTeamMembership(params: DeleteTeamMembershipInput): Promise<DeleteTeamMembershipOutput> {
     try {
       this.loggerService.trace("deleteTeamMembership called", { params }, this.constructor.name);
@@ -98,14 +109,14 @@ export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamM
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         IndexName: this.gsiOneIndexName,
-        KeyConditionExpression: "#gsi1pk = :teamId AND begins_with(#gsi1sk, :userActive)",
+        KeyConditionExpression: "#gsi1pk = :teamId AND begins_with(#gsi1sk, :userIdPrefix)",
         ExpressionAttributeNames: {
           "#gsi1pk": "gsi1pk",
           "#gsi1sk": "gsi1sk",
         },
         ExpressionAttributeValues: {
           ":teamId": teamId,
-          ":userActive": `${KeyPrefixV2.User}${KeyPrefixV2.Active}`,
+          ":userIdPrefix": KeyPrefixV2.User,
         },
       });
 
@@ -129,15 +140,14 @@ export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamM
       const { Items: teamMemberships, LastEvaluatedKey } = await this.query({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
-        IndexName: this.gsiTwoIndexName,
-        KeyConditionExpression: "#gsi2pk = :userId AND begins_with(#gsi2sk, :teamActive)",
+        KeyConditionExpression: "#pk = :userId AND begins_with(#sk, :teamIdPrefix)",
         ExpressionAttributeNames: {
-          "#gsi2pk": "gsi2pk",
-          "#gsi2sk": "gsi2sk",
+          "#pk": "pk",
+          "#sk": "sk",
         },
         ExpressionAttributeValues: {
           ":userId": userId,
-          ":teamActive": `${KeyPrefixV2.Team}${KeyPrefixV2.Active}`,
+          ":teamIdPrefix": KeyPrefixV2.Team,
         },
       });
 
@@ -156,6 +166,7 @@ export class TeamMembershipDynamoRepository extends BaseDynamoRepositoryV2<TeamM
 export interface TeamMembershipRepositoryInterface {
   createTeamMembership(params: CreateTeamMembershipInput): Promise<CreateTeamMembershipOutput>;
   getTeamMembership(params: GetTeamMembershipInput): Promise<GetTeamMembershipOutput>;
+  updateTeamMembership(params: UpdateTeamMembershipInput): Promise<UpdateTeamMembershipOutput>;
   deleteTeamMembership(params: DeleteTeamMembershipInput): Promise<DeleteTeamMembershipOutput>;
   getTeamMembershipsByTeamId(params: GetTeamMembershipsByTeamIdInput): Promise<GetTeamMembershipsByTeamIdOutput>;
   getTeamMembershipsByUserId(params: GetTeamMembershipsByUserIdInput): Promise<GetTeamMembershipsByUserIdOutput>;
@@ -168,17 +179,13 @@ export interface TeamMembership {
   teamId: TeamId;
   role: Role;
   createdAt: string;
-  userActiveAt: string;
-  teamActiveAt: string;
 }
 export interface RawTeamMembership extends TeamMembership {
   entityType: EntityTypeV2.TeamMembership,
   pk: UserId;
   sk: TeamId;
   gsi1pk: TeamId;
-  gsi1sk: `${KeyPrefixV2.User}${KeyPrefixV2.Active}${string}`;
-  gsi2pk: UserId;
-  gsi2sk: `${KeyPrefixV2.Team}${KeyPrefixV2.Active}${string}`;
+  gsi1sk: UserId;
 }
 
 export interface CreateTeamMembershipInput {
@@ -226,3 +233,15 @@ export interface GetTeamMembershipsByUserIdOutput {
   teamMemberships: TeamMembership[];
   lastEvaluatedKey?: string;
 }
+
+export interface UpdateTeamMembershipInput {
+  userId: UserId;
+  teamId: TeamId;
+  updates: UpdateTeamMembershipUpdates;
+}
+
+export interface UpdateTeamMembershipOutput {
+  teamMembership: TeamMembership;
+}
+
+type UpdateTeamMembershipUpdates = Partial<Pick<TeamMembership, "role">>;

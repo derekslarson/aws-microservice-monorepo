@@ -1,17 +1,16 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { DocumentClientFactory, LoggerServiceInterface, Role } from "@yac/util";
+import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, Role } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityTypeV2 } from "../enums/entityTypeV2.enum";
 import { KeyPrefixV2 } from "../enums/keyPrefixV2.enum";
 import { GroupId } from "./group.dynamo.repository";
-import { BaseConversationMembership, BaseConversationMembershipDynamoRepository } from "./base.conversationMembership.repository";
 import { MessageId } from "./message.dynamo.repository.v2";
 import { UserId } from "./user.dynamo.repository.v2";
 
 @injectable()
-export class GroupMembershipDynamoRepository extends BaseConversationMembershipDynamoRepository<GroupMembership, GroupId> implements GroupMembershipRepositoryInterface {
+export class GroupMembershipDynamoRepository extends BaseDynamoRepositoryV2<GroupMembership> implements GroupMembershipRepositoryInterface {
   private gsiOneIndexName: string;
 
   private gsiTwoIndexName: string;
@@ -69,6 +68,32 @@ export class GroupMembershipDynamoRepository extends BaseConversationMembershipD
       return { groupMembership };
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroupMembership", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async updateGroupMembership(params: UpdateGroupMembershipInput): Promise<UpdateGroupMembershipOutput> {
+    try {
+      this.loggerService.trace("updateGroupMembership called", { params }, this.constructor.name);
+
+      const { userId, groupId, updates } = params;
+
+      const rawUpdates: UpdateGroupMembershipRawUpdates = { ...updates };
+
+      if (updates.userActiveAt) {
+        rawUpdates.gsi1sk = `${KeyPrefixV2.User}${KeyPrefixV2.Active}${updates.userActiveAt}`;
+      }
+
+      if (updates.groupActiveAt) {
+        rawUpdates.gsi2sk = `${KeyPrefixV2.Group}${KeyPrefixV2.Active}${updates.groupActiveAt}`;
+      }
+
+      const groupMembership = await this.partialUpdate(userId, groupId, rawUpdates);
+
+      return { groupMembership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in updateGroupMembership", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -153,53 +178,20 @@ export class GroupMembershipDynamoRepository extends BaseConversationMembershipD
       throw error;
     }
   }
-
-  public async addUnreadMessageToGroupMembership(params: AddUnreadMessageToGroupMembershipInput): Promise<AddUnreadMessageToGroupMembershipOutput> {
-    try {
-      this.loggerService.trace("addUnreadMessageToGroupMembership called", { params }, this.constructor.name);
-
-      const { userId, groupId, messageId } = params;
-
-      const { conversationMembership } = await this.addUnreadMessageToConversationMembership({ userId, conversationId: groupId, messageId });
-
-      return { groupMembership: conversationMembership };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in addUnreadMessageToGroupMembership", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async removeUnreadMessageFromGroupMembership(params: RemoveUnreadMessageFromGroupMembershipInput): Promise<RemoveUnreadMessageFromGroupMembershipOutput> {
-    try {
-      this.loggerService.trace("removeUnreadMessageFromGroupMembership called", { params }, this.constructor.name);
-
-      const { userId, groupId, messageId } = params;
-
-      const { conversationMembership } = await this.removeUnreadMessageFromConversationMembership({ userId, conversationId: groupId, messageId });
-
-      return { groupMembership: conversationMembership };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in removeUnreadMessageFromGroupMembership", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
 }
 
 export interface GroupMembershipRepositoryInterface {
   createGroupMembership(params: CreateGroupMembershipInput): Promise<CreateGroupMembershipOutput>;
   getGroupMembership(params: GetGroupMembershipInput): Promise<GetGroupMembershipOutput>;
+  updateGroupMembership(params: UpdateGroupMembershipInput): Promise<UpdateGroupMembershipOutput>;
   deleteGroupMembership(params: DeleteGroupMembershipInput): Promise<DeleteGroupMembershipOutput>;
   getGroupMembershipsByGroupId(params: GetGroupMembershipsByGroupIdInput): Promise<GetGroupMembershipsByGroupIdOutput>;
   getGroupMembershipsByUserId(params: GetGroupMembershipsByUserIdInput): Promise<GetGroupMembershipsByUserIdOutput>;
-  addUnreadMessageToGroupMembership(params: AddUnreadMessageToGroupMembershipInput): Promise<AddUnreadMessageToGroupMembershipOutput>;
-  removeUnreadMessageFromGroupMembership(params: RemoveUnreadMessageFromGroupMembershipInput): Promise<RemoveUnreadMessageFromGroupMembershipOutput>
 }
 
 type GroupMembershipRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
-export interface GroupMembership extends BaseConversationMembership {
+export interface GroupMembership {
   userId: UserId;
   groupId: GroupId;
   role: Role;
@@ -207,14 +199,15 @@ export interface GroupMembership extends BaseConversationMembership {
   userActiveAt: string;
   groupActiveAt: string;
 }
+
 export interface RawGroupMembership extends GroupMembership {
   entityType: EntityTypeV2.GroupMembership,
   pk: UserId;
   sk: GroupId;
   gsi1pk: GroupId;
-  gsi1sk: `${KeyPrefixV2.User}${KeyPrefixV2.Active}${string}`;
+  gsi1sk: Gsi1Sk;
   gsi2pk: UserId;
-  gsi2sk: `${KeyPrefixV2.Group}${KeyPrefixV2.Active}${string}`;
+  gsi2sk: Gsi2Sk;
 }
 
 export interface CreateGroupMembershipInput {
@@ -263,22 +256,18 @@ export interface GetGroupMembershipsByUserIdOutput {
   lastEvaluatedKey?: string;
 }
 
-export interface AddUnreadMessageToGroupMembershipInput {
+export interface UpdateGroupMembershipInput {
   userId: UserId;
   groupId: GroupId;
-  messageId: MessageId;
+  updates: UpdateGroupMembershipUpdates;
 }
 
-export interface AddUnreadMessageToGroupMembershipOutput{
+export interface UpdateGroupMembershipOutput {
   groupMembership: GroupMembership;
 }
 
-export interface RemoveUnreadMessageFromGroupMembershipInput {
-  userId: UserId;
-  groupId: GroupId;
-  messageId: MessageId;
-}
+type UpdateGroupMembershipUpdates = Partial<Pick<GroupMembership, "role" | "userActiveAt" | "groupActiveAt">>;
+type UpdateGroupMembershipRawUpdates = UpdateGroupMembershipUpdates & { gsi1sk?: Gsi1Sk; gsi2sk?: Gsi2Sk; };
 
-export interface RemoveUnreadMessageFromGroupMembershipOutput {
-  groupMembership: GroupMembership;
-}
+type Gsi1Sk = `${KeyPrefixV2.User}${KeyPrefixV2.Active}${string}`;
+type Gsi2Sk = `${KeyPrefixV2.Group}${KeyPrefixV2.Active}${string}`;

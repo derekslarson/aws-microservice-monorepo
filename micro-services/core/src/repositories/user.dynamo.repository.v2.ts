@@ -232,6 +232,7 @@ type UserRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecon
 export interface User {
   id: UserId;
   imageMimeType: ImageMimeType;
+  createdAt: string;
   email?: string;
   phone?: string;
   username?: string;
