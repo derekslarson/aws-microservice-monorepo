@@ -3,6 +3,7 @@ import { GroupId, LoggerServiceInterface, MeetingId, OneOnOneId, OrganizationId,
 import { TYPES } from "../inversion-of-control/types";
 import { EntityId, MembershipRepositoryInterface, Membership as MembershipEntity, MembershipUpdates } from "../repositories/membership.dynamo.repository";
 import { MembershipType } from "../enums/membershipType.enum";
+import { MembershipFetchType } from "../enums/membershipFetchType.enum";
 
 @injectable()
 export class MembershipService implements MembershipServiceInterface {
@@ -95,13 +96,19 @@ export class MembershipService implements MembershipServiceInterface {
     }
   }
 
-  public async getMembershipsByUserId<T extends MembershipType>(params: GetMembershipsByUserIdInput<T>): Promise<GetMembershipsByUserIdOutput<T>> {
+  public async getMembershipsByUserId<T extends MembershipFetchType>(params: GetMembershipsByUserIdInput<T>): Promise<GetMembershipsByUserIdOutput<T>> {
     try {
       this.loggerService.trace("getMembershipsByUserId called", { params }, this.constructor.name);
 
       const { userId, type, sortByDueAt, exclusiveStartKey, limit } = params;
 
-      const { memberships, lastEvaluatedKey } = await this.membershipRepository.getMembershipsByUserId({ userId, type, sortByDueAt, exclusiveStartKey, limit });
+      const { memberships, lastEvaluatedKey } = await this.membershipRepository.getMembershipsByUserId({
+        userId,
+        type,
+        sortByDueAt,
+        exclusiveStartKey,
+        limit,
+      });
 
       return { memberships, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -118,10 +125,10 @@ export interface MembershipServiceInterface {
   updateMembership(params: UpdateMembershipInput): Promise<UpdateMembershipOutput>;
   deleteMembership(params: DeleteMembershipInput): Promise<DeleteMembershipOutput>;
   getMembershipsByEntityId(params: GetMembershipsByEntityIdInput): Promise<GetMembershipsByEntityIdOutput>;
-  getMembershipsByUserId<T extends MembershipType>(params: GetMembershipsByUserIdInput<T>): Promise<GetMembershipsByUserIdOutput<T>>;
+  getMembershipsByUserId<T extends MembershipFetchType>(params: GetMembershipsByUserIdInput<T>): Promise<GetMembershipsByUserIdOutput<T>>;
 }
 
-export type Membership<T extends MembershipType = MembershipType> = MembershipEntity<T>;
+export type Membership<T extends MembershipFetchType = MembershipFetchType> = MembershipEntity<T>;
 
 export type CreateMembershipInput = CreateOrganizationMembershipInput | CreateTeamMembershipInput | CreateGroupMembershipInput | CreateMeetingMembershipInput | CreateOneOnOneMembershipInput;
 
@@ -165,14 +172,15 @@ export interface GetMembershipsByEntityIdOutput {
   memberships: Membership[];
   lastEvaluatedKey?: string;
 }
-export interface GetMembershipsByUserIdInput<T extends MembershipType> {
+export interface GetMembershipsByUserIdInput<T extends MembershipFetchType> {
   userId: UserId;
   type?: T;
-  sortByDueAt?: boolean;
+  sortByDueAt?: T extends MembershipFetchType.Meeting ? boolean : never;
   limit?: number;
   exclusiveStartKey?: string;
 }
-export interface GetMembershipsByUserIdOutput<T extends MembershipType> {
+
+export interface GetMembershipsByUserIdOutput<T extends MembershipFetchType> {
   memberships: Membership<T>[];
   lastEvaluatedKey?: string;
 }

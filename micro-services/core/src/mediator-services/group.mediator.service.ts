@@ -5,6 +5,7 @@ import { GroupServiceInterface, Group, GroupUpdates } from "../entity-services/g
 import { Membership as MembershipEntity, MembershipServiceInterface } from "../entity-services/membership.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { MembershipType } from "../enums/membershipType.enum";
+import { MembershipFetchType } from "../enums/membershipFetchType.enum";
 
 @injectable()
 export class GroupMediatorService implements GroupMediatorServiceInterface {
@@ -121,7 +122,7 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
 
       const { memberships, lastEvaluatedKey } = await this.membershipService.getMembershipsByUserId({
         userId,
-        type: MembershipType.Group,
+        type: MembershipFetchType.Group,
         exclusiveStartKey,
         limit,
       });

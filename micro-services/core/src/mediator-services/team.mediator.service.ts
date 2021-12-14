@@ -5,12 +5,15 @@ import { TeamServiceInterface, Team as TeamEntity } from "../entity-services/tea
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { Membership as MembershipEntity, MembershipServiceInterface } from "../entity-services/membership.service";
 import { MembershipType } from "../enums/membershipType.enum";
+import { MembershipFetchType } from "../enums/membershipFetchType.enum";
+import { UserServiceInterface } from "../entity-services/user.service";
 
 @injectable()
 export class TeamMediatorService implements TeamMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.MembershipServiceInterface) private membershipService: MembershipServiceInterface,
   ) {}
 
@@ -20,13 +23,14 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { name, createdBy, organizationId } = params;
 
-      const { team: teamEntity } = await this.teamService.createTeam({
-        name,
-        createdBy,
-        organizationId,
-      });
+      const { team: teamEntity } = await this.teamService.createTeam({ name, createdBy, organizationId });
 
-      const { membership } = await this.membershipService.createMembership({ entityId: teamEntity.id, userId: createdBy, type: MembershipType.Team, role: Role.Admin });
+      const { membership } = await this.membershipService.createMembership({
+        type: MembershipType.Team,
+        entityId: teamEntity.id,
+        userId: createdBy,
+        role: Role.Admin,
+      });
 
       const team: WithRole<Team> = {
         ...teamEntity,
@@ -79,7 +83,12 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { teamId, userId, role } = params;
 
-      const { membership } = await this.membershipService.createMembership({ entityId: teamId, userId, type: MembershipType.Team, role });
+      const { membership } = await this.membershipService.createMembership({
+        type: MembershipType.Team,
+        entityId: teamId,
+        userId,
+        role,
+      });
 
       return { teamMembership: membership };
     } catch (error: unknown) {
@@ -125,7 +134,7 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { userId, exclusiveStartKey, limit } = params;
 
-      const { memberships, lastEvaluatedKey } = await this.membershipService.getMembershipsByUserId({ userId, type: MembershipType.Team, exclusiveStartKey, limit });
+      const { memberships, lastEvaluatedKey } = await this.membershipService.getMembershipsByUserId({ userId, type: MembershipFetchType.Team, exclusiveStartKey, limit });
 
       const teamIds = memberships.map((relationship) => relationship.entityId);
 

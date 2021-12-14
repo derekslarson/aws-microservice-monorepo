@@ -5,6 +5,7 @@ import { UserServiceInterface, User } from "../entity-services/user.service";
 import { MembershipServiceInterface } from "../entity-services/membership.service";
 import { MembershipType } from "../enums/membershipType.enum";
 import { OneOnOne, OneOnOneServiceInterface } from "../entity-services/oneOnOne.service";
+import { MembershipFetchType } from "../enums/membershipFetchType.enum";
 
 @injectable()
 export class OneOnOneMediatorService implements OneOnOneMediatorServiceInterface {
@@ -63,7 +64,7 @@ export class OneOnOneMediatorService implements OneOnOneMediatorServiceInterface
 
       const { memberships, lastEvaluatedKey } = await this.membershipService.getMembershipsByUserId({
         userId,
-        type: MembershipType.OneOnOne,
+        type: MembershipFetchType.OneOnOne,
         exclusiveStartKey,
         limit,
       });

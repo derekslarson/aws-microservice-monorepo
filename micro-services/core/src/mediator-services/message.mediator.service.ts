@@ -18,6 +18,7 @@ import { Meeting, MeetingServiceInterface } from "../entity-services/meeting.ser
 import { MembershipServiceInterface } from "../entity-services/membership.service";
 import { OneOnOneServiceInterface } from "../entity-services/oneOnOne.service";
 import { MembershipType } from "../enums/membershipType.enum";
+import { MembershipFetchType } from "../enums/membershipFetchType.enum";
 
 @injectable()
 export class MessageMediatorService implements MessageMediatorServiceInterface {
@@ -333,9 +334,9 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
       const { userId, searchTerm, exclusiveStartKey, limit } = params;
 
       const [ { memberships: groupMemberships }, { memberships: meetingMemberships }, { memberships: oneOnOneMemberships } ] = await Promise.all([
-        this.membershipService.getMembershipsByUserId({ userId, type: MembershipType.Group }),
-        this.membershipService.getMembershipsByUserId({ userId, type: MembershipType.Meeting }),
-        this.membershipService.getMembershipsByUserId({ userId, type: MembershipType.OneOnOne }),
+        this.membershipService.getMembershipsByUserId({ userId, type: MembershipFetchType.Group }),
+        this.membershipService.getMembershipsByUserId({ userId, type: MembershipFetchType.Meeting }),
+        this.membershipService.getMembershipsByUserId({ userId, type: MembershipFetchType.OneOnOne }),
       ]);
 
       const groupIds = groupMemberships.map((groupMembership) => groupMembership.entityId);

@@ -5,6 +5,7 @@ import { MeetingServiceInterface, Meeting, MeetingUpdates } from "../entity-serv
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { Membership as MembershipEntity, MembershipServiceInterface } from "../entity-services/membership.service";
 import { MembershipType } from "../enums/membershipType.enum";
+import { MembershipFetchType } from "../enums/membershipFetchType.enum";
 
 @injectable()
 export class MeetingMediatorService implements MeetingMediatorServiceInterface {
@@ -130,7 +131,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const { memberships, lastEvaluatedKey } = await this.membershipService.getMembershipsByUserId({
         userId,
-        type: MembershipType.Meeting,
+        type: MembershipFetchType.Meeting,
         sortByDueAt,
         exclusiveStartKey,
         limit,

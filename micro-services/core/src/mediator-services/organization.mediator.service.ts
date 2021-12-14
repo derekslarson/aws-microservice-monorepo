@@ -5,6 +5,7 @@ import { OrganizationServiceInterface, Organization as OrganizationEntity } from
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { Membership as MembershipEntity, MembershipServiceInterface } from "../entity-services/membership.service";
 import { MembershipType } from "../enums/membershipType.enum";
+import { MembershipFetchType } from "../enums/membershipFetchType.enum";
 
 @injectable()
 export class OrganizationMediatorService implements OrganizationMediatorServiceInterface {
@@ -124,7 +125,7 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { userId, exclusiveStartKey, limit } = params;
 
-      const { memberships, lastEvaluatedKey } = await this.membershipService.getMembershipsByUserId({ userId, type: MembershipType.Organization, exclusiveStartKey, limit });
+      const { memberships, lastEvaluatedKey } = await this.membershipService.getMembershipsByUserId({ userId, type: MembershipFetchType.Organization, exclusiveStartKey, limit });
 
       const organizationIds = memberships.map((membership) => membership.entityId);
 
