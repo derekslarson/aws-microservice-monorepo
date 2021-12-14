@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BadRequestError, BaseDynamoRepositoryV2, ConversationId, DocumentClientFactory, LoggerServiceInterface, OrganizationId, Role, TeamId, UserId } from "@yac/util";
+import { BadRequestError, BaseDynamoRepositoryV2, ConversationId, DocumentClientFactory, GroupId, LoggerServiceInterface, MeetingId, OneOnOneId, OrganizationId, Role, TeamId, UserId } from "@yac/util";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";
@@ -42,9 +42,13 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
         gsi1sk: `${KeyPrefix.Membership}${KeyPrefix.Active}${membership.activeAt}`,
         gsi2pk: membership.userId,
         gsi2sk: `${KeyPrefix.Membership}${membership.type}_${KeyPrefix.Active}${membership.activeAt}`,
-        ...(membership.dueAt && { gsi3pk: membership.userId, gsi3sk: `${KeyPrefix.Membership}${KeyPrefix.Due}${membership.dueAt}` }),
         ...membership,
       };
+
+      if (membership.type === MembershipType.Meeting) {
+        membershipEntity.gsi3pk = membership.userId;
+        membershipEntity.gsi3sk = `${KeyPrefix.Membership}${KeyPrefix.Due}${membership.dueAt}`;
+      }
 
       await this.documentClient.put({
         TableName: this.tableName,
@@ -91,8 +95,8 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
         rawUpdates.gsi2sk = `${KeyPrefix.Membership}${membership.type}_${KeyPrefix.Active}${updates.activeAt}`;
       }
 
-      if (updates.dueAt) {
-        rawUpdates.gsi3sk = `${KeyPrefix.Membership}${KeyPrefix.Due}${updates.dueAt}`;
+      if (this.isUpdateMeetingMembershipInput(params) && params.updates.dueAt) {
+        rawUpdates.gsi3sk = `${KeyPrefix.Membership}${KeyPrefix.Due}${params.updates.dueAt}`;
       }
 
       const membership = await this.partialUpdate(userId, entityId, rawUpdates);
@@ -152,7 +156,7 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
     }
   }
 
-  public async getMembershipsByUserId(params: GetMembershipsByUserIdInput): Promise<GetMembershipsByUserIdOutput> {
+  public async getMembershipsByUserId<T extends MembershipType>(params: GetMembershipsByUserIdInput<T>): Promise<GetMembershipsByUserIdOutput<T>> {
     try {
       this.loggerService.trace("getMembershipsByUserId called", { params }, this.constructor.name);
 
@@ -162,7 +166,7 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
         throw new BadRequestError(`Cannot sort by dueAt and type ${type}`);
       }
 
-      const { Items: memberships, LastEvaluatedKey } = await this.query({
+      const { Items: memberships, LastEvaluatedKey } = await this.query<Membership<T>>({
         ...(exclusiveStartKey && { ExclusiveStartKey: this.decodeExclusiveStartKey(exclusiveStartKey) }),
         Limit: limit ?? 25,
         IndexName: sortByDueAt ? this.gsiThreeIndexName : type ? this.gsiTwoIndexName : this.gsiOneIndexName,
@@ -187,6 +191,18 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
       throw error;
     }
   }
+
+  private isUpdateMeetingMembershipInput(params: UpdateMembershipInput): params is UpdateMeetingMembershipInput {
+    try {
+      this.loggerService.trace("isUpdateMeetingMembershipInput called", { params }, this.constructor.name);
+
+      return params.entityId.startsWith(KeyPrefix.Meeting);
+    } catch (error: unknown) {
+      this.loggerService.error("Error in isUpdateMeetingMembershipInput", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface MembershipRepositoryInterface {
@@ -195,28 +211,52 @@ export interface MembershipRepositoryInterface {
   updateMembership(params: UpdateMembershipInput): Promise<UpdateMembershipOutput>;
   deleteMembership(params: DeleteMembershipInput): Promise<DeleteMembershipOutput>;
   getMembershipsByEntityId(params: GetMembershipsByEntityIdInput): Promise<GetMembershipsByEntityIdOutput>;
-  getMembershipsByUserId(params: GetMembershipsByUserIdInput): Promise<GetMembershipsByUserIdOutput>;
+  getMembershipsByUserId<T extends MembershipType>(params: GetMembershipsByUserIdInput<T>): Promise<GetMembershipsByUserIdOutput<T>>;
 }
 
 type MembershipRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globalSecondaryIndexNames">;
 
 export type EntityId = OrganizationId | TeamId | ConversationId;
 
-export interface Membership {
-  entityId: EntityId;
-  userId: UserId;
-  type: MembershipType;
-  role: Role;
-  createdAt: string;
-  activeAt: string;
-  dueAt?: string;
+export interface OrganizationMembership extends BaseMembership {
+  entityId: OrganizationId;
+  type: MembershipType.Organization;
 }
+
+export interface TeamMembership extends BaseMembership {
+  entityId: TeamId;
+  type: MembershipType.Team;
+}
+
+export interface GroupMembership extends BaseMembership {
+  entityId: GroupId;
+  type: MembershipType.Group;
+}
+export interface MeetingMembership extends BaseMembership {
+  entityId: MeetingId;
+  type: MembershipType.Meeting;
+  dueAt: string;
+}
+
+export interface OneOnOneMembership extends BaseMembership {
+  entityId: OneOnOneId;
+  type: MembershipType.OneOnOne;
+  role: Role.Admin;
+}
+
+export type Membership<T extends MembershipType = MembershipType> =
+  T extends MembershipType.Organization ? OrganizationMembership :
+    T extends MembershipType.Team ? TeamMembership :
+      T extends MembershipType.Group ? GroupMembership :
+        T extends MembershipType.Meeting ? MeetingMembership :
+          T extends MembershipType.OneOnOne ? OneOnOneMembership :
+            OrganizationMembership | TeamMembership | GroupMembership | MeetingMembership | OneOnOneMembership;
 
 type Gsi1Sk = `${KeyPrefix.Membership}${KeyPrefix.Active}${string}`;
 type Gsi2Sk = `${KeyPrefix.Membership}${MembershipType}_${KeyPrefix.Active}${string}`;
 type Gsi3Sk = `${KeyPrefix.Membership}${KeyPrefix.Due}${string}`;
 
-export interface RawMembership extends Membership {
+export type RawMembership = Membership & {
   entityType: EntityType.Membership,
   pk: EntityId;
   sk: UserId;
@@ -226,7 +266,7 @@ export interface RawMembership extends Membership {
   gsi2sk: Gsi2Sk;
   gsi3pk?: UserId;
   gsi3sk?: Gsi3Sk;
-}
+};
 
 export interface CreateMembershipInput {
   membership: Membership;
@@ -245,13 +285,9 @@ export interface GetMembershipOutput {
   membership: Membership;
 }
 
-export type MembershipUpdates = Partial<Pick<Membership, "role" | "activeAt" | "dueAt">>;
+export type MembershipUpdates = NormalMembershipUpdates | MeetingMembershipUpdates;
 
-export interface UpdateMembershipInput {
-  userId: UserId;
-  entityId: EntityId;
-  updates: MembershipUpdates;
-}
+export type UpdateMembershipInput = UpdateNormalMembershipInput | UpdateMeetingMembershipInput;
 
 export interface UpdateMembershipOutput {
   membership: Membership;
@@ -275,17 +311,41 @@ export interface GetMembershipsByEntityIdOutput {
   lastEvaluatedKey?: string;
 }
 
-export interface GetMembershipsByUserIdInput {
+export interface GetMembershipsByUserIdInput<T extends MembershipType> {
   userId: UserId;
-  type?: MembershipType;
+  type?: T;
   sortByDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
 
-export interface GetMembershipsByUserIdOutput {
-  memberships: Membership[];
+export interface GetMembershipsByUserIdOutput<T extends MembershipType> {
+  memberships: Membership<T>[];
   lastEvaluatedKey?: string;
+}
+interface BaseMembership {
+  entityId: EntityId;
+  userId: UserId;
+  type: MembershipType;
+  role: Role;
+  createdAt: string;
+  activeAt: string;
+}
+
+type NormalMembershipUpdates = Partial<Pick<Membership, "role" | "activeAt">>;
+
+type MeetingMembershipUpdates = Partial<Pick<MeetingMembership, "role" | "activeAt" | "dueAt">>;
+
+interface UpdateNormalMembershipInput {
+  userId: UserId;
+  entityId: EntityId;
+  updates: MembershipUpdates;
+}
+
+interface UpdateMeetingMembershipInput extends UpdateNormalMembershipInput {
+  userId: UserId;
+  entityId: MeetingId;
+  updates: MeetingMembershipUpdates;
 }
 
 type RawMembershipUpdates = MembershipUpdates & { gsi1sk?: Gsi1Sk; gsi2sk?: Gsi2Sk; gsi3sk?: Gsi3Sk; };

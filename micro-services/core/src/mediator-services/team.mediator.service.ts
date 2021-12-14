@@ -127,7 +127,7 @@ export class TeamMediatorService implements TeamMediatorServiceInterface {
 
       const { memberships, lastEvaluatedKey } = await this.membershipService.getMembershipsByUserId({ userId, type: MembershipType.Team, exclusiveStartKey, limit });
 
-      const teamIds = memberships.map((relationship) => relationship.entityId) as TeamId[];
+      const teamIds = memberships.map((relationship) => relationship.entityId);
 
       const { teams } = await this.teamService.getTeams({ teamIds });
 

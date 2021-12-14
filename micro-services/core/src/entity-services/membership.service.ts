@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Role, UserId } from "@yac/util";
+import { GroupId, LoggerServiceInterface, MeetingId, OneOnOneId, OrganizationId, Role, TeamId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityId, MembershipRepositoryInterface, Membership as MembershipEntity, MembershipUpdates } from "../repositories/membership.dynamo.repository";
 import { MembershipType } from "../enums/membershipType.enum";
@@ -15,18 +15,12 @@ export class MembershipService implements MembershipServiceInterface {
     try {
       this.loggerService.trace("createMembership called", { params }, this.constructor.name);
 
-      const { entityId, userId, role, type, dueAt } = params;
-
       const now = new Date().toISOString();
 
-      const membership: MembershipEntity = {
-        entityId,
-        userId,
-        type,
-        role,
+      const membership: Membership = {
         createdAt: now,
         activeAt: now,
-        dueAt,
+        ...params,
       };
 
       await this.membershipRepository.createMembership({ membership });
@@ -101,7 +95,7 @@ export class MembershipService implements MembershipServiceInterface {
     }
   }
 
-  public async getMembershipsByUserId(params: GetMembershipsByUserIdInput): Promise<GetMembershipsByUserIdOutput> {
+  public async getMembershipsByUserId<T extends MembershipType>(params: GetMembershipsByUserIdInput<T>): Promise<GetMembershipsByUserIdOutput<T>> {
     try {
       this.loggerService.trace("getMembershipsByUserId called", { params }, this.constructor.name);
 
@@ -124,18 +118,46 @@ export interface MembershipServiceInterface {
   updateMembership(params: UpdateMembershipInput): Promise<UpdateMembershipOutput>;
   deleteMembership(params: DeleteMembershipInput): Promise<DeleteMembershipOutput>;
   getMembershipsByEntityId(params: GetMembershipsByEntityIdInput): Promise<GetMembershipsByEntityIdOutput>;
-  getMembershipsByUserId(params: GetMembershipsByUserIdInput): Promise<GetMembershipsByUserIdOutput>;
+  getMembershipsByUserId<T extends MembershipType>(params: GetMembershipsByUserIdInput<T>): Promise<GetMembershipsByUserIdOutput<T>>;
 }
 
-export type Membership = MembershipEntity;
+export type Membership<T extends MembershipType = MembershipType> = MembershipEntity<T>;
 
-export interface CreateMembershipInput {
+interface BaseCreateMembershipInput {
   entityId: EntityId;
   userId: UserId;
   role: Role;
   type: MembershipType;
   dueAt?: string;
 }
+
+export interface CreateOrganizationMembershipInput extends BaseCreateMembershipInput {
+  entityId: OrganizationId;
+  type: MembershipType.Organization;
+}
+
+export interface CreateTeamMembershipInput extends BaseCreateMembershipInput {
+  entityId: TeamId;
+  type: MembershipType.Team;
+}
+
+export interface CreateGroupMembershipInput extends BaseCreateMembershipInput {
+  entityId: GroupId;
+  type: MembershipType.Group;
+}
+export interface CreateMeetingMembershipInput extends BaseCreateMembershipInput {
+  entityId: MeetingId;
+  type: MembershipType.Meeting;
+  dueAt: string;
+}
+
+export interface CreateOneOnOneMembershipInput extends BaseCreateMembershipInput {
+  entityId: OneOnOneId;
+  type: MembershipType.OneOnOne;
+  role: Role.Admin;
+}
+
+export type CreateMembershipInput = CreateOrganizationMembershipInput | CreateTeamMembershipInput | CreateGroupMembershipInput | CreateMeetingMembershipInput | CreateOneOnOneMembershipInput;
 
 export interface CreateMembershipOutput {
   membership: Membership;
@@ -177,14 +199,14 @@ export interface GetMembershipsByEntityIdOutput {
   memberships: Membership[];
   lastEvaluatedKey?: string;
 }
-export interface GetMembershipsByUserIdInput {
+export interface GetMembershipsByUserIdInput<T extends MembershipType> {
   userId: UserId;
-  type?: MembershipType;
+  type?: T;
   sortByDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
-export interface GetMembershipsByUserIdOutput {
-  memberships: Membership[];
+export interface GetMembershipsByUserIdOutput<T extends MembershipType> {
+  memberships: Membership<T>[];
   lastEvaluatedKey?: string;
 }

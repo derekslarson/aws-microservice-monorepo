@@ -136,7 +136,7 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
         limit,
       });
 
-      const meetingIds = memberships.map((membership) => membership.entityId) as MeetingId[];
+      const meetingIds = memberships.map((membership) => membership.entityId);
 
       const { meetings } = await this.meetingService.getMeetings({ meetingIds });
 

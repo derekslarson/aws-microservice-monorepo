@@ -126,7 +126,7 @@ export class OrganizationMediatorService implements OrganizationMediatorServiceI
 
       const { memberships, lastEvaluatedKey } = await this.membershipService.getMembershipsByUserId({ userId, type: MembershipType.Organization, exclusiveStartKey, limit });
 
-      const organizationIds = memberships.map((membership) => membership.entityId) as OrganizationId[];
+      const organizationIds = memberships.map((membership) => membership.entityId);
 
       const { organizations } = await this.organizationService.getOrganizations({ organizationIds });
 
