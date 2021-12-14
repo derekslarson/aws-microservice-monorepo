@@ -56,6 +56,22 @@ export class OneOnOneService implements OneOnOneServiceInterface {
     }
   }
 
+  public async getOneOnOnes(params: GetOneOnOnesInput): Promise<GetOneOnOnesOutput> {
+    try {
+      this.loggerService.trace("getOneOnOnes called", { params }, this.constructor.name);
+
+      const { oneOnOneIds } = params;
+
+      const { oneOnOnes } = await this.oneOnOneRepository.getOneOnOnes({ oneOnOneIds });
+
+      return { oneOnOnes };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getOneOnOne", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getOneOnOnesByTeamId(params: GetOneOnOnesByTeamIdInput): Promise<GetOneOnOnesByTeamIdOutput> {
     try {
       this.loggerService.trace("getOneOnOnesByTeamId called", { params }, this.constructor.name);
@@ -92,6 +108,7 @@ export class OneOnOneService implements OneOnOneServiceInterface {
 export interface OneOnOneServiceInterface {
   createOneOnOne(params: CreateOneOnOneInput): Promise<CreateOneOnOneOutput>;
   getOneOnOne(params: GetOneOnOneInput): Promise<GetOneOnOneOutput>;
+  getOneOnOnes(params: GetOneOnOnesInput): Promise<GetOneOnOnesOutput>
   getOneOnOnesByTeamId(params: GetOneOnOnesByTeamIdInput): Promise<GetOneOnOnesByTeamIdOutput>;
   getOneOnOnesByOrganizationId(params: GetOneOnOnesByOrganizationIdInput): Promise<GetOneOnOnesByOrganizationIdOutput>;
 }
@@ -115,6 +132,14 @@ export interface GetOneOnOneInput {
 
 export interface GetOneOnOneOutput {
   oneOnOne: OneOnOne;
+}
+
+export interface GetOneOnOnesInput {
+  oneOnOneIds: OneOnOneId[];
+}
+
+export interface GetOneOnOnesOutput {
+  oneOnOnes: OneOnOne[];
 }
 
 export interface GetOneOnOnesByTeamIdInput {

@@ -97,11 +97,11 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
       }
 
       if (updates.activeAt) {
-        const { membership } = await this.getMembership({ entityId, userId });
+        const { membershipType } = this.getMembershipTypeFromEntityId({ entityId });
 
-        rawUpdates.gsi2sk = `${KeyPrefix.Membership}${membership.type}_${KeyPrefix.Active}${updates.activeAt}`;
+        rawUpdates.gsi2sk = `${KeyPrefix.Membership}${membershipType}_${KeyPrefix.Active}${updates.activeAt}`;
 
-        if (membership.type === MembershipType.OneOnOne || membership.type === MembershipType.Group) {
+        if (membershipType === MembershipType.OneOnOne || membershipType === MembershipType.Group) {
           rawUpdates.gsi3sk = `${KeyPrefix.Membership}${MembershipFetchType.OneOnOneAndGroup}_${KeyPrefix.Active}${updates.activeAt}`;
         }
       }
@@ -126,11 +126,27 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
 
       const { entityId, userId } = params;
 
+      const now = new Date().toISOString();
+
+      const { membershipType } = this.getMembershipTypeFromEntityId({ entityId });
+
+      const isGroupOrOneOnOne = membershipType === MembershipType.OneOnOne || membershipType === MembershipType.Group;
+
       const membership = await this.update({
         Key: { pk: userId, sk: `${KeyPrefix.Membership}${entityId}` },
-        UpdateExpression: "ADD #unreadMessages :one",
-        ExpressionAttributeNames: { "#unreadMessages": "unreadMessages" },
-        ExpressionAttributeValues: { ":one": 1 },
+        UpdateExpression: `ADD #unreadMessages :one SET #activeAt = :now, #gsi2sk = :gsi2sk${isGroupOrOneOnOne ? ", #gsi3sk = :gsi3sk" : ""}`,
+        ExpressionAttributeNames: {
+          "#unreadMessages": "unreadMessages",
+          "#activeAt": "activeAt",
+          "#gsi2sk": "gsi2sk",
+          ...(isGroupOrOneOnOne && { "#gsi3sk": "gsi3sk" }),
+        },
+        ExpressionAttributeValues: {
+          ":one": 1,
+          ":now": now,
+          ":gsi2sk": `${KeyPrefix.Membership}${membershipType}_${KeyPrefix.Active}${now}`,
+          ...(isGroupOrOneOnOne && { ":gsi3sk": `${KeyPrefix.Membership}${MembershipFetchType.OneOnOneAndGroup}_${KeyPrefix.Active}${now}` }),
+        },
       });
 
       return { membership };
@@ -149,9 +165,15 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
 
       const membership = await this.update({
         Key: { pk: userId, sk: `${KeyPrefix.Membership}${entityId}` },
-        UpdateExpression: "SET #unreadMessages = :zero",
-        ExpressionAttributeNames: { "#unreadMessages": "unreadMessages" },
-        ExpressionAttributeValues: { ":zero": 0 },
+        UpdateExpression: "SET #unreadMessages = :zero, #userActiveAt = :now",
+        ExpressionAttributeNames: {
+          "#unreadMessages": "unreadMessages",
+          "#userActiveAt": "userActiveAt",
+        },
+        ExpressionAttributeValues: {
+          ":zero": 0,
+          ":now": new Date().toISOString(),
+        },
       });
 
       return { membership };
@@ -249,6 +271,36 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
       return params.entityId.startsWith(KeyPrefix.Meeting);
     } catch (error: unknown) {
       this.loggerService.error("Error in isUpdateMeetingMembershipInput", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private getMembershipTypeFromEntityId(params: GetMembershipTypeFromEntityIdInput): GetMembershipTypeFromEntityIdOutput {
+    try {
+      this.loggerService.trace("getMembershipTypeFromEntityId called", { params }, this.constructor.name);
+
+      const { entityId } = params;
+
+      if (entityId.startsWith(KeyPrefix.Organization)) {
+        return { membershipType: MembershipType.Organization };
+      }
+
+      if (entityId.startsWith(KeyPrefix.Team)) {
+        return { membershipType: MembershipType.Team };
+      }
+
+      if (entityId.startsWith(KeyPrefix.Group)) {
+        return { membershipType: MembershipType.Group };
+      }
+
+      if (entityId.startsWith(KeyPrefix.Meeting)) {
+        return { membershipType: MembershipType.Meeting };
+      }
+
+      return { membershipType: MembershipType.OneOnOne };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMembershipTypeFromEntityId", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -440,3 +492,11 @@ interface UpdateMeetingMembershipInput extends UpdateNormalMembershipInput {
 }
 
 type RawMembershipUpdates = MembershipUpdates & { gsi1sk?: Gsi1Sk; gsi2sk?: Gsi2Sk; gsi3sk?: Gsi3Sk; };
+
+interface GetMembershipTypeFromEntityIdInput {
+  entityId: EntityId;
+}
+
+interface GetMembershipTypeFromEntityIdOutput {
+  membershipType: MembershipType;
+}

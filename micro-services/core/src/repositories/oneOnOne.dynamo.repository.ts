@@ -64,6 +64,22 @@ export class OneOnOneDynamoRepository extends BaseDynamoRepositoryV2<OneOnOne> i
     }
   }
 
+  public async getOneOnOnes(params: GetOneOnOnesInput): Promise<GetOneOnOnesOutput> {
+    try {
+      this.loggerService.trace("getOneOnOnes called", { params }, this.constructor.name);
+
+      const { oneOnOneIds } = params;
+
+      const oneOnOnes = await this.batchGet({ Keys: oneOnOneIds.map((oneOnOneId) => ({ pk: oneOnOneId, sk: EntityType.OneOnOne })) });
+
+      return { oneOnOnes };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getOneOnOnes", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getOneOnOnesByOrganizationId(params: GetOneOnOnesByOrganizationIdInput): Promise<GetOneOnOnesByOrganizationIdOutput> {
     try {
       this.loggerService.trace("getOneOnOnesByOrganizationId called", { params }, this.constructor.name);
@@ -133,6 +149,7 @@ export class OneOnOneDynamoRepository extends BaseDynamoRepositoryV2<OneOnOne> i
 export interface OneOnOneRepositoryInterface {
   createOneOnOne(params: CreateOneOnOneInput): Promise<CreateOneOnOneOutput>;
   getOneOnOne(params: GetOneOnOneInput): Promise<GetOneOnOneOutput>;
+  getOneOnOnes(params: GetOneOnOnesInput): Promise<GetOneOnOnesOutput>;
   getOneOnOnesByOrganizationId(params: GetOneOnOnesByOrganizationIdInput): Promise<GetOneOnOnesByOrganizationIdOutput>;
   getOneOnOnesByTeamId(params: GetOneOnOnesByTeamIdInput): Promise<GetOneOnOnesByTeamIdOutput>
 }
@@ -171,6 +188,14 @@ export interface GetOneOnOneInput {
 
 export interface GetOneOnOneOutput {
   oneOnOne: OneOnOne;
+}
+
+export interface GetOneOnOnesInput {
+  oneOnOneIds: OneOnOneId[];
+}
+
+export interface GetOneOnOnesOutput {
+  oneOnOnes: OneOnOne[];
 }
 
 export interface GetOneOnOnesByOrganizationIdInput {

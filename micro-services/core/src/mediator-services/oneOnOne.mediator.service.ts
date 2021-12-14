@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, OneOnOneId, OrganizationId, Role, TeamId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { UserServiceInterface, User as UserEntity } from "../entity-services/user.service";
+import { UserServiceInterface, User } from "../entity-services/user.service";
 import { MembershipServiceInterface } from "../entity-services/membership.service";
 import { MembershipType } from "../enums/membershipType.enum";
 import { OneOnOne as OneOnOneEntity, OneOnOneServiceInterface } from "../entity-services/oneOnOne.service";
@@ -22,12 +22,23 @@ export class OneOnOneMediatorService implements OneOnOneMediatorServiceInterface
 
       const { userId, otherUserId } = params;
       
-      const { oneOnOne } = await this.oneOnOneService.createOneOnOne({ createdBy: userId, otherUserId })
+      const { oneOnOne: oneOnOneEntity } = await this.oneOnOneService.createOneOnOne({ createdBy: userId, otherUserId })
 
-      await Promise.all([
-        this.membershipService.createMembership({ userId, entityId: oneOnOne.id, type: MembershipType.OneOnOne, role: Role.Admin }), 
-        this.membershipService.createMembership({ userId: otherUserId, entityId: oneOnOne.id, type: MembershipType.OneOnOne, role: Role.Admin })        
+      const [ { users } ] = await Promise.all([
+        this.userService.getUsers({ userIds: [ userId, otherUserId ] }),
+        this.membershipService.createMembership({ userId, entityId: oneOnOneEntity.id, type: MembershipType.OneOnOne, role: Role.Admin }), 
+        this.membershipService.createMembership({ userId: otherUserId, entityId: oneOnOneEntity.id, type: MembershipType.OneOnOne, role: Role.Admin })        
       ])
+
+      const [ createdBy, otherUser ] = users;
+
+      const { createdBy: _, otherUserId: __, ...restOfOneOnOneEntity } = oneOnOneEntity
+
+      const oneOnOne: OneOnOne = {
+        ...restOfOneOnOneEntity,
+        createdBy,
+        otherUser
+      }
 
       return { oneOnOne };
     } catch (error: unknown) {
@@ -69,17 +80,33 @@ export class OneOnOneMediatorService implements OneOnOneMediatorServiceInterface
         limit,
       });
 
-      const otherUserIds = memberships.map((memberships) => memberships.entityId);
+      const oneOnOneIds = memberships.map((membership) => membership.entityId);
+      const otherUserIds = memberships.map((membership) => {
+        const [ userIdA, userIdB ] = membership.entityId.split(/_(?=user_)/) as UserId[];
+        return userIdA === userId ? userIdB : userIdA;
+      });
 
-      const { users: oneOnOneEntities } = await this.userService.getUsers({ userIds: otherUserIds });
+      const [{ users }, { oneOnOnes: oneOnOneEntities }] = await Promise.all([
+        this.userService.getUsers({ userIds: [ ...otherUserIds, userId ] }),
+        this.oneOnOneService.getOneOnOnes({ oneOnOneIds })
+      ]);
+      
+      const userMap: Record<UserId, User> = {}
+      users.forEach((user) => userMap[user.id] = user)
 
 
-      const oneOnOnes = oneOnOneEntities.map((oneOnOne, i) => ({
-        ...oneOnOne,
+      const oneOnOnes = oneOnOneEntities.map((oneOnOneEntity, i) => {
+        const { createdBy, otherUserId, ...restOfOneOnOneEntity } = oneOnOneEntity
+        
+        return {
+        ...restOfOneOnOneEntity,
         activeAt: memberships[i].activeAt,
         lastViewedAt: memberships[i].userActiveAt,
         unseenMessages: memberships[i].unseenMessages,
-      }));
+        createdBy: userMap[createdBy],
+        otherUser: userMap[otherUserId]
+      }
+    });
 
       
       
@@ -98,9 +125,12 @@ export interface OneOnOneMediatorServiceInterface {
   getOneOnOnesByUserId(params: GetOneOnOnesByUserIdInput): Promise<GetOneOnOnesByUserIdOutput>;
 }
 
-export type OneOnOne = OneOnOneEntity;
+export type OneOnOne = Omit<OneOnOneEntity, "createdBy" | "otherUserId"> & {
+  createdBy: User;
+  otherUser: User;
+};
 
-export type OneOnOneByUserId = UserEntity & {
+export type OneOnOneByUserId = OneOnOne & {
   activeAt: string;
   lastViewedAt: string;
   unseenMessages: number;
