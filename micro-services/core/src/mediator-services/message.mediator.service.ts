@@ -4,7 +4,6 @@
 import { inject, injectable } from "inversify";
 import { ConversationId, GroupId, LoggerServiceInterface, MeetingId, MessageId, OneOnOneId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { GroupMembershipServiceInterface } from "../entity-services/groupMembership.service";
 import { MessageServiceInterface, Message as MessageEntity } from "../entity-services/message.service";
 
 import { Group, GroupServiceInterface } from "../entity-services/group.service";
@@ -16,8 +15,9 @@ import { User, UserServiceInterface } from "../entity-services/user.service";
 import { UpdateMessageReactionAction } from "../enums/updateMessageReactionAction.enum";
 import { ConversationType } from "../enums/conversationType.enum";
 import { Meeting, MeetingServiceInterface } from "../entity-services/meeting.service";
-import { MeetingMembershipServiceInterface } from "../entity-services/meetingMembership.service";
-import { OneOnOneMembershipServiceInterface } from "../entity-services/oneOnOneMembership.service";
+import { MembershipServiceInterface } from "../entity-services/membership.service";
+import { OneOnOneServiceInterface } from "../entity-services/oneOnOne.service";
+import { MembershipType } from "../enums/membershipType.enum";
 
 @injectable()
 export class MessageMediatorService implements MessageMediatorServiceInterface {
@@ -27,23 +27,24 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
-    @inject(TYPES.GroupMembershipServiceInterface) private groupMembershipService: GroupMembershipServiceInterface,
     @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
-    @inject(TYPES.MeetingMembershipServiceInterface) private meetingMembershipService: MeetingMembershipServiceInterface,
-    @inject(TYPES.OneOnOneMembershipServiceInterface) private oneOnOneMembershipService: OneOnOneMembershipServiceInterface,
+    @inject(TYPES.OneOnOneServiceInterface) private oneOnOneService: OneOnOneServiceInterface,
+    @inject(TYPES.MembershipServiceInterface) private membershipService: MembershipServiceInterface,
   ) {}
 
   public async createOneOnOneMessage(params: CreateOneOnOneMessageInput): Promise<CreateOneOnOneMessageOutput> {
     try {
       this.loggerService.trace("createOneOnOneMessage called", { params }, this.constructor.name);
 
-      const { to, from, mimeType } = params;
-
-      const oneOnOneId = [ to, from ].sort().join("_") as OneOnOneId;
+      const { oneOnOneId, from, mimeType } = params;
 
       const { pendingMessage: pendingMessageEntity } = await this.pendingMessageService.createPendingMessage({ conversationId: oneOnOneId, from, mimeType });
 
       const { conversationId, ...restOfPendingMessageEntity } = pendingMessageEntity;
+
+      const { oneOnOne } = await this.oneOnOneService.getOneOnOne({ oneOnOneId });
+
+      const to = oneOnOne.createdBy === from ? oneOnOne.otherUserId : oneOnOne.createdBy;
 
       const { users: [ toUser, fromUser ] } = await this.userService.getUsers({ userIds: [ to, from ] });
 
@@ -133,21 +134,9 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { pendingMessage: { conversationId, from: fromId, replyTo, mimeType, title } } = await this.pendingMessageService.getPendingMessage({ messageId });
 
-      const { conversationType } = this.getConversationTypeFromConversationId({ conversationId });
+      const { memberships } = await this.membershipService.getMembershipsByEntityId({ entityId: conversationId });
 
-      let conversationMemberIds: UserId[];
-
-      if (conversationType === ConversationType.Group) {
-        const { groupMemberships } = await this.groupMembershipService.getGroupMembershipsByGroupId({ groupId: conversationId as GroupId });
-
-        conversationMemberIds = groupMemberships.map((groupMembership) => groupMembership.userId);
-      } else if (conversationType === ConversationType.Meeting) {
-        const { meetingMemberships } = await this.meetingMembershipService.getMeetingMembershipsByMeetingId({ meetingId: conversationId as MeetingId });
-
-        conversationMemberIds = meetingMemberships.map((meetingMembership) => meetingMembership.userId);
-      } else {
-        conversationMemberIds = conversationId.split(/_(?=user_)/) as UserId[];
-      }
+      const conversationMemberIds = memberships.map((membership) => membership.userId);
 
       const now = new Date().toISOString();
 
@@ -220,9 +209,11 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { requestingUserId, otherUserId, newOnly, exclusiveStartKey, limit } = params;
 
-      const { oneOnOneMembership } = await this.oneOnOneMembershipService.getOneOnOneMembership({ userId: requestingUserId, otherUserId });
+      const oneOnOneId = [ requestingUserId, otherUserId ].sort().join("_") as OneOnOneId;
 
-      const minCreatedAt = newOnly ? oneOnOneMembership.activeAt : undefined;
+      const { membership } = await this.membershipService.getMembership({ userId: requestingUserId, entityId: oneOnOneId });
+
+      const minCreatedAt = newOnly ? membership.activeAt : undefined;
 
       const conversationId = [ requestingUserId, otherUserId ].sort().join("_") as OneOnOneId;
 
@@ -238,7 +229,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
           to: from === user.id ? otherUser : user,
           from: from === user.id ? user : otherUser,
           type: ConversationType.OneOnOne,
-          new: messageEntity.createdAt > oneOnOneMembership.activeAt,
+          new: messageEntity.createdAt > membership.activeAt,
           ...restOfMessage,
         };
       });
@@ -257,9 +248,9 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { requestingUserId, groupId, newOnly, exclusiveStartKey, limit } = params;
 
-      const { groupMembership } = await this.groupMembershipService.getGroupMembership({ userId: requestingUserId, groupId });
+      const { membership } = await this.membershipService.getMembership({ userId: requestingUserId, entityId: groupId });
 
-      const minCreatedAt = newOnly ? groupMembership.groupActiveAt : undefined;
+      const minCreatedAt = newOnly ? membership.activeAt : undefined;
 
       const [ { messages: messageEntities, lastEvaluatedKey }, { group } ] = await Promise.all([
         this.messageService.getMessagesByConversationId({ conversationId: groupId, minCreatedAt, exclusiveStartKey, limit }),
@@ -280,7 +271,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
           to: group,
           from: userMap[from] as User,
           type: ConversationType.OneOnOne,
-          new: messageEntity.createdAt > groupMembership.groupActiveAt,
+          new: messageEntity.createdAt > membership.activeAt,
           ...restOfMessage,
         };
       });
@@ -299,9 +290,9 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { requestingUserId, meetingId, newOnly, exclusiveStartKey, limit } = params;
 
-      const { meetingMembership } = await this.meetingMembershipService.getMeetingMembership({ userId: requestingUserId, meetingId });
+      const { membership } = await this.membershipService.getMembership({ userId: requestingUserId, entityId: meetingId });
 
-      const minCreatedAt = newOnly ? meetingMembership.meetingActiveAt : undefined;
+      const minCreatedAt = newOnly ? membership.activeAt : undefined;
 
       const [ { messages: messageEntities, lastEvaluatedKey }, { meeting } ] = await Promise.all([
         this.messageService.getMessagesByConversationId({ conversationId: meetingId, minCreatedAt, exclusiveStartKey, limit }),
@@ -322,7 +313,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
           to: meeting,
           from: userMap[from] as User,
           type: ConversationType.OneOnOne,
-          new: messageEntity.createdAt > meetingMembership.meetingActiveAt,
+          new: messageEntity.createdAt > membership.activeAt,
           ...restOfMessage,
         };
       });
@@ -341,15 +332,15 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { userId, searchTerm, exclusiveStartKey, limit } = params;
 
-      const [ { groupMemberships }, { meetingMemberships }, { oneOnOneMemberships } ] = await Promise.all([
-        this.groupMembershipService.getGroupMembershipsByUserId({ userId }),
-        this.meetingMembershipService.getMeetingMembershipsByUserId({ userId }),
-        this.oneOnOneMembershipService.getOneOnOneMembershipsByUserId({ userId }),
+      const [ { memberships: groupMemberships }, { memberships: meetingMemberships }, { memberships: oneOnOneMemberships } ] = await Promise.all([
+        this.membershipService.getMembershipsByUserId({ userId, type: MembershipType.Group }),
+        this.membershipService.getMembershipsByUserId({ userId, type: MembershipType.Meeting }),
+        this.membershipService.getMembershipsByUserId({ userId, type: MembershipType.OneOnOne }),
       ]);
 
-      const groupIds = groupMemberships.map((groupMembership) => groupMembership.groupId);
-      const meetingIds = meetingMemberships.map((meetingMembership) => meetingMembership.meetingId);
-      const oneOnOneIds = oneOnOneMemberships.map((oneOnOneMembership) => [ oneOnOneMembership.userId, oneOnOneMembership.otherUserId ].sort().join("_")) as OneOnOneId[];
+      const groupIds = groupMemberships.map((groupMembership) => groupMembership.entityId);
+      const meetingIds = meetingMemberships.map((meetingMembership) => meetingMembership.entityId);
+      const oneOnOneIds = oneOnOneMemberships.map((oneOnOneMembership) => oneOnOneMembership.entityId);
 
       const conversationIds = [ ...groupIds, ...meetingIds, ...oneOnOneIds ];
 
@@ -533,7 +524,7 @@ export interface Message extends Omit<MessageEntity, "conversationId" | "from"> 
 }
 
 export interface CreateOneOnOneMessageInput {
-  to: UserId;
+  oneOnOneId: OneOnOneId;
   from: UserId;
   mimeType: MessageMimeType;
 }

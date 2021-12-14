@@ -40,7 +40,7 @@ export class GroupService implements GroupServiceInterface {
         createdAt: now,
         updatedAt: now,
         activeAt: now,
-        ...(teamId && { teamId }),
+        teamId,
       };
 
       await Promise.all([

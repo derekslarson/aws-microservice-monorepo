@@ -15,7 +15,7 @@ import { TeamService, TeamServiceInterface } from "../entity-services/team.servi
 import { UserService, UserServiceInterface } from "../entity-services/user.service";
 import { identiconFactory, IdenticonFactory } from "../factories/identicon.factory";
 import { ConversationMediatorService, ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
-import { FriendshipMediatorService, FriendshipMediatorServiceInterface } from "../mediator-services/friendship.mediator.service";
+import { OneOnOneMediatorService, OneOnOneMediatorServiceInterface } from "../mediator-services/oneOnOne.mediator.service";
 import { GroupMediatorService, GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { MeetingMediatorService, MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { MessageMediatorService, MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
@@ -91,6 +91,8 @@ import { GroupDynamoRepository, GroupRepositoryInterface } from "../repositories
 import { MeetingService, MeetingServiceInterface } from "../entity-services/meeting.service";
 import { MembershipDynamoRepository, MembershipRepositoryInterface } from "../repositories/membership.dynamo.repository";
 import { MembershipService, MembershipServiceInterface } from "../entity-services/membership.service";
+import { OneOnOneDynamoRepository, OneOnOneRepositoryInterface } from "../repositories/oneOnOne.dynamo.repository";
+import { OneOnOneService, OneOnOneServiceInterface } from "../entity-services/oneOnOne.service";
 
 const container = new Container();
 
@@ -115,7 +117,7 @@ try {
 
   // Mediator Services
   container.bind<ConversationMediatorServiceInterface>(TYPES.ConversationMediatorServiceInterface).to(ConversationMediatorService);
-  container.bind<FriendshipMediatorServiceInterface>(TYPES.FriendshipMediatorServiceInterface).to(FriendshipMediatorService);
+  container.bind<OneOnOneMediatorServiceInterface>(TYPES.OneOnOneMediatorServiceInterface).to(OneOnOneMediatorService);
   container.bind<GroupMediatorServiceInterface>(TYPES.GroupMediatorServiceInterface).to(GroupMediatorService);
   container.bind<MeetingMediatorServiceInterface>(TYPES.MeetingMediatorServiceInterface).to(MeetingMediatorService);
   container.bind<MessageMediatorServiceInterface>(TYPES.MessageMediatorServiceInterface).to(MessageMediatorService);
@@ -185,6 +187,7 @@ try {
   container.bind<MeetingServiceInterface>(TYPES.MeetingServiceInterface).to(MeetingService);
   container.bind<MembershipServiceInterface>(TYPES.MembershipServiceInterface).to(MembershipService);
   container.bind<MessageServiceInterface>(TYPES.MessageServiceInterface).to(MessageService);
+  container.bind<OneOnOneServiceInterface>(TYPES.OneOnOneServiceInterface).to(OneOnOneService);
   container.bind<OrganizationServiceInterface>(TYPES.OrganizationServiceInterface).to(OrganizationService);
   container.bind<PendingInvitationServiceInterface>(TYPES.PendingInvitationServiceInterface).to(PendingInvitationService);
   container.bind<PendingMessageServiceInterface>(TYPES.PendingMessageServiceInterface).to(PendingMessageService);
@@ -198,6 +201,7 @@ try {
   container.bind<MeetingRepositoryInterface>(TYPES.MeetingRepositoryInterface).to(MeetingDynamoRepository);
   container.bind<MembershipRepositoryInterface>(TYPES.MembershipRepositoryInterface).to(MembershipDynamoRepository);
   container.bind<MessageRepositoryInterface>(TYPES.MessageRepositoryInterface).to(MessageDynamoRepository);
+  container.bind<OneOnOneRepositoryInterface>(TYPES.OneOnOneRepositoryInterface).to(OneOnOneDynamoRepository);
   container.bind<OrganizationRepositoryInterface>(TYPES.OrganizationRepositoryInterface).to(OrganizationDynamoRepository);
   container.bind<PendingMessageRepositoryInterface>(TYPES.PendingMessageRepositoryInterface).to(PendingMessageDynamoRepository);
   container.bind<PendingInvitationRepositoryInterface>(TYPES.PendingInvitationRepositoryInterface).to(PendingInvitationDynamoRepository);

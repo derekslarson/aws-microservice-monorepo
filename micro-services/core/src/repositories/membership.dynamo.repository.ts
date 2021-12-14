@@ -218,32 +218,6 @@ type MembershipRepositoryConfig = Pick<EnvConfigInterface, "tableNames" | "globa
 
 export type EntityId = OrganizationId | TeamId | ConversationId;
 
-export interface OrganizationMembership extends BaseMembership {
-  entityId: OrganizationId;
-  type: MembershipType.Organization;
-}
-
-export interface TeamMembership extends BaseMembership {
-  entityId: TeamId;
-  type: MembershipType.Team;
-}
-
-export interface GroupMembership extends BaseMembership {
-  entityId: GroupId;
-  type: MembershipType.Group;
-}
-export interface MeetingMembership extends BaseMembership {
-  entityId: MeetingId;
-  type: MembershipType.Meeting;
-  dueAt: string;
-}
-
-export interface OneOnOneMembership extends BaseMembership {
-  entityId: OneOnOneId;
-  type: MembershipType.OneOnOne;
-  role: Role.Admin;
-}
-
 export type Membership<T extends MembershipType = MembershipType> =
   T extends MembershipType.Organization ? OrganizationMembership :
     T extends MembershipType.Team ? TeamMembership :
@@ -330,6 +304,32 @@ interface BaseMembership {
   role: Role;
   createdAt: string;
   activeAt: string;
+}
+
+interface OrganizationMembership extends BaseMembership {
+  entityId: OrganizationId;
+  type: MembershipType.Organization;
+}
+
+interface TeamMembership extends BaseMembership {
+  entityId: TeamId;
+  type: MembershipType.Team;
+}
+
+interface GroupMembership extends BaseMembership {
+  entityId: GroupId;
+  type: MembershipType.Group;
+}
+interface MeetingMembership extends BaseMembership {
+  entityId: MeetingId;
+  type: MembershipType.Meeting;
+  dueAt: string;
+}
+
+interface OneOnOneMembership extends BaseMembership {
+  entityId: OneOnOneId;
+  type: MembershipType.OneOnOne;
+  role: Role.Admin;
 }
 
 type NormalMembershipUpdates = Partial<Pick<Membership, "role" | "activeAt">>;

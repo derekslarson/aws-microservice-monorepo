@@ -123,40 +123,6 @@ export interface MembershipServiceInterface {
 
 export type Membership<T extends MembershipType = MembershipType> = MembershipEntity<T>;
 
-interface BaseCreateMembershipInput {
-  entityId: EntityId;
-  userId: UserId;
-  role: Role;
-  type: MembershipType;
-  dueAt?: string;
-}
-
-export interface CreateOrganizationMembershipInput extends BaseCreateMembershipInput {
-  entityId: OrganizationId;
-  type: MembershipType.Organization;
-}
-
-export interface CreateTeamMembershipInput extends BaseCreateMembershipInput {
-  entityId: TeamId;
-  type: MembershipType.Team;
-}
-
-export interface CreateGroupMembershipInput extends BaseCreateMembershipInput {
-  entityId: GroupId;
-  type: MembershipType.Group;
-}
-export interface CreateMeetingMembershipInput extends BaseCreateMembershipInput {
-  entityId: MeetingId;
-  type: MembershipType.Meeting;
-  dueAt: string;
-}
-
-export interface CreateOneOnOneMembershipInput extends BaseCreateMembershipInput {
-  entityId: OneOnOneId;
-  type: MembershipType.OneOnOne;
-  role: Role.Admin;
-}
-
 export type CreateMembershipInput = CreateOrganizationMembershipInput | CreateTeamMembershipInput | CreateGroupMembershipInput | CreateMeetingMembershipInput | CreateOneOnOneMembershipInput;
 
 export interface CreateMembershipOutput {
@@ -209,4 +175,38 @@ export interface GetMembershipsByUserIdInput<T extends MembershipType> {
 export interface GetMembershipsByUserIdOutput<T extends MembershipType> {
   memberships: Membership<T>[];
   lastEvaluatedKey?: string;
+}
+
+interface BaseCreateMembershipInput {
+  entityId: EntityId;
+  userId: UserId;
+  role: Role;
+  type: MembershipType;
+  dueAt?: string;
+}
+
+interface CreateOrganizationMembershipInput extends BaseCreateMembershipInput {
+  entityId: OrganizationId;
+  type: MembershipType.Organization;
+}
+
+interface CreateTeamMembershipInput extends BaseCreateMembershipInput {
+  entityId: TeamId;
+  type: MembershipType.Team;
+}
+
+interface CreateGroupMembershipInput extends BaseCreateMembershipInput {
+  entityId: GroupId;
+  type: MembershipType.Group;
+}
+interface CreateMeetingMembershipInput extends BaseCreateMembershipInput {
+  entityId: MeetingId;
+  type: MembershipType.Meeting;
+  dueAt: string;
+}
+
+interface CreateOneOnOneMembershipInput extends BaseCreateMembershipInput {
+  entityId: OneOnOneId;
+  type: MembershipType.OneOnOne;
+  role: Role.Admin;
 }

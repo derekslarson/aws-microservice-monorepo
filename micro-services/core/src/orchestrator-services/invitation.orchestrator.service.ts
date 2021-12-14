@@ -8,7 +8,7 @@ import { GroupMediatorServiceInterface } from "../mediator-services/group.mediat
 import { MeetingId } from "../types/meetingId.type";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { UserId } from "../types/userId.type";
-import { FriendshipMediatorServiceInterface } from "../mediator-services/friendship.mediator.service";
+import { FriendshipMediatorServiceInterface } from "../mediator-services/oneOnOne.mediator.service";
 import { PendingInvitationType } from "../enums/pendingInvitationType.enum";
 import { PendingInvitation, PendingInvitationServiceInterface } from "../entity-services/pendingInvitation.service";
 import { User, UserServiceInterface, GetUserByEmailInput, GetUserByPhoneInput, GetUserByUsernameInput } from "../entity-services/user.service";

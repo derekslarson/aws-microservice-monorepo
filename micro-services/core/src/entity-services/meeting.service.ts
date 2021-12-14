@@ -41,7 +41,7 @@ export class MeetingService implements MeetingServiceInterface {
         createdAt: now,
         updatedAt: now,
         activeAt: now,
-        ...(teamId && { teamId }),
+        teamId,
       };
 
       await Promise.all([

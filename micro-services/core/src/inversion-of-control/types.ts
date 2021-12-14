@@ -18,7 +18,7 @@ const TYPES = {
 
   // Mediator Services
   ConversationMediatorServiceInterface: Symbol.for("ConversationMediatorServiceInterface"),
-  FriendshipMediatorServiceInterface: Symbol.for("FriendshipMediatorServiceInterface"),
+  OneOnOneMediatorServiceInterface: Symbol.for("OneOnOneMediatorServiceInterface"),
   GroupMediatorServiceInterface: Symbol.for("GroupMediatorServiceInterface"),
   MeetingMediatorServiceInterface: Symbol.for("MeetingMediatorServiceInterface"),
   MessageMediatorServiceInterface: Symbol.for("MessageMediatorServiceInterface"),
@@ -88,6 +88,7 @@ const TYPES = {
   MeetingServiceInterface: Symbol.for("MeetingServiceInterface"),
   MembershipServiceInterface: Symbol.for("MeetingMembershipServiceInterface"),
   MessageServiceInterface: Symbol.for("MessageServiceInterface"),
+  OneOnOneServiceInterface: Symbol.for("OneOnOneServiceInterface"),
   OrganizationServiceInterface: Symbol.for("OrganizationServiceInterface"),
   PendingMessageServiceInterface: Symbol.for("PendingMessageServiceInterface"),
   PendingInvitationServiceInterface: Symbol.for("PendingInvitationServiceInterface"),
@@ -102,6 +103,7 @@ const TYPES = {
   MeetingRepositoryInterface: Symbol.for("MeetingRepositoryInterface"),
   MembershipRepositoryInterface: Symbol.for("MembershipRepositoryInterface"),
   MessageRepositoryInterface: Symbol.for("MessageRepositoryInterface"),
+  OneOnOneRepositoryInterface: Symbol.for("OneOnOneRepositoryInterface"),
   OrganizationRepositoryInterface: Symbol.for("OrganizationRepositoryInterface"),
   PendingMessageRepositoryInterface: Symbol.for("PendingMessageRepositoryInterface"),
   PendingInvitationRepositoryInterface: Symbol.for("PendingInvitationRepositoryInterface"),

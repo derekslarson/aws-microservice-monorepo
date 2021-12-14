@@ -3,7 +3,7 @@ import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { AddUsersAsFriendsDto } from "../dtos/addUsersAsFriends.dto";
-import { FriendshipMediatorService } from "../mediator-services/friendship.mediator.service";
+import { FriendshipMediatorService } from "../mediator-services/oneOnOne.mediator.service";
 import { RemoveUserAsFriendDto } from "../dtos/removeUserAsFriend.dto";
 import { GetFriendsByuserIdDto } from "../dtos/getFriendsByUserId.dto";
 import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
