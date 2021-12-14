@@ -1,14 +1,10 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, NotFoundError, OrganizationId, Role } from "@yac/util";
+import { GroupId, LoggerServiceInterface, MeetingId, NotFoundError, OrganizationId, Role, TeamId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamId } from "../types/teamId.type";
 import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
-import { GroupId } from "../types/groupId.type";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
-import { MeetingId } from "../types/meetingId.type";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
-import { UserId } from "../types/userId.type";
-import { FriendshipMediatorServiceInterface } from "../mediator-services/oneOnOne.mediator.service";
+import { OneOnOneMediatorServiceInterface } from "../mediator-services/oneOnOne.mediator.service";
 import { PendingInvitationType } from "../enums/pendingInvitationType.enum";
 import { PendingInvitation, PendingInvitationServiceInterface } from "../entity-services/pendingInvitation.service";
 import { User, UserServiceInterface, GetUserByEmailInput, GetUserByPhoneInput, GetUserByUsernameInput } from "../entity-services/user.service";
@@ -24,7 +20,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
     @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
-    @inject(TYPES.FriendshipMediatorServiceInterface) private friendshipMediatorService: FriendshipMediatorServiceInterface,
+    @inject(TYPES.OneOnOneMediatorServiceInterface) private oneOnOneMediatorService: OneOnOneMediatorServiceInterface,
     @inject(TYPES.PendingInvitationServiceInterface) private pendingInvitationService: PendingInvitationServiceInterface,
   ) {}
 
@@ -38,7 +34,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
         type: PendingInvitationType.Friend,
         invitingEntityId: invitingUserId,
         invitation,
-        invitationRequest: ({ userId }) => this.friendshipMediatorService.createFriendship({ userIds: [ userId, invitingUserId ], createdBy: invitingUserId }),
+        invitationRequest: ({ userId }) => this.oneOnOneMediatorService.createOneOnOne({ userId: invitingUserId, otherUserId: userId }),
       })));
 
       const { successes, failures } = this.mapSettledInvitationsToResponse({ settledInvitations });
@@ -150,9 +146,9 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
       const { userId, pendingInvitation } = params;
 
       if (pendingInvitation.type === PendingInvitationType.Friend) {
-        await this.friendshipMediatorService.createFriendship({
-          userIds: [ pendingInvitation.invitingEntityId as UserId, userId ],
-          createdBy: pendingInvitation.invitingEntityId as UserId,
+        await this.oneOnOneMediatorService.createOneOnOne({
+          userId: pendingInvitation.invitingEntityId as UserId,
+          otherUserId: userId,
         });
       } else if (pendingInvitation.type === PendingInvitationType.Group) {
         await this.groupMediatorService.addUserToGroup({

@@ -1,10 +1,10 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, OneOnOneId, OrganizationId, Role, TeamId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { UserServiceInterface, User } from "../entity-services/user.service";
+import { UserServiceInterface, User as UserEntity } from "../entity-services/user.service";
 import { MembershipServiceInterface } from "../entity-services/membership.service";
 import { MembershipType } from "../enums/membershipType.enum";
-import { OneOnOne, OneOnOneServiceInterface } from "../entity-services/oneOnOne.service";
+import { OneOnOne as OneOnOneEntity, OneOnOneServiceInterface } from "../entity-services/oneOnOne.service";
 import { MembershipFetchType } from "../enums/membershipFetchType.enum";
 
 @injectable()
@@ -71,7 +71,17 @@ export class OneOnOneMediatorService implements OneOnOneMediatorServiceInterface
 
       const otherUserIds = memberships.map((memberships) => memberships.entityId);
 
-      const { users: oneOnOnes } = await this.userService.getUsers({ userIds: otherUserIds });
+      const { users: oneOnOneEntities } = await this.userService.getUsers({ userIds: otherUserIds });
+
+
+      const oneOnOnes = oneOnOneEntities.map((oneOnOne, i) => ({
+        ...oneOnOne,
+        activeAt: memberships[i].activeAt,
+        lastViewedAt: memberships[i].userActiveAt,
+        unseenMessages: memberships[i].unseenMessages,
+      }));
+
+      
       
       return { oneOnOnes, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -87,6 +97,14 @@ export interface OneOnOneMediatorServiceInterface {
   deleteOneOnOne(params: DeleteOneOnOneInput): Promise<DeleteOneOnOneOutput>;
   getOneOnOnesByUserId(params: GetOneOnOnesByUserIdInput): Promise<GetOneOnOnesByUserIdOutput>;
 }
+
+export type OneOnOne = OneOnOneEntity;
+
+export type OneOnOneByUserId = UserEntity & {
+  activeAt: string;
+  lastViewedAt: string;
+  unseenMessages: number;
+};
 
 export interface CreateOneOnOneInput {
   userId: UserId;
@@ -112,6 +130,6 @@ export interface GetOneOnOnesByUserIdInput {
 }
 
 export interface GetOneOnOnesByUserIdOutput {
-  oneOnOnes: User[];
+  oneOnOnes: OneOnOneByUserId[];
   lastEvaluatedKey?: string;
 }

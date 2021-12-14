@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { GroupId, LoggerServiceInterface, MeetingId, OneOnOneId, OrganizationId, Role, TeamId, UserId } from "@yac/util";
+import { ConversationId, GroupId, LoggerServiceInterface, MeetingId, OneOnOneId, OrganizationId, Role, TeamId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityId, MembershipRepositoryInterface, Membership as MembershipEntity, MembershipUpdates } from "../repositories/membership.dynamo.repository";
 import { MembershipType } from "../enums/membershipType.enum";
@@ -18,11 +18,23 @@ export class MembershipService implements MembershipServiceInterface {
 
       const now = new Date().toISOString();
 
-      const membership: Membership = {
-        createdAt: now,
-        activeAt: now,
-        ...params,
-      };
+      let membership: Membership;
+
+      if (params.type === MembershipType.Group || params.type === MembershipType.Meeting || params.type === MembershipType.OneOnOne) {
+        membership = {
+          createdAt: now,
+          activeAt: now,
+          userActiveAt: now,
+          unseenMessages: 0,
+          ...params,
+        };
+      } else {
+        membership = {
+          createdAt: now,
+          activeAt: now,
+          ...params,
+        };
+      }
 
       await this.membershipRepository.createMembership({ membership });
 
@@ -61,6 +73,38 @@ export class MembershipService implements MembershipServiceInterface {
       return { membership };
     } catch (error: unknown) {
       this.loggerService.error("Error in updateMembership", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async incrementUnreadMessages(params: IncrementUnreadMessagesInput): Promise<IncrementUnreadMessagesOutput> {
+    try {
+      this.loggerService.trace("incrementUnreadMessages called", { params }, this.constructor.name);
+
+      const { entityId, userId } = params;
+
+      const { membership } = await this.membershipRepository.incrementUnreadMessages({ entityId, userId });
+
+      return { membership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in incrementUnreadMessages", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async resetUnreadMessages(params: ResetUnreadMessagesInput): Promise<ResetUnreadMessagesOutput> {
+    try {
+      this.loggerService.trace("resetUnreadMessages called", { params }, this.constructor.name);
+
+      const { entityId, userId } = params;
+
+      const { membership } = await this.membershipRepository.resetUnreadMessages({ entityId, userId });
+
+      return { membership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in resetUnreadMessages", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -123,6 +167,7 @@ export interface MembershipServiceInterface {
   createMembership(params: CreateMembershipInput): Promise<CreateMembershipOutput>;
   getMembership(params: GetMembershipInput): Promise<GetMembershipOutput>;
   updateMembership(params: UpdateMembershipInput): Promise<UpdateMembershipOutput>;
+  incrementUnreadMessages(params: IncrementUnreadMessagesInput): Promise<IncrementUnreadMessagesOutput>;
   deleteMembership(params: DeleteMembershipInput): Promise<DeleteMembershipOutput>;
   getMembershipsByEntityId(params: GetMembershipsByEntityIdInput): Promise<GetMembershipsByEntityIdOutput>;
   getMembershipsByUserId<T extends MembershipFetchType>(params: GetMembershipsByUserIdInput<T>): Promise<GetMembershipsByUserIdOutput<T>>;
@@ -152,6 +197,24 @@ export interface UpdateMembershipInput {
 }
 
 export interface UpdateMembershipOutput {
+  membership: Membership;
+}
+
+export interface IncrementUnreadMessagesInput {
+  entityId: ConversationId;
+  userId: UserId;
+}
+
+export interface IncrementUnreadMessagesOutput {
+  membership: Membership;
+}
+
+export interface ResetUnreadMessagesInput {
+  entityId: ConversationId;
+  userId: UserId;
+}
+
+export interface ResetUnreadMessagesOutput {
   membership: Membership;
 }
 

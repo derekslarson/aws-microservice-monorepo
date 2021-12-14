@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, MeetingId, NotFoundError, OrganizationId, Role, TeamId, UserId, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { MeetingServiceInterface, Meeting, MeetingUpdates } from "../entity-services/meeting.service";
+import { MeetingServiceInterface, Meeting as MeetingEntity, MeetingUpdates } from "../entity-services/meeting.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { Membership as MembershipEntity, MembershipServiceInterface } from "../entity-services/membership.service";
 import { MembershipType } from "../enums/membershipType.enum";
@@ -139,14 +139,17 @@ export class MeetingMediatorService implements MeetingMediatorServiceInterface {
 
       const meetingIds = memberships.map((membership) => membership.entityId);
 
-      const { meetings } = await this.meetingService.getMeetings({ meetingIds });
+      const { meetings: meetingEntities } = await this.meetingService.getMeetings({ meetingIds });
 
-      const meetingsWithRoles = meetings.map((meeting, i) => ({
+      const meetings = meetingEntities.map((meeting, i) => ({
         ...meeting,
         role: memberships[i].role,
+        activeAt: memberships[i].activeAt,
+        lastViewedAt: memberships[i].userActiveAt,
+        unseenMessages: memberships[i].unseenMessages,
       }));
 
-      return { meetings: meetingsWithRoles, lastEvaluatedKey };
+      return { meetings, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingsByUserId", { error, params }, this.constructor.name);
 
@@ -247,6 +250,14 @@ export interface MeetingMediatorServiceInterface {
   isMeetingAdmin(params: IsMeetingAdminInput): Promise<IsMeetingAdminOutput>;
 }
 
+export type Meeting = MeetingEntity;
+
+export type MeetingByUserId = Meeting & {
+  activeAt: string;
+  lastViewedAt: string;
+  unseenMessages: number;
+};
+
 export interface CreateMeetingInput {
   name: string;
   createdBy: UserId;
@@ -310,7 +321,7 @@ export interface GetMeetingsByUserIdInput {
 }
 
 export interface GetMeetingsByUserIdOutput {
-  meetings: WithRole<Meeting>[];
+  meetings: WithRole<MeetingByUserId>[];
   lastEvaluatedKey?: string;
 }
 

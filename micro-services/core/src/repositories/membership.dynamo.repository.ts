@@ -120,6 +120,48 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
     }
   }
 
+  public async incrementUnreadMessages(params: IncrementUnreadMessagesInput): Promise<IncrementUnreadMessagesOutput> {
+    try {
+      this.loggerService.trace("incrementUnreadMessages called", { params }, this.constructor.name);
+
+      const { entityId, userId } = params;
+
+      const membership = await this.update({
+        Key: { pk: userId, sk: `${KeyPrefix.Membership}${entityId}` },
+        UpdateExpression: "ADD #unreadMessages :one",
+        ExpressionAttributeNames: { "#unreadMessages": "unreadMessages" },
+        ExpressionAttributeValues: { ":one": 1 },
+      });
+
+      return { membership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in incrementUnreadMessages", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async resetUnreadMessages(params: ResetUnreadMessagesInput): Promise<ResetUnreadMessagesOutput> {
+    try {
+      this.loggerService.trace("resetUnreadMessages called", { params }, this.constructor.name);
+
+      const { entityId, userId } = params;
+
+      const membership = await this.update({
+        Key: { pk: userId, sk: `${KeyPrefix.Membership}${entityId}` },
+        UpdateExpression: "SET #unreadMessages = :zero",
+        ExpressionAttributeNames: { "#unreadMessages": "unreadMessages" },
+        ExpressionAttributeValues: { ":zero": 0 },
+      });
+
+      return { membership };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in resetUnreadMessages", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async deleteMembership(params: DeleteMembershipInput): Promise<DeleteMembershipOutput> {
     try {
       this.loggerService.trace("deleteMembership called", { params }, this.constructor.name);
@@ -217,6 +259,8 @@ export interface MembershipRepositoryInterface {
   createMembership(params: CreateMembershipInput): Promise<CreateMembershipOutput>;
   getMembership(params: GetMembershipInput): Promise<GetMembershipOutput>;
   updateMembership(params: UpdateMembershipInput): Promise<UpdateMembershipOutput>;
+  incrementUnreadMessages(params: IncrementUnreadMessagesInput): Promise<IncrementUnreadMessagesOutput>;
+  resetUnreadMessages(params: ResetUnreadMessagesInput): Promise<ResetUnreadMessagesOutput>;
   deleteMembership(params: DeleteMembershipInput): Promise<DeleteMembershipOutput>;
   getMembershipsByEntityId(params: GetMembershipsByEntityIdInput): Promise<GetMembershipsByEntityIdOutput>;
   getMembershipsByUserId<T extends MembershipFetchType>(params: GetMembershipsByUserIdInput<T>): Promise<GetMembershipsByUserIdOutput<T>>;
@@ -241,7 +285,7 @@ type SortByUserName = `${KeyPrefix.Membership}${KeyPrefix.User}${KeyPrefix.Name}
 // For fetching any membership type (one type per request) by userId, sorted by activeAt
 type SortByTypeAndActiveAt = `${KeyPrefix.Membership}${MembershipType}_${KeyPrefix.Active}${string}`;
 
-// For fetching meetings, sorted by dueAt
+// For fetching meetings by userId, sorted by dueAt
 type SortByDueAt = `${KeyPrefix.Membership}${MembershipType.Meeting}_${KeyPrefix.Due}${string}`;
 
 // For fetching one-on-ones and groups (combined) by userId, sorted by activeAt
@@ -289,6 +333,24 @@ export interface UpdateMembershipOutput {
   membership: Membership;
 }
 
+export interface IncrementUnreadMessagesInput {
+  entityId: ConversationId;
+  userId: UserId;
+}
+
+export interface IncrementUnreadMessagesOutput {
+  membership: Membership;
+}
+
+export interface ResetUnreadMessagesInput {
+  entityId: ConversationId;
+  userId: UserId;
+}
+
+export interface ResetUnreadMessagesOutput {
+  membership: Membership;
+}
+
 export interface DeleteMembershipInput {
   entityId: EntityId;
   userId: UserId;
@@ -333,29 +395,33 @@ interface BaseMembership {
 interface OrganizationMembership extends BaseMembership {
   entityId: OrganizationId;
   type: MembershipType.Organization;
-  activeAt: string;
 }
 
 interface TeamMembership extends BaseMembership {
   entityId: TeamId;
   type: MembershipType.Team;
-  activeAt: string;
 }
 
 interface GroupMembership extends BaseMembership {
   entityId: GroupId;
   type: MembershipType.Group;
+  userActiveAt: string;
+  unseenMessages: number;
 }
 interface MeetingMembership extends BaseMembership {
   entityId: MeetingId;
   type: MembershipType.Meeting;
   dueAt: string;
+  userActiveAt: string;
+  unseenMessages: number;
 }
 
 interface OneOnOneMembership extends BaseMembership {
   entityId: OneOnOneId;
   type: MembershipType.OneOnOne;
   role: Role.Admin;
+  userActiveAt: string;
+  unseenMessages: number;
 }
 
 type NormalMembershipUpdates = Partial<Pick<Membership, "role" | "activeAt" | "userName">>;

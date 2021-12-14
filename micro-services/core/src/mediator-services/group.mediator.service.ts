@@ -1,7 +1,7 @@
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, GroupId, NotFoundError, OrganizationId, Role, TeamId, UserId, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { GroupServiceInterface, Group, GroupUpdates } from "../entity-services/group.service";
+import { GroupServiceInterface, Group as GroupEntity, GroupUpdates } from "../entity-services/group.service";
 import { Membership as MembershipEntity, MembershipServiceInterface } from "../entity-services/membership.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { MembershipType } from "../enums/membershipType.enum";
@@ -134,6 +134,9 @@ export class GroupMediatorService implements GroupMediatorServiceInterface {
       const groupsWithRoles = groups.map((group, i) => ({
         ...group,
         role: memberships[i].role,
+        activeAt: memberships[i].activeAt,
+        lastViewedAt: memberships[i].userActiveAt,
+        unseenMessages: memberships[i].unseenMessages,
       }));
 
       return { groups: groupsWithRoles, lastEvaluatedKey };
@@ -237,6 +240,14 @@ export interface GroupMediatorServiceInterface {
   isGroupAdmin(params: IsGroupAdminInput): Promise<IsGroupAdminOutput>;
 }
 
+export type Group = GroupEntity;
+
+export type GroupByUserId = Group & {
+  activeAt: string;
+  lastViewedAt: string;
+  unseenMessages: number;
+};
+
 export interface CreateGroupInput {
   name: string;
   createdBy: UserId;
@@ -298,7 +309,7 @@ export interface GetGroupsByUserIdInput {
 }
 
 export interface GetGroupsByUserIdOutput {
-  groups: WithRole<Group>[];
+  groups: WithRole<GroupByUserId>[];
   lastEvaluatedKey?: string;
 }
 
