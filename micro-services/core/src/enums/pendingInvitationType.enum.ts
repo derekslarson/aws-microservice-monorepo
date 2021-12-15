@@ -1,5 +1,5 @@
 export enum PendingInvitationType {
-  Friend = "friend",
+  OneOnOne = "one_on_one",
   Organization = "organization",
   Team = "team",
   Group = "group",

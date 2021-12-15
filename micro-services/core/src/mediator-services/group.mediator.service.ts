@@ -243,6 +243,7 @@ export interface GroupMediatorServiceInterface {
 export type Group = GroupEntity;
 
 export type GroupByUserId = Group & {
+  role: Role;
   activeAt: string;
   lastViewedAt: string;
   unseenMessages: number;

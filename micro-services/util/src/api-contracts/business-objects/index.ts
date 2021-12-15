@@ -4,3 +4,6 @@ export * from "./team.model";
 export * from "./group.model";
 export * from "./meeting.model";
 export * from "./message.model";
+export * from "./oneOnOne.model";
+export * from "./groupByUserId.model";
+export * from "./meetingByUserId.model";

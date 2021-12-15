@@ -3,7 +3,7 @@ import { generateInternalServerErrorResponse, LoggerServiceInterface } from "@ya
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
-import { FriendControllerInterface } from "../controllers/friend.controller";
+import { FriendControllerInterface } from "../controllers/oneOnOne.controller";
 
 const friendController = container.get<FriendControllerInterface>(TYPES.FriendControllerInterface);
 const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);

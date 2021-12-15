@@ -253,6 +253,7 @@ export interface MeetingMediatorServiceInterface {
 export type Meeting = MeetingEntity;
 
 export type MeetingByUserId = Meeting & {
+  role: Role;
   activeAt: string;
   lastViewedAt: string;
   unseenMessages: number;

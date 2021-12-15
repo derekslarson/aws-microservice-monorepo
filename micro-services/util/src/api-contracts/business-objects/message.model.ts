@@ -1,4 +1,5 @@
 import { MessageMimeType } from "../../enums/message.mimeType.enum";
+import { ConversationType } from "../../enums/conversationType.enum";
 import { MessageId } from "../../types/messageId.type";
 import { UserId } from "../../types/userId.type";
 import { Group } from "./group.model";
@@ -9,7 +10,7 @@ export interface Message {
   id: MessageId;
   to: User | Group | Meeting;
   from: User;
-  type: "friend" | "group" | "meeting";
+  type: ConversationType;
   createdAt: string;
   seenAt: Record<UserId, string | null>;
   reactions: Record<string, UserId[]>;

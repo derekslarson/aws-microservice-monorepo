@@ -1,11 +1,10 @@
-import { Optional, Record, String, Literal, Union } from "runtypes";
+import { Optional, Record, String } from "runtypes";
 import { UserId } from "../runtypes/userId.runtype";
 import { Limit } from "../runtypes/limit.runtype";
 
-export const GetMeetingsByUserIdDto = Record({
+export const GetOneOnOnesAndGroupsByUserIdDto = Record({
   pathParameters: Record({ userId: UserId }),
   queryStringParameters: Record({
-    sortBy: Optional(Union(Literal("dueAt"), Literal("activeAt"))),
     exclusiveStartKey: Optional(String),
     limit: Optional(Limit),
   }),

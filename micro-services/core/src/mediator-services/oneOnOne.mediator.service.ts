@@ -1,7 +1,9 @@
+/* eslint-disable no-return-assign */
+/* eslint-disable @typescript-eslint/naming-convention */
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface, OneOnOneId, OrganizationId, Role, TeamId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { UserServiceInterface, User } from "../entity-services/user.service";
+import { UserServiceInterface, User as UserEntity } from "../entity-services/user.service";
 import { MembershipServiceInterface } from "../entity-services/membership.service";
 import { MembershipType } from "../enums/membershipType.enum";
 import { OneOnOne as OneOnOneEntity, OneOnOneServiceInterface } from "../entity-services/oneOnOne.service";
@@ -21,24 +23,24 @@ export class OneOnOneMediatorService implements OneOnOneMediatorServiceInterface
       this.loggerService.trace("createOneOnOne called", { params }, this.constructor.name);
 
       const { userId, otherUserId } = params;
-      
-      const { oneOnOne: oneOnOneEntity } = await this.oneOnOneService.createOneOnOne({ createdBy: userId, otherUserId })
+
+      const { oneOnOne: oneOnOneEntity } = await this.oneOnOneService.createOneOnOne({ createdBy: userId, otherUserId });
 
       const [ { users } ] = await Promise.all([
         this.userService.getUsers({ userIds: [ userId, otherUserId ] }),
-        this.membershipService.createMembership({ userId, entityId: oneOnOneEntity.id, type: MembershipType.OneOnOne, role: Role.Admin }), 
-        this.membershipService.createMembership({ userId: otherUserId, entityId: oneOnOneEntity.id, type: MembershipType.OneOnOne, role: Role.Admin })        
-      ])
+        this.membershipService.createMembership({ userId, entityId: oneOnOneEntity.id, type: MembershipType.OneOnOne, role: Role.Admin }),
+        this.membershipService.createMembership({ userId: otherUserId, entityId: oneOnOneEntity.id, type: MembershipType.OneOnOne, role: Role.Admin }),
+      ]);
 
       const [ createdBy, otherUser ] = users;
 
-      const { createdBy: _, otherUserId: __, ...restOfOneOnOneEntity } = oneOnOneEntity
+      const { createdBy: _, otherUserId: __, ...restOfOneOnOneEntity } = oneOnOneEntity;
 
       const oneOnOne: OneOnOne = {
         ...restOfOneOnOneEntity,
         createdBy,
-        otherUser
-      }
+        otherUser,
+      };
 
       return { oneOnOne };
     } catch (error: unknown) {
@@ -52,14 +54,14 @@ export class OneOnOneMediatorService implements OneOnOneMediatorServiceInterface
     try {
       this.loggerService.trace("deleteOneOnOne called", { params }, this.constructor.name);
 
-      const { userIds } = params;
+      const { userId, otherUserId } = params;
 
-      const oneOnOneId = userIds.sort().join("_") as OneOnOneId;
+      const oneOnOneId = [ userId, otherUserId ].sort().join("_") as OneOnOneId;
 
       await Promise.all([
-        this.membershipService.deleteMembership({ userId: userIds[0], entityId: oneOnOneId }), 
-        this.membershipService.deleteMembership({ userId: userIds[1], entityId: oneOnOneId })        
-      ])
+        this.membershipService.deleteMembership({ userId, entityId: oneOnOneId }),
+        this.membershipService.deleteMembership({ userId: otherUserId, entityId: oneOnOneId }),
+      ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteOneOnOne", { error, params }, this.constructor.name);
 
@@ -86,30 +88,28 @@ export class OneOnOneMediatorService implements OneOnOneMediatorServiceInterface
         return userIdA === userId ? userIdB : userIdA;
       });
 
-      const [{ users }, { oneOnOnes: oneOnOneEntities }] = await Promise.all([
+      const [ { users }, { oneOnOnes: oneOnOneEntities } ] = await Promise.all([
         this.userService.getUsers({ userIds: [ ...otherUserIds, userId ] }),
-        this.oneOnOneService.getOneOnOnes({ oneOnOneIds })
+        this.oneOnOneService.getOneOnOnes({ oneOnOneIds }),
       ]);
-      
-      const userMap: Record<UserId, User> = {}
-      users.forEach((user) => userMap[user.id] = user)
 
+      const userMap: Record<UserId, UserEntity> = {};
+      users.forEach((user) => userMap[user.id] = user);
 
       const oneOnOnes = oneOnOneEntities.map((oneOnOneEntity, i) => {
-        const { createdBy, otherUserId, ...restOfOneOnOneEntity } = oneOnOneEntity
-        
-        return {
-        ...restOfOneOnOneEntity,
-        activeAt: memberships[i].activeAt,
-        lastViewedAt: memberships[i].userActiveAt,
-        unseenMessages: memberships[i].unseenMessages,
-        createdBy: userMap[createdBy],
-        otherUser: userMap[otherUserId]
-      }
-    });
+        const { createdBy, otherUserId, ...restOfOneOnOneEntity } = oneOnOneEntity;
+        const { createdAt, id, ...restOfUserEntity } = userMap[createdBy === userId ? otherUserId : createdBy] as UserEntity;
 
-      
-      
+        return {
+          ...restOfOneOnOneEntity,
+          ...restOfUserEntity,
+          role: memberships[i].role,
+          activeAt: memberships[i].activeAt,
+          lastViewedAt: memberships[i].userActiveAt,
+          unseenMessages: memberships[i].unseenMessages,
+        };
+      });
+
       return { oneOnOnes, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getOneOnOnesByUserId", { error, params }, this.constructor.name);
@@ -126,11 +126,12 @@ export interface OneOnOneMediatorServiceInterface {
 }
 
 export type OneOnOne = Omit<OneOnOneEntity, "createdBy" | "otherUserId"> & {
-  createdBy: User;
-  otherUser: User;
+  createdBy: UserEntity;
+  otherUser: UserEntity;
 };
 
-export type OneOnOneByUserId = OneOnOne & {
+export type OneOnOneByUserId = Omit<OneOnOneEntity, "createdBy" | "otherUserId"> & Omit<UserEntity, "createdAt" | "id"> & {
+  role: Role;
   activeAt: string;
   lastViewedAt: string;
   unseenMessages: number;
@@ -148,7 +149,8 @@ export interface CreateOneOnOneOutput {
 }
 
 export interface DeleteOneOnOneInput {
-  userIds: [UserId, UserId];
+  userId: UserId;
+  otherUserId: UserId;
 }
 
 export type DeleteOneOnOneOutput = void;

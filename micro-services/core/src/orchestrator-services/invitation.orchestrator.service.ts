@@ -24,14 +24,14 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
     @inject(TYPES.PendingInvitationServiceInterface) private pendingInvitationService: PendingInvitationServiceInterface,
   ) {}
 
-  public async addUsersAsFriends(params: AddUsersAsFriendsInput): Promise<AddUsersAsFriendsOutput> {
+  public async createOneOnOnes(params: CreateOneOnOnesInput): Promise<CreateOneOnOnesOutput> {
     try {
-      this.loggerService.trace("addUsersAsFriends called", { params }, this.constructor.name);
+      this.loggerService.trace("createOneOnOnes called", { params }, this.constructor.name);
 
       const { userId: invitingUserId, users: invitations } = params;
 
       const settledInvitations = await Promise.all(invitations.map((invitation) => this.handleInvitation({
-        type: PendingInvitationType.Friend,
+        type: PendingInvitationType.OneOnOne,
         invitingEntityId: invitingUserId,
         invitation,
         invitationRequest: ({ userId }) => this.oneOnOneMediatorService.createOneOnOne({ userId: invitingUserId, otherUserId: userId }),
@@ -41,7 +41,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       return { successes, failures };
     } catch (error: unknown) {
-      this.loggerService.error("Error in addUsersAsFriends", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in createOneOnOnes", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -145,7 +145,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 
       const { userId, pendingInvitation } = params;
 
-      if (pendingInvitation.type === PendingInvitationType.Friend) {
+      if (pendingInvitation.type === PendingInvitationType.OneOnOne) {
         await this.oneOnOneMediatorService.createOneOnOne({
           userId: pendingInvitation.invitingEntityId as UserId,
           otherUserId: userId,
@@ -265,19 +265,19 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
 }
 
 export interface InvitationOrchestratorServiceInterface {
-  addUsersAsFriends(params: AddUsersAsFriendsInput): Promise<AddUsersAsFriendsOutput>;
+  createOneOnOnes(params: CreateOneOnOnesInput): Promise<CreateOneOnOnesOutput>;
   addUsersToOrganization(params: AddUsersToOrganizationInput): Promise<AddUsersToOrganizationOutput>;
   addUsersToTeam(params: AddUsersToTeamInput): Promise<AddUsersToTeamOutput>;
   addUsersToGroup(params: AddUsersToGroupInput): Promise<AddUsersToGroupOutput>;
   addUsersToMeeting(params: AddUsersToMeetingInput): Promise<AddUsersToMeetingOutput>;
   processPendingInvitation(params: ProcessPendingInvitationInput): Promise<ProcessPendingInvitationOutput>;
 }
-export interface AddUsersAsFriendsInput {
+export interface CreateOneOnOnesInput {
   userId: UserId;
   users: InvitationWithoutRole[];
 }
 
-export interface AddUsersAsFriendsOutput {
+export interface CreateOneOnOnesOutput {
   successes: InvitationWithoutRole[];
   failures: InvitationWithoutRole[];
 }

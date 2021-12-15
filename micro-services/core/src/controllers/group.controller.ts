@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Group, WithRole } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Group, GroupByUserId, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { CreateGroupDto } from "../dtos/createGroup.dto";
@@ -15,6 +15,7 @@ import { AddUsersToGroupOutput, InvitationOrchestratorServiceInterface } from ".
 import { UpdateGroupDto } from "../dtos/updateGroup.dto";
 import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 import { GetGroupsByOrganizationIdDto } from "../dtos/getGroupsByOrganizationId.dto";
+import { ConversationOrchestratorServiceInterface } from "../orchestrator-services/conversation.orchestrator.service";
 
 @injectable()
 export class GroupController extends BaseController implements GroupControllerInterface {
@@ -24,6 +25,7 @@ export class GroupController extends BaseController implements GroupControllerIn
     @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
     @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
     @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
+    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationOrchestratorServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
   ) {
     super();
@@ -223,7 +225,7 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { groups, lastEvaluatedKey } = await this.conversationOrchestratorService.getGroupsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetGroupsByUserIdResponse = { groups, lastEvaluatedKey };
 
@@ -331,7 +333,7 @@ interface RemoveUserFromGroupResponse {
 }
 
 interface GetGroupsByUserIdResponse {
-  groups: WithRole<Group>[];
+  groups: GroupByUserId[];
   lastEvaluatedKey?: string;
 }
 

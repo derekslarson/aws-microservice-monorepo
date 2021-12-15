@@ -17,7 +17,7 @@ export class PendingInvitationService implements PendingInvitationServiceInterfa
 
       const { type, invitingEntityId, role } = params;
 
-      if (type !== PendingInvitationType.Friend && !role) {
+      if (type !== PendingInvitationType.OneOnOne && !role) {
         throw new BadRequestError("role is required.");
       }
 

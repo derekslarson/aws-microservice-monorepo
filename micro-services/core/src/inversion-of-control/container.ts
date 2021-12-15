@@ -2,7 +2,7 @@ import { coreContainerModule, DynamoProcessorServiceInterface, S3ProcessorServic
 import { Container } from "inversify";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { ConversationController, ConversationControllerInterface } from "../controllers/conversation.controller";
-import { FriendController, FriendControllerInterface } from "../controllers/friend.controller";
+import { FriendController, FriendControllerInterface } from "../controllers/oneOnOne.controller";
 import { GroupController, GroupControllerInterface } from "../controllers/group.controller";
 import { MeetingController, MeetingControllerInterface } from "../controllers/meeting.controller";
 import { MessageController, MessageControllerInterface } from "../controllers/message.controller";
@@ -14,7 +14,6 @@ import { PendingMessageService, PendingMessageServiceInterface } from "../entity
 import { TeamService, TeamServiceInterface } from "../entity-services/team.service";
 import { UserService, UserServiceInterface } from "../entity-services/user.service";
 import { identiconFactory, IdenticonFactory } from "../factories/identicon.factory";
-import { ConversationMediatorService, ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
 import { OneOnOneMediatorService, OneOnOneMediatorServiceInterface } from "../mediator-services/oneOnOne.mediator.service";
 import { GroupMediatorService, GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { MeetingMediatorService, MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
@@ -95,6 +94,8 @@ import { OneOnOneDynamoRepository, OneOnOneRepositoryInterface } from "../reposi
 import { OneOnOneService, OneOnOneServiceInterface } from "../entity-services/oneOnOne.service";
 import { MembershipCreatedDynamoProcessorService } from "../processor-services/membershipCreated.dynamo.processor.service";
 import { UserNameUpdatedDynamoProcessorService } from "../processor-services/userNameUpdated.dynamo.processor.service";
+import { OneOnOneAndGroupMediatorService, OneOnOneAndGroupMediatorServiceInterface } from "../mediator-services/oneOnOneAndGroup.mediator.service";
+import { ConversationOrchestratorService, ConversationOrchestratorServiceInterface } from "../orchestrator-services/conversation.orchestrator.service";
 
 const container = new Container();
 
@@ -115,12 +116,13 @@ try {
   container.bind<UserControllerInterface>(TYPES.UserControllerInterface).to(UserController);
 
   // Orchestrator Services
+  container.bind<ConversationOrchestratorServiceInterface>(TYPES.ConversationOrchestratorServiceInterface).to(ConversationOrchestratorService);
   container.bind<InvitationOrchestratorServiceInterface>(TYPES.InvitationOrchestratorServiceInterface).to(InvitationOrchestratorService);
 
   // Mediator Services
-  container.bind<ConversationMediatorServiceInterface>(TYPES.ConversationMediatorServiceInterface).to(ConversationMediatorService);
   container.bind<OneOnOneMediatorServiceInterface>(TYPES.OneOnOneMediatorServiceInterface).to(OneOnOneMediatorService);
   container.bind<GroupMediatorServiceInterface>(TYPES.GroupMediatorServiceInterface).to(GroupMediatorService);
+  container.bind<OneOnOneAndGroupMediatorServiceInterface>(TYPES.OneOnOneAndGroupMediatorServiceInterface).to(OneOnOneAndGroupMediatorService);
   container.bind<MeetingMediatorServiceInterface>(TYPES.MeetingMediatorServiceInterface).to(MeetingMediatorService);
   container.bind<MessageMediatorServiceInterface>(TYPES.MessageMediatorServiceInterface).to(MessageMediatorService);
   container.bind<OrganizationMediatorServiceInterface>(TYPES.OrganizationMediatorServiceInterface).to(OrganizationMediatorService);

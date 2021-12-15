@@ -7,7 +7,7 @@ export const CreateMeetingDto = Record({
   pathParameters: Record({ organizationId: OrganizationId }),
   body: Record({
     name: String,
-    dueDate: IsoTimestamp,
+    dueAt: IsoTimestamp,
     teamId: Optional(TeamId),
   }),
 });

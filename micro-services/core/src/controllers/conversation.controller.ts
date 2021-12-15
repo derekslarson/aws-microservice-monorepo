@@ -2,45 +2,42 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { GetConversationsByUserIdDto } from "../dtos/getConversationsByUserId.dto";
-import { ConversationMediatorServiceInterface } from "../mediator-services/conversation.mediator.service";
+import { GetOneOnOnesAndGroupsByUserIdDto } from "../dtos/getOneOnOnesAndGroupsByUserId";
+import { ConversationOrchestratorServiceInterface } from "../orchestrator-services/conversation.orchestrator.service";
 
 @injectable()
 export class ConversationController extends BaseController implements ConversationControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.ConversationMediatorServiceInterface) private conversationMediatorService: ConversationMediatorServiceInterface,
+    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationOrchestratorServiceInterface,
   ) {
     super();
   }
 
-  public async getConversationsByUserId(request: Request): Promise<Response> {
+  public async getOneOnOnesAndGroupsByUserId(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("getConversationsByUserId called", { request }, this.constructor.name);
+      this.loggerService.trace("getOneOnOnesAndGroupsByUserId called", { request }, this.constructor.name);
 
       const {
         jwtId,
         pathParameters: { userId },
-        queryStringParameters: { exclusiveStartKey, type, searchTerm, unread, limit },
-      } = this.validationService.validate({ dto: GetConversationsByUserIdDto, request, getUserIdFromJwt: true });
+        queryStringParameters: { exclusiveStartKey, limit },
+      } = this.validationService.validate({ dto: GetOneOnOnesAndGroupsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { conversations, lastEvaluatedKey } = await this.conversationMediatorService.getConversationsByUserId({
+      const { oneOnOnesAndGroups, lastEvaluatedKey } = await this.conversationOrchestratorService.getOneOnOnesAndGroupsByUserId({
         userId,
         exclusiveStartKey,
-        type,
-        searchTerm,
-        unread: unread === "true",
         limit: limit ? parseInt(limit, 10) : undefined,
       });
 
-      return this.generateSuccessResponse({ conversations, lastEvaluatedKey });
+      return this.generateSuccessResponse({ oneOnOnesAndGroups, lastEvaluatedKey });
     } catch (error: unknown) {
-      this.loggerService.error("Error in getConversationsByUserId", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in getOneOnOnesAndGroupsByUserId", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -48,5 +45,5 @@ export class ConversationController extends BaseController implements Conversati
 }
 
 export interface ConversationControllerInterface {
-  getConversationsByUserId(request: Request): Promise<Response>;
+  getOneOnOnesAndGroupsByUserId(request: Request): Promise<Response>;
 }
