@@ -133,7 +133,7 @@ export class ImageS3Repository extends BaseS3Repository implements ImageFileRepo
 
   public replaceImageMimeTypeForImage<T extends ImageEntity>(params: ReplaceImageMimeTypeForImageInput<T>): ReplaceImageMimeTypeForImageOutput<T> {
     try {
-      this.loggerService.trace("replaceImageMimeTypeForImage called", {}, this.constructor.name);
+      this.loggerService.trace("replaceImageMimeTypeForImage called", { params }, this.constructor.name);
 
       const { entityType, entity } = params;
 

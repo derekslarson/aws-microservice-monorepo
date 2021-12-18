@@ -1,6 +1,6 @@
 /* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
-import { GroupId, LoggerServiceInterface, OneOnOneId, Role, UserId } from "@yac/util";
+import { GroupId, LoggerServiceInterface, OneOnOneId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { User as UserEntity, UserServiceInterface } from "../entity-services/user.service";
 import { MembershipServiceInterface } from "../entity-services/membership.service";
@@ -49,7 +49,7 @@ export class OneOnOneAndGroupMediatorService implements OneOnOneAndGroupMediator
         this.groupService.getGroups({ groupIds }),
       ]);
 
-      const entityMap: Record<UserId | OneOnOneId | GroupId, UserEntity | OneOnOneEntity | GroupEntity> = {};
+      const entityMap: Record<string, UserEntity | OneOnOneEntity | GroupEntity> = {};
       users.forEach((user) => entityMap[user.id] = user);
       oneOnOnes.forEach((oneOnOne) => entityMap[oneOnOne.id] = oneOnOne);
       groups.forEach((group) => entityMap[group.id] = group);

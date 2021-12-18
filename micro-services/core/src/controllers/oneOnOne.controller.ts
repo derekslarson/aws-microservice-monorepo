@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { CreateOneOnOneDto } from "../dtos/createOneOnOne.dto";
+import { CreateOneOnOnesDto } from "../dtos/createOneOnOnes.dto";
 import { OneOnOneMediatorServiceInterface } from "../mediator-services/oneOnOne.mediator.service";
 import { DeleteOneOnOneDto } from "../dtos/deleteOneOnOne.dto";
 import { GetOneOnOnesByuserIdDto } from "../dtos/getOneOnOnesByUserId.dto";
@@ -19,15 +19,15 @@ export class OneOnOneController extends BaseController implements OneOnOneContro
     super();
   }
 
-  public async createOneOnOne(request: Request): Promise<Response> {
+  public async createOneOnOnes(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("addUserAsOneOnOne called", { request }, this.constructor.name);
+      this.loggerService.trace("createOneOnOnes called", { request }, this.constructor.name);
 
       const {
         jwtId,
         pathParameters: { userId },
         body: { users },
-      } = this.validationService.validate({ dto: CreateOneOnOneDto, request, getUserIdFromJwt: true });
+      } = this.validationService.validate({ dto: CreateOneOnOnesDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
@@ -43,30 +43,30 @@ export class OneOnOneController extends BaseController implements OneOnOneContro
 
       return this.generateSuccessResponse(response);
     } catch (error: unknown) {
-      this.loggerService.error("Error in addUserAsOneOnOne", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in createOneOnOnes", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
   }
 
-  public async removeUserAsOneOnOne(request: Request): Promise<Response> {
+  public async deleteOneOnOne(request: Request): Promise<Response> {
     try {
-      this.loggerService.trace("removeUserAsOneOnOne called", { request }, this.constructor.name);
+      this.loggerService.trace("deleteOneOnOne called", { request }, this.constructor.name);
 
       const {
         jwtId,
-        pathParameters: { userId, otherUserId },
+        pathParameters: { oneOnOneId },
       } = this.validationService.validate({ dto: DeleteOneOnOneDto, request, getUserIdFromJwt: true });
 
-      if (jwtId !== userId) {
+      if (!oneOnOneId.includes(jwtId)) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.oneOnOneMediatorService.deleteOneOnOne({ userId, otherUserId });
+      await this.oneOnOneMediatorService.deleteOneOnOne({ oneOnOneId });
 
       return this.generateSuccessResponse({ message: "One-on-one deleted." });
     } catch (error: unknown) {
-      this.loggerService.error("Error in removeUserAsOneOnOne", { error, request }, this.constructor.name);
+      this.loggerService.error("Error in deleteOneOnOne", { error, request }, this.constructor.name);
 
       return this.generateErrorResponse(error);
     }
@@ -98,7 +98,7 @@ export class OneOnOneController extends BaseController implements OneOnOneContro
 }
 
 export interface OneOnOneControllerInterface {
-  createOneOnOne(request: Request): Promise<Response>;
-  removeUserAsOneOnOne(request: Request): Promise<Response>;
+  createOneOnOnes(request: Request): Promise<Response>;
+  deleteOneOnOne(request: Request): Promise<Response>;
   getOneOnOnesByUserId(request: Request): Promise<Response>;
 }

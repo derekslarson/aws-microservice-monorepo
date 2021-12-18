@@ -5,9 +5,9 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
-import { RawConversation, Meeting } from "../repositories/conversation.dynamo.repository";
+import { RawMeeting } from "../repositories/meeting.dynamo.repository";
 import { MeetingCreatedSnsServiceInterface } from "../sns-services/meetingCreated.sns.service";
-import { ConversationServiceInterface } from "../entity-services/group.service";
+import { MeetingServiceInterface } from "../entity-services/meeting.service";
 
 @injectable()
 export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -17,7 +17,7 @@ export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServ
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MeetingCreatedSnsServiceInterface) private meetingCreatedSnsService: MeetingCreatedSnsServiceInterface,
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
-    @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
+    @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: MeetingCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -39,7 +39,7 @@ export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServ
     }
   }
 
-  public async processRecord(record: DynamoProcessorServiceRecord<RawConversation<Meeting>>): Promise<void> {
+  public async processRecord(record: DynamoProcessorServiceRecord<RawMeeting>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
@@ -49,7 +49,7 @@ export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServ
 
       await Promise.allSettled([
         this.meetingCreatedSnsService.sendMessage({ meeting, meetingMemberIds: [ meeting.createdBy ] }),
-        this.conversationService.indexMeetingForSearch({ meeting: record.newImage }),
+        this.meetingService.indexMeetingForSearch({ meeting: record.newImage }),
       ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);

@@ -6,12 +6,10 @@ import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { UserAddedAsFriendSnsServiceInterface } from "../sns-services/userAddedAsFriend.sns.service";
 import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
-import { FriendConversation, RawConversation } from "../repositories/conversation.dynamo.repository";
-import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { UserId } from "../types/userId.type";
+import { RawOneOnOne } from "../repositories/oneOnOne.dynamo.repository";
 
 @injectable()
-export class UserAddedAsFriendDynamoProcessorService implements DynamoProcessorServiceInterface {
+export class OneOnOneCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
   private coreTableName: string;
 
   constructor(
@@ -28,7 +26,7 @@ export class UserAddedAsFriendDynamoProcessorService implements DynamoProcessorS
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
       const isCoreTable = record.tableName === this.coreTableName;
-      const isFriendConversation = record.newImage.entityType === EntityType.FriendConversation;
+      const isFriendConversation = record.newImage.entityType === EntityType.OneOnOne;
       const isCreation = record.eventName === "INSERT";
 
       return isCoreTable && isFriendConversation && isCreation;
@@ -39,16 +37,15 @@ export class UserAddedAsFriendDynamoProcessorService implements DynamoProcessorS
     }
   }
 
-  public async processRecord(record: DynamoProcessorServiceRecord<RawConversation<FriendConversation>>): Promise<void> {
+  public async processRecord(record: DynamoProcessorServiceRecord<RawOneOnOne>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { newImage: { id: conversationId, createdBy: addingUserId } } = record;
-      const addedUserId = conversationId.replace(KeyPrefix.FriendConversation, "").replace(addingUserId, "").replace(/^-|-$/, "") as UserId;
+      const { newImage: { createdBy, otherUserId } } = record;
 
       const [ { user: addingUser }, { user: addedUser } ] = await Promise.all([
-        this.userMediatorService.getUser({ userId: addingUserId }),
-        this.userMediatorService.getUser({ userId: addedUserId }),
+        this.userMediatorService.getUser({ userId: createdBy }),
+        this.userMediatorService.getUser({ userId: otherUserId }),
       ]);
 
       await this.userAddedAsFriendSnsService.sendMessage({

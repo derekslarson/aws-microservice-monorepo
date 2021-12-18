@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { Message, BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, GroupId, MeetingId } from "@yac/util";
-import { APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageMediatorServiceInterface, PendingMessage } from "../mediator-services/message.mediator.service";
 import { CreateOneOnOneMessageDto } from "../dtos/createOneOnOneMessage.dto";

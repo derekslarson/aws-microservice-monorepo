@@ -56,6 +56,20 @@ export class OneOnOneService implements OneOnOneServiceInterface {
     }
   }
 
+  public async deleteOneOnOne(params: DeleteOneOnOneInput): Promise<DeleteOneOnOneOutput> {
+    try {
+      this.loggerService.trace("deleteOneOnOne called", { params }, this.constructor.name);
+
+      const { oneOnOneId } = params;
+
+      await this.oneOnOneRepository.deleteOneOnone({ oneOnOneId });
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deleteOneOnOne", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getOneOnOnes(params: GetOneOnOnesInput): Promise<GetOneOnOnesOutput> {
     try {
       this.loggerService.trace("getOneOnOnes called", { params }, this.constructor.name);
@@ -108,6 +122,7 @@ export class OneOnOneService implements OneOnOneServiceInterface {
 export interface OneOnOneServiceInterface {
   createOneOnOne(params: CreateOneOnOneInput): Promise<CreateOneOnOneOutput>;
   getOneOnOne(params: GetOneOnOneInput): Promise<GetOneOnOneOutput>;
+  deleteOneOnOne(params: DeleteOneOnOneInput): Promise<DeleteOneOnOneOutput>;
   getOneOnOnes(params: GetOneOnOnesInput): Promise<GetOneOnOnesOutput>
   getOneOnOnesByTeamId(params: GetOneOnOnesByTeamIdInput): Promise<GetOneOnOnesByTeamIdOutput>;
   getOneOnOnesByOrganizationId(params: GetOneOnOnesByOrganizationIdInput): Promise<GetOneOnOnesByOrganizationIdOutput>;
@@ -133,6 +148,12 @@ export interface GetOneOnOneInput {
 export interface GetOneOnOneOutput {
   oneOnOne: OneOnOne;
 }
+
+export interface DeleteOneOnOneInput {
+  oneOnOneId: OneOnOneId;
+}
+
+export type DeleteOneOnOneOutput = void;
 
 export interface GetOneOnOnesInput {
   oneOnOneIds: OneOnOneId[];

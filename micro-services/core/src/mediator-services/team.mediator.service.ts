@@ -6,14 +6,12 @@ import { ImageMimeType } from "../enums/image.mimeType.enum";
 import { Membership as MembershipEntity, MembershipServiceInterface } from "../entity-services/membership.service";
 import { MembershipType } from "../enums/membershipType.enum";
 import { MembershipFetchType } from "../enums/membershipFetchType.enum";
-import { UserServiceInterface } from "../entity-services/user.service";
 
 @injectable()
 export class TeamMediatorService implements TeamMediatorServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
-    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.MembershipServiceInterface) private membershipService: MembershipServiceInterface,
   ) {}
 

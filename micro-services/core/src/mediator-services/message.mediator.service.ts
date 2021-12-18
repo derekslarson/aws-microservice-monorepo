@@ -254,7 +254,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { users } = await this.userService.getUsers({ userIds });
 
-      const userMap: Record<UserId, User> = {};
+      const userMap: Record<string, User> = {};
       users.forEach((user) => userMap[user.id] = user);
 
       const messages = messageEntities.map((messageEntity) => {
@@ -262,7 +262,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
         return {
           to: group,
-          from: userMap[from] as User,
+          from: userMap[from],
           type: ConversationType.OneOnOne,
           new: messageEntity.createdAt > membership.activeAt,
           ...restOfMessage,
@@ -296,7 +296,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
       const { users } = await this.userService.getUsers({ userIds });
 
-      const userMap: Record<UserId, User> = {};
+      const userMap: Record<string, User> = {};
       users.forEach((user) => userMap[user.id] = user);
 
       const messages = messageEntities.map((messageEntity) => {
@@ -304,7 +304,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
 
         return {
           to: meeting,
-          from: userMap[from] as User,
+          from: userMap[from],
           type: ConversationType.OneOnOne,
           new: messageEntity.createdAt > membership.activeAt,
           ...restOfMessage,
@@ -369,7 +369,7 @@ export class MessageMediatorService implements MessageMediatorServiceInterface {
         this.meetingService.getMeetings({ meetingIds: Array.from(meetingIdSet) }),
       ]);
 
-      const entityMap: Record<UserId | GroupId | MeetingId, User | Group | Meeting> = {};
+      const entityMap: Record<string, User | Group | Meeting> = {};
       users.forEach((user) => entityMap[user.id] = user);
       groups.forEach((group) => entityMap[group.id] = group);
       meetings.forEach((meeting) => entityMap[meeting.id] = meeting);

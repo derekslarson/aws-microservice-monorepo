@@ -185,11 +185,3 @@ export interface DeletePendingMessageInput {
 }
 
 export type DeletePendingMessageOutput = void;
-
-interface ConvertPendingToRegularMessageIdInput {
-  messageId: MessageId;
-}
-
-interface ConvertPendingToRegularMessageIdOutput {
-  messageId: MessageId;
-}

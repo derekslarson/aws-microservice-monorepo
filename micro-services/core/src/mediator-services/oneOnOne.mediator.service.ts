@@ -54,13 +54,14 @@ export class OneOnOneMediatorService implements OneOnOneMediatorServiceInterface
     try {
       this.loggerService.trace("deleteOneOnOne called", { params }, this.constructor.name);
 
-      const { userId, otherUserId } = params;
+      const { oneOnOneId } = params;
 
-      const oneOnOneId = [ userId, otherUserId ].sort().join("_") as OneOnOneId;
+      const [ userIdA, userIdB ] = oneOnOneId.split(/_(?=user_)/) as UserId[];
 
       await Promise.all([
-        this.membershipService.deleteMembership({ userId, entityId: oneOnOneId }),
-        this.membershipService.deleteMembership({ userId: otherUserId, entityId: oneOnOneId }),
+        this.oneOnOneService.deleteOneOnOne({ oneOnOneId }),
+        this.membershipService.deleteMembership({ userId: userIdA, entityId: oneOnOneId }),
+        this.membershipService.deleteMembership({ userId: userIdB, entityId: oneOnOneId }),
       ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in deleteOneOnOne", { error, params }, this.constructor.name);
@@ -93,12 +94,12 @@ export class OneOnOneMediatorService implements OneOnOneMediatorServiceInterface
         this.oneOnOneService.getOneOnOnes({ oneOnOneIds }),
       ]);
 
-      const userMap: Record<UserId, UserEntity> = {};
+      const userMap: Record<string, UserEntity> = {};
       users.forEach((user) => userMap[user.id] = user);
 
       const oneOnOnes = oneOnOneEntities.map((oneOnOneEntity, i) => {
         const { createdBy, otherUserId, ...restOfOneOnOneEntity } = oneOnOneEntity;
-        const { createdAt, id, ...restOfUserEntity } = userMap[createdBy === userId ? otherUserId : createdBy] as UserEntity;
+        const { createdAt, id, ...restOfUserEntity } = userMap[createdBy === userId ? otherUserId : createdBy];
 
         return {
           ...restOfOneOnOneEntity,
@@ -149,8 +150,7 @@ export interface CreateOneOnOneOutput {
 }
 
 export interface DeleteOneOnOneInput {
-  userId: UserId;
-  otherUserId: UserId;
+  oneOnOneId: OneOnOneId;
 }
 
 export type DeleteOneOnOneOutput = void;

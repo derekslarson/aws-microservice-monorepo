@@ -5,7 +5,6 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { RawMembership } from "../repositories/membership.dynamo.repository";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 import { MembershipServiceInterface } from "../entity-services/membership.service";
 import { UserServiceInterface } from "../entity-services/user.service";
 

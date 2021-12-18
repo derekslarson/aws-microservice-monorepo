@@ -66,7 +66,6 @@ export class YacHttpServiceStack extends CDK.Stack {
     this.httpApi = new HttpApi(this, `${id}-Api`, {
       serviceName: props.serviceName,
       domainName: this.domainName,
-      corsAllowedOrigins: environment !== Environment.Prod ? [ `https://${this.recordName}-assets.yacchat.com` ] : [ "https://yac.com", "https://id.yac.com/", "https://app.yac.com/" ],
       authorizerHandler,
     });
   }

@@ -24,17 +24,10 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
       },
       corsPreflight: {
         allowOrigins: props.corsAllowedOrigins || [ "*" ],
-        allowMethods: [
-          ApiGatewayV2.CorsHttpMethod.GET,
-          ApiGatewayV2.CorsHttpMethod.POST,
-          ApiGatewayV2.CorsHttpMethod.PUT,
-          ApiGatewayV2.CorsHttpMethod.PATCH,
-          ApiGatewayV2.CorsHttpMethod.DELETE,
-          ApiGatewayV2.CorsHttpMethod.HEAD,
-          ApiGatewayV2.CorsHttpMethod.OPTIONS,
-        ],
+        allowMethods: [ ApiGatewayV2.CorsHttpMethod.ANY ],
+        allowHeaders: [ "*" ],
+        exposeHeaders: [ "*" ],
         maxAge: environment !== Environment.Prod ? CDK.Duration.minutes(300) : CDK.Duration.minutes(60 * 12),
-        allowCredentials: true,
       },
     });
 

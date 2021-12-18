@@ -4,8 +4,6 @@ import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServi
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
-import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { PendingMessageId } from "../types/pendingMessageId.type";
 
 @injectable()
 export class MessageTranscodedSnsProcessorService implements SnsProcessorServiceInterface {
@@ -37,9 +35,7 @@ export class MessageTranscodedSnsProcessorService implements SnsProcessorService
 
       const { message: { messageId, newMimeType } } = record;
 
-      const pendingMessageId = messageId.replace(KeyPrefix.Message, KeyPrefix.PendingMessage) as PendingMessageId;
-
-      await this.pendingMessageService.updatePendingMessage({ pendingMessageId, updates: { mimeType: newMimeType } });
+      await this.pendingMessageService.updatePendingMessage({ messageId, updates: { mimeType: newMimeType } });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

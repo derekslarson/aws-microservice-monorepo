@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Group, GroupByUserId, WithRole } from "@yac/util";
+import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Group, GroupByUserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { CreateGroupDto } from "../dtos/createGroup.dto";

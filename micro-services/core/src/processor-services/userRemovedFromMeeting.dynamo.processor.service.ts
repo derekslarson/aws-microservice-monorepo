@@ -1,14 +1,14 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerServiceInterface } from "@yac/util";
+import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerServiceInterface, MeetingId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { UserRemovedFromMeetingSnsServiceInterface } from "../sns-services/userRemovedFromMeeting.sns.service";
-import { RawConversationUserRelationship } from "../repositories/conversationUserRelationship.dynamo.repository";
 import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
-import { ConversationType } from "../enums/conversationType.enum";
+import { RawMembership } from "../repositories/membership.dynamo.repository";
+import { MembershipType } from "../enums/membershipType.enum";
 
 @injectable()
 export class UserRemovedFromMeetingDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -29,11 +29,11 @@ export class UserRemovedFromMeetingDynamoProcessorService implements DynamoProce
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
       const isCoreTable = record.tableName === this.coreTableName;
-      const isConversationUserRelationship = record.oldImage.entityType === EntityType.ConversationUserRelationship;
-      const isMeetingUserRelationship = (record.oldImage as RawConversationUserRelationship<ConversationType>).type === ConversationType.Meeting;
+      const isMembership = record.oldImage.entityType === EntityType.Membership;
+      const isMeetingMembership = (record.oldImage as RawMembership).type === MembershipType.Meeting;
       const isRemoval = record.eventName === "REMOVE";
 
-      return isCoreTable && isConversationUserRelationship && isMeetingUserRelationship && isRemoval;
+      return isCoreTable && isMembership && isMeetingMembership && isRemoval;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 
@@ -41,11 +41,12 @@ export class UserRemovedFromMeetingDynamoProcessorService implements DynamoProce
     }
   }
 
-  public async processRecord(record: DynamoProcessorServiceRecord<RawConversationUserRelationship<ConversationType.Meeting>>): Promise<void> {
+  public async processRecord(record: DynamoProcessorServiceRecord<RawMembership>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { oldImage: { conversationId: meetingId, userId } } = record;
+      const { oldImage: { entityId, userId } } = record;
+      const meetingId = entityId as MeetingId;
 
       const [ { users: meetingMembers }, { user }, { meeting } ] = await Promise.all([
         this.userMediatorService.getUsersByMeetingId({ meetingId }),

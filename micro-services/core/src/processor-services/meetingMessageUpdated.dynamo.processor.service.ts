@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerServiceInterface } from "@yac/util";
+import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerServiceInterface, MeetingId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
@@ -9,7 +9,6 @@ import { UserMediatorServiceInterface } from "../mediator-services/user.mediator
 import { RawMessage } from "../repositories/message.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
 import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
-import { MeetingId } from "../types/meetingId.type";
 import { MessageServiceInterface } from "../entity-services/message.service";
 
 @injectable()

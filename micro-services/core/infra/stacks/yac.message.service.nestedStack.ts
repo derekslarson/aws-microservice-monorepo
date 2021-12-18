@@ -22,10 +22,10 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       openSearchFullAccessPolicyStatement,
     } = props;
 
-    const createFriendMessageHandler = new Lambda.Function(this, `CreateFriendMessage_${id}`, {
+    const createOneOnOneMessageHandler = new Lambda.Function(this, `CreateOneOnOneMessage_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/createFriendMessage"),
-      handler: "createFriendMessage.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/createOneOnOneMessage"),
+      handler: "createOneOnOneMessage.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -88,10 +88,10 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const getMessagesByUserAndFriendIdsHandler = new Lambda.Function(this, `GetMessagesByUserAndFriendIds_${id}`, {
+    const getMessagesByOneOnOneIdHandler = new Lambda.Function(this, `GetMessagesByOneOnOneId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByUserAndFriendIds"),
-      handler: "getMessagesByUserAndFriendIds.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByOneOnOneId"),
+      handler: "getMessagesByOneOnOneId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -132,50 +132,17 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       timeout: CDK.Duration.seconds(15),
     });
 
-    const updateFriendMessagesByUserIdHandler = new Lambda.Function(this, `UpdateFriendMessagesByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/updateFriendMessagesByUserId"),
-      handler: "updateFriendMessagesByUserId.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
-    const updateGroupMessagesByUserIdHandler = new Lambda.Function(this, `UpdateGroupMessagesByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/updateGroupMessagesByUserId"),
-      handler: "updateGroupMessagesByUserId.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
-    const updateMeetingMessagesByUserIdHandler = new Lambda.Function(this, `UpdateMeetingMessagesByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/updateMeetingMessagesByUserId"),
-      handler: "updateMeetingMessagesByUserId.handler",
-      layers: [ dependencyLayer ],
-      environment: environmentVariables,
-      memorySize: 2048,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
-    });
-
     const routes: RouteProps[] = [
       {
-        path: "/users/{userId}/friends/{friendId}/messages",
+        path: "/one-on-ones/{oneOnOneId}/messages",
         method: ApiGatewayV2.HttpMethod.POST,
-        handler: createFriendMessageHandler,
+        handler: createOneOnOneMessageHandler,
         restricted: true,
       },
       {
-        path: "/users/{userId}/friends/{friendId}/messages",
+        path: "/one-on-ones/{oneOnOneId}/messages",
         method: ApiGatewayV2.HttpMethod.GET,
-        handler: getMessagesByUserAndFriendIdsHandler,
+        handler: getMessagesByOneOnOneIdHandler,
         restricted: true,
       },
       {
@@ -225,24 +192,6 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
         path: "/users/{userId}/messages/{messageId}",
         method: ApiGatewayV2.HttpMethod.PATCH,
         handler: updateMessageByUserIdHandler,
-        restricted: true,
-      },
-      {
-        path: "/users/{userId}/friends/{friendId}/messages",
-        method: ApiGatewayV2.HttpMethod.PATCH,
-        handler: updateFriendMessagesByUserIdHandler,
-        restricted: true,
-      },
-      {
-        path: "/users/{userId}/groups/{groupId}/messages",
-        method: ApiGatewayV2.HttpMethod.PATCH,
-        handler: updateGroupMessagesByUserIdHandler,
-        restricted: true,
-      },
-      {
-        path: "/users/{userId}/meetings/{meetingId}/messages",
-        method: ApiGatewayV2.HttpMethod.PATCH,
-        handler: updateMeetingMessagesByUserIdHandler,
         restricted: true,
       },
     ];

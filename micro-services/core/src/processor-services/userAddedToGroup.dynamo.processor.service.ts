@@ -1,14 +1,14 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerServiceInterface } from "@yac/util";
+import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, GroupId, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { UserAddedToGroupSnsServiceInterface } from "../sns-services/userAddedToGroup.sns.service";
-import { RawConversationUserRelationship } from "../repositories/conversationUserRelationship.dynamo.repository";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
-import { ConversationType } from "../enums/conversationType.enum";
+import { RawMembership } from "../repositories/membership.dynamo.repository";
+import { MembershipType } from "../enums/membershipType.enum";
 
 @injectable()
 export class UserAddedToGroupDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -29,11 +29,11 @@ export class UserAddedToGroupDynamoProcessorService implements DynamoProcessorSe
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
       const isCoreTable = record.tableName === this.coreTableName;
-      const isConversationUserRelationship = record.newImage.entityType === EntityType.ConversationUserRelationship;
-      const isGroupUserRelationship = (record.newImage as RawConversationUserRelationship<ConversationType>).type === ConversationType.Group;
+      const isMembership = record.newImage.entityType === EntityType.Membership;
+      const isGroupMembership = (record.newImage as RawMembership).type === MembershipType.Group;
       const isCreation = record.eventName === "INSERT";
 
-      return isCoreTable && isConversationUserRelationship && isGroupUserRelationship && isCreation;
+      return isCoreTable && isMembership && isGroupMembership && isCreation;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 
@@ -41,11 +41,13 @@ export class UserAddedToGroupDynamoProcessorService implements DynamoProcessorSe
     }
   }
 
-  public async processRecord(record: DynamoProcessorServiceRecord<RawConversationUserRelationship<ConversationType.Group>>): Promise<void> {
+  public async processRecord(record: DynamoProcessorServiceRecord<RawMembership>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { newImage: { conversationId: groupId, userId } } = record;
+      const { newImage: { entityId, userId } } = record;
+
+      const groupId = entityId as GroupId;
 
       const [ { users: groupMembers }, { user }, { group } ] = await Promise.all([
         this.userMediatorService.getUsersByGroupId({ groupId }),

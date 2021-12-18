@@ -11,7 +11,7 @@ import { MessageMediatorServiceInterface } from "../mediator-services/message.me
 import { MessageServiceInterface } from "../entity-services/message.service";
 
 @injectable()
-export class FriendMessageUpdatedDynamoProcessorService implements DynamoProcessorServiceInterface {
+export class OneOnOneMessageUpdatedDynamoProcessorService implements DynamoProcessorServiceInterface {
   private coreTableName: string;
 
   constructor(
@@ -30,10 +30,10 @@ export class FriendMessageUpdatedDynamoProcessorService implements DynamoProcess
 
       const isCoreTable = record.tableName === this.coreTableName;
       const isMessage = record.newImage.entityType === EntityType.Message;
-      const isFriendMessage = isMessage && (record.newImage as RawMessage).conversationId.startsWith(KeyPrefix.FriendConversation);
+      const isOneOnOneMessage = isMessage && (record.newImage as RawMessage).conversationId.startsWith(KeyPrefix.OneOnOne);
       const isUpdate = record.eventName === "MODIFY";
 
-      return isCoreTable && isFriendMessage && isUpdate;
+      return isCoreTable && isOneOnOneMessage && isUpdate;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 

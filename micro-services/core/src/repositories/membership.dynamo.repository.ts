@@ -331,6 +331,38 @@ export type Membership<T extends MembershipFetchType = MembershipFetchType> =
             T extends MembershipFetchType.OneOnOneAndGroup ? OneOnOneMembership | GroupMembership :
               OrganizationMembership | TeamMembership | GroupMembership | MeetingMembership | OneOnOneMembership;
 
+export interface OrganizationMembership extends BaseMembership {
+  entityId: OrganizationId;
+  type: MembershipType.Organization;
+}
+
+export interface TeamMembership extends BaseMembership {
+  entityId: TeamId;
+  type: MembershipType.Team;
+}
+
+export interface GroupMembership extends BaseMembership {
+  entityId: GroupId;
+  type: MembershipType.Group;
+  userActiveAt: string;
+  unseenMessages: number;
+}
+export interface MeetingMembership extends BaseMembership {
+  entityId: MeetingId;
+  type: MembershipType.Meeting;
+  dueAt: string;
+  userActiveAt: string;
+  unseenMessages: number;
+}
+
+export interface OneOnOneMembership extends BaseMembership {
+  entityId: OneOnOneId;
+  type: MembershipType.OneOnOne;
+  role: Role.Admin;
+  userActiveAt: string;
+  unseenMessages: number;
+}
+
 // For fetching users by entityId, sorted by name
 type SortByUserName = `${KeyPrefix.Membership}${KeyPrefix.User}${KeyPrefix.Name}${string}`;
 
@@ -442,38 +474,6 @@ interface BaseMembership {
   createdAt: string;
   activeAt: string;
   userName?: string;
-}
-
-interface OrganizationMembership extends BaseMembership {
-  entityId: OrganizationId;
-  type: MembershipType.Organization;
-}
-
-interface TeamMembership extends BaseMembership {
-  entityId: TeamId;
-  type: MembershipType.Team;
-}
-
-interface GroupMembership extends BaseMembership {
-  entityId: GroupId;
-  type: MembershipType.Group;
-  userActiveAt: string;
-  unseenMessages: number;
-}
-interface MeetingMembership extends BaseMembership {
-  entityId: MeetingId;
-  type: MembershipType.Meeting;
-  dueAt: string;
-  userActiveAt: string;
-  unseenMessages: number;
-}
-
-interface OneOnOneMembership extends BaseMembership {
-  entityId: OneOnOneId;
-  type: MembershipType.OneOnOne;
-  role: Role.Admin;
-  userActiveAt: string;
-  unseenMessages: number;
 }
 
 type NormalMembershipUpdates = Partial<Pick<Membership, "role" | "activeAt" | "userName">>;

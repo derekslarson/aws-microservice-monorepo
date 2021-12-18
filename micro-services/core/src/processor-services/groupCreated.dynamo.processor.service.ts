@@ -6,8 +6,8 @@ import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { GroupCreatedSnsServiceInterface } from "../sns-services/groupCreated.sns.service";
 import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
-import { Group, RawConversation } from "../repositories/conversation.dynamo.repository";
-import { ConversationServiceInterface } from "../entity-services/group.service";
+import { RawGroup } from "../repositories/group.dynamo.repository";
+import { GroupServiceInterface } from "../entity-services/group.service";
 
 @injectable()
 export class GroupCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -17,7 +17,7 @@ export class GroupCreatedDynamoProcessorService implements DynamoProcessorServic
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.GroupCreatedSnsServiceInterface) private groupCreatedSnsService: GroupCreatedSnsServiceInterface,
     @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
-    @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
+    @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -39,7 +39,7 @@ export class GroupCreatedDynamoProcessorService implements DynamoProcessorServic
     }
   }
 
-  public async processRecord(record: DynamoProcessorServiceRecord<RawConversation<Group>>): Promise<void> {
+  public async processRecord(record: DynamoProcessorServiceRecord<RawGroup>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
@@ -49,7 +49,7 @@ export class GroupCreatedDynamoProcessorService implements DynamoProcessorServic
 
       await Promise.allSettled([
         this.groupCreatedSnsService.sendMessage({ group, groupMemberIds: [ group.createdBy ] }),
-        this.conversationService.indexGroupForSearch({ group: record.newImage }),
+        this.groupService.indexGroupForSearch({ group: record.newImage }),
       ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);

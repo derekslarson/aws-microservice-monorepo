@@ -3,21 +3,21 @@ import { generateInternalServerErrorResponse, LoggerServiceInterface } from "@ya
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
-import { ConversationControllerInterface } from "../controllers/conversation.controller";
+import { OneOnOneControllerInterface } from "../controllers/oneOnOne.controller";
 
-const conversationController = container.get<ConversationControllerInterface>(TYPES.ConversationControllerInterface);
+const oneOnOneController = container.get<OneOnOneControllerInterface>(TYPES.OneOnOneControllerInterface);
 const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
   try {
-    loggerService.trace("getConversationsByUserId called", { event }, "getConversationsByUserId handler");
+    loggerService.trace("deleteOneOnOne called", { event }, "deleteOneOnOne handler");
 
-    const response = await conversationController.getConversationsByUserId(event);
+    const response = await oneOnOneController.deleteOneOnOne(event);
 
     return response;
   } catch (error: unknown) {
     // We should never get here, as Controller classes should never throw, but if for some reason we do, we need to log it
-    loggerService.error("Catastrophic error in getConversationsByUserId handler", { error, event }, "getConversationsByUserId handler");
+    loggerService.error("Catastrophic error in deleteOneOnOne handler", { error, event }, "deleteOneOnOne handler");
 
     return generateInternalServerErrorResponse(error);
   }

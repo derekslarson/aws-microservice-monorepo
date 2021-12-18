@@ -64,6 +64,23 @@ export class OneOnOneDynamoRepository extends BaseDynamoRepositoryV2<OneOnOne> i
     }
   }
 
+  public async deleteOneOnOne(params: DeleteOneOnOneInput): Promise<DeleteOneOnOneOutput> {
+    try {
+      this.loggerService.trace("deleteOneOnOne called", { params }, this.constructor.name);
+
+      const { oneOnOneId } = params;
+
+      await this.documentClient.delete({
+        TableName: this.tableName,
+        Key: { pk: oneOnOneId, sk: EntityType.OneOnOne },
+      }).promise();
+    } catch (error: unknown) {
+      this.loggerService.error("Error in deleteOneOnOne", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getOneOnOnes(params: GetOneOnOnesInput): Promise<GetOneOnOnesOutput> {
     try {
       this.loggerService.trace("getOneOnOnes called", { params }, this.constructor.name);
@@ -149,6 +166,7 @@ export class OneOnOneDynamoRepository extends BaseDynamoRepositoryV2<OneOnOne> i
 export interface OneOnOneRepositoryInterface {
   createOneOnOne(params: CreateOneOnOneInput): Promise<CreateOneOnOneOutput>;
   getOneOnOne(params: GetOneOnOneInput): Promise<GetOneOnOneOutput>;
+  deleteOneOnOne(params: DeleteOneOnOneInput): Promise<DeleteOneOnOneOutput>
   getOneOnOnes(params: GetOneOnOnesInput): Promise<GetOneOnOnesOutput>;
   getOneOnOnesByOrganizationId(params: GetOneOnOnesByOrganizationIdInput): Promise<GetOneOnOnesByOrganizationIdOutput>;
   getOneOnOnesByTeamId(params: GetOneOnOnesByTeamIdInput): Promise<GetOneOnOnesByTeamIdOutput>
@@ -189,6 +207,12 @@ export interface GetOneOnOneInput {
 export interface GetOneOnOneOutput {
   oneOnOne: OneOnOne;
 }
+
+export interface DeleteOneOnOneInput {
+  oneOnOneId: OneOnOneId;
+}
+
+export type DeleteOneOnOneOutput = void;
 
 export interface GetOneOnOnesInput {
   oneOnOneIds: OneOnOneId[];

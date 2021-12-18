@@ -5,7 +5,6 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { MembershipServiceInterface } from "../entity-services/membership.service";
-import { UserServiceInterface } from "../entity-services/user.service";
 import { RawUser } from "../repositories/user.dynamo.repository";
 
 @injectable()
@@ -15,7 +14,6 @@ export class UserNameUpdatedDynamoProcessorService implements DynamoProcessorSer
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MembershipServiceInterface) private membershipService: MembershipServiceInterface,
-    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserNameUpdatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;

@@ -1,16 +1,15 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, S3ProcessorServiceInterface, S3ProcessorServiceRecord } from "@yac/util";
+import { GroupId, LoggerServiceInterface, MeetingId, OrganizationId, S3ProcessorServiceInterface, S3ProcessorServiceRecord, TeamId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { UserServiceInterface } from "../entity-services/user.service";
 import { TeamServiceInterface } from "../entity-services/team.service";
-import { ConversationServiceInterface } from "../entity-services/group.service";
+import { GroupServiceInterface } from "../entity-services/group.service";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-import { UserId } from "../types/userId.type";
-import { TeamId } from "../types/teamId.type";
-import { ConversationId } from "../types/conversationId.type";
-import { FileExtension } from "../repositories/image.s3.repository";
+import { FileDirectory, FileExtension } from "../repositories/image.s3.repository";
+import { MeetingServiceInterface } from "../entity-services/meeting.service";
+import { OrganizationServiceInterface } from "../entity-services/organization.service";
 
 @injectable()
 export class ImageFileCreatedS3ProcessorService implements S3ProcessorServiceInterface {
@@ -19,8 +18,10 @@ export class ImageFileCreatedS3ProcessorService implements S3ProcessorServiceInt
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
+    @inject(TYPES.OrganizationServiceInterface) private organizationService: OrganizationServiceInterface,
     @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
-    @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
+    @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
+    @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
     @inject(TYPES.EnvConfigInterface) config: ImageFileCreatedS3ProcessorServiceConfig,
   ) {
     this.imageS3BucketName = config.bucketNames.image;
@@ -50,17 +51,21 @@ export class ImageFileCreatedS3ProcessorService implements S3ProcessorServiceInt
         png: ImageMimeType.Png,
       };
 
-      const [ fileDirectory, idAndExtension ] = key.split("/");
+      const [ fileDirectory, idAndExtension ] = key.split("/") as [FileDirectory, string];
       const [ id, fileExtension ] = idAndExtension.split(".");
 
       const imageMimeType = fileExtensionToMimeTypeMap[fileExtension as FileExtension];
 
       if (fileDirectory === "users") {
         await this.userService.updateUser({ userId: id as UserId, updates: { imageMimeType } });
+      } else if (fileDirectory === "organizations") {
+        await this.organizationService.updateOrganization({ organizationId: id as OrganizationId, updates: { imageMimeType } });
       } else if (fileDirectory === "teams") {
         await this.teamService.updateTeam({ teamId: id as TeamId, updates: { imageMimeType } });
+      } else if (fileDirectory === "groups") {
+        await this.groupService.updateGroup({ groupId: id as GroupId, updates: { imageMimeType } });
       } else {
-        await this.conversationService.updateConversation({ conversationId: id as ConversationId, updates: { imageMimeType } });
+        await this.meetingService.updateMeeting({ meetingId: id as MeetingId, updates: { imageMimeType } });
       }
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);

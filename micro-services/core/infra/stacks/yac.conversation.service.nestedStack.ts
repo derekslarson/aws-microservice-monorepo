@@ -20,10 +20,10 @@ export class YacConversationServiceNestedStack extends CDK.NestedStack {
       openSearchFullAccessPolicyStatement,
     } = props;
 
-    const getConversationsByUserIdHandler = new Lambda.Function(this, `GetConversationsByUserId_${id}`, {
+    const getOneOnOnesAndGroupsByUserIdHandler = new Lambda.Function(this, `GetOneOnOnesAndGroupsByUserId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getConversationsByUserId"),
-      handler: "getConversationsByUserId.handler",
+      code: Lambda.Code.fromAsset("dist/handlers/getOneOnOnesAndGroupsByUserId"),
+      handler: "getOneOnOnesAndGroupsByUserId.handler",
       layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
@@ -33,9 +33,9 @@ export class YacConversationServiceNestedStack extends CDK.NestedStack {
 
     const routes: RouteProps[] = [
       {
-        path: "/users/{userId}/conversations",
+        path: "/users/{userId}/one-on-ones-and-groups",
         method: ApiGatewayV2.HttpMethod.GET,
-        handler: getConversationsByUserIdHandler,
+        handler: getOneOnOnesAndGroupsByUserIdHandler,
         restricted: true,
       },
     ];

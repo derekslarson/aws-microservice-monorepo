@@ -24,7 +24,7 @@ import { YacOrganizationServiceNestedStack } from "./yac.organization.service.ne
 import { YacTeamServiceNestedStack } from "./yac.team.service.nestedStack";
 import { YacGroupServiceNestedStack } from "./yac.group.service.nestedStack";
 import { YacMeetingServiceNestedStack } from "./yac.meeting.service.nestedStack";
-import { YacFriendServiceNestedStack } from "./yac.friend.service.nestedStack";
+import { YacOneOnOneServiceNestedStack } from "./yac.oneOnOne.service.nestedStack";
 import { YacMessageServiceNestedStack } from "./yac.message.service.nestedStack";
 import { YacConversationServiceNestedStack } from "./yac.conversation.service.nestedStack";
 
@@ -470,7 +470,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       imageS3BucketFullAccessPolicyStatement,
     });
 
-    new YacFriendServiceNestedStack(this, `YacFriendServiceNestedStack_${id}`, {
+    new YacOneOnOneServiceNestedStack(this, `YacOneOnOneServiceNestedStack_${id}`, {
       dependencyLayer,
       environmentVariables,
       basePolicy,

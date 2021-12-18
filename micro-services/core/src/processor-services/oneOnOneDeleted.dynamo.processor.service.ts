@@ -6,12 +6,10 @@ import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { UserRemovedAsFriendSnsServiceInterface } from "../sns-services/userRemovedAsFriend.sns.service";
 import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
-import { FriendConversation, RawConversation } from "../repositories/conversation.dynamo.repository";
-import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { UserId } from "../types/userId.type";
+import { RawOneOnOne } from "../repositories/oneOnOne.dynamo.repository";
 
 @injectable()
-export class UserRemovedAsFriendDynamoProcessorService implements DynamoProcessorServiceInterface {
+export class OneOnOneDeletedDynamoProcessorService implements DynamoProcessorServiceInterface {
   private coreTableName: string;
 
   constructor(
@@ -28,10 +26,10 @@ export class UserRemovedAsFriendDynamoProcessorService implements DynamoProcesso
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
       const isCoreTable = record.tableName === this.coreTableName;
-      const isFriendConversation = record.oldImage.entityType === EntityType.FriendConversation;
-      const isCreation = record.eventName === "REMOVE";
+      const isOneOnOne = record.oldImage.entityType === EntityType.OneOnOne;
+      const isDeletion = record.eventName === "REMOVE";
 
-      return isCoreTable && isFriendConversation && isCreation;
+      return isCoreTable && isOneOnOne && isDeletion;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 
@@ -39,16 +37,15 @@ export class UserRemovedAsFriendDynamoProcessorService implements DynamoProcesso
     }
   }
 
-  public async processRecord(record: DynamoProcessorServiceRecord<RawConversation<FriendConversation>>): Promise<void> {
+  public async processRecord(record: DynamoProcessorServiceRecord<RawOneOnOne>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { oldImage: { id: conversationId, createdBy: userIdA } } = record;
-      const userIdB = conversationId.replace(KeyPrefix.FriendConversation, "").replace(userIdA, "").replace(/^-|-$/, "") as UserId;
+      const { oldImage: { createdBy, otherUserId } } = record;
 
       const [ { user: userA }, { user: userB } ] = await Promise.all([
-        this.userMediatorService.getUser({ userId: userIdA }),
-        this.userMediatorService.getUser({ userId: userIdB }),
+        this.userMediatorService.getUser({ userId: createdBy }),
+        this.userMediatorService.getUser({ userId: otherUserId }),
       ]);
 
       await this.userRemovedAsFriendSnsService.sendMessage({

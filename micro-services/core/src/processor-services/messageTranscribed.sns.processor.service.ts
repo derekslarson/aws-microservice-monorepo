@@ -3,8 +3,6 @@ import { injectable, inject } from "inversify";
 import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, MessageTranscribedSnsMessage } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
-import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { PendingMessageId } from "../types/pendingMessageId.type";
 import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
 
 @injectable()
@@ -37,9 +35,7 @@ export class MessageTranscribedSnsProcessorService implements SnsProcessorServic
 
       const { message: { messageId, transcript } } = record;
 
-      const pendingMessageId = messageId.replace(KeyPrefix.Message, KeyPrefix.PendingMessage) as PendingMessageId;
-
-      await this.messageMediatorService.convertPendingToRegularMessage({ pendingMessageId, transcript });
+      await this.messageMediatorService.convertPendingToRegularMessage({ messageId, transcript });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 
