@@ -15,7 +15,7 @@ import { AddUsersToGroupOutput, InvitationOrchestratorServiceInterface } from ".
 import { UpdateGroupDto } from "../dtos/updateGroup.dto";
 import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 import { GetGroupsByOrganizationIdDto } from "../dtos/getGroupsByOrganizationId.dto";
-import { ConversationOrchestratorServiceInterface } from "../orchestrator-services/conversation.orchestrator.service";
+import { ConversationServiceInterface } from "../services/tier-2/conversation.service";
 
 @injectable()
 export class GroupController extends BaseController implements GroupControllerInterface {
@@ -25,7 +25,7 @@ export class GroupController extends BaseController implements GroupControllerIn
     @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
     @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
     @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
-    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationOrchestratorServiceInterface,
+    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationService: ConversationServiceInterface,
     @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
   ) {
     super();
@@ -225,7 +225,7 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      const { groups, lastEvaluatedKey } = await this.conversationOrchestratorService.getGroupsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { groups, lastEvaluatedKey } = await this.conversationService.getGroupsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetGroupsByUserIdResponse = { groups, lastEvaluatedKey };
 
@@ -253,7 +253,7 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { groups, lastEvaluatedKey } = await this.conversationService.getGroupsByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetGroupsByTeamIdResponse = { groups, lastEvaluatedKey };
 
@@ -281,7 +281,7 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      const { groups, lastEvaluatedKey } = await this.groupMediatorService.getGroupsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { groups, lastEvaluatedKey } = await this.conversationService.getGroupsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetGroupsByOrganizationIdResponse = { groups, lastEvaluatedKey };
 

@@ -9,6 +9,7 @@ import { UpdateMessageReactionAction } from "../../enums/updateMessageReactionAc
 import { PendingMessage as PendingMessageEntity, PendingMessageRepositoryInterface, PendingMessageUpdates } from "../../repositories/pendingMessage.dynamo.repository";
 import { KeyPrefix } from "../../enums/keyPrefix.enum";
 import { MembershipRepositoryInterface } from "../../repositories/membership.dynamo.repository";
+import { MembershipType } from "../../enums/membershipType.enum";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
@@ -333,7 +334,17 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("getMessagesBySearchTerm called", { params }, this.constructor.name);
 
-      const { searchTerm, conversationIds, limit, exclusiveStartKey } = params;
+      const { searchTerm, userId, conversationIds: conversationIdsParam, limit, exclusiveStartKey } = params;
+
+      let conversationIds: ConversationId[] | undefined;
+
+      if (conversationIdsParam) {
+        conversationIds = conversationIdsParam;
+      } else if (userId) {
+        const { memberships } = await this.membershipRepository.getMembershipsByUserId({ userId });
+        conversationIds = [];
+        memberships.map((membership) => [ MembershipType.Group, MembershipType.Meeting, MembershipType.OneOnOne ].includes(membership.type) && conversationIds?.push(membership.entityId as ConversationId));
+      }
 
       const { messages: messageEntities, lastEvaluatedKey } = await this.messageSearchRepository.getMessagesBySearchTerm({ searchTerm, conversationIds, limit, exclusiveStartKey });
 
@@ -503,7 +514,7 @@ export interface GetMessagesOutput {
 
 export interface GetMessagesByConversationIdInput<T extends UserId> {
   conversationId: ConversationId;
-  requestingUserId?: UserId;
+  requestingUserId?: T;
   newOnly?: T extends UserId ? boolean : never;
   limit?: number;
   exclusiveStartKey?: string;
@@ -516,6 +527,7 @@ export interface GetMessagesByConversationIdOutput {
 
 export interface GetMessagesBySearchTermInput {
   searchTerm: string;
+  userId?: UserId;
   conversationIds?: ConversationId[];
   limit?: number;
   exclusiveStartKey?: string;

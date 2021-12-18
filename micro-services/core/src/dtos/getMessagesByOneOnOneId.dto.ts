@@ -4,5 +4,5 @@ import { OneOnOneId } from "../runtypes/oneOnOneId.runtype";
 
 export const GetMessagesByOneOnOneIdDto = Record({
   pathParameters: Record({ oneOnOneId: OneOnOneId }),
-  queryStringParameters: Record({ exclusiveStartKey: Optional(String), limit: Optional(Limit) }),
+  queryStringParameters: Record({ searchTerm: Optional(String), exclusiveStartKey: Optional(String), limit: Optional(Limit) }),
 });
