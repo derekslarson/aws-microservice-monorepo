@@ -30,9 +30,9 @@ export class ConversationOrchestratorService implements ConversationOrchestrator
       const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingService.getMeetingsByUserId({ userId, sortByDueAt, limit, exclusiveStartKey });
 
       const meetings = await Promise.all(meetingEntities.map(async (meetingEntity) => {
-        const { entity } = await this.addRecentMessageToEntity({ requestingUserId: userId, entity: meetingEntity });
+        const { messages: [ recentMessage ] } = await this.messageService.getMessagesByConversationId({ requestingUserId: userId, conversationId: meetingEntity.id });
 
-        return entity;
+        return { ...meetingEntity, recentMessage };
       }));
 
       return { meetings, lastEvaluatedKey };
@@ -52,9 +52,9 @@ export class ConversationOrchestratorService implements ConversationOrchestrator
       const { groups: groupEntities, lastEvaluatedKey } = await this.groupService.getGroupsByUserId({ userId, limit, exclusiveStartKey });
 
       const groups = await Promise.all(groupEntities.map(async (groupEntity) => {
-        const { entity } = await this.addRecentMessageToEntity({ requestingUserId: userId, entity: groupEntity });
+        const { messages: [ recentMessage ] } = await this.messageService.getMessagesByConversationId({ requestingUserId: userId, conversationId: groupEntity.id });
 
-        return entity;
+        return { ...groupEntity, recentMessage };
       }));
 
       return { groups, lastEvaluatedKey };
@@ -74,9 +74,9 @@ export class ConversationOrchestratorService implements ConversationOrchestrator
       const { oneOnOnes: oneOnOneEntities, lastEvaluatedKey } = await this.oneOnOneService.getOneOnOnesByUserId({ userId, limit, exclusiveStartKey });
 
       const oneOnOnes = await Promise.all(oneOnOneEntities.map(async (oneOnOneEntity) => {
-        const { entity } = await this.addRecentMessageToEntity({ requestingUserId: userId, entity: oneOnOneEntity });
+        const { messages: [ recentMessage ] } = await this.messageService.getMessagesByConversationId({ requestingUserId: userId, conversationId: oneOnOneEntity.id });
 
-        return entity;
+        return { ...oneOnOneEntity, recentMessage };
       }));
 
       return { oneOnOnes, lastEvaluatedKey };
@@ -123,26 +123,6 @@ export class ConversationOrchestratorService implements ConversationOrchestrator
         return { isConversationMember: false };
       }
       this.loggerService.error("Error in isConversationMember", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  private async addRecentMessageToEntity<T extends ConversationEntity>(params: AddRecentMessageToEntityInput<T>): Promise<AddRecentMessageToEntityOutput<T>> {
-    try {
-      this.loggerService.trace("convertGroupEntityToGroup called", { params }, this.constructor.name);
-
-      const { requestingUserId, entity } = params;
-
-      if (entity.unseenMessages) {
-        const { messages: [ recentMessage ] } = await this.messageService.getMessagesByConversationId({ requestingUserId, conversationId: entity.id });
-
-        return { entity: { ...entity, recentMessage } };
-      }
-
-      return { entity };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in convertGroupEntityToGroup", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -221,15 +201,4 @@ export interface IsConversationMemberInput {
 
 export interface IsConversationMemberOutput {
   isConversationMember: boolean;
-}
-
-type ConversationEntity = GroupByUserIdEntity | MeetingByUserIdEntity | OneOnOneByUserIdEntity;
-
-interface AddRecentMessageToEntityInput<T extends ConversationEntity> {
-  requestingUserId: UserId;
-  entity: T;
-}
-
-interface AddRecentMessageToEntityOutput<T extends ConversationEntity> {
-  entity: T & { recentMessage?: MessageEntity; };
 }
