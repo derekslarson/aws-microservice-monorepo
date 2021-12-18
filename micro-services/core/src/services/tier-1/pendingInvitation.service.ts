@@ -21,15 +21,11 @@ export class PendingInvitationService implements PendingInvitationServiceInterfa
         throw new BadRequestError("role is required.");
       }
 
-      const basePendingInvitation: Omit<PendingInvitationEntity, "email" | "phone"> = {
+      const pendingInvitation: PendingInvitationEntity = {
         type,
         invitingEntityId,
         role,
         createdAt: new Date().toISOString(),
-      };
-
-      const pendingInvitation: PendingInvitationEntity = {
-        ...basePendingInvitation,
         ...("email" in params ? { email: params.email } : { phone: params.phone }),
       };
 
