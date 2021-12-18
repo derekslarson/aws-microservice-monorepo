@@ -178,10 +178,11 @@ export class MeetingService implements MeetingServiceInterface {
     try {
       this.loggerService.trace("getMeetingsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey, limit } = params;
+      const { userId, sortByDueAt, exclusiveStartKey, limit } = params;
 
       const { memberships, lastEvaluatedKey } = await this.membershipRepository.getMembershipsByUserId({
         userId,
+        sortByDueAt,
         type: MembershipFetchType.Meeting,
         exclusiveStartKey,
         limit,
@@ -468,6 +469,7 @@ export type RemoveUserFromMeetingOutput = void;
 
 export interface GetMeetingsByUserIdInput {
   userId: UserId;
+  sortByDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }

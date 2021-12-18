@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
 import { MessageUploadTokenServiceInterface, LoggerServiceInterface, MessageId, FileOperation, ConversationId, UserId, MessageMimeType, MessageFileRepositoryInterface, IdServiceInterface } from "@yac/util";
 import { RawMessage as RawMessageEntity, Message as MessageEntity, MessageRepositoryInterface, MessageUpdates } from "../../repositories/message.dynamo.repository";
@@ -7,6 +8,7 @@ import { SearchIndex } from "../../enums/searchIndex.enum";
 import { UpdateMessageReactionAction } from "../../enums/updateMessageReactionAction.enum";
 import { PendingMessage as PendingMessageEntity, PendingMessageRepositoryInterface, PendingMessageUpdates } from "../../repositories/pendingMessage.dynamo.repository";
 import { KeyPrefix } from "../../enums/keyPrefix.enum";
+import { MembershipRepositoryInterface } from "../../repositories/membership.dynamo.repository";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
@@ -19,6 +21,7 @@ export class MessageService implements MessageServiceInterface {
     @inject(TYPES.PendingMessageRepositoryInterface) private pendingMessageRepository: PendingMessageRepositoryInterface,
     @inject(TYPES.MessageRepositoryInterface) private messageRepository: MessageRepositoryInterface,
     @inject(TYPES.SearchRepositoryInterface) private messageSearchRepository: MessageSearchRepositoryInterface,
+    @inject(TYPES.MembershipRepositoryInterface) private membershipRepository: MembershipRepositoryInterface,
   ) {}
 
   public async createPendingMessage(params: CreatePendingMessageInput): Promise<CreatePendingMessageOutput> {
@@ -112,16 +115,42 @@ export class MessageService implements MessageServiceInterface {
     }
   }
 
+  public async convertPendingToRegularMessage(params: ConvertPendingToRegularMessageInput): Promise<ConvertPendingToRegularMessageOutput> {
+    try {
+      this.loggerService.trace("convertPendingToRegularMessage called", { params }, this.constructor.name);
+
+      const { messageId, transcript } = params;
+
+      const { pendingMessage } = await this.pendingMessageRepository.getPendingMessage({ messageId });
+
+      const [ { message } ] = await Promise.all([
+        this.createMessage({ ...pendingMessage, transcript }),
+        this.pendingMessageRepository.deletePendingMessage({ messageId }),
+      ]);
+
+      return { message };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in convertPendingToRegularMessage", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async createMessage(params: CreateMessageInput): Promise<CreateMessageOutput> {
     try {
       this.loggerService.trace("createMessage called", { params }, this.constructor.name);
 
-      const { messageId, conversationId, from, mimeType, seenAt, transcript, replyTo, title } = params;
+      const { messageId, conversationId, from, mimeType, transcript, replyTo, title } = params;
 
       const now = new Date().toISOString();
 
+      const { memberships } = await this.membershipRepository.getMembershipsByEntityId({ entityId: conversationId });
+
+      const seenAt: Record<string, string | null> = {};
+      memberships.forEach((membership) => seenAt[membership.userId] = membership.userId === from ? now : null);
+
       const messageEntity: MessageEntity = {
-        id: messageId,
+        id: messageId || `${KeyPrefix.Message}${this.idService.generateId()}`,
         conversationId,
         from,
         seenAt,
@@ -135,7 +164,10 @@ export class MessageService implements MessageServiceInterface {
         title,
       };
 
-      await this.messageRepository.createMessage({ message: messageEntity });
+      await Promise.all([
+        this.messageRepository.createMessage({ message: messageEntity }),
+        ...memberships.map(({ userId }) => this.membershipRepository.incrementUnreadMessages({ entityId: conversationId, userId })),
+      ]);
 
       const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
         messageId: messageEntity.id,
@@ -258,13 +290,21 @@ export class MessageService implements MessageServiceInterface {
     }
   }
 
-  public async getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput> {
+  public async getMessagesByConversationId<T extends UserId>(params: GetMessagesByConversationIdInput<T>): Promise<GetMessagesByConversationIdOutput> {
     try {
       this.loggerService.trace("getMessagesByEntityId called", { params }, this.constructor.name);
 
-      const { conversationId, minCreatedAt, exclusiveStartKey, limit } = params;
+      const { conversationId, requestingUserId, newOnly, exclusiveStartKey, limit } = params;
 
-      const { messages: messageEntities, lastEvaluatedKey } = await this.messageRepository.getMessagesByConversationId({ conversationId, minCreatedAt, exclusiveStartKey, limit });
+      let userActiveAt: string | undefined;
+
+      if (requestingUserId) {
+        const { membership } = await this.membershipRepository.getMembership({ userId: requestingUserId, entityId: conversationId });
+
+        userActiveAt = membership.activeAt;
+      }
+
+      const { messages: messageEntities, lastEvaluatedKey } = await this.messageRepository.getMessagesByConversationId({ conversationId, minCreatedAt: newOnly ? userActiveAt : undefined, exclusiveStartKey, limit });
 
       const messages = messageEntities.map((messageEntity) => {
         const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
@@ -277,6 +317,7 @@ export class MessageService implements MessageServiceInterface {
         return {
           ...messageEntity,
           fetchUrl: signedUrl,
+          ...(userActiveAt && { new: messageEntity.createdAt > userActiveAt }),
         };
       });
 
@@ -344,12 +385,13 @@ export interface MessageServiceInterface {
   getPendingMessage(params: GetPendingMessageInput): Promise<GetPendingMessageOutput>;
   updatePendingMessage(params: UpdatePendingMessageInput): Promise<UpdatePendingMessageOutput>;
   deletePendingMessage(params: DeletePendingMessageInput): Promise<DeletePendingMessageOutput>;
+  convertPendingToRegularMessage(params: ConvertPendingToRegularMessageInput): Promise<ConvertPendingToRegularMessageOutput>
   createMessage(params: CreateMessageInput): Promise<CreateMessageOutput>;
   updateMessage(params: UpdateMessageInput): Promise<UpdateMessageOutput>;
   updateMessageByUserId(params: UpdateMessageByUserIdInput): Promise<UpdateMessageByUserIdOutput>;
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
-  getMessagesByConversationId(params: GetMessagesByConversationIdInput): Promise<GetMessagesByConversationIdOutput>
+  getMessagesByConversationId<T extends UserId>(params: GetMessagesByConversationIdInput<T>): Promise<GetMessagesByConversationIdOutput>
   getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput>;
   indexMessageForSearch(params: IndexMessageForSearchInput): Promise<IndexMessageForSearchOutput>;
   deindexMessageForSearch(params: DeindexMessageForSearchInput): Promise<DeindexMessageForSearchOutput>;
@@ -357,6 +399,7 @@ export interface MessageServiceInterface {
 
 export interface Message extends MessageEntity {
   fetchUrl: string;
+  new?: boolean;
 }
 
 export interface PendingMessage extends PendingMessageEntity {
@@ -395,13 +438,21 @@ export interface DeletePendingMessageInput {
 
 export type DeletePendingMessageOutput = void;
 
-export interface CreateMessageInput {
+export interface ConvertPendingToRegularMessageInput {
   messageId: MessageId;
+  transcript: string;
+}
+
+export interface ConvertPendingToRegularMessageOutput {
+  message: Message;
+}
+
+export interface CreateMessageInput {
   conversationId: ConversationId;
   from: UserId;
-  seenAt: Record<UserId, string | null>;
   mimeType: MessageMimeType;
   transcript: string;
+  messageId?: MessageId;
   replyTo?: MessageId;
   title?: string;
 }
@@ -450,9 +501,10 @@ export interface GetMessagesOutput {
   messages: Message[];
 }
 
-export interface GetMessagesByConversationIdInput {
+export interface GetMessagesByConversationIdInput<T extends UserId> {
   conversationId: ConversationId;
-  minCreatedAt?: string;
+  requestingUserId?: UserId;
+  newOnly?: T extends UserId ? boolean : never;
   limit?: number;
   exclusiveStartKey?: string;
 }

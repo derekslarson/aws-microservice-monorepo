@@ -1,26 +1,26 @@
 import { inject, injectable } from "inversify";
 import { GroupId, LoggerServiceInterface, MeetingId, NotFoundError, OrganizationId, Role, TeamId, UserId } from "@yac/util";
-import { TYPES } from "../inversion-of-control/types";
-import { PendingInvitationType } from "../enums/pendingInvitationType.enum";
-import { PendingInvitation, PendingInvitationServiceInterface } from "../entity-services/pendingInvitation.service";
-import { User, UserServiceInterface, GetUserByEmailInput, GetUserByPhoneInput, GetUserByUsernameInput } from "../entity-services/user.service";
-import { InvitingEntityId } from "../repositories/pendingInvitation.dynamo.repository";
-import { OrganizationServiceInterface } from "../services/tier-1/organization.service";
-import { TeamServiceInterface } from "../services/tier-1/team.service";
-import { GroupServiceInterface } from "../services/tier-1/group.service";
-import { MeetingServiceInterface } from "../services/tier-1/meeting.service";
-import { OneOnOneServiceInterface } from "../services/tier-1/oneOnOne.service";
+import { OneOnOneServiceInterface } from "../tier-1/oneOnOne.service";
+import { TYPES } from "../../inversion-of-control/types";
+import { GetUserByEmailInput, GetUserByPhoneInput, GetUserByUsernameInput, User, UserServiceInterface } from "../tier-1/user.service";
+import { OrganizationServiceInterface } from "../tier-1/organization.service";
+import { TeamServiceInterface } from "../tier-1/team.service";
+import { GroupServiceInterface } from "../tier-1/group.service";
+import { MeetingServiceInterface } from "../tier-1/meeting.service";
+import { PendingInvitation, PendingInvitationServiceInterface } from "../tier-1/pendingInvitation.service";
+import { PendingInvitationType } from "../../enums/pendingInvitationType.enum";
+import { InvitingEntityId } from "../../repositories/pendingInvitation.dynamo.repository";
 
 @injectable()
-export class InvitationOrchestratorService implements InvitationOrchestratorServiceInterface {
+export class InvitationService implements InvitationServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamServiceInterface,
-    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupServiceInterface,
-    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingServiceInterface,
-    @inject(TYPES.OneOnOneMediatorServiceInterface) private oneOnOneMediatorService: OneOnOneServiceInterface,
+    @inject(TYPES.OrganizationServiceInterface) private organizationService: OrganizationServiceInterface,
+    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
+    @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
+    @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
+    @inject(TYPES.OneOnOneServiceInterface) private oneOnOneService: OneOnOneServiceInterface,
     @inject(TYPES.PendingInvitationServiceInterface) private pendingInvitationService: PendingInvitationServiceInterface,
   ) {}
 
@@ -34,7 +34,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
         type: PendingInvitationType.OneOnOne,
         invitingEntityId: invitingUserId,
         invitation,
-        invitationRequest: ({ userId }) => this.oneOnOneMediatorService.createOneOnOne({ createdBy: invitingUserId, otherUserId: userId }),
+        invitationRequest: ({ userId }) => this.oneOnOneService.createOneOnOne({ createdBy: invitingUserId, otherUserId: userId }),
       })));
 
       const { successes, failures } = this.mapSettledInvitationsToResponse({ settledInvitations });
@@ -57,7 +57,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
         type: PendingInvitationType.Organization,
         invitingEntityId: organizationId,
         invitation,
-        invitationRequest: ({ userId }) => this.organizationMediatorService.addUserToOrganization({ organizationId, userId, role: invitation.role }),
+        invitationRequest: ({ userId }) => this.organizationService.addUserToOrganization({ organizationId, userId, role: invitation.role }),
       })));
 
       const { successes, failures } = this.mapSettledInvitationsToResponse({ settledInvitations });
@@ -80,7 +80,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
         type: PendingInvitationType.Team,
         invitingEntityId: teamId,
         invitation,
-        invitationRequest: ({ userId }) => this.teamMediatorService.addUserToTeam({ teamId, userId, role: invitation.role }),
+        invitationRequest: ({ userId }) => this.teamService.addUserToTeam({ teamId, userId, role: invitation.role }),
       })));
 
       const { successes, failures } = this.mapSettledInvitationsToResponse({ settledInvitations });
@@ -103,7 +103,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
         type: PendingInvitationType.Group,
         invitingEntityId: groupId,
         invitation,
-        invitationRequest: ({ userId }) => this.groupMediatorService.addUserToGroup({ groupId, userId, role: invitation.role }),
+        invitationRequest: ({ userId }) => this.groupService.addUserToGroup({ groupId, userId, role: invitation.role }),
       })));
 
       const { successes, failures } = this.mapSettledInvitationsToResponse({ settledInvitations });
@@ -126,7 +126,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
         type: PendingInvitationType.Meeting,
         invitingEntityId: meetingId,
         invitation,
-        invitationRequest: ({ userId }) => this.meetingMediatorService.addUserToMeeting({ meetingId, userId, role: invitation.role }),
+        invitationRequest: ({ userId }) => this.meetingService.addUserToMeeting({ meetingId, userId, role: invitation.role }),
       })));
 
       const { successes, failures } = this.mapSettledInvitationsToResponse({ settledInvitations });
@@ -144,30 +144,18 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
       this.loggerService.trace("processPendingInvitation called", { params }, this.constructor.name);
 
       const { userId, pendingInvitation } = params;
+      const { type, role, invitingEntityId } = pendingInvitation;
 
-      if (pendingInvitation.type === PendingInvitationType.OneOnOne) {
-        await this.oneOnOneMediatorService.createOneOnOne({
-          createdBy: pendingInvitation.invitingEntityId as UserId,
-          otherUserId: userId,
-        });
-      } else if (pendingInvitation.type === PendingInvitationType.Group) {
-        await this.groupMediatorService.addUserToGroup({
-          groupId: pendingInvitation.invitingEntityId as GroupId,
-          userId,
-          role: pendingInvitation.role as Role,
-        });
-      } else if (pendingInvitation.type === PendingInvitationType.Meeting) {
-        await this.meetingMediatorService.addUserToMeeting({
-          meetingId: pendingInvitation.invitingEntityId as MeetingId,
-          userId,
-          role: pendingInvitation.role as Role,
-        });
+      if (type === PendingInvitationType.OneOnOne) {
+        await this.oneOnOneService.createOneOnOne({ createdBy: invitingEntityId as UserId, otherUserId: userId });
+      } else if (type === PendingInvitationType.Group) {
+        await this.groupService.addUserToGroup({ groupId: invitingEntityId as GroupId, userId, role: role as Role });
+      } else if (type === PendingInvitationType.Meeting) {
+        await this.meetingService.addUserToMeeting({ meetingId: invitingEntityId as MeetingId, userId, role: role as Role });
+      } else if (type === PendingInvitationType.Team) {
+        await this.teamService.addUserToTeam({ teamId: invitingEntityId as TeamId, userId, role: role as Role });
       } else {
-        await this.teamMediatorService.addUserToTeam({
-          teamId: pendingInvitation.invitingEntityId as TeamId,
-          userId,
-          role: pendingInvitation.role as Role,
-        });
+        await this.organizationService.addUserToOrganization({ organizationId: invitingEntityId as OrganizationId, userId, role: role as Role });
       }
 
       await this.pendingInvitationService.deletePendingInvitation(pendingInvitation);
@@ -264,7 +252,7 @@ export class InvitationOrchestratorService implements InvitationOrchestratorServ
   }
 }
 
-export interface InvitationOrchestratorServiceInterface {
+export interface InvitationServiceInterface {
   createOneOnOnes(params: CreateOneOnOnesInput): Promise<CreateOneOnOnesOutput>;
   addUsersToOrganization(params: AddUsersToOrganizationInput): Promise<AddUsersToOrganizationOutput>;
   addUsersToTeam(params: AddUsersToTeamInput): Promise<AddUsersToTeamOutput>;
