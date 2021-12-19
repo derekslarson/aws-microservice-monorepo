@@ -13,8 +13,7 @@ import { ConversationType } from "../enums/conversationType.enum";
 import { UpdateMessageDto } from "../dtos/updateMessage.dto";
 import { GetMessagesByOneOnOneIdDto } from "../dtos/getMessagesByOneOnOneId.dto";
 import { GetMessagesByGroupIdDto } from "../dtos/getMessagesByGroupId.dto";
-import { MessageServiceInterface, PendingMessage } from "../services/tier-1/message.service";
-import { MessageFetchingServiceInterface } from "../services/tier-2/message.fetching.service";
+import { MessageServiceInterface, PendingMessage } from "../services/tier-2/message.service";
 import { GroupServiceInterface } from "../services/tier-1/group.service";
 import { MeetingServiceInterface } from "../services/tier-1/meeting.service";
 import { ConversationServiceInterface } from "../services/tier-3/conversation.service";
@@ -25,7 +24,6 @@ export class MessageController extends BaseController implements MessageControll
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageService: MessageServiceInterface,
-    @inject(TYPES.MessageMediatorServiceInterface) private messageFetchingService: MessageFetchingServiceInterface,
     @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupServiceInterface,
     @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingServiceInterface,
     @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationServiceInterface,
@@ -129,7 +127,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages, lastEvaluatedKey } = await this.messageFetchingService.getMessagesByConversationId({
+      const { messages, lastEvaluatedKey } = await this.messageService.getMessagesByConversationId({
         requestingUserId: jwtId,
         conversationId: oneOnOneId,
         searchTerm,
@@ -163,7 +161,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages, lastEvaluatedKey } = await this.messageFetchingService.getMessagesByConversationId({
+      const { messages, lastEvaluatedKey } = await this.messageService.getMessagesByConversationId({
         requestingUserId: jwtId,
         conversationId: groupId,
         searchTerm,
@@ -197,7 +195,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages, lastEvaluatedKey } = await this.messageFetchingService.getMessagesByConversationId({
+      const { messages, lastEvaluatedKey } = await this.messageService.getMessagesByConversationId({
         requestingUserId: jwtId,
         conversationId: meetingId,
         searchTerm,
@@ -229,7 +227,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages, lastEvaluatedKey } = await this.messageFetchingService.getMessagesByUserIdAndSearchTerm({
+      const { messages, lastEvaluatedKey } = await this.messageService.getMessagesBySearchTerm({
         userId,
         searchTerm,
         exclusiveStartKey,
@@ -255,7 +253,7 @@ export class MessageController extends BaseController implements MessageControll
         pathParameters: { messageId },
       } = this.validationService.validate({ dto: GetMessageDto, request, getUserIdFromJwt: true });
 
-      const { message } = await this.messageFetchingService.getMessage({ messageId });
+      const { message } = await this.messageService.getMessage({ messageId });
 
       let isConversationMember: boolean;
 
@@ -293,7 +291,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { message } = await this.messageFetchingService.getMessage({ messageId });
+      const { message } = await this.messageService.getMessage({ messageId });
 
       let isConversationMember: boolean;
 
@@ -421,7 +419,7 @@ export class MessageController extends BaseController implements MessageControll
 
       const { message } = await this.messageService.getMessage({ messageId });
 
-      if (jwtId !== message.from) {
+      if (jwtId !== message.from.id) {
         throw new ForbiddenError("Forbidden");
       }
 

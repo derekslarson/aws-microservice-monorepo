@@ -4,10 +4,9 @@ import { TYPES } from "../../inversion-of-control/types";
 import { Meeting as MeetingEntity, MeetingByUserId as MeetingByUserIdEntity, MeetingServiceInterface } from "../tier-1/meeting.service";
 import { Group as GroupEntity, GroupByUserId as GroupByUserIdEntity, GroupServiceInterface } from "../tier-1/group.service";
 import { OneOnOne as OneOnOneEntity, OneOnOneByUserId as OneOnOneByUserIdEntity, OneOnOneServiceInterface } from "../tier-1/oneOnOne.service";
-import { Message as MessageEntity } from "../tier-1/message.service";
+import { Message as MessageEntity, MessageServiceInterface } from "../tier-2/message.service";
 import { MembershipServiceInterface } from "../../entity-services/membership.service";
 import { User as UserEntity, UserServiceInterface } from "../tier-1/user.service";
-import { MessageFetchingServiceInterface } from "../tier-2/message.fetching.service";
 
 @injectable()
 export class ConversationService implements ConversationServiceInterface {
@@ -18,7 +17,7 @@ export class ConversationService implements ConversationServiceInterface {
     @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
     @inject(TYPES.OneOnOneServiceInterface) private oneOnOneService: OneOnOneServiceInterface,
     // @inject(TYPES.OneOnOneAndGroupServiceInterface) private oneOnOneAndGroupService: OneOnOneAndGroupServiceInterface,
-    @inject(TYPES.MessageServiceInterface) private messageFetchingService: MessageFetchingServiceInterface,
+    @inject(TYPES.MessageServiceInterface) private messageFetchingService: MessageServiceInterface,
     @inject(TYPES.MembershipServiceInterface) private membershipService: MembershipServiceInterface,
   ) {}
 

@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions */
 /* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
-import { MessageUploadTokenServiceInterface, LoggerServiceInterface, MessageId, FileOperation, ConversationId, UserId, MessageMimeType, MessageFileRepositoryInterface, IdServiceInterface } from "@yac/util";
+import { MessageUploadTokenServiceInterface, LoggerServiceInterface, MessageId, FileOperation, ConversationId, UserId, MessageMimeType, MessageFileRepositoryInterface, IdServiceInterface, GroupId, ConversationType, MeetingId, OneOnOneId } from "@yac/util";
 import { RawMessage as RawMessageEntity, Message as MessageEntity, MessageRepositoryInterface, MessageUpdates } from "../../repositories/message.dynamo.repository";
 import { TYPES } from "../../inversion-of-control/types";
 import { SearchRepositoryInterface } from "../../repositories/openSearch.repository";
@@ -10,6 +11,9 @@ import { PendingMessage as PendingMessageEntity, PendingMessageRepositoryInterfa
 import { KeyPrefix } from "../../enums/keyPrefix.enum";
 import { MembershipRepositoryInterface } from "../../repositories/membership.dynamo.repository";
 import { MembershipType } from "../../enums/membershipType.enum";
+import { Group as GroupEntity, GroupServiceInterface } from "../tier-1/group.service";
+import { User as UserEntity, UserServiceInterface } from "../tier-1/user.service";
+import { Meeting as MeetingEntity, MeetingServiceInterface } from "../tier-1/meeting.service";
 
 @injectable()
 export class MessageService implements MessageServiceInterface {
@@ -23,6 +27,9 @@ export class MessageService implements MessageServiceInterface {
     @inject(TYPES.MessageRepositoryInterface) private messageRepository: MessageRepositoryInterface,
     @inject(TYPES.SearchRepositoryInterface) private messageSearchRepository: MessageSearchRepositoryInterface,
     @inject(TYPES.MembershipRepositoryInterface) private membershipRepository: MembershipRepositoryInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
+    @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
+    @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
   ) {}
 
   public async createPendingMessage(params: CreatePendingMessageInput): Promise<CreatePendingMessageOutput> {
@@ -141,7 +148,7 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("createMessage called", { params }, this.constructor.name);
 
-      const { messageId, conversationId, from, mimeType, transcript, replyTo, title } = params;
+      const { messageId = `${KeyPrefix.Message}${this.idService.generateId()}`, conversationId, from, mimeType, transcript, replyTo, title } = params;
 
       const now = new Date().toISOString();
 
@@ -151,7 +158,7 @@ export class MessageService implements MessageServiceInterface {
       memberships.forEach((membership) => seenAt[membership.userId] = membership.userId === from ? now : null);
 
       const messageEntity: MessageEntity = {
-        id: messageId || `${KeyPrefix.Message}${this.idService.generateId()}`,
+        id: messageId,
         conversationId,
         from,
         seenAt,
@@ -170,17 +177,7 @@ export class MessageService implements MessageServiceInterface {
         ...memberships.map(({ userId }) => this.membershipRepository.incrementUnreadMessages({ entityId: conversationId, userId })),
       ]);
 
-      const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
-        messageId: messageEntity.id,
-        conversationId: messageEntity.conversationId,
-        mimeType: messageEntity.mimeType,
-        operation: FileOperation.Get,
-      });
-
-      const message = {
-        ...messageEntity,
-        fetchUrl: signedUrl,
-      };
+      const { messages: [ message ] } = await this.convertMessageEntitiesToMessages({ messageEntities: [ messageEntity ] });
 
       return { message };
     } catch (error: unknown) {
@@ -241,17 +238,7 @@ export class MessageService implements MessageServiceInterface {
 
       const { message: messageEntity } = await this.messageRepository.getMessage({ messageId });
 
-      const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
-        messageId: messageEntity.id,
-        conversationId: messageEntity.conversationId,
-        mimeType: messageEntity.mimeType,
-        operation: FileOperation.Get,
-      });
-
-      const message = {
-        ...messageEntity,
-        fetchUrl: signedUrl,
-      };
+      const { messages: [ message ] } = await this.convertMessageEntitiesToMessages({ messageEntities: [ messageEntity ] });
 
       return { message };
     } catch (error: unknown) {
@@ -269,21 +256,14 @@ export class MessageService implements MessageServiceInterface {
 
       const { messages: messageEntities } = await this.messageRepository.getMessages({ messageIds });
 
-      const messageMap: Record<string, Message> = {};
-      messageEntities.forEach((messageEntity) => {
-        const { signedUrl: fetchUrl } = this.enhancedMessageFileRepository.getSignedUrl({
-          messageId: messageEntity.id,
-          conversationId: messageEntity.conversationId,
-          mimeType: messageEntity.mimeType,
-          operation: FileOperation.Get,
-        });
+      const messageEntityMap: Record<string, MessageEntity> = {};
+      messageEntities.forEach((messageEntity) => messageEntityMap[messageEntity.id] = messageEntity);
 
-        messageMap[messageEntity.id] = { ...messageEntity, fetchUrl };
-      });
+      const sortedMessageEntities = messageIds.map((messageId) => messageEntityMap[messageId]);
 
-      const sortedMessages = messageIds.map((messageId) => messageMap[messageId]);
+      const { messages } = await this.convertMessageEntitiesToMessages({ messageEntities: sortedMessageEntities });
 
-      return { messages: sortedMessages };
+      return { messages };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessages", { error, params }, this.constructor.name);
 
@@ -291,7 +271,7 @@ export class MessageService implements MessageServiceInterface {
     }
   }
 
-  public async getMessagesByConversationId<T extends UserId>(params: GetMessagesByConversationIdInput<T>): Promise<GetMessagesByConversationIdOutput> {
+  public async getMessagesByConversationId<T extends ConversationId, U extends UserId>(params: GetMessagesByConversationIdInput<T, U>): Promise<GetMessagesByConversationIdOutput<T>> {
     try {
       this.loggerService.trace("getMessagesByEntityId called", { params }, this.constructor.name);
 
@@ -307,22 +287,14 @@ export class MessageService implements MessageServiceInterface {
 
       const { messages: messageEntities, lastEvaluatedKey } = await this.messageRepository.getMessagesByConversationId({ conversationId, minCreatedAt: newOnly ? userActiveAt : undefined, exclusiveStartKey, limit });
 
-      const messages = messageEntities.map((messageEntity) => {
-        const { signedUrl } = this.enhancedMessageFileRepository.getSignedUrl({
-          messageId: messageEntity.id,
-          conversationId: messageEntity.conversationId,
-          mimeType: messageEntity.mimeType,
-          operation: FileOperation.Get,
-        });
+      const { messages } = await this.convertMessageEntitiesToMessages({ messageEntities });
 
-        return {
-          ...messageEntity,
-          fetchUrl: signedUrl,
-          ...(userActiveAt && { new: messageEntity.createdAt > userActiveAt }),
-        };
-      });
+      const messagesWithNew = messages.map((message) => ({
+        ...message,
+        ...(userActiveAt && { new: message.createdAt > userActiveAt }),
+      }));
 
-      return { messages, lastEvaluatedKey };
+      return { messages: messagesWithNew as Message<T>[], lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMessagesByEntityId", { error, params }, this.constructor.name);
 
@@ -334,15 +306,14 @@ export class MessageService implements MessageServiceInterface {
     try {
       this.loggerService.trace("getMessagesBySearchTerm called", { params }, this.constructor.name);
 
-      const { searchTerm, userId, conversationIds: conversationIdsParam, limit, exclusiveStartKey } = params;
+      const { searchTerm, limit, exclusiveStartKey } = params;
 
-      let conversationIds: ConversationId[] | undefined;
+      const conversationIds: ConversationId[] = [];
 
-      if (conversationIdsParam) {
-        conversationIds = conversationIdsParam;
-      } else if (userId) {
-        const { memberships } = await this.membershipRepository.getMembershipsByUserId({ userId });
-        conversationIds = [];
+      if ("conversationId" in params) {
+        conversationIds.push(params.conversationId);
+      } else {
+        const { memberships } = await this.membershipRepository.getMembershipsByUserId({ userId: params.userId });
         memberships.map((membership) => [ MembershipType.Group, MembershipType.Meeting, MembershipType.OneOnOne ].includes(membership.type) && conversationIds?.push(membership.entityId as ConversationId));
       }
 
@@ -389,6 +360,92 @@ export class MessageService implements MessageServiceInterface {
       throw error;
     }
   }
+
+  private getConversationTypeFromConversationId(params: GetConversationTypeFromConversationIdInput): GetConversationTypeFromConversationIdOutput {
+    try {
+      this.loggerService.trace("getConversationTypeFromConversationId called", { params }, this.constructor.name);
+
+      const { conversationId } = params;
+
+      if (conversationId.startsWith(KeyPrefix.Group)) {
+        return { conversationType: ConversationType.Group };
+      }
+
+      if (conversationId.startsWith(KeyPrefix.Meeting)) {
+        return { conversationType: ConversationType.Meeting };
+      }
+
+      return { conversationType: ConversationType.OneOnOne };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getConversationTypeFromConversationId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  private async convertMessageEntitiesToMessages(params: ConvertMessageEntitiesToMessagesInput): Promise<Promise<ConvertMessageEntitiesToMessagesOutput>> {
+    try {
+      this.loggerService.trace("convertMessageEntitiesToMessages called", { params }, this.constructor.name);
+
+      const { messageEntities } = params;
+
+      const userIdSet = new Set<UserId>();
+      const groupIdSet = new Set<GroupId>();
+      const meetingIdSet = new Set<MeetingId>();
+
+      messageEntities.forEach((message) => {
+        userIdSet.add(message.from);
+
+        const { conversationType } = this.getConversationTypeFromConversationId({ conversationId: message.conversationId });
+
+        if (conversationType === ConversationType.Group) {
+          groupIdSet.add(message.conversationId as GroupId);
+        } else if (conversationType === ConversationType.Meeting) {
+          meetingIdSet.add(message.conversationId as MeetingId);
+        } else {
+          message.conversationId.split(/_(?=user_)/).forEach((id) => userIdSet.add(id as UserId));
+        }
+      });
+
+      const [ { users }, { groups }, { meetings } ] = await Promise.all([
+        this.userService.getUsers({ userIds: Array.from(userIdSet) }),
+        this.groupService.getGroups({ groupIds: Array.from(groupIdSet) }),
+        this.meetingService.getMeetings({ meetingIds: Array.from(meetingIdSet) }),
+      ]);
+
+      const entityMap: Record<string, UserEntity | GroupEntity | MeetingEntity> = {};
+      users.forEach((user) => entityMap[user.id] = user);
+      groups.forEach((group) => entityMap[group.id] = group);
+      meetings.forEach((meeting) => entityMap[meeting.id] = meeting);
+
+      const messages = await Promise.all(messageEntities.map(({ from, ...restOfMessageEntity }) => {
+        const { conversationType } = this.getConversationTypeFromConversationId({ conversationId: restOfMessageEntity.conversationId });
+
+        const to = conversationType === ConversationType.OneOnOne ? restOfMessageEntity.conversationId.split(/_(?=user_)/).find((id) => id !== from) as UserId : restOfMessageEntity.conversationId;
+
+        const { signedUrl: fetchUrl } = this.enhancedMessageFileRepository.getSignedUrl({
+          messageId: restOfMessageEntity.id,
+          conversationId: restOfMessageEntity.conversationId,
+          mimeType: restOfMessageEntity.mimeType,
+          operation: FileOperation.Get,
+        });
+
+        return {
+          ...restOfMessageEntity,
+          from: entityMap[from] as UserEntity,
+          to: entityMap[to],
+          type: conversationType,
+          fetchUrl,
+        };
+      }));
+
+      return { messages };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in convertMessageEntitiesToMessages", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface MessageServiceInterface {
@@ -402,16 +459,19 @@ export interface MessageServiceInterface {
   updateMessageByUserId(params: UpdateMessageByUserIdInput): Promise<UpdateMessageByUserIdOutput>;
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
-  getMessagesByConversationId<T extends UserId>(params: GetMessagesByConversationIdInput<T>): Promise<GetMessagesByConversationIdOutput>
+  getMessagesByConversationId<T extends ConversationId, U extends UserId>(params: GetMessagesByConversationIdInput<T, U>): Promise<GetMessagesByConversationIdOutput<T>>
   getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput>;
   indexMessageForSearch(params: IndexMessageForSearchInput): Promise<IndexMessageForSearchOutput>;
   deindexMessageForSearch(params: DeindexMessageForSearchInput): Promise<DeindexMessageForSearchOutput>;
 }
 
-export interface Message extends MessageEntity {
+export type Message<T extends ConversationId | void = void> = Omit<MessageEntity, "from"> & {
+  type: ConversationType;
+  to: T extends OneOnOneId ? UserEntity : T extends GroupId ? GroupEntity : T extends MeetingId ? MeetingEntity : UserEntity | GroupEntity | MeetingEntity;
+  from: UserEntity;
   fetchUrl: string;
   new?: boolean;
-}
+};
 
 export interface PendingMessage extends PendingMessageEntity {
   uploadUrl: string;
@@ -512,26 +572,35 @@ export interface GetMessagesOutput {
   messages: Message[];
 }
 
-export interface GetMessagesByConversationIdInput<T extends UserId> {
-  conversationId: ConversationId;
-  requestingUserId?: T;
-  newOnly?: T extends UserId ? boolean : never;
+export interface GetMessagesByConversationIdInput<T extends ConversationId, U extends UserId> {
+  conversationId: T;
+  requestingUserId?: U;
+  newOnly?: U extends UserId ? boolean : never;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
 
-export interface GetMessagesByConversationIdOutput {
-  messages: Message[];
+export interface GetMessagesByConversationIdOutput<T extends ConversationId> {
+  messages: Message<T>[];
   lastEvaluatedKey?: string;
 }
 
-export interface GetMessagesBySearchTermInput {
+interface BaseGetMessagesBySearchTermInput {
   searchTerm: string;
-  userId?: UserId;
-  conversationIds?: ConversationId[];
   limit?: number;
   exclusiveStartKey?: string;
 }
+
+interface GetMessagesBySearchTermAndUserIdInput extends BaseGetMessagesBySearchTermInput {
+  userId: UserId;
+}
+
+interface GetMessagesBySearchTermAndConversationIdInput extends BaseGetMessagesBySearchTermInput {
+  conversationId: ConversationId;
+}
+
+export type GetMessagesBySearchTermInput = GetMessagesBySearchTermAndUserIdInput | GetMessagesBySearchTermAndConversationIdInput;
 
 export interface GetMessagesBySearchTermOutput {
   messages: Message[];
@@ -551,3 +620,19 @@ export interface DeindexMessageForSearchInput {
 export type DeindexMessageForSearchOutput = void;
 
 type MessageSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getMessagesBySearchTerm" | "getMeetingsBySearchTerm">;
+
+interface ConvertMessageEntitiesToMessagesInput {
+  messageEntities: MessageEntity[];
+}
+
+interface ConvertMessageEntitiesToMessagesOutput {
+  messages: Message[];
+}
+
+interface GetConversationTypeFromConversationIdInput {
+  conversationId: ConversationId;
+}
+
+interface GetConversationTypeFromConversationIdOutput {
+  conversationType: ConversationType;
+}
