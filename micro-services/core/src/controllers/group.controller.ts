@@ -2,31 +2,31 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Group, GroupByUserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { CreateGroupDto } from "../dtos/createGroup.dto";
 import { GetGroupDto } from "../dtos/getGroup.dto";
 import { AddUsersToGroupDto } from "../dtos/addUsersToGroup.dto";
 import { RemoveUserFromGroupDto } from "../dtos/removeUserFromGroup.dto";
 import { GetGroupsByUserIdDto } from "../dtos/getGroupsByUserId.dto";
 import { GetGroupsByTeamIdDto } from "../dtos/getGroupsByTeamId.dto";
-import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GetGroupImageUploadUrlDto } from "../dtos/getGroupImageUploadUrl.dto";
-import { AddUsersToGroupOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { UpdateGroupDto } from "../dtos/updateGroup.dto";
-import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 import { GetGroupsByOrganizationIdDto } from "../dtos/getGroupsByOrganizationId.dto";
-import { ConversationServiceInterface } from "../services/tier-2/conversation.service";
+import { ConversationServiceInterface } from "../services/tier-3/conversation.service";
+import { OrganizationServiceInterface } from "../services/tier-1/organization.service";
+import { GroupServiceInterface } from "../services/tier-1/group.service";
+import { TeamServiceInterface } from "../services/tier-1/team.service";
+import { AddUsersToGroupOutput, InvitationServiceInterface } from "../services/tier-2/invitation.service";
 
 @injectable()
 export class GroupController extends BaseController implements GroupControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
-    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
+    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationServiceInterface,
+    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationServiceInterface,
+    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupServiceInterface,
     @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationService: ConversationServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
+    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamServiceInterface,
   ) {
     super();
   }

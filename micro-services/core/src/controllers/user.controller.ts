@@ -4,27 +4,27 @@ import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Respon
 import { TYPES } from "../inversion-of-control/types";
 import { GetUserDto } from "../dtos/getUser.dto";
 import { GetUsersByTeamIdDto } from "../dtos/getUsersByTeamId.dto";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
-import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
-import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
-import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { GetUsersByGroupIdDto } from "../dtos/getUsersByGroupId.dto";
 import { GetUsersByMeetingIdDto } from "../dtos/getUsersByMeetingId.dto";
 import { GetUserImageUploadUrlDto } from "../dtos/getUserImageUploadUrl.dto";
 import { UpdateUserDto } from "../dtos/updateUser.dto";
-import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 import { GetUsersByOrganizationIdDto } from "../dtos/getUsersByOrganizationId.dto";
+import { UserServiceInterface } from "../services/tier-1/user.service";
+import { OrganizationServiceInterface } from "../services/tier-1/organization.service";
+import { TeamServiceInterface } from "../services/tier-1/team.service";
+import { GroupServiceInterface } from "../services/tier-1/group.service";
+import { MeetingServiceInterface } from "../services/tier-1/meeting.service";
 
 @injectable()
 export class UserController extends BaseController implements UserControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
-    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
-    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
+    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserServiceInterface,
+    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationServiceInterface,
+    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamServiceInterface,
+    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupServiceInterface,
+    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingServiceInterface,
   ) {
     super();
   }
@@ -43,7 +43,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.userMediatorService.updateUser({ userId, ...body });
+      await this.userMediatorService.updateUser({ userId, updates: body });
 
       const response: UpdateUserResponse = { message: "User updated." };
 
@@ -114,7 +114,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByEntityId({ entityId: organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByOrganizationIdResponse = { users, lastEvaluatedKey };
 
@@ -142,7 +142,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByEntityId({ entityId: teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByTeamIdResponse = { users, lastEvaluatedKey };
 
@@ -170,7 +170,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByGroupId({ groupId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByEntityId({ entityId: groupId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByGroupIdResponse = { users, lastEvaluatedKey };
 
@@ -198,7 +198,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByMeetingId({ meetingId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByEntityId({ entityId: meetingId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByMeetingIdResponse = { users, lastEvaluatedKey };
 

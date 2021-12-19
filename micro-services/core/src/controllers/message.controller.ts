@@ -2,7 +2,6 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { Message, BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, GroupId, MeetingId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { MessageMediatorServiceInterface, PendingMessage } from "../mediator-services/message.mediator.service";
 import { CreateOneOnOneMessageDto } from "../dtos/createOneOnOneMessage.dto";
 import { CreateGroupMessageDto } from "../dtos/createGroupMessage.dto";
 import { CreateMeetingMessageDto } from "../dtos/createMeetingMessage.dto";
@@ -10,15 +9,15 @@ import { GetMessagesByMeetingIdDto } from "../dtos/getMessagesByMeetingId.dto";
 import { GetMessagesByUserIdAndSearchTermDto } from "../dtos/getMessagesByUserIdAndSearchTerm.dto";
 import { GetMessageDto } from "../dtos/getMessage.dto";
 import { UpdateMessageByUserIdDto } from "../dtos/updateMessageByUserId.dto";
-import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
-import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { ConversationType } from "../enums/conversationType.enum";
 import { UpdateMessageDto } from "../dtos/updateMessage.dto";
 import { GetMessagesByOneOnOneIdDto } from "../dtos/getMessagesByOneOnOneId.dto";
-import { ConversationOrchestratorServiceInterface } from "../orchestrator-services/conversation.orchestrator.service";
 import { GetMessagesByGroupIdDto } from "../dtos/getMessagesByGroupId.dto";
-import { MessageServiceInterface } from "../services/tier-1/message.service";
+import { MessageServiceInterface, PendingMessage } from "../services/tier-1/message.service";
 import { MessageFetchingServiceInterface } from "../services/tier-2/message.fetching.service";
+import { GroupServiceInterface } from "../services/tier-1/group.service";
+import { MeetingServiceInterface } from "../services/tier-1/meeting.service";
+import { ConversationServiceInterface } from "../services/tier-3/conversation.service";
 
 @injectable()
 export class MessageController extends BaseController implements MessageControllerInterface {
@@ -27,9 +26,9 @@ export class MessageController extends BaseController implements MessageControll
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.MessageMediatorServiceInterface) private messageFetchingService: MessageFetchingServiceInterface,
-    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
-    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
-    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationOrchestratorServiceInterface,
+    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupServiceInterface,
+    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingServiceInterface,
+    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationServiceInterface,
   ) {
     super();
   }
@@ -310,7 +309,7 @@ export class MessageController extends BaseController implements MessageControll
 
       await this.messageService.updateMessageByUserId({ userId, messageId, updates: body });
 
-      const response: UpdateMessageByUserIdResponse = { message: "message updated" };
+      const response: UpdateMessageByUserIdResponse = { message: "Message updated." };
 
       return this.generateSuccessResponse(response);
     } catch (error: unknown) {
@@ -492,7 +491,7 @@ export interface GetMessageResponse {
 }
 
 export interface UpdateMessageByUserIdResponse {
-  message: Message;
+  message: "Message updated.";
 }
 
 export interface UpdateOneOnOneMessagesByUserIdResponse {

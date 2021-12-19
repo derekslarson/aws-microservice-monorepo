@@ -3,14 +3,14 @@ import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { GetOneOnOnesAndGroupsByUserIdDto } from "../dtos/getOneOnOnesAndGroupsByUserId";
-import { ConversationOrchestratorServiceInterface } from "../orchestrator-services/conversation.orchestrator.service";
+import { ConversationServiceInterface } from "../services/tier-3/conversation.service";
 
 @injectable()
 export class ConversationController extends BaseController implements ConversationControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationOrchestratorServiceInterface,
+    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationServiceInterface,
   ) {
     super();
   }

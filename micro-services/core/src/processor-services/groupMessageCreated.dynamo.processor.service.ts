@@ -1,15 +1,15 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, GroupId, LoggerServiceInterface } from "@yac/util";
+import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { GroupMessageCreatedSnsServiceInterface } from "../sns-services/groupMessageCreated.sns.service";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 import { RawMessage } from "../repositories/message.dynamo.repository";
 import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
-import { MessageServiceInterface } from "../entity-services/message.service";
+import { UserServiceInterface } from "../services/tier-1/user.service";
+import { MessageServiceInterface } from "../services/tier-1/message.service";
+import { MessageFetchingServiceInterface } from "../services/tier-2/message.fetching.service";
 
 @injectable()
 export class GroupMessageCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -18,9 +18,9 @@ export class GroupMessageCreatedDynamoProcessorService implements DynamoProcesso
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.GroupMessageCreatedSnsServiceInterface) private groupMessageCreatedSnsService: GroupMessageCreatedSnsServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
-    @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
+    @inject(TYPES.UserMediatorServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
+    @inject(TYPES.MessageServiceInterface) private messageFetchingService: MessageFetchingServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -50,8 +50,8 @@ export class GroupMessageCreatedDynamoProcessorService implements DynamoProcesso
       const { newImage: { id, conversationId } } = record;
 
       const [ { message }, { users: groupMembers } ] = await Promise.all([
-        this.messageMediatorService.getMessage({ messageId: id }),
-        this.userMediatorService.getUsersByGroupId({ groupId: conversationId as GroupId }),
+        this.messageFetchingService.getMessage({ messageId: id }),
+        this.userService.getUsersByEntityId({ entityId: conversationId }),
       ]);
 
       const groupMemberIds = groupMembers.map((groupMember) => groupMember.id);

@@ -328,7 +328,6 @@ export type OrganizationByUserId = WithRole<Organization>;
 export interface CreateOrganizationInput {
   name: string;
   createdBy: UserId;
-  organizationId: OrganizationId;
 }
 
 export interface CreateOrganizationOutput {

@@ -2,31 +2,31 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Meeting, MeetingByUserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { CreateMeetingDto } from "../dtos/createMeeting.dto";
 import { GetMeetingDto } from "../dtos/getMeeting.dto";
 import { AddUsersToMeetingDto } from "../dtos/addUsersToMeeting.dto";
 import { RemoveUserFromMeetingDto } from "../dtos/removeUserFromMeeting.dto";
 import { GetMeetingsByUserIdDto } from "../dtos/getMeetingsByUserId.dto";
 import { GetMeetingsByTeamIdDto } from "../dtos/getMeetingsByTeamId.dto";
-import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { GetMeetingImageUploadUrlDto } from "../dtos/getMeetingImageUploadUrl.dto";
-import { AddUsersToMeetingOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { UpdateMeetingDto } from "../dtos/updateMeeting.dto";
-import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 import { GetMeetingsByOrganizationIdDto } from "../dtos/getMeetingsByOrganizationId.dto";
-import { ConversationOrchestratorServiceInterface } from "../orchestrator-services/conversation.orchestrator.service";
+import { AddUsersToMeetingOutput, InvitationServiceInterface } from "../services/tier-2/invitation.service";
+import { OrganizationServiceInterface } from "../services/tier-1/organization.service";
+import { MeetingServiceInterface } from "../services/tier-1/meeting.service";
+import { ConversationServiceInterface } from "../services/tier-3/conversation.service";
+import { TeamServiceInterface } from "../services/tier-1/team.service";
 
 @injectable()
 export class MeetingController extends BaseController implements MeetingControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
-    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
-    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationOrchestratorServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
+    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationServiceInterface,
+    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationServiceInterface,
+    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingServiceInterface,
+    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationServiceInterface,
+    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamServiceInterface,
   ) {
     super();
   }
@@ -259,7 +259,7 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { meetings, lastEvaluatedKey } = await this.conversationOrchestratorService.getMeetingsByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetMeetingsByTeamIdResponse = { meetings, lastEvaluatedKey };
 
@@ -287,7 +287,7 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.meetingMediatorService.getMeetingsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { meetings, lastEvaluatedKey } = await this.conversationOrchestratorService.getMeetingsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetMeetingsByOrganizationIdResponse = { meetings, lastEvaluatedKey };
 

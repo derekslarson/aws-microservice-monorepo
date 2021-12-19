@@ -3,18 +3,20 @@ import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { CreateOneOnOnesDto } from "../dtos/createOneOnOnes.dto";
-import { OneOnOneMediatorServiceInterface } from "../mediator-services/oneOnOne.mediator.service";
 import { DeleteOneOnOneDto } from "../dtos/deleteOneOnOne.dto";
 import { GetOneOnOnesByuserIdDto } from "../dtos/getOneOnOnesByUserId.dto";
-import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { OneOnOneServiceInterface } from "../services/tier-1/oneOnOne.service";
+import { InvitationServiceInterface } from "../services/tier-2/invitation.service";
+import { ConversationServiceInterface } from "../services/tier-3/conversation.service";
 
 @injectable()
 export class OneOnOneController extends BaseController implements OneOnOneControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.OneOnOneMediatorServiceInterface) private oneOnOneMediatorService: OneOnOneMediatorServiceInterface,
-    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
+    @inject(TYPES.OneOnOneMediatorServiceInterface) private oneOnOneMediatorService: OneOnOneServiceInterface,
+    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationServiceInterface,
+    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationServiceInterface,
   ) {
     super();
   }
@@ -86,7 +88,7 @@ export class OneOnOneController extends BaseController implements OneOnOneContro
         throw new ForbiddenError("Forbidden");
       }
 
-      const { oneOnOnes, lastEvaluatedKey } = await this.oneOnOneMediatorService.getOneOnOnesByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { oneOnOnes, lastEvaluatedKey } = await this.conversationOrchestratorService.getOneOnOnesByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ oneOnOnes, lastEvaluatedKey });
     } catch (error: unknown) {

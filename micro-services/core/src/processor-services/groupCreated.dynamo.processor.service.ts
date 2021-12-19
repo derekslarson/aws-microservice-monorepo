@@ -5,9 +5,8 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { GroupCreatedSnsServiceInterface } from "../sns-services/groupCreated.sns.service";
-import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
 import { RawGroup } from "../repositories/group.dynamo.repository";
-import { GroupServiceInterface } from "../entity-services/group.service";
+import { GroupServiceInterface } from "../services/tier-1/group.service";
 
 @injectable()
 export class GroupCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -16,7 +15,6 @@ export class GroupCreatedDynamoProcessorService implements DynamoProcessorServic
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.GroupCreatedSnsServiceInterface) private groupCreatedSnsService: GroupCreatedSnsServiceInterface,
-    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupMediatorServiceInterface,
     @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
@@ -45,7 +43,7 @@ export class GroupCreatedDynamoProcessorService implements DynamoProcessorServic
 
       const { newImage: { id: groupId } } = record;
 
-      const { group } = await this.groupMediatorService.getGroup({ groupId });
+      const { group } = await this.groupService.getGroup({ groupId });
 
       await Promise.allSettled([
         this.groupCreatedSnsService.sendMessage({ group, groupMemberIds: [ group.createdBy ] }),

@@ -2,23 +2,23 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Organization, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 import { CreateOrganizationDto } from "../dtos/createOrganization.dto";
 import { GetOrganizationDto } from "../dtos/getOrganization.dto";
 import { AddUsersToOrganizationDto } from "../dtos/addUsersToOrganization.dto";
 import { RemoveUserFromOrganizationDto } from "../dtos/removeUserFromOrganization.dto";
 import { GetOrganizationsByUserIdDto } from "../dtos/getOrganizationsByUserId.dto";
-import { AddUsersToOrganizationOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { GetOrganizationImageUploadUrlDto } from "../dtos/getOrganizationImageUploadUrl.dto";
 import { UpdateOrganizationDto } from "../dtos/updateOrganization.dto";
+import { OrganizationServiceInterface } from "../services/tier-1/organization.service";
+import { AddUsersToOrganizationOutput, InvitationServiceInterface } from "../services/tier-2/invitation.service";
 
 @injectable()
 export class OrganizationController extends BaseController implements OrganizationControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
-    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
+    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationServiceInterface,
+    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationServiceInterface,
   ) {
     super();
   }
@@ -65,7 +65,7 @@ export class OrganizationController extends BaseController implements Organizati
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.organizationMediatorService.updateOrganization({ organizationId, ...body });
+      await this.organizationMediatorService.updateOrganization({ organizationId, updates: body });
 
       const response: UpdateOrganizationResponse = { message: "Organization updated." };
 

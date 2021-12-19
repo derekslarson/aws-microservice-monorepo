@@ -2,26 +2,26 @@ import "reflect-metadata";
 import { injectable, inject } from "inversify";
 import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Team, WithRole } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
-import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
 import { CreateTeamDto } from "../dtos/createTeam.dto";
 import { GetTeamDto } from "../dtos/getTeam.dto";
 import { AddUsersToTeamDto } from "../dtos/addUsersToTeam.dto";
 import { RemoveUserFromTeamDto } from "../dtos/removeUserFromTeam.dto";
 import { GetTeamsByUserIdDto } from "../dtos/getTeamsByUserId.dto";
-import { AddUsersToTeamOutput, InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
 import { GetTeamImageUploadUrlDto } from "../dtos/getTeamImageUploadUrl.dto";
 import { UpdateTeamDto } from "../dtos/updateTeam.dto";
-import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
 import { GetTeamsByOrganizationIdDto } from "../dtos/getTeamsByOrganizationId.dto";
+import { OrganizationServiceInterface } from "../services/tier-1/organization.service";
+import { TeamServiceInterface } from "../services/tier-1/team.service";
+import { AddUsersToTeamOutput, InvitationServiceInterface } from "../services/tier-2/invitation.service";
 
 @injectable()
 export class TeamController extends BaseController implements TeamControllerInterface {
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
-    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
+    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationServiceInterface,
+    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamServiceInterface,
+    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationServiceInterface,
   ) {
     super();
   }
@@ -70,7 +70,7 @@ export class TeamController extends BaseController implements TeamControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.teamMediatorService.updateTeam({ teamId, ...body });
+      await this.teamMediatorService.updateTeam({ teamId, updates: body });
 
       const response: UpdateTeamResponse = { message: "Team updated." };
 
