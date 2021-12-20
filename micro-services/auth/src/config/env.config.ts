@@ -1,4 +1,4 @@
-import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util";
+import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util/src/config/env.config";
 
 export const envConfig: EnvConfigInterface = {
   jwksUri: process.env.JWKS_URI || "",

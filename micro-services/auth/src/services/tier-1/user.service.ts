@@ -1,7 +1,9 @@
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface, UserId } from "@yac/util";
-import { TYPES } from "../../inversion-of-control/types";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { IdServiceInterface } from "@yac/util/src/services/id.service";
+import { UserId } from "@yac/util/src/types/userId.type";
 import { User as UserEntity, UserRepositoryInterface } from "../../repositories/user.dynamo.repository";
+import { TYPES } from "../../inversion-of-control/types";
 
 @injectable()
 export class UserService implements UserServiceInterface {

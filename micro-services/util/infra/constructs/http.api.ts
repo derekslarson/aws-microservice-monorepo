@@ -22,7 +22,7 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
         domainName: props.domainName,
         mappingKey: props.serviceName,
       },
-      corsPreflight: {
+      corsPreflight: props.corsPreflight || {
         allowOrigins: props.corsAllowedOrigins || [ "*" ],
         allowMethods: [ ApiGatewayV2.CorsHttpMethod.ANY ],
         allowHeaders: [ "*" ],

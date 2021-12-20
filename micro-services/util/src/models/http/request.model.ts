@@ -1,5 +1,5 @@
 import { APIGatewayProxyEventV2 } from "aws-lambda";
-import { UserId } from "../../types";
+import { UserId } from "../../types/userId.type";
 
 export type Request = Omit<APIGatewayProxyEventV2, "requestContext"> & {
   requestContext: Omit<APIGatewayProxyEventV2["requestContext"], "authorizer"> & {

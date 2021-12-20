@@ -1,7 +1,11 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, DocumentClientFactory, LoggerServiceInterface, TransactItemType, TransactWriteInput, UserId } from "@yac/util";
+import { BaseDynamoRepositoryV2, TransactWriteInput } from "@yac/util/src/repositories/base.dynamo.repository.v2";
+import { DocumentClientFactory } from "@yac/util/src/factories/documentClient.factory";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { UserId } from "@yac/util/src/types/userId.type";
 import { Failcode, ValidationError } from "runtypes";
+import { TransactItemType } from "@yac/util/src/enums/transactItemType.enum";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";

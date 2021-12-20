@@ -1,4 +1,4 @@
-import { RawEntity } from "../../types";
+import { RawEntity } from "../../types/raw.entity.type";
 
 export type DynamoProcessorServiceRecord<T extends Partial<RawEntity> = Partial<RawEntity>> = {
   tableName: string;

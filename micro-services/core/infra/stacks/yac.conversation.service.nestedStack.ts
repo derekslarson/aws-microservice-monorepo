@@ -11,7 +11,6 @@ export class YacConversationServiceNestedStack extends CDK.NestedStack {
     super(scope, id, props);
 
     const {
-      dependencyLayer,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -24,7 +23,6 @@ export class YacConversationServiceNestedStack extends CDK.NestedStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getOneOnOnesAndGroupsByUserId"),
       handler: "getOneOnOnesAndGroupsByUserId.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],

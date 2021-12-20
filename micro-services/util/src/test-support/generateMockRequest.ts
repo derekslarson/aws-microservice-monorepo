@@ -1,5 +1,5 @@
 import { Request } from "../models/http/request.model";
-import { UserId } from "../types";
+import { UserId } from "../types/userId.type";
 
 export function generateMockRequest(overrideParams: Partial<Request> = {}, jwtUserId?: UserId): Request {
   return {

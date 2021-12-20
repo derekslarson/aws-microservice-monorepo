@@ -3,7 +3,7 @@ import errorSerializerObj from "serialize-error";
 import { LogLevel } from "../../enums/logLevel.enum";
 import { ErrorSerializer, ErrorSerializerFactory } from "../../factories/errorSerializer.factory";
 import { LogWriter, LogWriterFactory } from "../../factories/logWriter.factory";
-import { Spied, TestSupport } from "../../test-support";
+import { Spied, TestSupport } from "../../test-support/testSupport.class";
 import { LoggerServiceConfigInterface, LoggerServiceInterface, LoggerService } from "../logger.service";
 
 describe("LoggerService", () => {

@@ -96,12 +96,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     // Secrets
     const messageUploadTokenSecret = SecretsManager.Secret.fromSecretCompleteArn(this, `MessageUploadTokenSecret_${id}`, messageUploadTokenSecretArn);
 
-    // Layers
-    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
-      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
-      code: Lambda.Code.fromAsset("dist/dependencies"),
-    });
-
     // Databases
     const coreTable = new DynamoDB.Table(this, `CoreTable_${id}`, {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
@@ -332,7 +326,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/coreTableEvent"),
       handler: "coreTableEvent.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [
@@ -369,7 +362,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/s3Event"),
       handler: "s3Event.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
@@ -384,7 +376,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
       handler: "sqsEvent.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
@@ -395,7 +386,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacUserServiceNestedStack(this, `YacUserServiceNestedStack_${id}`, {
-      dependencyLayer,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -403,7 +393,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacOrganizationServiceNestedStack(this, `YacOrganizationServiceNestedStack_${id}`, {
-      dependencyLayer,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -411,7 +400,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacTeamServiceNestedStack(this, `YacTeamServiceNestedStack_${id}`, {
-      dependencyLayer,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -419,7 +407,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacGroupServiceNestedStack(this, `YacGroupServiceNestedStack_${id}`, {
-      dependencyLayer,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -427,7 +414,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacMeetingServiceNestedStack(this, `YacMeetingServiceNestedStack_${id}`, {
-      dependencyLayer,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -435,7 +421,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacOneOnOneServiceNestedStack(this, `YacOneOnOneServiceNestedStack_${id}`, {
-      dependencyLayer,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -444,7 +429,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacMessageServiceNestedStack(this, `YacMessageServiceNestedStack_${id}`, {
-      dependencyLayer,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -456,7 +440,6 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacConversationServiceNestedStack(this, `YacConversationServiceNestedStack_${id}`, {
-      dependencyLayer,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,

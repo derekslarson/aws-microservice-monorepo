@@ -1,4 +1,4 @@
-import { UserId } from "../../types";
+import { UserId } from "../../types/userId.type";
 
 export type UserCreatedSnsMessage = {
   id: UserId;

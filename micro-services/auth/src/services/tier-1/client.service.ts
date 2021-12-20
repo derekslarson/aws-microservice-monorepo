@@ -1,6 +1,7 @@
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface } from "@yac/util";
 import { Failcode, ValidationError } from "runtypes";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { IdServiceInterface } from "@yac/util/src/services/id.service";
 import { TYPES } from "../../inversion-of-control/types";
 import { ClientType } from "../../enums/clientType.enum";
 import { Client, ClientRepositoryInterface } from "../../repositories/client.dynamo.repository";

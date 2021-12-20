@@ -1,5 +1,7 @@
 import { Container } from "inversify";
-import { coreContainerModule, DynamoProcessorServiceInterface, SnsProcessorServiceInterface } from "@yac/util";
+import { utilContainerModule } from "@yac/util/src/inversion-of-control/container";
+import { DynamoProcessorServiceInterface } from "@yac/util/src/services/interfaces/dynamo.processor.service.interface";
+import { SnsProcessorServiceInterface } from "@yac/util/src/services/interfaces/sns.processor.service.interface";
 import { TYPES } from "./types";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { MailService, MailServiceInterface } from "../services/tier-1/mail.service";
@@ -14,7 +16,7 @@ import { AuthService, AuthServiceInterface } from "../services/tier-2/auth.servi
 import { AuthController, AuthControllerInterface } from "../controllers/auth.controller";
 import { joseFactory, JoseFactory } from "../factories/jose.factory";
 import { TokenService, TokenServiceInterface } from "../services/tier-1/token.service";
-import { SessionDynamoRepository, SessionRepositoryInterface } from "../repositories/session.dyanmo.repository";
+import { SessionDynamoRepository, SessionRepositoryInterface } from "../repositories/session.dynamo.repository";
 import { pkceChallengeFactory, PkceChallengeFactory } from "../factories/pkceChallenge.factory";
 import { UserController, UserControllerInterface } from "../controllers/user.controller";
 import { JwksDynamoRepository, JwksRepositoryInterface } from "../repositories/jwks.dynamo.repository";
@@ -27,7 +29,7 @@ import { CreateUserRequestSnsProcessorService } from "../processor-services/crea
 const container = new Container();
 
 try {
-  container.load(coreContainerModule);
+  container.load(utilContainerModule);
 
   // Environment Variables
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);

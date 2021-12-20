@@ -1,11 +1,14 @@
 /* eslint-disable max-len */
 import { inject, injectable } from "inversify";
-import { IdServiceInterface, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
 import { JWK } from "node-jose";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { IdServiceInterface } from "@yac/util/src/services/id.service";
+import { NotFoundError } from "@yac/util/src/errors/notFound.error";
+import { UserId } from "@yac/util/src/types/userId.type";
 import { TYPES } from "../../inversion-of-control/types";
 import { Jose, JoseFactory } from "../../factories/jose.factory";
 import { EnvConfigInterface } from "../../config/env.config";
-import { Session, SessionRepositoryInterface, UpdateSessionUpdates } from "../../repositories/session.dyanmo.repository";
+import { Session, SessionRepositoryInterface, UpdateSessionUpdates } from "../../repositories/session.dynamo.repository";
 import { JwksRepositoryInterface } from "../../repositories/jwks.dynamo.repository";
 import { OAuth2Error } from "../../errors/oAuth2.error";
 import { OAuth2ErrorType } from "../../enums/oAuth2ErrorType.enum";

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { SNS } from "aws-sdk";
 import { LoggerServiceInterface, LoggerService } from "../logger.service";
-import { Spied, TestSupport } from "../../test-support";
+import { Spied, TestSupport } from "../../test-support/testSupport.class";
 import { generateAwsResponse } from "../../test-support/generateAwsResponse";
 import { BaseSnsService } from "../base.sns.service";
 import { SnsFactory } from "../../factories/sns.factory";

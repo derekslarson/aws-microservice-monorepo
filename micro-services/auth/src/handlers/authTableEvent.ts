@@ -1,6 +1,7 @@
 import "reflect-metadata";
-import { DynamoStreamControllerInterface, LoggerServiceInterface } from "@yac/util";
 import { DynamoDBStreamEvent } from "aws-lambda";
+import { DynamoStreamControllerInterface } from "@yac/util/src/controllers/dynamoStream.controller";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 

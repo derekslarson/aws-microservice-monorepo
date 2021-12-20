@@ -1,7 +1,7 @@
-import { TYPES as CORE_TYPES } from "@yac/util";
+import { TYPES as UTIL_TYPES } from "@yac/util/src/inversion-of-control/types";
 
 const TYPES = {
-  ...CORE_TYPES,
+  ...UTIL_TYPES,
   EnvConfigInterface: Symbol.for("EnvConfigInterface"),
 
   AuthControllerInterface: Symbol.for("AuthControllerInterface"),

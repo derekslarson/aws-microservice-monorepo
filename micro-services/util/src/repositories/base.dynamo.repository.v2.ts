@@ -8,8 +8,8 @@ import { RecursivePartial } from "../types/recursivePartial.type";
 import { RawEntity } from "../types/raw.entity.type";
 import { CleansedEntity } from "../types/cleansed.entity.type";
 import { NotFoundError } from "../errors/notFound.error";
-import { BadRequestError } from "../errors";
-import { TransactItemType } from "../enums";
+import { BadRequestError } from "../errors/badRequest.error";
+import { TransactItemType } from "../enums/transactItemType.enum";
 
 @injectable()
 export abstract class BaseDynamoRepositoryV2<T> {

@@ -2,14 +2,14 @@
 import DynamoDB, { DocumentClient } from "aws-sdk/clients/dynamodb";
 import { DocumentClientFactory } from "../../factories/documentClient.factory";
 import { LoggerServiceInterface, LoggerService } from "../../services/logger.service";
-import { Spied, TestSupport } from "../../test-support";
+import { Spied, TestSupport } from "../../test-support/testSupport.class";
 import { BaseDynamoRepositoryV2 } from "../base.dynamo.repository.v2";
 import { RecursivePartial } from "../../types/recursivePartial.type";
 import { RawEntity } from "../../types/raw.entity.type";
 import { CleansedEntity } from "../../types/cleansed.entity.type";
 import { generateAwsResponse } from "../../test-support/generateAwsResponse";
 import { NotFoundError } from "../../errors/notFound.error";
-import { BadRequestError } from "../../errors";
+import { BadRequestError } from "../../errors/badRequest.error";
 
 interface Test {
   a: number;

@@ -14,6 +14,7 @@ import {
   AcceptedResponse,
   SeeOtherResponse,
   FoundResponse,
+  NoContentResponse,
 } from "../models/http/response.model";
 import { NotFoundError } from "../errors/notFound.error";
 import { BadRequestError } from "../errors/badRequest.error";
@@ -48,6 +49,14 @@ export abstract class BaseController {
       headers,
       cookies,
       body: JSON.stringify(body),
+    };
+  }
+
+  protected generateNoContentResponse(headers: Record<string, string> = {}, cookies: string[] = []): NoContentResponse {
+    return {
+      statusCode: StatusCode.NoContent,
+      headers,
+      cookies,
     };
   }
 

@@ -11,7 +11,6 @@ export class YacOneOnOneServiceNestedStack extends CDK.NestedStack {
     super(scope, id, props);
 
     const {
-      dependencyLayer,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -23,7 +22,6 @@ export class YacOneOnOneServiceNestedStack extends CDK.NestedStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/createOneOnOnes"),
       handler: "createOneOnOnes.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
@@ -34,7 +32,6 @@ export class YacOneOnOneServiceNestedStack extends CDK.NestedStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/deleteOneOnOne"),
       handler: "deleteOneOnOne.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
@@ -45,7 +42,6 @@ export class YacOneOnOneServiceNestedStack extends CDK.NestedStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getOneOnOnesByUserId"),
       handler: "getOneOnOnesByUserId.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],

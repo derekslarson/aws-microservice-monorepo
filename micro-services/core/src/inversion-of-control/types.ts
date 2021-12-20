@@ -1,7 +1,7 @@
-import { TYPES as BASE_TYPES } from "@yac/util/src/inversion-of-control/types";
+import { TYPES as UTIL_TYPES } from "@yac/util/src/inversion-of-control/types";
 
 const TYPES = {
-  ...BASE_TYPES,
+  ...UTIL_TYPES,
 
   // Controllers
   ConversationControllerInterface: Symbol.for("ConversationControllerInterface"),

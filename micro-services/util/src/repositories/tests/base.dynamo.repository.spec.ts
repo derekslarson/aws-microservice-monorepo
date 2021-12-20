@@ -4,7 +4,7 @@ import { NotFoundError } from "../../errors/notFound.error";
 import { DocumentClientFactory } from "../../factories/documentClient.factory";
 import { IdService, IdServiceInterface } from "../../services/id.service";
 import { LoggerServiceInterface, LoggerService } from "../../services/logger.service";
-import { Spied, TestSupport } from "../../test-support";
+import { Spied, TestSupport } from "../../test-support/testSupport.class";
 import { BaseDynamoRepository } from "../base.dynamo.repository";
 import { RecursivePartial } from "../../types/recursivePartial.type";
 

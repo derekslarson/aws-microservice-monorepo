@@ -18,23 +18,16 @@ import * as CFOrigins from "@aws-cdk/aws-cloudfront-origins";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as S3Deployment from "@aws-cdk/aws-s3-deployment";
 import * as DynamoDB from "@aws-cdk/aws-dynamodb";
-import {
-  Environment,
-  HttpApi,
-  LogLevel,
-  RouteProps,
-  generateExportNames,
-  ProxyRouteProps,
-} from "@yac/util";
-
-import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { Environment } from "@yac/util/src/enums/environment.enum";
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
+import { HttpApi, ProxyRouteProps, RouteProps } from "@yac/util/infra/constructs/http.api";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export type IYacAuthServiceStackProps = IYacHttpServiceProps;
 
 export class YacAuthServiceStack extends YacHttpServiceStack {
-  public readonly api: HttpApi;
-
   constructor(scope: CDK.Construct, id: string, props: IYacAuthServiceStackProps) {
     super(scope, id, { ...props, addAuthorizer: false });
 
@@ -66,12 +59,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     // SQS Queues
     const snsEventSqsQueue = new SQS.Queue(this, `SnsEventSqsQueue_${id}`);
     createUserRequestSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(snsEventSqsQueue));
-
-    // Layers
-    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
-      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
-      code: Lambda.Code.fromAsset("dist/dependencies"),
-    });
 
     // Tables
     const authTable = new DynamoDB.Table(this, `AuthTable_${id}`, {
@@ -177,7 +164,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/authTableEvent"),
       handler: "authTableEvent.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement, userCreatedSnsPublishPolicyStatement ],
@@ -191,7 +177,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
       handler: "sqsEvent.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -205,7 +190,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/authorizer"),
       handler: "authorizer.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -219,7 +203,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/login"),
       handler: "login.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, sendEmailPolicyStatement, sendTextPolicyStatement, authTableFullAccessPolicyStatement ],
@@ -230,7 +213,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/loginViaExternalProvider"),
       handler: "loginViaExternalProvider.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -241,7 +223,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/confirm"),
       handler: "confirm.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -252,7 +233,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/createClient"),
       handler: "createClient.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -263,7 +243,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/oauth2Authorize"),
       handler: "oauth2Authorize.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -274,7 +253,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/oauth2Token"),
       handler: "oauth2Token.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -285,7 +263,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/oauth2Revoke"),
       handler: "oauth2Revoke.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -296,7 +273,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/oauth2UserInfo"),
       handler: "oauth2UserInfo.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -307,7 +283,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/oauth2IdpResponse"),
       handler: "oauth2IdpResponse.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -318,7 +293,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/getPublicJwks"),
       handler: "getPublicJwks.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -329,7 +303,6 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/rotateJwks"),
       handler: "rotateJwks.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
@@ -419,10 +392,8 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: getPublicJwksHandler,
     };
 
-    const routes: RouteProps<string, ApiGatewayV2.HttpMethod>[] = [
-      loginRoute,
+    const routes: RouteProps[] = [
       loginViaExternalProviderRoute,
-      confirmRoute,
       createClientRoute,
       oauth2AuthorizeRoute,
       oauth2TokenRoute,
@@ -432,11 +403,28 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       getPublicJwksRoute,
     ];
 
-    // Proxy Routes
     const proxyRoutes: ProxyRouteProps[] = [];
 
     routes.forEach((route) => this.httpApi.addRoute(route));
     proxyRoutes.forEach((route) => this.httpApi.addProxyRoute(route));
+
+    const otpAuthFlowRoutes: RouteProps[] = [
+      loginRoute,
+      confirmRoute,
+    ];
+
+    const otpFlowApi = new HttpApi(this, `OtpFlowApi_${id}`, {
+      serviceName: "auth-otp",
+      domainName: this.domainName,
+      authorizerHandler,
+      corsPreflight: {
+        allowCredentials: true,
+        allowMethods: [ ApiGatewayV2.CorsHttpMethod.POST ],
+        allowOrigins: [ `https://${authUiCnameRecord.domainName}` ],
+      },
+    });
+
+    otpAuthFlowRoutes.forEach((route) => otpFlowApi.addRoute(route));
 
     new CDK.CfnOutput(this, `AuthorizerHandlerFunctionArnExport_${id}`, {
       exportName: ExportNames.AuthorizerHandlerFunctionArn,

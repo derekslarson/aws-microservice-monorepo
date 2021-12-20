@@ -33,6 +33,7 @@ const variants = {
 
 const CONFIG: IEnvConfig = {
   BASE_URL: new URL(`https://${process.env.REACT_APP_ENVIRONMENT}.yacchat.com/auth`),
+  BASE_URL_OTP_FLOW: new URL(`https://${process.env.REACT_APP_ENVIRONMENT}.yacchat.com/auth-otp`),
   SIGN_IN_PATH: "/login",
   SIGN_IN_EXTERNAL_PROVIDER_PATH: "/login/idp",
   SIGN_UP_PATH: "sign-up",
@@ -88,7 +89,7 @@ const Login: React.FC<ILoginProps> = () => {
       if (isPhoneNumber) {
         phone = /\+\d/.test(email) ? email : `+1${email}`
       }
-      const url = new URL([CONFIG.BASE_URL.pathname, CONFIG.SIGN_IN_PATH].join(""), CONFIG.BASE_URL.origin);
+      const url = new URL([CONFIG.BASE_URL_OTP_FLOW.pathname, CONFIG.SIGN_IN_PATH].join(""), CONFIG.BASE_URL_OTP_FLOW.origin);
       const res: Response = await fetch(
         url.toString(),
         {
@@ -138,7 +139,7 @@ const Login: React.FC<ILoginProps> = () => {
   ) => {
     setRequest((state) => ({ ...state, status: 'LOADING' }))
     try {
-      const url = new URL([CONFIG.BASE_URL.pathname, CONFIG.AUTHENTICATE_PATH].join("/"), CONFIG.BASE_URL.origin);
+      const url = new URL([CONFIG.BASE_URL_OTP_FLOW.pathname, CONFIG.AUTHENTICATE_PATH].join("/"), CONFIG.BASE_URL_OTP_FLOW.origin);
       const res: Response = await fetch(
           url.toString(),
           {
@@ -292,7 +293,7 @@ const Login: React.FC<ILoginProps> = () => {
     >
       <h2>Sign in</h2>
       <span className={'login__form-description'}>
-        We sent a 6 digit code to{' '}
+        We sent a six digit code to{' '}
         <strong>
           {PHONE_REG_EXP.test(email) && !/\+\d/.test(email)
             ? `+1${email}`
@@ -411,6 +412,7 @@ interface ILoader {
 
 interface IEnvConfig {
   BASE_URL: URL,
+  BASE_URL_OTP_FLOW: URL,
   SIGN_IN_PATH: string,
   SIGN_IN_EXTERNAL_PROVIDER_PATH: string,
   SIGN_UP_PATH: string,

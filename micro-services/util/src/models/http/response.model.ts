@@ -30,6 +30,10 @@ export interface AcceptedResponse extends Response {
   statusCode: StatusCode.Accepted;
 }
 
+export interface NoContentResponse extends Response {
+  statusCode: StatusCode.NoContent;
+}
+
 export interface FoundResponse extends Response {
   statusCode: StatusCode.Found;
   headers: {

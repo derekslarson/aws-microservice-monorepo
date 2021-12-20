@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import ksuid from "ksuid";
 import { Ksuid, KsuidFactory } from "../../factories/ksuid.factory";
-import { Spied, TestSupport } from "../../test-support";
+import { Spied, TestSupport } from "../../test-support/testSupport.class
 import { IdService, IdServiceInterface } from "../id.service";
 import { LoggerService } from "../logger.service";
 

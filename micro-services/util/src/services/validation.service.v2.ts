@@ -5,7 +5,7 @@ import { Runtype } from "runtypes/lib/runtype";
 import { TYPES } from "../inversion-of-control/types";
 import { LoggerServiceInterface } from "./logger.service";
 import { Request } from "../models/http/request.model";
-import { ForbiddenError } from "../errors";
+import { ForbiddenError } from "../errors/forbidden.error";
 import { ValidatedRequest } from "../types/validatedRequest.type";
 
 @injectable()

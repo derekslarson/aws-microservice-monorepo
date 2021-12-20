@@ -1,4 +1,4 @@
-import { BaseError } from "@yac/util";
+import { BaseError } from "@yac/util/src/errors/base.error";
 import { OAuth2ErrorType } from "../enums/oAuth2ErrorType.enum";
 
 export class OAuth2Error extends BaseError {
