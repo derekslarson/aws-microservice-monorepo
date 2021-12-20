@@ -1,4 +1,3 @@
-import "source-map-support/register";
 import * as CDK from "@aws-cdk/core";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { YacCoreServiceStack } from "./stacks/yac.core.service.stack";

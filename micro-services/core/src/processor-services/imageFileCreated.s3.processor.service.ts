@@ -1,6 +1,5 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { GroupId, LoggerServiceInterface, MeetingId, OrganizationId, S3ProcessorServiceInterface, S3ProcessorServiceRecord, TeamId, UserId } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
@@ -10,6 +9,13 @@ import { OrganizationServiceInterface } from "../services/tier-1/organization.se
 import { TeamServiceInterface } from "../services/tier-1/team.service";
 import { GroupServiceInterface } from "../services/tier-1/group.service";
 import { MeetingServiceInterface } from "../services/tier-1/meeting.service";
+import { S3ProcessorServiceInterface, S3ProcessorServiceRecord } from "@yac/util/src/services/interfaces/s3.processor.service.interface";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { OrganizationId } from "@yac/util/src/types/organizationId.type";
+import { TeamId } from "@yac/util/src/types/teamId.type";
+import { GroupId } from "@yac/util/src/types/groupId.type";
+import { MeetingId } from "@yac/util/src/types/meetingId.type";
 
 @injectable()
 export class ImageFileCreatedS3ProcessorService implements S3ProcessorServiceInterface {

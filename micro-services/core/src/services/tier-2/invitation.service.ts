@@ -1,5 +1,12 @@
 import { inject, injectable } from "inversify";
-import { GroupId, LoggerServiceInterface, MeetingId, NotFoundError, OrganizationId, Role, TeamId, UserId } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { Role } from "@yac/util/src/enums/role.enum";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { OrganizationId } from "@yac/util/src/types/organizationId.type";
+import { TeamId } from "@yac/util/src/types/teamId.type";
+import { GroupId } from "@yac/util/src/types/groupId.type";
+import { NotFoundError } from "@yac/util/src/errors/notFound.error";
+import { MeetingId } from "@yac/util/src/types/meetingId.type";
 import { OneOnOneServiceInterface } from "../tier-1/oneOnOne.service";
 import { TYPES } from "../../inversion-of-control/types";
 import { GetUserByEmailInput, GetUserByPhoneInput, GetUserByUsernameInput, User, UserServiceInterface } from "../tier-1/user.service";

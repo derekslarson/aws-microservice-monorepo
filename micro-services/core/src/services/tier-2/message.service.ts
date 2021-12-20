@@ -1,7 +1,19 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 /* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
-import { MessageUploadTokenServiceInterface, LoggerServiceInterface, MessageId, FileOperation, ConversationId, UserId, MessageMimeType, MessageFileRepositoryInterface, IdServiceInterface, GroupId, ConversationType, MeetingId, OneOnOneId } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { IdServiceInterface } from "@yac/util/src/services/id.service";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { GroupId } from "@yac/util/src/types/groupId.type";
+import { FileOperation } from "@yac/util/src/enums/fileOperation.enum";
+import { MessageId } from "@yac/util/src/types/messageId.type";
+import { ConversationId } from "@yac/util/src/types/conversationId.type";
+import { MessageMimeType } from "@yac/util/src/enums/message.mimeType.enum";
+import { ConversationType } from "@yac/util/src/enums/conversationType.enum";
+import { OneOnOneId } from "@yac/util/src/types/oneOnOneId.type";
+import { MeetingId } from "@yac/util/src/types/meetingId.type";
+import { MessageUploadTokenServiceInterface } from "@yac/util/src/services/messageUploadToken.service";
+import { MessageFileRepositoryInterface } from "@yac/util/src/repositories/base.message.s3.repository";
 import { RawMessage as RawMessageEntity, Message as MessageEntity, MessageRepositoryInterface, MessageUpdates } from "../../repositories/message.dynamo.repository";
 import { TYPES } from "../../inversion-of-control/types";
 import { SearchRepositoryInterface } from "../../repositories/openSearch.repository";

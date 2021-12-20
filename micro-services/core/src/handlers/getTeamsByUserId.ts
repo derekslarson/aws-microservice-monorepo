@@ -1,5 +1,6 @@
 import "reflect-metadata";
-import { generateInternalServerErrorResponse, LoggerServiceInterface } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { generateInternalServerErrorResponse } from "@yac/util/src/util/internalServerError.response.generator";
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";

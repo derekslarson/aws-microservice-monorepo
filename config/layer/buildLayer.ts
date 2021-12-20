@@ -7,9 +7,8 @@ import { promisify } from "util";
 
 const exec = promisify(callbackExec);
 
-interface SortedDependencies {
-  withYac: Record<string, string>;
-  withoutYac: Record<string, string>;
+interface Dependencies {
+  [key: string]: string;
 }
 
 const greenCheck = "\x1b[32m✓\x1b[0m";
@@ -20,28 +19,31 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "An unexpected error occured";
 }
 
-function fetchDependencies(): SortedDependencies {
+function fetchDependencies(): Dependencies {
   try {
-    const data = readFileSync("./package.json");
+    const utilPackageJsonBuffer = readFileSync("../util/package.json");
+    const microservicePackageJsonBuffer = readFileSync("./package.json");
 
-    const packageJson = JSON.parse(data.toString()) as { dependencies: Record<string, string>; };
+    const utlPackageJson = JSON.parse(utilPackageJsonBuffer.toString()) as { dependencies: Record<string, string>; };
+    const microservicePackageJson = JSON.parse(microservicePackageJsonBuffer.toString()) as { dependencies: Record<string, string>; };
 
-    if (!packageJson.dependencies) {
+    if (!utlPackageJson.dependencies || !microservicePackageJson.dependencies) {
       console.log(`${redX} Dependencies fetched and parsed from package.json\n`);
 
       throw new Error("Error parsing package.json: No dependencies in package.json");
     }
 
-    const sortedDependencies: SortedDependencies = {
-      withYac: { ...packageJson.dependencies },
-      withoutYac: { ...packageJson.dependencies },
+    const dependencies: Dependencies = {
+      ...utlPackageJson.dependencies,
+      ...microservicePackageJson.dependencies,
     };
 
-    delete sortedDependencies.withoutYac["@yac/util"];
+    delete dependencies["@yac/util"];
+    delete dependencies["aws-sdk"];
 
     console.log(`${greenCheck} Dependencies fetched and parsed from package.json\n`);
 
-    return sortedDependencies;
+    return dependencies;
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
 
@@ -69,37 +71,19 @@ function createLayerPackageJson(dependencies: Record<string, string>, update?: b
   }
 }
 
-async function installExternalDependencies(dependencies: Record<string, string>): Promise<void> {
+async function installDependencies(dependencies: Record<string, string>): Promise<void> {
   try {
     createLayerPackageJson(dependencies);
 
-    await exec("cd ./dist/dependencies/nodejs && npm install");
+    await exec("cd ./dist/dependencies/nodejs && npm install --production");
 
-    console.log(`${greenCheck} External dependencies installed\n`);
+    console.log(`${greenCheck} Dependencies installed\n`);
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
 
-    console.log(`${redX} External dependencies installed\n`);
+    console.log(`${redX} Dependencies installed\n`);
 
-    throw new Error(`Error installing external dependencies: ${errorMessage}`);
-  }
-}
-
-async function installYacUtil(dependencies: Record<string, string>): Promise<void> {
-  try {
-    createLayerPackageJson(dependencies, true);
-
-    mkdirSync("./dist/dependencies/nodejs/node_modules/@yac", { recursive: true });
-
-    await exec("cp -r ../util/lib ./dist/dependencies/nodejs/node_modules/@yac/util");
-
-    console.log(`${greenCheck} @yac/util installed\n`);
-  } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error);
-
-    console.log(`${redX} @yac/util installed\n`);
-
-    throw new Error(`Error installing @yac/util: ${errorMessage}`);
+    throw new Error(`Error installing dependencies: ${errorMessage}`);
   }
 }
 
@@ -109,11 +93,7 @@ async function installYacUtil(dependencies: Record<string, string>): Promise<voi
 
     const dependencies = fetchDependencies();
 
-    await installExternalDependencies(dependencies.withoutYac);
-
-    if ("@yac/util" in dependencies.withYac) {
-      await installYacUtil(dependencies.withYac);
-    }
+    await installDependencies(dependencies);
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
 

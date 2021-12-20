@@ -1,5 +1,6 @@
 import "reflect-metadata";
-import { LoggerServiceInterface, SqsEventControllerInterface } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { SqsEventControllerInterface } from "@yac/util/src/controllers/sqsEvent.controller";
 import { SQSEvent } from "aws-lambda";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";

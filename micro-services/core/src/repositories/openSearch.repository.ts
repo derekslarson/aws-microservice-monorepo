@@ -1,6 +1,16 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, AxiosFactory, Axios, BadRequestError, MakeRequired, UserId, GroupId, MeetingId, TeamId, MessageId, OrganizationId, ConversationId } from "@yac/util";
+import { Axios, AxiosFactory } from "@yac/util/src/factories/axios.factory";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { OrganizationId } from "@yac/util/src/types/organizationId.type";
+import { TeamId } from "@yac/util/src/types/teamId.type";
+import { ConversationId } from "@yac/util/src/types/conversationId.type";
+import { GroupId } from "@yac/util/src/types/groupId.type";
+import { MeetingId } from "@yac/util/src/types/meetingId.type";
+import { MakeRequired } from "@yac/util/src/types/makeRequired.type";
+import { MessageId } from "@yac/util/src/types/messageId.type";
+import { BadRequestError } from "@yac/util/src/errors/badRequest.error";
 import { Aws4, Aws4Factory } from "../factories/aws4.factory";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
@@ -188,7 +198,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
 
       return {
-        usersGroupsAndMeetings: results as UserGroupOrMeetingOnlyIdRequired[],
+        usersGroupsAndMeetings: results as (UserOnlyIdRequired | GroupOnlyIdRequired | MeetingOnlyIdRequired)[],
         lastEvaluatedKey,
       };
     } catch (error: unknown) {

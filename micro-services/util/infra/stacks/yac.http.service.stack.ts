@@ -7,7 +7,7 @@ import * as SSM from "@aws-cdk/aws-ssm";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import { HttpApi } from "../constructs/http.api";
 import { Environment } from "../../src/enums/environment.enum";
-import { generateExportNames } from "../..";
+import { generateExportNames } from "../../src/enums/exportNames.enum";
 
 export interface IYacHttpServiceProps extends CDK.StackProps {
   serviceName: string;

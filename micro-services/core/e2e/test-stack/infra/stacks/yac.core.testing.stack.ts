@@ -72,7 +72,7 @@ export class YacCoreTestingStack extends CDK.Stack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
       handler: "snsEvent.handler",
-      layers: [ dependencyLayer ],
+//    layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, snsEventTableFullAccessPolicyStatement ],

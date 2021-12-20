@@ -1,6 +1,11 @@
 /* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, OneOnOneId, OrganizationId, Role, TeamId, UserId } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { Role } from "@yac/util/src/enums/role.enum";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { OrganizationId } from "@yac/util/src/types/organizationId.type";
+import { TeamId } from "@yac/util/src/types/teamId.type";
+import { OneOnOneId } from "@yac/util/src/types/oneOnOneId.type";
 import { OneOnOne as OneOnOneEntity, OneOnOneRepositoryInterface } from "../../repositories/oneOnOne.dynamo.repository";
 import { OneOnOneMembership as OneOnOneMembershipEntity, MembershipRepositoryInterface } from "../../repositories/membership.dynamo.repository";
 import { TYPES } from "../../inversion-of-control/types";

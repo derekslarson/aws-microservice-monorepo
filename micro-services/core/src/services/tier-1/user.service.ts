@@ -1,5 +1,8 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, UserId, FileOperation, WithRole } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { FileOperation } from "@yac/util/src/enums/fileOperation.enum";
+import { WithRole } from "@yac/util/src/types/withRole.type";
 import { RawUser as RawUserEntity, User as UserEntity, UserRepositoryInterface, UserUpdates } from "../../repositories/user.dynamo.repository";
 import { ImageFileRepositoryInterface } from "../../repositories/image.s3.repository";
 import { TYPES } from "../../inversion-of-control/types";

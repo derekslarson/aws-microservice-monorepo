@@ -2,25 +2,24 @@
 import "reflect-metadata";
 import {
   BaseS3Repository,
-  IdServiceInterface,
-  LoggerServiceInterface,
-  S3Factory,
   UploadFileInput as BaseUploadFileInput,
   UploadFileOutput as BaseUploadFileOutput,
   GetSignedUrlInput as BaseGetSignedUrlInput,
   GetSignedUrlOutput as BaseGetSignedUrlOutput,
-  FileOperation,
-  OrganizationId,
-  UserId,
-  TeamId,
-  GroupId,
-  MeetingId,
-} from "@yac/util";
+} from "@yac/util/src/repositories/base.s3.repository";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { TeamId } from "@yac/util/src/types/teamId.type";
+import { OrganizationId } from "@yac/util/src/types/organizationId.type";
+import { GroupId } from "@yac/util/src/types/groupId.type";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { MeetingId } from "@yac/util/src/types/meetingId.type";
 import { injectable, inject } from "inversify";
+import { S3Factory } from "@yac/util/src/factories/s3.factory";
+import { IdServiceInterface } from "@yac/util/src/services/id.service";
+import { FileOperation } from "@yac/util/src/enums/fileOperation.enum";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { ImageMimeType } from "../enums/image.mimeType.enum";
-
 import { EntityType } from "../enums/entityType.enum";
 import { Identicon, IdenticonFactory } from "../factories/identicon.factory";
 
@@ -210,7 +209,7 @@ export type UploadFileInput = BaseUploadFileInput | UploadFileByIdAndMimeTypeInp
 export type UploadFileOutput = BaseUploadFileOutput;
 
 interface GetSignedUrlByIdAndMimeTypeInput {
-  operation: FileOperation,
+  operation: FileOperation;
   entityType: ImageEntityType;
   entityId: ImageEntityId;
   mimeType: ImageMimeType;

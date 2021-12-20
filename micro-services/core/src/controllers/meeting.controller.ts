@@ -1,6 +1,13 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, Meeting, MeetingByUserId } from "@yac/util";
+import { BaseController } from "@yac/util/src/controllers/base.controller";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { ValidationServiceV2Interface } from "@yac/util/src/services/validation.service.v2";
+import { Meeting } from "@yac/util/src/api-contracts/business-objects/meeting.model";
+import { MeetingByUserId } from "@yac/util/src/api-contracts/business-objects/meetingByUserId.model";
+import { Request } from "@yac/util/src/models/http/request.model";
+import { Response } from "@yac/util/src/models/http/response.model";
+import { ForbiddenError } from "@yac/util/src/errors/forbidden.error";
 import { TYPES } from "../inversion-of-control/types";
 import { CreateMeetingDto } from "../dtos/createMeeting.dto";
 import { GetMeetingDto } from "../dtos/getMeeting.dto";

@@ -7,7 +7,6 @@ class DevConfig extends BaseConfig {
     this.mode = "development"
     this.output.devtoolModuleFilenameTemplate = "[absolute-resource-path]";
     this.output.devtoolFallbackModuleFilenameTemplate = "[absolute-resource-path]?[hash]";
-    this.devtool = "source-map";
   }
 }
 

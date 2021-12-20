@@ -1,7 +1,17 @@
 /* eslint-disable no-nested-ternary */
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, ConversationId, DocumentClientFactory, GroupId, LoggerServiceInterface, MeetingId, OneOnOneId, OrganizationId, Role, TeamId, UserId } from "@yac/util";
+import { BaseDynamoRepositoryV2 } from "@yac/util/src/repositories/base.dynamo.repository.v2";
+import { DocumentClientFactory } from "@yac/util/src/factories/documentClient.factory";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { TeamId } from "@yac/util/src/types/teamId.type";
+import { OrganizationId } from "@yac/util/src/types/organizationId.type";
+import { GroupId } from "@yac/util/src/types/groupId.type";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { MeetingId } from "@yac/util/src/types/meetingId.type";
+import { OneOnOneId } from "@yac/util/src/types/oneOnOneId.type";
+import { Role } from "@yac/util/src/enums/role.enum";
+import { ConversationId } from "@yac/util/src/types/conversationId.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";

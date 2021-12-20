@@ -7,13 +7,10 @@ import { SqsEventController, SqsEventControllerInterface } from "../controllers/
 import { IdService, IdServiceInterface } from "../services/id.service";
 import { HttpRequestService, HttpRequestServiceInterface } from "../services/http.request.service";
 import { LoggerService, LoggerServiceInterface } from "../services/logger.service";
-import { ValidationService, ValidationServiceInterface } from "../services/validation.service";
 import { ValidationServiceV2, ValidationServiceV2Interface } from "../services/validation.service.v2";
 import { RawMessageS3Repository } from "../repositories/rawMessage.s3.repository";
 
 import { axiosFactory, AxiosFactory } from "../factories/axios.factory";
-import { classTransformerFactory, ClassTransformerFactory } from "../factories/classTransformer.factory";
-import { classValidatorFactory, ClassValidatorFactory } from "../factories/classValidator.factory";
 import { cryptoFactory, CryptoFactory } from "../factories/crypto.factory";
 import { documentClientFactory, DocumentClientFactory } from "../factories/documentClient.factory";
 import { errorSerializerFactory, ErrorSerializerFactory } from "../factories/errorSerializer.factory";
@@ -24,7 +21,6 @@ import { ksuidFactory, KsuidFactory } from "../factories/ksuid.factory";
 import { s3Factory, S3Factory } from "../factories/s3.factory";
 import { snsFactory, SnsFactory } from "../factories/sns.factory";
 import { unmarshallFactory, UnmarshallFactory } from "../factories/unmarshall.factory";
-import { uuidV4Factory, UuidV4Factory } from "../factories/uuidV4.factory";
 import { S3EventController, S3EventControllerInterface } from "../controllers/s3Event.controller";
 import { DynamoStreamController, DynamoStreamControllerInterface } from "../controllers/dynamoStream.controller";
 import { SmsService, SmsServiceInterface } from "../services/sms.service";
@@ -35,7 +31,7 @@ import { fsFactory, FsFactory } from "../factories/fs.factory";
 import { pathFactory, PathFactory } from "../factories/path.factory";
 import { googleOAuth2ClientFactory, GoogleOAuth2ClientFactory } from "../factories/google.oAuth2ClientFactory";
 
-const coreContainerModule = new ContainerModule((bind) => {
+const utilContainerModule = new ContainerModule((bind) => {
   try {
     bind<DynamoStreamControllerInterface>(TYPES.DynamoStreamControllerInterface).to(DynamoStreamController);
     bind<S3EventControllerInterface>(TYPES.S3EventControllerInterface).to(S3EventController);
@@ -47,15 +43,12 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<LoggerServiceInterface>(TYPES.LoggerServiceInterface).to(LoggerService);
     bind<MessageUploadTokenServiceInterface>(TYPES.MessageUploadTokenServiceInterface).to(MessageUploadTokenService);
     bind<SmsServiceInterface>(TYPES.SmsServiceInterface).to(SmsService);
-    bind<ValidationServiceInterface>(TYPES.ValidationServiceInterface).to(ValidationService);
     bind<ValidationServiceV2Interface>(TYPES.ValidationServiceV2Interface).to(ValidationServiceV2);
 
     bind<MessageFileRepositoryInterface>(TYPES.EnhancedMessageFileRepositoryInterface).to(EnhancedMessageS3Repository);
     bind<MessageFileRepositoryInterface>(TYPES.RawMessageFileRepositoryInterface).to(RawMessageS3Repository);
 
     bind<AxiosFactory>(TYPES.AxiosFactory).toFactory(() => axiosFactory);
-    bind<ClassTransformerFactory>(TYPES.ClassTransformerFactory).toFactory(() => classTransformerFactory);
-    bind<ClassValidatorFactory>(TYPES.ClassValidatorFactory).toFactory(() => classValidatorFactory);
     bind<CryptoFactory>(TYPES.CryptoFactory).toFactory(() => cryptoFactory);
     bind<DocumentClientFactory>(TYPES.DocumentClientFactory).toFactory(() => documentClientFactory);
     bind<ErrorSerializerFactory>(TYPES.ErrorSerializerFactory).toFactory(() => errorSerializerFactory);
@@ -69,7 +62,6 @@ const coreContainerModule = new ContainerModule((bind) => {
     bind<SecretsManagerFactory>(TYPES.SecretsManagerFactory).toFactory(() => secretsManagerFactory);
     bind<SnsFactory>(TYPES.SnsFactory).toFactory(() => snsFactory);
     bind<UnmarshallFactory>(TYPES.UnmarshallFactory).toFactory(() => unmarshallFactory);
-    bind<UuidV4Factory>(TYPES.UuidV4Factory).toFactory(() => uuidV4Factory);
   } catch (error: unknown) {
     // eslint-disable-next-line no-console
     console.log("Error initializing container. Error:\n", error);
@@ -79,6 +71,6 @@ const coreContainerModule = new ContainerModule((bind) => {
 });
 
 const container = new Container();
-container.load(coreContainerModule);
+container.load(utilContainerModule);
 
-export { coreContainerModule, container };
+export { utilContainerModule, container };

@@ -1,6 +1,11 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, BillingPlan, DocumentClientFactory, LoggerServiceInterface, OrganizationId, UserId } from "@yac/util";
+import { BaseDynamoRepositoryV2 } from "@yac/util/src/repositories/base.dynamo.repository.v2";
+import { DocumentClientFactory } from "@yac/util/src/factories/documentClient.factory";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { OrganizationId } from "@yac/util/src/types/organizationId.type";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { BillingPlan } from "@yac/util/src/enums/billingPlan.enum";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { ImageMimeType } from "../enums/image.mimeType.enum";

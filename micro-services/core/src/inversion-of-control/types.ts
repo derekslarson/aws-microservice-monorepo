@@ -1,7 +1,7 @@
-import { TYPES as CORE_TYPES } from "@yac/util";
+import { TYPES as BASE_TYPES } from "@yac/util/src/inversion-of-control/types";
 
 const TYPES = {
-  ...CORE_TYPES,
+  ...BASE_TYPES,
 
   // Controllers
   ConversationControllerInterface: Symbol.for("ConversationControllerInterface"),
@@ -26,15 +26,18 @@ const TYPES = {
   UserServiceInterface: Symbol.for("UserServiceInterface"),
 
   // S3 Processor Services
+  S3ProcessorServicesInterface: Symbol.for("S3ProcessorServicesInterface"),
   ImageFileCreatedS3ProcessorServiceInterface: Symbol.for("ImageFileCreatedS3ProcessorServiceInterface"),
 
   // SNS Processor Services
+  SnsProcessorServicesInterface: Symbol.for("SnsProcessorServicesInterface"),
   MessageTranscodedSnsProcessorServiceInterface: Symbol.for("MessageTranscodedSnsProcessorServiceInterface"),
   MessageTranscribedSnsProcessorServiceInterface: Symbol.for("MessageTranscribedSnsProcessorServiceInterface"),
   UserCreatedSnsProcessorServiceInterface: Symbol.for("UserCreatedSnsProcessorServiceInterface"),
   BillingPlanUpdatedSnsProcessorServiceInterface: Symbol.for("BillingPlanUpdatedSnsProcessorServiceInterface"),
 
   // Dynamo Processor Services
+  DynamoProcessorServicesInterface: Symbol.for("DynamoProcessorServicesInterface"),
   UserCreatedDynamoProcessorServiceInterface: Symbol.for("UserCreatedDynamoProcessorServiceInterface"),
   OrganizationCreatedDynamoProcessorServiceInterface: Symbol.for("OrganizationCreatedDynamoProcessorServiceInterface"),
   UserAddedToOrganizationDynamoProcessorServiceInterface: Symbol.for("UserAddedToOrganizationDynamoProcessorServiceInterface"),

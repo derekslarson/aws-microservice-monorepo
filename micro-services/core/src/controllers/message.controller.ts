@@ -1,6 +1,14 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { Message, BaseController, LoggerServiceInterface, Request, Response, ForbiddenError, ValidationServiceV2Interface, GroupId, MeetingId } from "@yac/util";
+import { BaseController } from "@yac/util/src/controllers/base.controller";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { ValidationServiceV2Interface } from "@yac/util/src/services/validation.service.v2";
+import { Message } from "@yac/util/src/api-contracts/business-objects/message.model";
+import { Request } from "@yac/util/src/models/http/request.model";
+import { Response } from "@yac/util/src/models/http/response.model";
+import { ForbiddenError } from "@yac/util/src/errors/forbidden.error";
+import { GroupId } from "@yac/util/src/types/groupId.type";
+import { MeetingId } from "@yac/util/src/types/meetingId.type";
 import { TYPES } from "../inversion-of-control/types";
 import { CreateOneOnOneMessageDto } from "../dtos/createOneOnOneMessage.dto";
 import { CreateGroupMessageDto } from "../dtos/createGroupMessage.dto";

@@ -1,7 +1,15 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepositoryV2, CleansedEntity, ConversationId, DocumentClientFactory, LoggerServiceInterface, MessageId, MessageMimeType, RawEntity, UserId } from "@yac/util";
+import { BaseDynamoRepositoryV2 } from "@yac/util/src/repositories/base.dynamo.repository.v2";
+import { DocumentClientFactory } from "@yac/util/src/factories/documentClient.factory";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { ConversationId } from "@yac/util/src/types/conversationId.type";
 import DynamoDB from "aws-sdk/clients/dynamodb";
+import { MessageId } from "@yac/util/src/types/messageId.type";
+import { MessageMimeType } from "@yac/util/src/enums/message.mimeType.enum";
+import { RawEntity } from "@yac/util/src/types/raw.entity.type";
+import { CleansedEntity } from "@yac/util/src/types/cleansed.entity.type";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { EntityType } from "../enums/entityType.enum";

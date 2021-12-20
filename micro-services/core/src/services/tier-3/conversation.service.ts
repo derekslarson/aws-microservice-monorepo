@@ -1,6 +1,15 @@
 /* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
-import { ConversationId, ConversationType, GroupId, LoggerServiceInterface, MeetingId, NotFoundError, OneOnOneId, OrganizationId, TeamId, UserId } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { GroupId } from "@yac/util/src/types/groupId.type";
+import { ConversationId } from "@yac/util/src/types/conversationId.type";
+import { ConversationType } from "@yac/util/src/enums/conversationType.enum";
+import { OneOnOneId } from "@yac/util/src/types/oneOnOneId.type";
+import { MeetingId } from "@yac/util/src/types/meetingId.type";
+import { OrganizationId } from "@yac/util/src/types/organizationId.type";
+import { TeamId } from "@yac/util/src/types/teamId.type";
+import { NotFoundError } from "@yac/util/src/errors/notFound.error";
 import { TYPES } from "../../inversion-of-control/types";
 import { Meeting as MeetingEntity, MeetingByUserId as MeetingByUserIdEntity, MeetingServiceInterface } from "../tier-1/meeting.service";
 import { Group as GroupEntity, GroupByUserId as GroupByUserIdEntity, GroupServiceInterface } from "../tier-1/group.service";

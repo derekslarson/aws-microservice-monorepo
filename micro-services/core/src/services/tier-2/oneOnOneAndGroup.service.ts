@@ -1,6 +1,9 @@
 /* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
-import { GroupId, LoggerServiceInterface, OneOnOneId, UserId } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { GroupId } from "@yac/util/src/types/groupId.type";
+import { OneOnOneId } from "@yac/util/src/types/oneOnOneId.type";
 import { TYPES } from "../../inversion-of-control/types";
 import { MembershipFetchType } from "../../enums/membershipFetchType.enum";
 import { MembershipType } from "../../enums/membershipType.enum";

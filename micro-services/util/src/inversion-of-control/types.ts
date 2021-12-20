@@ -11,8 +11,6 @@ const TYPES = {
   LoggerServiceInterface: Symbol.for("LoggerServiceInterface"),
   MessageUploadTokenServiceInterface: Symbol.for("MessageUploadTokenServiceInterface"),
   SmsServiceInterface: Symbol.for("SmsServiceInterface"),
-  UserSignedUpSnsServiceInterface: Symbol.for("UserSignedUpSnsServiceInterface"),
-  ValidationServiceInterface: Symbol.for("ValidationServiceInterface"),
   ValidationServiceV2Interface: Symbol.for("ValidationServiceV2Interface"),
 
   DynamoProcessorServicesInterface: Symbol.for("DynamoProcessorServicesInterface"),
@@ -38,7 +36,6 @@ const TYPES = {
   SecretsManagerFactory: Symbol.for("SecretsManagerFactory"),
   SnsFactory: Symbol.for("SnsFactory"),
   UnmarshallFactory: Symbol.for("UnmarshallFactory"),
-  UuidV4Factory: Symbol.for("UuidV4Factory"),
 };
 
 export { TYPES };

@@ -1,5 +1,13 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, MeetingId, NotFoundError, OrganizationId, Role, TeamId, UserId, IdServiceInterface, FileOperation } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { IdServiceInterface } from "@yac/util/src/services/id.service";
+import { Role } from "@yac/util/src/enums/role.enum";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { OrganizationId } from "@yac/util/src/types/organizationId.type";
+import { TeamId } from "@yac/util/src/types/teamId.type";
+import { NotFoundError } from "@yac/util/src/errors/notFound.error";
+import { FileOperation } from "@yac/util/src/enums/fileOperation.enum";
+import { MeetingId } from "@yac/util/src/types/meetingId.type";
 import { RawMeeting as RawMeetingEntity, Meeting as MeetingEntity, MeetingRepositoryInterface, MeetingUpdates } from "../../repositories/meeting.dynamo.repository";
 import { MeetingMembership as MeetingMembershipEntity, MembershipRepositoryInterface } from "../../repositories/membership.dynamo.repository";
 import { ImageFileRepositoryInterface } from "../../repositories/image.s3.repository";

@@ -1,6 +1,8 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, BillingPlanUpdatedSnsMessage } from "@yac/util";
+import { SnsProcessorServiceInterface, SnsProcessorServiceRecord } from "@yac/util/src/services/interfaces/sns.processor.service.interface";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { BillingPlanUpdatedSnsMessage } from "@yac/util/src/api-contracts/sns-topics/billingPlanUpdated.snsMessage.model";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { OrganizationServiceInterface } from "../services/tier-1/organization.service";

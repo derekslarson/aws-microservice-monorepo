@@ -1,4 +1,3 @@
-import "source-map-support/register";
 import * as CDK from "@aws-cdk/core";
 import { Environment } from "@yac/util";
 import { YacTranscriptionTestingStack } from "./stacks/yac.transcription.testing.stack";

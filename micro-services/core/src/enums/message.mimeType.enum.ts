@@ -1,1 +1,1 @@
-export { MessageMimeType } from "@yac/util";
+export { MessageMimeType } from "@yac/util/src/enums/message.mimeType.enum";

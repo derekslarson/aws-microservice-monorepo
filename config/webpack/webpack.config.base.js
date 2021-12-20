@@ -36,7 +36,10 @@ class BaseConfig {
       extensions: [ ".js", ".ts" ],
     };
 
-    this.externals = [ /^[^.]/ ];
+    // this.externals = [ /^((?!(@yac|\.)).)/ ];
+
+    this.target = "node";
+    this.externals = [ /^aws-sdk/ ];
 
     this.module = {
       rules: [
@@ -53,6 +56,7 @@ class BaseConfig {
 
     this.optimization = {
       minimize: true,
+      usedExports: true,
       minimizer: [
         new TerserPlugin({
           terserOptions: {
