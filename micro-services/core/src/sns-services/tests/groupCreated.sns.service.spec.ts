@@ -24,7 +24,7 @@
 //     id: mockGroupId,
 //     name: "mock-name",
 //     image: "mock-image",
-//     createdBy: "user-mock-id",
+//     createdBy: "user_mock-id",
 //     createdAt: new Date().toISOString(),
 //   };
 

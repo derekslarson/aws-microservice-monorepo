@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, MeetingId, NotFoundError, OrganizationId, Role, TeamId, UserId, WithRole, IdServiceInterface, FileOperation } from "@yac/util";
+import { LoggerServiceInterface, MeetingId, NotFoundError, OrganizationId, Role, TeamId, UserId, IdServiceInterface, FileOperation } from "@yac/util";
 import { RawMeeting as RawMeetingEntity, Meeting as MeetingEntity, MeetingRepositoryInterface, MeetingUpdates } from "../../repositories/meeting.dynamo.repository";
 import { MeetingMembership as MeetingMembershipEntity, MembershipRepositoryInterface } from "../../repositories/membership.dynamo.repository";
 import { ImageFileRepositoryInterface } from "../../repositories/image.s3.repository";
@@ -543,4 +543,4 @@ export interface GetMeetingsBySearchTermOutput {
   lastEvaluatedKey?: string;
 }
 
-type MeetingSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getMeetingsBySearchTerm" | "getMeetingsBySearchTerm">;
+type MeetingSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getMeetingsBySearchTerm">;

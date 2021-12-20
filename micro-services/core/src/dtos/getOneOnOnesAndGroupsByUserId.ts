@@ -6,6 +6,7 @@ export const GetOneOnOnesAndGroupsByUserIdDto = Record({
   pathParameters: Record({ userId: UserId }),
   queryStringParameters: Record({
     exclusiveStartKey: Optional(String),
+    searchTerm: Optional(String),
     limit: Optional(Limit),
   }),
 });

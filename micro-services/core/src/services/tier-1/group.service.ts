@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, GroupId, NotFoundError, OrganizationId, Role, TeamId, UserId, WithRole, IdServiceInterface, FileOperation } from "@yac/util";
+import { LoggerServiceInterface, GroupId, NotFoundError, OrganizationId, Role, TeamId, UserId, IdServiceInterface, FileOperation } from "@yac/util";
 import { RawGroup as RawGroupEntity, Group as GroupEntity, GroupRepositoryInterface, GroupUpdates } from "../../repositories/group.dynamo.repository";
 import { GroupMembership as GroupMembershipEntity, MembershipRepositoryInterface } from "../../repositories/membership.dynamo.repository";
 import { ImageFileRepositoryInterface } from "../../repositories/image.s3.repository";
@@ -528,4 +528,4 @@ export interface GetGroupsBySearchTermOutput {
   lastEvaluatedKey?: string;
 }
 
-type GroupSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getGroupsBySearchTerm" | "getMeetingsBySearchTerm">;
+type GroupSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getGroupsBySearchTerm">;

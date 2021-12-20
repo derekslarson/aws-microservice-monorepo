@@ -438,4 +438,4 @@ export interface GetOrganizationsBySearchTermOutput {
   lastEvaluatedKey?: string;
 }
 
-type OrganizationSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getOrganizationsBySearchTerm" | "getMeetingsBySearchTerm">;
+type OrganizationSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getOrganizationsBySearchTerm">;

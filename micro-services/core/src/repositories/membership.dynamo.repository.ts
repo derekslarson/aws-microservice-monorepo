@@ -84,7 +84,7 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
     }
   }
 
-  public async updateMembership(params: UpdateMembershipInput): Promise<UpdateMembershipOutput> {
+  public async updateMembership<T extends EntityId>(params: UpdateMembershipInput<T>): Promise<UpdateMembershipOutput> {
     try {
       this.loggerService.trace("updateMembership called", { params }, this.constructor.name);
 
@@ -106,7 +106,7 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
         }
       }
 
-      if (this.isUpdateMeetingMembershipInput(params) && params.updates.dueAt) {
+      if ("dueAt" in params.updates && params.updates.dueAt) {
         rawUpdates.gsi3sk = `${KeyPrefix.Membership}${MembershipType.Meeting}_${KeyPrefix.Due}${params.updates.dueAt}`;
       }
 
@@ -264,18 +264,6 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
     }
   }
 
-  private isUpdateMeetingMembershipInput(params: UpdateMembershipInput): params is UpdateMeetingMembershipInput {
-    try {
-      this.loggerService.trace("isUpdateMeetingMembershipInput called", { params }, this.constructor.name);
-
-      return params.entityId.startsWith(KeyPrefix.Meeting);
-    } catch (error: unknown) {
-      this.loggerService.error("Error in isUpdateMeetingMembershipInput", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
   private getMembershipTypeFromEntityId(params: GetMembershipTypeFromEntityIdInput): GetMembershipTypeFromEntityIdOutput {
     try {
       this.loggerService.trace("getMembershipTypeFromEntityId called", { params }, this.constructor.name);
@@ -310,7 +298,7 @@ export class MembershipDynamoRepository extends BaseDynamoRepositoryV2<Membershi
 export interface MembershipRepositoryInterface {
   createMembership(params: CreateMembershipInput): Promise<CreateMembershipOutput>;
   getMembership(params: GetMembershipInput): Promise<GetMembershipOutput>;
-  updateMembership(params: UpdateMembershipInput): Promise<UpdateMembershipOutput>;
+  updateMembership<T extends EntityId>(params: UpdateMembershipInput<T>): Promise<UpdateMembershipOutput>;
   incrementUnreadMessages(params: IncrementUnreadMessagesInput): Promise<IncrementUnreadMessagesOutput>;
   resetUnreadMessages(params: ResetUnreadMessagesInput): Promise<ResetUnreadMessagesOutput>;
   deleteMembership(params: DeleteMembershipInput): Promise<DeleteMembershipOutput>;
@@ -411,7 +399,11 @@ export interface GetMembershipOutput {
 
 export type MembershipUpdates = NormalMembershipUpdates | MeetingMembershipUpdates;
 
-export type UpdateMembershipInput = UpdateNormalMembershipInput | UpdateMeetingMembershipInput;
+export interface UpdateMembershipInput<T extends EntityId> {
+  userId: UserId;
+  entityId: T;
+  updates: T extends MeetingId ? MeetingMembershipUpdates : NormalMembershipUpdates;
+}
 
 export interface UpdateMembershipOutput {
   membership: Membership;
@@ -478,18 +470,6 @@ interface BaseMembership {
 
 type NormalMembershipUpdates = Partial<Pick<Membership, "role" | "activeAt" | "userName">>;
 type MeetingMembershipUpdates = Partial<Pick<MeetingMembership, "role" | "activeAt" | "userName" | "dueAt">>;
-
-interface UpdateNormalMembershipInput {
-  userId: UserId;
-  entityId: EntityId;
-  updates: NormalMembershipUpdates;
-}
-
-interface UpdateMeetingMembershipInput extends UpdateNormalMembershipInput {
-  userId: UserId;
-  entityId: MeetingId;
-  updates: MeetingMembershipUpdates;
-}
 
 type RawMembershipUpdates = MembershipUpdates & { gsi1sk?: Gsi1Sk; gsi2sk?: Gsi2Sk; gsi3sk?: Gsi3Sk; };
 

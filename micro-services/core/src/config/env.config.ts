@@ -24,12 +24,8 @@ export const envConfig: EnvConfigInterface = {
     userRemovedFromGroup: process.env.USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN || "",
     userRemovedFromMeeting: process.env.USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN || "",
     userRemovedAsFriend: process.env.USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN || "",
-    friendMessageCreated: process.env.FRIEND_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
-    groupMessageCreated: process.env.GROUP_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
-    meetingMessageCreated: process.env.MEETING_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
-    friendMessageUpdated: process.env.FRIEND_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
-    groupMessageUpdated: process.env.GROUP_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
-    meetingMessageUpdated: process.env.MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
+    messageCreated: process.env.MESSAGE_CREATED_SNS_TOPIC_ARN || "",
+    messageUpdated: process.env.MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
     messageTranscoded: process.env.MESSAGE_TRANSCODED_SNS_TOPIC_ARN || "",
     messageTranscribed: process.env.MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN || "",
     createUserRequest: process.env.CREATE_USER_REQUEST_SNS_TOPIC_ARN || "",
@@ -64,12 +60,8 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     userRemovedFromGroup: string;
     userRemovedFromMeeting: string;
     userRemovedAsFriend: string;
-    friendMessageCreated: string;
-    groupMessageCreated: string;
-    meetingMessageCreated: string;
-    friendMessageUpdated: string;
-    groupMessageUpdated: string;
-    meetingMessageUpdated: string;
+    messageCreated: string;
+    messageUpdated: string;
     messageTranscoded: string;
     messageTranscribed: string;
     createUserRequest: string;

@@ -13,19 +13,17 @@ const TYPES = {
   TeamControllerInterface: Symbol.for("TeamControllerInterface"),
   UserControllerInterface: Symbol.for("UserControllerInterface"),
 
-  // Orchestrator Services
-  ConversationOrchestratorServiceInterface: Symbol.for("ConversationOrchestratorServiceInterface"),
-  InvitationOrchestratorServiceInterface: Symbol.for("InvitationOrchestratorServiceInterface"),
-
-  // Mediator Services
-  OneOnOneMediatorServiceInterface: Symbol.for("OneOnOneMediatorServiceInterface"),
-  GroupMediatorServiceInterface: Symbol.for("GroupMediatorServiceInterface"),
-  OneOnOneAndGroupMediatorServiceInterface: Symbol.for("OneOnOneAndGroupMediatorServiceInterface"),
-  MeetingMediatorServiceInterface: Symbol.for("MeetingMediatorServiceInterface"),
-  MessageMediatorServiceInterface: Symbol.for("MessageMediatorServiceInterface"),
-  OrganizationMediatorServiceInterface: Symbol.for("OrganizationMediatorServiceInterface"),
-  TeamMediatorServiceInterface: Symbol.for("TeamMediatorServiceInterface"),
-  UserMediatorServiceInterface: Symbol.for("UserMediatorServiceInterface"),
+  // Services
+  ConversationServiceInterface: Symbol.for("ConversationServiceInterface"),
+  GroupServiceInterface: Symbol.for("GroupServiceInterface"),
+  InvitationServiceInterface: Symbol.for("InvitationServiceInterface"),
+  MeetingServiceInterface: Symbol.for("MeetingServiceInterface"),
+  MessageServiceInterface: Symbol.for("MessageServiceInterface"),
+  OneOnOneAndGroupServiceInterface: Symbol.for("OneOnOneAndGroupServiceInterface"),
+  OneOnOneServiceInterface: Symbol.for("OneOnOneServiceInterface"),
+  OrganizationServiceInterface: Symbol.for("OrganizationServiceInterface"),
+  TeamServiceInterface: Symbol.for("TeamServiceInterface"),
+  UserServiceInterface: Symbol.for("UserServiceInterface"),
 
   // S3 Processor Services
   ImageFileCreatedS3ProcessorServiceInterface: Symbol.for("ImageFileCreatedS3ProcessorServiceInterface"),
@@ -54,12 +52,8 @@ const TYPES = {
   MeetingCreatedDynamoProcessorServiceInterface: Symbol.for("MeetingCreatedDynamoProcessorServiceInterface"),
   MembershipCreatedDynamoProcessorServiceInterface: Symbol.for("MembershipCreatedDynamoProcessorServiceInterface"),
   GroupCreatedDynamoProcessorServiceInterface: Symbol.for("GroupCreatedDynamoProcessorServiceInterface"),
-  OneOnOneMessageCreatedDynamoProcessorServiceInterface: Symbol.for("OneOnOneMessageCreatedDynamoProcessorServiceInterface"),
-  OneOnOneMessageUpdatedDynamoProcessorServiceInterface: Symbol.for("OneOnOneMessageUpdatedDynamoProcessorServiceInterface"),
-  GroupMessageCreatedDynamoProcessorServiceInterface: Symbol.for("GroupMessageCreatedDynamoProcessorServiceInterface"),
-  GroupMessageUpdatedDynamoProcessorServiceInterface: Symbol.for("GroupMessageUpdatedDynamoProcessorServiceInterface"),
-  MeetingMessageCreatedDynamoProcessorServiceInterface: Symbol.for("MeetingMessageCreatedDynamoProcessorServiceInterface"),
-  MeetingMessageUpdatedDynamoProcessorServiceInterface: Symbol.for("MeetingMessageUpdatedDynamoProcessorServiceInterface"),
+  MessageCreatedDynamoProcessorServiceInterface: Symbol.for("MessageCreatedDynamoProcessorServiceInterface"),
+  MessageUpdatedDynamoProcessorServiceInterface: Symbol.for("MessageUpdatedDynamoProcessorServiceInterface"),
   PendingInvitationCreatedDynamoProcessorServiceInterface: Symbol.for("PendingInvitationCreatedDynamoProcessorServiceInterface"),
 
   // SNS Services
@@ -78,27 +72,9 @@ const TYPES = {
   TeamCreatedSnsServiceInterface: Symbol.for("TeamCreatedSnsServiceInterface"),
   MeetingCreatedSnsServiceInterface: Symbol.for("MeetingCreatedSnsServiceInterface"),
   GroupCreatedSnsServiceInterface: Symbol.for("GroupCreatedSnsServiceInterface"),
-  FriendMessageCreatedSnsServiceInterface: Symbol.for("FriendMessageCreatedSnsServiceInterface"),
-  FriendMessageUpdatedSnsServiceInterface: Symbol.for("FriendMessageUpdatedSnsServiceInterface"),
-  GroupMessageCreatedSnsServiceInterface: Symbol.for("GroupMessageCreatedSnsServiceInterface"),
-  GroupMessageUpdatedSnsServiceInterface: Symbol.for("GroupMessageUpdatedSnsServiceInterface"),
-  MeetingMessageCreatedSnsServiceInterface: Symbol.for("MeetingMessageCreatedSnsServiceInterface"),
-  MeetingMessageUpdatedSnsServiceInterface: Symbol.for("MeetingMessageUpdatedSnsServiceInterface"),
+  MessageCreatedSnsServiceInterface: Symbol.for("MessageCreatedSnsServiceInterface"),
+  MessageUpdatedSnsServiceInterface: Symbol.for("MessageUpdatedSnsServiceInterface"),
   CreateUserRequestSnsServiceInterface: Symbol.for("CreateUserRequestSnsServiceInterface"),
-
-  // Entity Services
-  GroupServiceInterface: Symbol.for("GroupServiceInterface"),
-  MeetingServiceInterface: Symbol.for("MeetingServiceInterface"),
-  MembershipServiceInterface: Symbol.for("MeetingMembershipServiceInterface"),
-  MessageServiceInterface: Symbol.for("MessageServiceInterface"),
-  OneOnOneServiceInterface: Symbol.for("OneOnOneServiceInterface"),
-  OrganizationServiceInterface: Symbol.for("OrganizationServiceInterface"),
-  PendingMessageServiceInterface: Symbol.for("PendingMessageServiceInterface"),
-  PendingInvitationServiceInterface: Symbol.for("PendingInvitationServiceInterface"),
-  SearchServiceInterface: Symbol.for("SearchServiceInterface"),
-  TeamServiceInterface: Symbol.for("TeamServiceInterface"),
-  UserServiceInterface: Symbol.for("UserServiceInterface"),
-  UserGroupMeetingSearchServiceInterface: Symbol.for("UserGroupMeetingSearchServiceInterface"),
 
   // Repositories
   GroupRepositoryInterface: Symbol.for("GroupRepositoryInterface"),

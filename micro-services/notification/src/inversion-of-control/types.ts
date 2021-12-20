@@ -23,12 +23,8 @@ const TYPES = {
   UserRemovedAsFriendSnsProcessorServiceInterface: Symbol.for("UserRemovedAsFriendSnsProcessorServiceInterface"),
   TeamCreatedSnsProcessorServiceInterface: Symbol.for("TeamCreatedSnsProcessorServiceInterface"),
   MeetingCreatedSnsProcessorServiceInterface: Symbol.for("MeetingCreatedSnsProcessorServiceInterface"),
-  FriendMessageCreatedSnsProcessorServiceInterface: Symbol.for("FriendMessageCreatedSnsProcessorServiceInterface"),
-  FriendMessageUpdatedSnsProcessorServiceInterface: Symbol.for("FriendMessageUpdatedSnsProcessorServiceInterface"),
-  GroupMessageCreatedSnsProcessorServiceInterface: Symbol.for("GroupMessageCreatedSnsProcessorServiceInterface"),
-  GroupMessageUpdatedSnsProcessorServiceInterface: Symbol.for("GroupMessageUpdatedSnsProcessorServiceInterface"),
-  MeetingMessageCreatedSnsProcessorServiceInterface: Symbol.for("MeetingMessageCreatedSnsProcessorServiceInterface"),
-  MeetingMessageUpdatedSnsProcessorServiceInterface: Symbol.for("MeetingMessageUpdatedSnsProcessorServiceInterface"),
+  MessageCreatedSnsProcessorServiceInterface: Symbol.for("MessageCreatedSnsProcessorServiceInterface"),
+  MessageUpdatedSnsProcessorServiceInterface: Symbol.for("MessageUpdatedSnsProcessorServiceInterface"),
 
   // Entity Services
   ListenerMappingServiceInterface: Symbol.for("ListenerMappingServiceInterface"),

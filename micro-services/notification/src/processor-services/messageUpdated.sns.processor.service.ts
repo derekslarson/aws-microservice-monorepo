@@ -1,28 +1,28 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, MeetingMessageUpdatedSnsMessage } from "@yac/util";
+import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, MessageUpdatedSnsMessage } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { WebSocketEvent } from "../enums/webSocket.event.enum";
 
 @injectable()
-export class MeetingMessageUpdatedSnsProcessorService implements SnsProcessorServiceInterface {
-  private meetingMessageUpdatedSnsTopicArn: string;
+export class MessageUpdatedSnsProcessorService implements SnsProcessorServiceInterface {
+  private messageUpdatedSnsTopicArn: string;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.WebSocketMediatorServiceInterface) private webSocketMediatorService: WebSocketMediatorServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: MeetingMessageUpdatedSnsProcessorServiceConfigInterface,
+    @inject(TYPES.EnvConfigInterface) envConfig: MessageUpdatedSnsProcessorServiceConfigInterface,
   ) {
-    this.meetingMessageUpdatedSnsTopicArn = envConfig.snsTopicArns.meetingMessageUpdated;
+    this.messageUpdatedSnsTopicArn = envConfig.snsTopicArns.messageUpdated;
   }
 
   public determineRecordSupport(record: SnsProcessorServiceRecord): boolean {
     try {
       this.loggerService.trace("determineRecordSupport called", { record }, this.constructor.name);
 
-      return record.topicArn === this.meetingMessageUpdatedSnsTopicArn;
+      return record.topicArn === this.messageUpdatedSnsTopicArn;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 
@@ -30,15 +30,15 @@ export class MeetingMessageUpdatedSnsProcessorService implements SnsProcessorSer
     }
   }
 
-  public async processRecord(record: SnsProcessorServiceRecord<MeetingMessageUpdatedSnsMessage>): Promise<void> {
+  public async processRecord(record: SnsProcessorServiceRecord<MessageUpdatedSnsMessage>): Promise<void> {
     try {
       this.loggerService.trace("processRecord called", { record }, this.constructor.name);
 
-      const { message: { meetingMemberIds, message } } = record;
+      const { message: { conversationMemberIds, message } } = record;
 
-      await Promise.all(meetingMemberIds.map((userId) => this.webSocketMediatorService.sendMessage({
+      await Promise.all(conversationMemberIds.map((userId) => this.webSocketMediatorService.sendMessage({
         userId,
-        event: WebSocketEvent.MeetingMessageUpdated,
+        event: WebSocketEvent.MessageUpdated,
         data: { message },
       })));
 
@@ -52,6 +52,6 @@ export class MeetingMessageUpdatedSnsProcessorService implements SnsProcessorSer
   }
 }
 
-export interface MeetingMessageUpdatedSnsProcessorServiceConfigInterface {
-  snsTopicArns: Pick<EnvConfigInterface["snsTopicArns"], "meetingMessageUpdated">;
+export interface MessageUpdatedSnsProcessorServiceConfigInterface {
+  snsTopicArns: Pick<EnvConfigInterface["snsTopicArns"], "messageUpdated">;
 }

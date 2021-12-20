@@ -22,11 +22,11 @@ export class MeetingController extends BaseController implements MeetingControll
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationServiceInterface,
-    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingServiceInterface,
-    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamServiceInterface,
+    @inject(TYPES.InvitationServiceInterface) private invitationService: InvitationServiceInterface,
+    @inject(TYPES.OrganizationServiceInterface) private organizationService: OrganizationServiceInterface,
+    @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
+    @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
+    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
   ) {
     super();
   }
@@ -43,22 +43,22 @@ export class MeetingController extends BaseController implements MeetingControll
 
       if (teamId) {
         const [ { isTeamAdmin }, { team } ] = await Promise.all([
-          this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId }),
-          this.teamMediatorService.getTeam({ teamId }),
+          this.teamService.isTeamAdmin({ teamId, userId: jwtId }),
+          this.teamService.getTeam({ teamId }),
         ]);
 
         if (!isTeamAdmin || team.organizationId !== organizationId) {
           throw new ForbiddenError("Forbidden");
         }
       } else {
-        const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId: jwtId });
+        const { isOrganizationAdmin } = await this.organizationService.isOrganizationAdmin({ organizationId, userId: jwtId });
 
         if (!isOrganizationAdmin) {
           throw new ForbiddenError("Forbidden");
         }
       }
 
-      const { meeting } = await this.meetingMediatorService.createMeeting({ name, createdBy: jwtId, dueAt, organizationId, teamId });
+      const { meeting } = await this.meetingService.createMeeting({ name, createdBy: jwtId, dueAt, organizationId, teamId });
 
       const response: CreateMeetingResponse = { meeting };
 
@@ -80,13 +80,13 @@ export class MeetingController extends BaseController implements MeetingControll
         body,
       } = this.validationService.validate({ dto: UpdateMeetingDto, request, getUserIdFromJwt: true });
 
-      const { isMeetingAdmin } = await this.meetingMediatorService.isMeetingAdmin({ meetingId, userId: jwtId });
+      const { isMeetingAdmin } = await this.meetingService.isMeetingAdmin({ meetingId, userId: jwtId });
 
       if (!isMeetingAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.meetingMediatorService.updateMeeting({ meetingId, updates: body });
+      await this.meetingService.updateMeeting({ meetingId, updates: body });
 
       const response: UpdateMeetingResponse = { message: "Meeting updated." };
 
@@ -107,13 +107,13 @@ export class MeetingController extends BaseController implements MeetingControll
         pathParameters: { meetingId },
       } = this.validationService.validate({ dto: GetMeetingDto, request, getUserIdFromJwt: true });
 
-      const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
+      const { isMeetingMember } = await this.meetingService.isMeetingMember({ meetingId, userId: jwtId });
 
       if (!isMeetingMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meeting } = await this.meetingMediatorService.getMeeting({ meetingId });
+      const { meeting } = await this.meetingService.getMeeting({ meetingId });
 
       const response: GetMeetingResponse = { meeting };
 
@@ -135,13 +135,13 @@ export class MeetingController extends BaseController implements MeetingControll
         queryStringParameters: { mime_type: mimeType },
       } = this.validationService.validate({ dto: GetMeetingImageUploadUrlDto, request, getUserIdFromJwt: true });
 
-      const { isMeetingAdmin } = await this.meetingMediatorService.isMeetingAdmin({ meetingId, userId: jwtId });
+      const { isMeetingAdmin } = await this.meetingService.isMeetingAdmin({ meetingId, userId: jwtId });
 
       if (!isMeetingAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { uploadUrl } = this.meetingMediatorService.getMeetingImageUploadUrl({ meetingId, mimeType });
+      const { uploadUrl } = this.meetingService.getMeetingImageUploadUrl({ meetingId, mimeType });
 
       const response: GetMeetingImageUploadUrlResponse = { uploadUrl };
 
@@ -163,13 +163,13 @@ export class MeetingController extends BaseController implements MeetingControll
         body: { users },
       } = this.validationService.validate({ dto: AddUsersToMeetingDto, request, getUserIdFromJwt: true });
 
-      const { isMeetingAdmin } = await this.meetingMediatorService.isMeetingAdmin({ meetingId, userId: jwtId });
+      const { isMeetingAdmin } = await this.meetingService.isMeetingAdmin({ meetingId, userId: jwtId });
 
       if (!isMeetingAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { successes, failures } = await this.invitationOrchestratorService.addUsersToMeeting({ meetingId, users });
+      const { successes, failures } = await this.invitationService.addUsersToMeeting({ meetingId, users });
 
       const response: AddUsersToMeetingResponse = {
         message: `Users added to meeting${failures.length ? ", but with some failures." : "."}`,
@@ -194,13 +194,13 @@ export class MeetingController extends BaseController implements MeetingControll
         pathParameters: { meetingId, userId },
       } = this.validationService.validate({ dto: RemoveUserFromMeetingDto, request, getUserIdFromJwt: true });
 
-      const { isMeetingAdmin } = await this.meetingMediatorService.isMeetingAdmin({ meetingId, userId: jwtId });
+      const { isMeetingAdmin } = await this.meetingService.isMeetingAdmin({ meetingId, userId: jwtId });
 
       if (!isMeetingAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.meetingMediatorService.removeUserFromMeeting({ meetingId, userId });
+      await this.meetingService.removeUserFromMeeting({ meetingId, userId });
 
       const response: RemoveUserFromMeetingResponse = { message: "User removed from meeting." };
 
@@ -226,7 +226,7 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.conversationOrchestratorService.getMeetingsByUserId({
+      const { meetings, lastEvaluatedKey } = await this.conversationService.getMeetingsByUserId({
         userId,
         sortByDueAt: sortBy === "dueAt",
         exclusiveStartKey,
@@ -253,13 +253,13 @@ export class MeetingController extends BaseController implements MeetingControll
         queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMeetingsByTeamIdDto, request, getUserIdFromJwt: true });
 
-      const { isTeamMember } = await this.teamMediatorService.isTeamMember({ teamId, userId: jwtId });
+      const { isTeamMember } = await this.teamService.isTeamMember({ teamId, userId: jwtId });
 
       if (!isTeamMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.conversationOrchestratorService.getMeetingsByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { meetings, lastEvaluatedKey } = await this.conversationService.getMeetingsByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetMeetingsByTeamIdResponse = { meetings, lastEvaluatedKey };
 
@@ -281,13 +281,13 @@ export class MeetingController extends BaseController implements MeetingControll
         queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMeetingsByOrganizationIdDto, request, getUserIdFromJwt: true });
 
-      const { isOrganizationMember } = await this.organizationMediatorService.isOrganizationMember({ organizationId, userId: jwtId });
+      const { isOrganizationMember } = await this.organizationService.isOrganizationMember({ organizationId, userId: jwtId });
 
       if (!isOrganizationMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.conversationOrchestratorService.getMeetingsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { meetings, lastEvaluatedKey } = await this.conversationService.getMeetingsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetMeetingsByOrganizationIdResponse = { meetings, lastEvaluatedKey };
 

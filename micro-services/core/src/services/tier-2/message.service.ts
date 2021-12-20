@@ -172,7 +172,7 @@ export class MessageService implements MessageServiceInterface {
         title,
       };
 
-      await Promise.all([
+      await Promise.all<unknown>([
         this.messageRepository.createMessage({ message: messageEntity }),
         ...memberships.map(({ userId }) => this.membershipRepository.incrementUnreadMessages({ entityId: conversationId, userId })),
       ]);

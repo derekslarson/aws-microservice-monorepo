@@ -5,10 +5,10 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { UserRemovedFromGroupSnsServiceInterface } from "../sns-services/userRemovedFromGroup.sns.service";
-import { GroupMediatorServiceInterface } from "../mediator-services/group.mediator.service";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 import { MembershipType } from "../enums/membershipType.enum";
 import { RawMembership } from "../repositories/membership.dynamo.repository";
+import { GroupServiceInterface } from "../services/tier-1/group.service";
+import { UserServiceInterface } from "../services/tier-1/user.service";
 
 @injectable()
 export class UserRemovedFromGroupDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -17,8 +17,8 @@ export class UserRemovedFromGroupDynamoProcessorService implements DynamoProcess
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserRemovedFromGroupSnsServiceInterface) private userRemovedFromGroupSnsService: UserRemovedFromGroupSnsServiceInterface,
-    @inject(TYPES.GroupMediatorServiceInterface) private teamMediatorService: GroupMediatorServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
+    @inject(TYPES.GroupServiceInterface) private teamService: GroupServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserRemovedFromGroupDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -49,9 +49,9 @@ export class UserRemovedFromGroupDynamoProcessorService implements DynamoProcess
       const groupId = entityId as GroupId;
 
       const [ { users: groupMembers }, { user }, { group } ] = await Promise.all([
-        this.userMediatorService.getUsersByGroupId({ groupId }),
-        this.userMediatorService.getUser({ userId }),
-        this.teamMediatorService.getGroup({ groupId }),
+        this.userService.getUsersByEntityId({ entityId: groupId }),
+        this.userService.getUser({ userId }),
+        this.teamService.getGroup({ groupId }),
       ]);
 
       const groupMemberIds = groupMembers.map((groupMember) => groupMember.id);

@@ -26,6 +26,7 @@ import {
   generateExportNames,
   ProxyRouteProps,
 } from "@yac/util";
+
 import { IYacHttpServiceProps, YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 

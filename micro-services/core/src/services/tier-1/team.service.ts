@@ -488,4 +488,4 @@ export interface GetTeamsBySearchTermOutput {
   lastEvaluatedKey?: string;
 }
 
-type TeamSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getTeamsBySearchTerm" | "getMeetingsBySearchTerm">;
+type TeamSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getTeamsBySearchTerm">;

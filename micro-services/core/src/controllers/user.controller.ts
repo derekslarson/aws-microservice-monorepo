@@ -20,11 +20,11 @@ export class UserController extends BaseController implements UserControllerInte
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamServiceInterface,
-    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupServiceInterface,
-    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
+    @inject(TYPES.OrganizationServiceInterface) private organizationService: OrganizationServiceInterface,
+    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
+    @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
+    @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
   ) {
     super();
   }
@@ -43,7 +43,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.userMediatorService.updateUser({ userId, updates: body });
+      await this.userService.updateUser({ userId, updates: body });
 
       const response: UpdateUserResponse = { message: "User updated." };
 
@@ -61,7 +61,7 @@ export class UserController extends BaseController implements UserControllerInte
 
       const { pathParameters: { userId } } = this.validationService.validate({ dto: GetUserDto, request, getUserIdFromJwt: true });
 
-      const { user } = await this.userMediatorService.getUser({ userId });
+      const { user } = await this.userService.getUser({ userId });
 
       const response: GetUserResponse = { user };
 
@@ -87,7 +87,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { uploadUrl } = this.userMediatorService.getUserImageUploadUrl({ userId, mimeType });
+      const { uploadUrl } = this.userService.getUserImageUploadUrl({ userId, mimeType });
 
       // method needs to return promise
       return Promise.resolve(this.generateSuccessResponse({ uploadUrl }));
@@ -108,13 +108,13 @@ export class UserController extends BaseController implements UserControllerInte
         queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetUsersByOrganizationIdDto, request, getUserIdFromJwt: true });
 
-      const { isOrganizationMember } = await this.organizationMediatorService.isOrganizationMember({ organizationId, userId: jwtId });
+      const { isOrganizationMember } = await this.organizationService.isOrganizationMember({ organizationId, userId: jwtId });
 
       if (!isOrganizationMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByEntityId({ entityId: organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByOrganizationIdResponse = { users, lastEvaluatedKey };
 
@@ -136,13 +136,13 @@ export class UserController extends BaseController implements UserControllerInte
         queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetUsersByTeamIdDto, request, getUserIdFromJwt: true });
 
-      const { isTeamMember } = await this.teamMediatorService.isTeamMember({ teamId, userId: jwtId });
+      const { isTeamMember } = await this.teamService.isTeamMember({ teamId, userId: jwtId });
 
       if (!isTeamMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByEntityId({ entityId: teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByTeamIdResponse = { users, lastEvaluatedKey };
 
@@ -164,13 +164,13 @@ export class UserController extends BaseController implements UserControllerInte
         queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetUsersByGroupIdDto, request, getUserIdFromJwt: true });
 
-      const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
+      const { isGroupMember } = await this.groupService.isGroupMember({ groupId, userId: jwtId });
 
       if (!isGroupMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByEntityId({ entityId: groupId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: groupId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByGroupIdResponse = { users, lastEvaluatedKey };
 
@@ -192,13 +192,13 @@ export class UserController extends BaseController implements UserControllerInte
         queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetUsersByMeetingIdDto, request, getUserIdFromJwt: true });
 
-      const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
+      const { isMeetingMember } = await this.meetingService.isMeetingMember({ meetingId, userId: jwtId });
 
       if (!isMeetingMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userMediatorService.getUsersByEntityId({ entityId: meetingId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: meetingId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByMeetingIdResponse = { users, lastEvaluatedKey };
 

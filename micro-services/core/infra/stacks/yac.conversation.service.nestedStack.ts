@@ -2,8 +2,8 @@ import * as CDK from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as IAM from "@aws-cdk/aws-iam";
-import { RouteProps } from "@yac/util";
 import { YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { RouteProps } from "@yac/util/infra/constructs/http.api";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
 export class YacConversationServiceNestedStack extends CDK.NestedStack {

@@ -19,9 +19,9 @@ export class TeamController extends BaseController implements TeamControllerInte
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamServiceInterface,
-    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationServiceInterface,
+    @inject(TYPES.OrganizationServiceInterface) private organizationService: OrganizationServiceInterface,
+    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
+    @inject(TYPES.InvitationServiceInterface) private invitationService: InvitationServiceInterface,
   ) {
     super();
   }
@@ -36,13 +36,13 @@ export class TeamController extends BaseController implements TeamControllerInte
         body: { name },
       } = this.validationService.validate({ dto: CreateTeamDto, request, getUserIdFromJwt: true });
 
-      const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId: jwtId });
+      const { isOrganizationAdmin } = await this.organizationService.isOrganizationAdmin({ organizationId, userId: jwtId });
 
       if (!isOrganizationAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { team } = await this.teamMediatorService.createTeam({ name, createdBy: jwtId, organizationId });
+      const { team } = await this.teamService.createTeam({ name, createdBy: jwtId, organizationId });
 
       const response: CreateTeamResponse = { team };
 
@@ -64,13 +64,13 @@ export class TeamController extends BaseController implements TeamControllerInte
         body,
       } = this.validationService.validate({ dto: UpdateTeamDto, request, getUserIdFromJwt: true });
 
-      const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
+      const { isTeamAdmin } = await this.teamService.isTeamAdmin({ teamId, userId: jwtId });
 
       if (!isTeamAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.teamMediatorService.updateTeam({ teamId, updates: body });
+      await this.teamService.updateTeam({ teamId, updates: body });
 
       const response: UpdateTeamResponse = { message: "Team updated." };
 
@@ -91,13 +91,13 @@ export class TeamController extends BaseController implements TeamControllerInte
         pathParameters: { teamId },
       } = this.validationService.validate({ dto: GetTeamDto, request, getUserIdFromJwt: true });
 
-      const { isTeamMember } = await this.teamMediatorService.isTeamMember({ teamId, userId: jwtId });
+      const { isTeamMember } = await this.teamService.isTeamMember({ teamId, userId: jwtId });
 
       if (!isTeamMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { team } = await this.teamMediatorService.getTeam({ teamId });
+      const { team } = await this.teamService.getTeam({ teamId });
 
       const response: GetTeamResponse = { team };
 
@@ -119,13 +119,13 @@ export class TeamController extends BaseController implements TeamControllerInte
         queryStringParameters: { mime_type: mimeType },
       } = this.validationService.validate({ dto: GetTeamImageUploadUrlDto, request, getUserIdFromJwt: true });
 
-      const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
+      const { isTeamAdmin } = await this.teamService.isTeamAdmin({ teamId, userId: jwtId });
 
       if (!isTeamAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { uploadUrl } = this.teamMediatorService.getTeamImageUploadUrl({ teamId, mimeType });
+      const { uploadUrl } = this.teamService.getTeamImageUploadUrl({ teamId, mimeType });
 
       const response: GetTeamImageUploadUrlResponse = { uploadUrl };
 
@@ -147,13 +147,13 @@ export class TeamController extends BaseController implements TeamControllerInte
         body: { users },
       } = this.validationService.validate({ dto: AddUsersToTeamDto, request, getUserIdFromJwt: true });
 
-      const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
+      const { isTeamAdmin } = await this.teamService.isTeamAdmin({ teamId, userId: jwtId });
 
       if (!isTeamAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { successes, failures } = await this.invitationOrchestratorService.addUsersToTeam({ teamId, users });
+      const { successes, failures } = await this.invitationService.addUsersToTeam({ teamId, users });
 
       const response: AddUsersToTeamResponse = {
         message: `Users added to team${failures.length ? ", but with some failures." : "."}`,
@@ -178,13 +178,13 @@ export class TeamController extends BaseController implements TeamControllerInte
         pathParameters: { teamId, userId },
       } = this.validationService.validate({ dto: RemoveUserFromTeamDto, request, getUserIdFromJwt: true });
 
-      const { isTeamAdmin } = await this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId });
+      const { isTeamAdmin } = await this.teamService.isTeamAdmin({ teamId, userId: jwtId });
 
       if (!isTeamAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.teamMediatorService.removeUserFromTeam({ teamId, userId });
+      await this.teamService.removeUserFromTeam({ teamId, userId });
 
       const response: RemoveUserFromTeamResponse = { message: "User removed from team." };
 
@@ -210,7 +210,7 @@ export class TeamController extends BaseController implements TeamControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { teams, lastEvaluatedKey } = await this.teamService.getTeamsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetTeamsByUserIdResponse = { teams, lastEvaluatedKey };
 
@@ -232,13 +232,13 @@ export class TeamController extends BaseController implements TeamControllerInte
         queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetTeamsByOrganizationIdDto, request, getUserIdFromJwt: true });
 
-      const { isOrganizationMember } = await this.organizationMediatorService.isOrganizationMember({ organizationId, userId: jwtId });
+      const { isOrganizationMember } = await this.organizationService.isOrganizationMember({ organizationId, userId: jwtId });
 
       if (!isOrganizationMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamMediatorService.getTeamsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { teams, lastEvaluatedKey } = await this.teamService.getTeamsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetTeamsByOrganizationIdResponse = { teams, lastEvaluatedKey };
 

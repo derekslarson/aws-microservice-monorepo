@@ -17,8 +17,8 @@ export class OrganizationController extends BaseController implements Organizati
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationServiceInterface,
-    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationServiceInterface,
+    @inject(TYPES.OrganizationServiceInterface) private organizationService: OrganizationServiceInterface,
+    @inject(TYPES.InvitationServiceInterface) private invitationService: InvitationServiceInterface,
   ) {
     super();
   }
@@ -37,7 +37,7 @@ export class OrganizationController extends BaseController implements Organizati
         throw new ForbiddenError("Forbidden");
       }
 
-      const { organization } = await this.organizationMediatorService.createOrganization({ name, createdBy: userId });
+      const { organization } = await this.organizationService.createOrganization({ name, createdBy: userId });
 
       const response: CreateOrganizationResponse = { organization };
 
@@ -59,13 +59,13 @@ export class OrganizationController extends BaseController implements Organizati
         body,
       } = this.validationService.validate({ dto: UpdateOrganizationDto, request, getUserIdFromJwt: true });
 
-      const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId: jwtId });
+      const { isOrganizationAdmin } = await this.organizationService.isOrganizationAdmin({ organizationId, userId: jwtId });
 
       if (!isOrganizationAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.organizationMediatorService.updateOrganization({ organizationId, updates: body });
+      await this.organizationService.updateOrganization({ organizationId, updates: body });
 
       const response: UpdateOrganizationResponse = { message: "Organization updated." };
 
@@ -86,13 +86,13 @@ export class OrganizationController extends BaseController implements Organizati
         pathParameters: { organizationId },
       } = this.validationService.validate({ dto: GetOrganizationDto, request, getUserIdFromJwt: true });
 
-      const { isOrganizationMember } = await this.organizationMediatorService.isOrganizationMember({ organizationId, userId: jwtId });
+      const { isOrganizationMember } = await this.organizationService.isOrganizationMember({ organizationId, userId: jwtId });
 
       if (!isOrganizationMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { organization } = await this.organizationMediatorService.getOrganization({ organizationId });
+      const { organization } = await this.organizationService.getOrganization({ organizationId });
 
       const response: GetOrganizationResponse = { organization };
 
@@ -114,13 +114,13 @@ export class OrganizationController extends BaseController implements Organizati
         queryStringParameters: { mime_type: mimeType },
       } = this.validationService.validate({ dto: GetOrganizationImageUploadUrlDto, request, getUserIdFromJwt: true });
 
-      const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId: jwtId });
+      const { isOrganizationAdmin } = await this.organizationService.isOrganizationAdmin({ organizationId, userId: jwtId });
 
       if (!isOrganizationAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { uploadUrl } = this.organizationMediatorService.getOrganizationImageUploadUrl({ organizationId, mimeType });
+      const { uploadUrl } = this.organizationService.getOrganizationImageUploadUrl({ organizationId, mimeType });
 
       const response: GetOrganizationImageUploadUrlResponse = { uploadUrl };
 
@@ -142,13 +142,13 @@ export class OrganizationController extends BaseController implements Organizati
         body: { users },
       } = this.validationService.validate({ dto: AddUsersToOrganizationDto, request, getUserIdFromJwt: true });
 
-      const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId: jwtId });
+      const { isOrganizationAdmin } = await this.organizationService.isOrganizationAdmin({ organizationId, userId: jwtId });
 
       if (!isOrganizationAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { successes, failures } = await this.invitationOrchestratorService.addUsersToOrganization({ organizationId, users });
+      const { successes, failures } = await this.invitationService.addUsersToOrganization({ organizationId, users });
 
       const response: AddUsersToOrganizationResponse = {
         message: `Users added to organization${failures.length ? ", but with some failures." : "."}`,
@@ -173,13 +173,13 @@ export class OrganizationController extends BaseController implements Organizati
         pathParameters: { organizationId, userId },
       } = this.validationService.validate({ dto: RemoveUserFromOrganizationDto, request, getUserIdFromJwt: true });
 
-      const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId: jwtId });
+      const { isOrganizationAdmin } = await this.organizationService.isOrganizationAdmin({ organizationId, userId: jwtId });
 
       if (!isOrganizationAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.organizationMediatorService.removeUserFromOrganization({ organizationId, userId });
+      await this.organizationService.removeUserFromOrganization({ organizationId, userId });
 
       const response: RemoveUserFromOrganizationResponse = { message: "User removed from organization." };
 
@@ -205,7 +205,7 @@ export class OrganizationController extends BaseController implements Organizati
         throw new ForbiddenError("Forbidden");
       }
 
-      const { organizations, lastEvaluatedKey } = await this.organizationMediatorService.getOrganizationsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { organizations, lastEvaluatedKey } = await this.organizationService.getOrganizationsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetOrganizationsByUserIdResponse = { organizations, lastEvaluatedKey };
 

@@ -1,27 +1,24 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerServiceInterface, MeetingId } from "@yac/util";
+import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerServiceInterface } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
-import { MeetingMessageCreatedSnsServiceInterface } from "../sns-services/meetingMessageCreated.sns.service";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
+import { MessageUpdatedSnsServiceInterface } from "../sns-services/messageUpdated.sns.service";
 import { RawMessage } from "../repositories/message.dynamo.repository";
-import { KeyPrefix } from "../enums/keyPrefix.enum";
-import { MessageMediatorServiceInterface } from "../mediator-services/message.mediator.service";
-import { MessageServiceInterface } from "../entity-services/message.service";
+import { UserServiceInterface } from "../services/tier-1/user.service";
+import { MessageServiceInterface } from "../services/tier-2/message.service";
 
 @injectable()
-export class MeetingMessageCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
+export class MessageUpdatedDynamoProcessorService implements DynamoProcessorServiceInterface {
   private coreTableName: string;
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.MeetingMessageCreatedSnsServiceInterface) private meetingMessageCreatedSnsService: MeetingMessageCreatedSnsServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
-    @inject(TYPES.MessageMediatorServiceInterface) private messageMediatorService: MessageMediatorServiceInterface,
+    @inject(TYPES.MessageUpdatedSnsServiceInterface) private messageUpdatedSnsService: MessageUpdatedSnsServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
-    @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
+    @inject(TYPES.EnvConfigInterface) envConfig: UserUpdatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
   }
@@ -32,10 +29,9 @@ export class MeetingMessageCreatedDynamoProcessorService implements DynamoProces
 
       const isCoreTable = record.tableName === this.coreTableName;
       const isMessage = record.newImage.entityType === EntityType.Message;
-      const isMeetingMessage = isMessage && (record.newImage as RawMessage).conversationId.startsWith(KeyPrefix.Meeting);
       const isCreation = record.eventName === "INSERT";
 
-      return isCoreTable && isMeetingMessage && isCreation;
+      return isCoreTable && isMessage && isCreation;
     } catch (error: unknown) {
       this.loggerService.error("Error in determineRecordSupport", { error, record }, this.constructor.name);
 
@@ -49,15 +45,15 @@ export class MeetingMessageCreatedDynamoProcessorService implements DynamoProces
 
       const { newImage: { id, conversationId } } = record;
 
-      const [ { message }, { users: meetingMembers } ] = await Promise.all([
-        this.messageMediatorService.getMessage({ messageId: id }),
-        this.userMediatorService.getUsersByMeetingId({ meetingId: conversationId as MeetingId }),
+      const [ { message }, { users: conversationMembers } ] = await Promise.all([
+        this.messageService.getMessage({ messageId: id }),
+        this.userService.getUsersByEntityId({ entityId: conversationId }),
       ]);
 
-      const meetingMemberIds = meetingMembers.map((meetingMember) => meetingMember.id);
+      const conversationMemberIds = conversationMembers.map((conversationMember) => conversationMember.id);
 
       await Promise.allSettled([
-        this.meetingMessageCreatedSnsService.sendMessage({ meetingMemberIds, message }),
+        this.messageUpdatedSnsService.sendMessage({ conversationMemberIds, message }),
         this.messageService.indexMessageForSearch({ message: record.newImage }),
       ]);
     } catch (error: unknown) {
@@ -68,7 +64,7 @@ export class MeetingMessageCreatedDynamoProcessorService implements DynamoProces
   }
 }
 
-export interface UserCreatedDynamoProcessorServiceConfigInterface {
+export interface UserUpdatedDynamoProcessorServiceConfigInterface {
   tableNames: {
     core: EnvConfigInterface["tableNames"]["core"];
   }

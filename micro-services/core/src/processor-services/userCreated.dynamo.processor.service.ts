@@ -5,9 +5,9 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { RawUser } from "../repositories/user.dynamo.repository";
 import { EntityType } from "../enums/entityType.enum";
-import { UserServiceInterface } from "../entity-services/user.service";
-import { PendingInvitation, PendingInvitationServiceInterface } from "../entity-services/pendingInvitation.service";
-import { InvitationOrchestratorServiceInterface } from "../orchestrator-services/invitation.orchestrator.service";
+import { UserServiceInterface } from "../services/tier-1/user.service";
+import { InvitationServiceInterface } from "../services/tier-2/invitation.service";
+import { PendingInvitation, PendingInvitationRepositoryInterface } from "../repositories/pendingInvitation.dynamo.repository";
 
 @injectable()
 export class UserCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -15,9 +15,9 @@ export class UserCreatedDynamoProcessorService implements DynamoProcessorService
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.PendingInvitationServiceInterface) private pendingInvitationService: PendingInvitationServiceInterface,
+    @inject(TYPES.PendingInvitationRepositoryInterface) private pendingInvitationRepository: PendingInvitationRepositoryInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
-    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationOrchestratorServiceInterface,
+    @inject(TYPES.InvitationServiceInterface) private invitationService: InvitationServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -48,12 +48,12 @@ export class UserCreatedDynamoProcessorService implements DynamoProcessorService
       const pendingInvitations: PendingInvitation[] = [];
 
       if (user.email) {
-        const { pendingInvitations: pendingEmailInvitations } = await this.pendingInvitationService.getPendingInvitations({ email: user.email });
+        const { pendingInvitations: pendingEmailInvitations } = await this.pendingInvitationRepository.getPendingInvitations({ email: user.email });
         pendingInvitations.push(...pendingEmailInvitations);
       }
 
       if (user.phone) {
-        const { pendingInvitations: pendingPhoneInvitations } = await this.pendingInvitationService.getPendingInvitations({ phone: user.phone });
+        const { pendingInvitations: pendingPhoneInvitations } = await this.pendingInvitationRepository.getPendingInvitations({ phone: user.phone });
         pendingInvitations.push(...pendingPhoneInvitations);
       }
 
@@ -61,7 +61,7 @@ export class UserCreatedDynamoProcessorService implements DynamoProcessorService
 
       await Promise.allSettled([
         this.userService.indexUserForSearch({ user }),
-        ...pendingInvitations.map((pendingInvitation) => this.invitationOrchestratorService.processPendingInvitation({ userId: user.id, pendingInvitation })),
+        ...pendingInvitations.map((pendingInvitation) => this.invitationService.processPendingInvitation({ userId: user.id, pendingInvitation })),
       ]);
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);

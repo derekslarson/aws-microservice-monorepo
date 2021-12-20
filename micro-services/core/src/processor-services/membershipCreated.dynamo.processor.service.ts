@@ -4,9 +4,8 @@ import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerSe
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
-import { RawMembership } from "../repositories/membership.dynamo.repository";
-import { MembershipServiceInterface } from "../entity-services/membership.service";
-import { UserServiceInterface } from "../entity-services/user.service";
+import { MembershipRepositoryInterface, RawMembership } from "../repositories/membership.dynamo.repository";
+import { UserServiceInterface } from "../services/tier-1/user.service";
 
 @injectable()
 export class MembershipCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -14,7 +13,7 @@ export class MembershipCreatedDynamoProcessorService implements DynamoProcessorS
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.MembershipServiceInterface) private membershipService: MembershipServiceInterface,
+    @inject(TYPES.MembershipRepositoryInterface) private membershipRepository: MembershipRepositoryInterface,
     @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: MembershipCreatedDynamoProcessorServiceConfigInterface,
   ) {
@@ -47,7 +46,7 @@ export class MembershipCreatedDynamoProcessorService implements DynamoProcessorS
 
       const userName = user.name || user.username || user.email || user.phone as string;
 
-      await this.membershipService.updateMembership({ entityId, userId, updates: { userName } });
+      await this.membershipRepository.updateMembership({ entityId, userId, updates: { userName } });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

@@ -5,10 +5,10 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { UserAddedToMeetingSnsServiceInterface } from "../sns-services/userAddedToMeeting.sns.service";
-import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 import { RawMembership } from "../repositories/membership.dynamo.repository";
 import { MembershipType } from "../enums/membershipType.enum";
+import { MeetingServiceInterface } from "../services/tier-1/meeting.service";
+import { UserServiceInterface } from "../services/tier-1/user.service";
 
 @injectable()
 export class UserAddedToMeetingDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -17,8 +17,8 @@ export class UserAddedToMeetingDynamoProcessorService implements DynamoProcessor
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserAddedToMeetingSnsServiceInterface) private userAddedToMeetingSnsService: UserAddedToMeetingSnsServiceInterface,
-    @inject(TYPES.MeetingMediatorServiceInterface) private teamMediatorService: MeetingMediatorServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
+    @inject(TYPES.MeetingServiceInterface) private teamService: MeetingServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserAddedToMeetingDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -49,9 +49,9 @@ export class UserAddedToMeetingDynamoProcessorService implements DynamoProcessor
       const meetingId = entityId as MeetingId;
 
       const [ { users: meetingMembers }, { user }, { meeting } ] = await Promise.all([
-        this.userMediatorService.getUsersByMeetingId({ meetingId }),
-        this.userMediatorService.getUser({ userId }),
-        this.teamMediatorService.getMeeting({ meetingId }),
+        this.userService.getUsersByEntityId({ entityId: meetingId }),
+        this.userService.getUser({ userId }),
+        this.teamService.getMeeting({ meetingId }),
       ]);
 
       const meetingMemberIds = meetingMembers.map((meetingMember) => meetingMember.id);

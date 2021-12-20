@@ -4,10 +4,9 @@ import { DynamoProcessorServiceInterface, DynamoProcessorServiceRecord, LoggerSe
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
-import { MeetingMediatorServiceInterface } from "../mediator-services/meeting.mediator.service";
 import { RawMeeting } from "../repositories/meeting.dynamo.repository";
 import { MeetingCreatedSnsServiceInterface } from "../sns-services/meetingCreated.sns.service";
-import { MeetingServiceInterface } from "../entity-services/meeting.service";
+import { MeetingServiceInterface } from "../services/tier-1/meeting.service";
 
 @injectable()
 export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -16,7 +15,6 @@ export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServ
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MeetingCreatedSnsServiceInterface) private meetingCreatedSnsService: MeetingCreatedSnsServiceInterface,
-    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingMediatorServiceInterface,
     @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: MeetingCreatedDynamoProcessorServiceConfigInterface,
   ) {
@@ -45,7 +43,7 @@ export class MeetingCreatedDynamoProcessorService implements DynamoProcessorServ
 
       const { newImage: { id: meetingId } } = record;
 
-      const { meeting } = await this.meetingMediatorService.getMeeting({ meetingId });
+      const { meeting } = await this.meetingService.getMeeting({ meetingId });
 
       await Promise.allSettled([
         this.meetingCreatedSnsService.sendMessage({ meeting, meetingMemberIds: [ meeting.createdBy ] }),

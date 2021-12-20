@@ -396,4 +396,4 @@ export interface DeindexUserForSearchInput {
 
 export type DeindexUserForSearchOutput = void;
 
-type UserSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getUsersBySearchTerm" | "getMeetingsBySearchTerm">;
+type UserSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getUsersBySearchTerm">;

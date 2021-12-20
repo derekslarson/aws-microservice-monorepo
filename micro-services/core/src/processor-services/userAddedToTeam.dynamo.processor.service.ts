@@ -5,10 +5,10 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { UserAddedToTeamSnsServiceInterface } from "../sns-services/userAddedToTeam.sns.service";
-import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 import { RawMembership } from "../repositories/membership.dynamo.repository";
 import { MembershipType } from "../enums/membershipType.enum";
+import { TeamServiceInterface } from "../services/tier-1/team.service";
+import { UserServiceInterface } from "../services/tier-1/user.service";
 
 @injectable()
 export class UserAddedToTeamDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -17,8 +17,8 @@ export class UserAddedToTeamDynamoProcessorService implements DynamoProcessorSer
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserAddedToTeamSnsServiceInterface) private userAddedToTeamSnsService: UserAddedToTeamSnsServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
+    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserAddedToTeamDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -49,9 +49,9 @@ export class UserAddedToTeamDynamoProcessorService implements DynamoProcessorSer
       const teamId = entityId as TeamId;
 
       const [ { users: teamMembers }, { user }, { team } ] = await Promise.all([
-        this.userMediatorService.getUsersByTeamId({ teamId }),
-        this.userMediatorService.getUser({ userId }),
-        this.teamMediatorService.getTeam({ teamId }),
+        this.userService.getUsersByEntityId({ entityId: teamId }),
+        this.userService.getUser({ userId }),
+        this.teamService.getTeam({ teamId }),
       ]);
 
       const teamMemberIds = teamMembers.map((teamMember) => teamMember.id);

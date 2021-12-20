@@ -44,7 +44,7 @@ export interface BaseMessageInput {
   data: Record<string, unknown>;
 }
 
-export interface SendUserAddedToTeamMessageInput extends BaseMessageInput {
+export interface UserAddedToTeamMessageInput extends BaseMessageInput {
   event: WebSocketEvent.UserAddedToTeam;
   data: {
     team: Team;
@@ -52,7 +52,7 @@ export interface SendUserAddedToTeamMessageInput extends BaseMessageInput {
   }
 }
 
-export interface SendUserRemovedFromTeamMessageInput extends BaseMessageInput {
+export interface UserRemovedFromTeamMessageInput extends BaseMessageInput {
   event: WebSocketEvent.UserRemovedFromTeam;
   data: {
     team: Team;
@@ -60,7 +60,7 @@ export interface SendUserRemovedFromTeamMessageInput extends BaseMessageInput {
   }
 }
 
-export interface SendUserAddedToGroupMessageInput extends BaseMessageInput {
+export interface UserAddedToGroupMessageInput extends BaseMessageInput {
   event: WebSocketEvent.UserAddedToGroup;
   data: {
     group: Group;
@@ -68,7 +68,7 @@ export interface SendUserAddedToGroupMessageInput extends BaseMessageInput {
   }
 }
 
-export interface SendUserRemovedFromGroupMessageInput extends BaseMessageInput {
+export interface UserRemovedFromGroupMessageInput extends BaseMessageInput {
   event: WebSocketEvent.UserRemovedFromGroup;
   data: {
     group: Group;
@@ -76,7 +76,7 @@ export interface SendUserRemovedFromGroupMessageInput extends BaseMessageInput {
   }
 }
 
-export interface SendUserAddedToMeetingMessageInput extends BaseMessageInput {
+export interface UserAddedToMeetingMessageInput extends BaseMessageInput {
   event: WebSocketEvent.UserAddedToMeeting;
   data: {
     meeting: Meeting;
@@ -84,7 +84,7 @@ export interface SendUserAddedToMeetingMessageInput extends BaseMessageInput {
   }
 }
 
-export interface SendUserRemovedFromMeetingMessageInput extends BaseMessageInput {
+export interface UserRemovedFromMeetingMessageInput extends BaseMessageInput {
   event: WebSocketEvent.UserRemovedFromMeeting;
   data: {
     meeting: Meeting;
@@ -92,7 +92,7 @@ export interface SendUserRemovedFromMeetingMessageInput extends BaseMessageInput
   }
 }
 
-export interface SendUserAddedAsFriendMessageInput extends BaseMessageInput {
+export interface UserAddedAsFriendMessageInput extends BaseMessageInput {
   event: WebSocketEvent.UserAddedAsFriend;
   data: {
     addingUser: User;
@@ -100,7 +100,7 @@ export interface SendUserAddedAsFriendMessageInput extends BaseMessageInput {
   }
 }
 
-export interface SendUserRemovedAsFriendMessageInput extends BaseMessageInput {
+export interface UserRemovedAsFriendMessageInput extends BaseMessageInput {
   event: WebSocketEvent.UserRemovedAsFriend;
   data: {
     userA: User;
@@ -120,60 +120,35 @@ export interface GroupCreatedMessageInput extends BaseMessageInput {
     group: Group
   }
 }
-export interface FriendMessageCreatedMessageInput extends BaseMessageInput {
-  event: WebSocketEvent.FriendMessageCreated;
-  data: { message: Message; }
-}
-
-export interface FriendMessageUpdatedMessageInput extends BaseMessageInput {
-  event: WebSocketEvent.FriendMessageUpdated;
-  data: { message: Message; }
-}
-
-export interface GroupMessageCreatedMessageInput extends BaseMessageInput {
-  event: WebSocketEvent.GroupMessageCreated;
-  data: { message: Message; }
-}
 export interface MeetingCreatedMessageInput extends BaseMessageInput {
   event: WebSocketEvent.MeetingCreated;
   data: {
     meeting: Meeting;
   }
 }
-
-export interface GroupMessageUpdatedMessageInput extends BaseMessageInput {
-  event: WebSocketEvent.GroupMessageUpdated;
+export interface MessageCreatedMessageInput extends BaseMessageInput {
+  event: WebSocketEvent.MessageCreated;
   data: { message: Message; }
 }
 
-export interface MeetingMessageCreatedMessageInput extends BaseMessageInput {
-  event: WebSocketEvent.MeetingMessageCreated;
-  data: { message: Message; }
-}
-
-export interface MeetingMessageUpdatedMessageInput extends BaseMessageInput {
-  event: WebSocketEvent.MeetingMessageUpdated;
+export interface MessageUpdatedMessageInput extends BaseMessageInput {
+  event: WebSocketEvent.MessageUpdated;
   data: { message: Message; }
 }
 
 export type SendMessageInput =
-  SendUserAddedToTeamMessageInput |
-  SendUserRemovedFromTeamMessageInput |
-  SendUserAddedToGroupMessageInput |
-  SendUserRemovedFromGroupMessageInput |
-  SendUserAddedToMeetingMessageInput |
+  UserAddedToTeamMessageInput |
+  UserRemovedFromTeamMessageInput |
+  UserAddedToGroupMessageInput |
+  UserRemovedFromGroupMessageInput |
+  UserAddedToMeetingMessageInput |
+  UserRemovedFromMeetingMessageInput |
+  UserAddedAsFriendMessageInput |
+  UserRemovedAsFriendMessageInput |
   GroupCreatedMessageInput |
-  SendUserRemovedFromMeetingMessageInput |
-  SendUserAddedAsFriendMessageInput |
-  SendUserRemovedAsFriendMessageInput |
   TeamCreatedMessageInput |
-  FriendMessageCreatedMessageInput |
-  FriendMessageUpdatedMessageInput |
-  GroupMessageCreatedMessageInput |
-  GroupMessageUpdatedMessageInput |
-  MeetingMessageCreatedMessageInput |
-  MeetingMessageUpdatedMessageInput |
-  FriendMessageCreatedMessageInput |
-  MeetingCreatedMessageInput;
+  MeetingCreatedMessageInput |
+  MessageCreatedMessageInput |
+  MessageUpdatedMessageInput;
 
 export type SendMessageOutput = void;

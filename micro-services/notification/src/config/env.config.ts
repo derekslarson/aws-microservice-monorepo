@@ -18,12 +18,8 @@ export const envConfig: EnvConfigInterface = {
     teamCreated: process.env.TEAM_CREATED_SNS_TOPIC_ARN || "",
     meetingCreated: process.env.MEETING_CREATED_SNS_TOPIC_ARN || "",
     groupCreated: process.env.GROUP_CREATED_SNS_TOPIC_ARN || "",
-    friendMessageCreated: process.env.FRIEND_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
-    friendMessageUpdated: process.env.FRIEND_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
-    groupMessageCreated: process.env.GROUP_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
-    groupMessageUpdated: process.env.GROUP_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
-    meetingMessageCreated: process.env.MEETING_MESSAGE_CREATED_SNS_TOPIC_ARN || "",
-    meetingMessageUpdated: process.env.MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
+    messageCreated: process.env.MESSAGE_CREATED_SNS_TOPIC_ARN || "",
+    messageUpdated: process.env.MESSAGE_UPDATED_SNS_TOPIC_ARN || "",
   },
   platformApplicationArn: process.env.PLATFORM_APPLICATION_ARN || "",
   globalSecondaryIndexNames: { one: process.env.GSI_ONE_INDEX_NAME || "" },
@@ -47,12 +43,8 @@ export interface EnvConfigInterface extends BaseEnvConfigInterface {
     teamCreated: string;
     meetingCreated: string;
     groupCreated: string;
-    friendMessageCreated: string;
-    friendMessageUpdated: string;
-    groupMessageCreated: string;
-    groupMessageUpdated: string;
-    meetingMessageCreated: string;
-    meetingMessageUpdated: string;
+    messageCreated: string;
+    messageUpdated: string;
   };
   platformApplicationArn: string;
   bucketNames: Record<string, string>;

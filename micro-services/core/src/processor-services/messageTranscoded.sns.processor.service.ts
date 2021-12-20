@@ -3,7 +3,7 @@ import { injectable, inject } from "inversify";
 import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, MessageTranscodedSnsMessage } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
-import { PendingMessageServiceInterface } from "../entity-services/pendingMessage.service";
+import { MessageServiceInterface } from "../services/tier-2/message.service";
 
 @injectable()
 export class MessageTranscodedSnsProcessorService implements SnsProcessorServiceInterface {
@@ -11,7 +11,7 @@ export class MessageTranscodedSnsProcessorService implements SnsProcessorService
 
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.PendingMessageServiceInterface) private pendingMessageService: PendingMessageServiceInterface,
+    @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: MessageTranscodedSnsProcessorServiceConfigInterface,
   ) {
     this.messageTranscodedSnsTopicArn = envConfig.snsTopicArns.messageTranscoded;
@@ -35,7 +35,7 @@ export class MessageTranscodedSnsProcessorService implements SnsProcessorService
 
       const { message: { messageId, newMimeType } } = record;
 
-      await this.pendingMessageService.updatePendingMessage({ messageId, updates: { mimeType: newMimeType } });
+      await this.messageService.updatePendingMessage({ messageId, updates: { mimeType: newMimeType } });
     } catch (error: unknown) {
       this.loggerService.error("Error in processRecord", { error, record }, this.constructor.name);
 

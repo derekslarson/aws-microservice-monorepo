@@ -31,6 +31,43 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
     this.openSearchDomainEndpoint = config.openSearchDomainEndpoint;
   }
 
+  public async getEntitiesBySearchTerm(params: GetEntitiesBySearchTermInput): Promise<GetEntitiesBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getEntitiesBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, entityTypes, entityIds, limit, exclusiveStartKey } = params;
+
+      const queryString = `
+        SELECT *
+        FROM ${entityTypes ? entityTypes.join(", ") : "*"}
+        WHERE ( 
+          MATCH_PHRASE(name, '${searchTerm}')
+          OR MATCH_PHRASE(username, '${searchTerm}')
+          OR MATCH_PHRASE(email, '${searchTerm}')
+          OR MATCH_PHRASE(phone, '${searchTerm}')
+          OR MATCH_PHRASE(transcript, '${searchTerm}') 
+          OR name LIKE '%${searchTerm}%'
+          OR username LIKE '%${searchTerm}%'
+          OR email LIKE '%${searchTerm}%'
+          OR phone LIKE '%${searchTerm}%'
+          OR transcript LIKE '%${searchTerm}%'
+        )
+        ${entityIds ? `AND id IN (${entityIds.join(", ")})` : ""}
+      `;
+
+      const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
+
+      return {
+        entities: results,
+        lastEvaluatedKey,
+      };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getEntitiesBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async getUsersBySearchTerm(params: GetUsersBySearchTermInput): Promise<GetUsersBySearchTermOutput> {
     try {
       this.loggerService.trace("getUsersBySearchTerm called", { params }, this.constructor.name);
@@ -326,28 +363,28 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       }));
 
       const { schema, datarows, total, size } = queryResponse.data as {
-        schema: { name: keyof QueryResult; }[];
+        schema: { name: keyof EntityOnlyIdRequired; }[];
         datarows: unknown[][];
         total: number;
         size: number;
       };
 
       const results = datarows.map((datarow) => {
-        const entity: Partial<QueryResult> = {};
+        const entity: Partial<EntityOnlyIdRequired> = {};
         datarow.forEach((val, i) => {
           const propName = schema[i].name;
 
           if (val !== null) {
             if (propName === "id") {
-              entity[propName] = val as QueryResult["id"];
+              entity[propName] = val as EntityOnlyIdRequired["id"];
             } else {
-              entity[propName] = val as keyof Omit<QueryResult, "id">;
+              entity[propName] = val as keyof Omit<EntityOnlyIdRequired, "id">;
             }
           }
         });
 
-        return entity;
-      }) as QueryResult[];
+        return entity as EntityOnlyIdRequired;
+      });
 
       let lastEvaluatedKey: string | undefined;
 
@@ -425,6 +462,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
 }
 
 export interface SearchRepositoryInterface {
+  getEntitiesBySearchTerm(params: GetEntitiesBySearchTermInput): Promise<GetEntitiesBySearchTermOutput>;
   getUsersBySearchTerm(params: GetUsersBySearchTermInput): Promise<GetUsersBySearchTermOutput>;
   getGroupsBySearchTerm(params: GetGroupsBySearchTermInput): Promise<GetGroupsBySearchTermOutput>;
   getMeetingsBySearchTerm(params: GetMeetingsBySearchTermInput): Promise<GetMeetingsBySearchTermOutput>;
@@ -437,6 +475,21 @@ export interface SearchRepositoryInterface {
 }
 
 type TeamSearchRepositoryRepositoryConfig = Pick<EnvConfigInterface, "openSearchDomainEndpoint">;
+
+export type EntityId = UserId | OrganizationId | TeamId | ConversationId;
+
+export interface GetEntitiesBySearchTermInput {
+  searchTerm: string;
+  entityTypes?: SearchIndex[];
+  entityIds?: EntityId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetEntitiesBySearchTermOutput {
+  entities: EntityOnlyIdRequired[];
+  lastEvaluatedKey?: string;
+}
 
 export interface GetUsersBySearchTermInput {
   searchTerm: string;
@@ -543,7 +596,7 @@ export interface QueryInput {
 }
 
 export interface QueryOutput {
-  results: QueryResult[];
+  results: EntityOnlyIdRequired[];
   lastEvaluatedKey?: string;
 }
 
@@ -573,7 +626,7 @@ type TeamOnlyIdRequired = MakeRequired<Partial<Team>, "id">;
 type MessageOnlyIdRequired = MakeRequired<Partial<Message>, "id">;
 type OrganizationOnlyIdRequired = MakeRequired<Partial<Organization>, "id">;
 
-type QueryResult = UserOnlyIdRequired | OrganizationOnlyIdRequired | GroupOnlyIdRequired | MeetingOnlyIdRequired | TeamOnlyIdRequired | MessageOnlyIdRequired;
+type EntityOnlyIdRequired = UserOnlyIdRequired | OrganizationOnlyIdRequired | GroupOnlyIdRequired | MeetingOnlyIdRequired | TeamOnlyIdRequired | MessageOnlyIdRequired;
 
 interface SearchKey {
   offset: number;

@@ -23,7 +23,7 @@
 //     id: mockTeamId,
 //     name: "mock-name",
 //     image: "mock-image",
-//     createdBy: "user-mock-id",
+//     createdBy: "user_mock-id",
 //     organizationId: "organization-123",
 //   };
 

@@ -3,7 +3,7 @@ import { injectable, inject } from "inversify";
 import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, BillingPlanUpdatedSnsMessage } from "@yac/util";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
-import { OrganizationServiceInterface } from "../entity-services/organization.service";
+import { OrganizationServiceInterface } from "../services/tier-1/organization.service";
 
 @injectable()
 export class BillingPlanUpdatedSnsProcessorService implements SnsProcessorServiceInterface {

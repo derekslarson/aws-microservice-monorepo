@@ -1,6 +1,9 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { UserRemovedFromMeetingSnsMessage, LoggerServiceInterface, BaseSnsService, SnsFactory } from "@yac/util";
+import { BaseSnsService } from "@yac/util/src/services/base.sns.service";
+import { UserRemovedFromMeetingSnsMessage } from "@yac/util/src/api-contracts/sns-topics/userRemovedFromMeeting.snsMessage.model";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { SnsFactory } from "@yac/util/src/factories/sns.factory";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 

@@ -23,10 +23,10 @@ export class MessageController extends BaseController implements MessageControll
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.MessageMediatorServiceInterface) private messageService: MessageServiceInterface,
-    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupServiceInterface,
-    @inject(TYPES.MeetingMediatorServiceInterface) private meetingMediatorService: MeetingServiceInterface,
-    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationServiceInterface,
+    @inject(TYPES.MessageServiceInterface) private messageService: MessageServiceInterface,
+    @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
+    @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
+    @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
   ) {
     super();
   }
@@ -67,7 +67,7 @@ export class MessageController extends BaseController implements MessageControll
         body: { mimeType },
       } = this.validationService.validate({ dto: CreateGroupMessageDto, request, getUserIdFromJwt: true });
 
-      const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
+      const { isGroupMember } = await this.groupService.isGroupMember({ groupId, userId: jwtId });
 
       if (!isGroupMember) {
         throw new ForbiddenError("Forbidden");
@@ -95,7 +95,7 @@ export class MessageController extends BaseController implements MessageControll
         body: { mimeType },
       } = this.validationService.validate({ dto: CreateMeetingMessageDto, request, getUserIdFromJwt: true });
 
-      const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
+      const { isMeetingMember } = await this.meetingService.isMeetingMember({ meetingId, userId: jwtId });
 
       if (!isMeetingMember) {
         throw new ForbiddenError("Forbidden");
@@ -155,7 +155,7 @@ export class MessageController extends BaseController implements MessageControll
         queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMessagesByGroupIdDto, request, getUserIdFromJwt: true });
 
-      const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
+      const { isGroupMember } = await this.groupService.isGroupMember({ groupId, userId: jwtId });
 
       if (!isGroupMember) {
         throw new ForbiddenError("Forbidden");
@@ -189,7 +189,7 @@ export class MessageController extends BaseController implements MessageControll
         queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMessagesByMeetingIdDto, request, getUserIdFromJwt: true });
 
-      const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
+      const { isMeetingMember } = await this.meetingService.isMeetingMember({ meetingId, userId: jwtId });
 
       if (!isMeetingMember) {
         throw new ForbiddenError("Forbidden");
@@ -260,7 +260,7 @@ export class MessageController extends BaseController implements MessageControll
       if (message.type === ConversationType.OneOnOne) {
         isConversationMember = message.to.id === jwtId || message.from.id === jwtId;
       } else {
-        ({ isConversationMember } = await this.conversationOrchestratorService.isConversationMember({ conversationId: message.to.id as GroupId | MeetingId, userId: jwtId }));
+        ({ isConversationMember } = await this.conversationService.isConversationMember({ conversationId: message.to.id as GroupId | MeetingId, userId: jwtId }));
       }
 
       if (!isConversationMember) {
@@ -298,7 +298,7 @@ export class MessageController extends BaseController implements MessageControll
       if (message.type === ConversationType.OneOnOne) {
         isConversationMember = message.to.id === jwtId || message.from.id === jwtId;
       } else {
-        ({ isConversationMember } = await this.conversationOrchestratorService.isConversationMember({ conversationId: message.to.id as GroupId | MeetingId, userId: jwtId }));
+        ({ isConversationMember } = await this.conversationService.isConversationMember({ conversationId: message.to.id as GroupId | MeetingId, userId: jwtId }));
       }
 
       if (!isConversationMember) {
@@ -357,7 +357,7 @@ export class MessageController extends BaseController implements MessageControll
   //       throw new ForbiddenError("Forbidden");
   //     }
 
-  //     const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
+  //     const { isGroupMember } = await this.groupService.isGroupMember({ groupId, userId: jwtId });
 
   //     if (!isGroupMember) {
   //       throw new ForbiddenError("Forbidden");
@@ -389,7 +389,7 @@ export class MessageController extends BaseController implements MessageControll
   //       throw new ForbiddenError("Forbidden");
   //     }
 
-  //     const { isMeetingMember } = await this.meetingMediatorService.isMeetingMember({ meetingId, userId: jwtId });
+  //     const { isMeetingMember } = await this.meetingService.isMeetingMember({ meetingId, userId: jwtId });
 
   //     if (!isMeetingMember) {
   //       throw new ForbiddenError("Forbidden");

@@ -28,7 +28,7 @@
 //     id: mockMeetingId,
 //     name: "mock-name",
 //     image: "mock-image",
-//     createdBy: "user-mock-id",
+//     createdBy: "user_mock-id",
 //     createdAt: new Date().toISOString(),
 //     dueDate: new Date().toISOString(),
 //   };

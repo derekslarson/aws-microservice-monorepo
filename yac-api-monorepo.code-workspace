@@ -55,7 +55,11 @@
   "folders": [
     {
       "path": "."
-    }
+    },
+    {
+      "name": "micro-services/util",
+      "path": "./micro-services/util/src"
+    },
   ],
   "settings": {
     "editor.tabSize": 2

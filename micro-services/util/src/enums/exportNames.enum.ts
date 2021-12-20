@@ -21,6 +21,9 @@ const ExportNames = {
   UserRemovedFromMeetingSnsTopicArn: "userRemovedFromMeetingSnsTopicArn",
   UserRemovedAsFriendSnsTopicArn: "userRemovedAsFriendSnsTopicArn",
 
+  MessageCreatedSnsTopicArn: "MessageCreatedSnsTopicArn",
+  MessageUpdatedSnsTopicArn: "MessageUpdatedSnsTopicArn",
+
   FriendMessageCreatedSnsTopicArn: "friendMessageCreatedSnsTopicArn",
   GroupMessageCreatedSnsTopicArn: "groupMessageCreatedSnsTopicArn",
   MeetingMessageCreatedSnsTopicArn: "meetingMessageCreatedSnsTopicArn",

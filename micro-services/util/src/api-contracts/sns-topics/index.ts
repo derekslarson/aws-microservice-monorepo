@@ -14,6 +14,8 @@ export * from "./userAddedToMeeting.snsMessage.model";
 export * from "./userRemovedFromMeeting.snsMessage.model";
 export * from "./userAddedAsFriend.snsMessage.model";
 export * from "./userRemovedAsFriend.snsMessage.model";
+export * from "./messageCreated.snsMessage.model";
+export * from "./messageUpdated.snsMessage.model";
 export * from "./friendMessageCreated.snsMessage.model";
 export * from "./friendMessageUpdated.snsMessage.model";
 export * from "./groupMessageCreated.snsMessage.model";

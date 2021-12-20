@@ -7,9 +7,8 @@ import { OrganizationServiceInterface } from "../tier-1/organization.service";
 import { TeamServiceInterface } from "../tier-1/team.service";
 import { GroupServiceInterface } from "../tier-1/group.service";
 import { MeetingServiceInterface } from "../tier-1/meeting.service";
-import { PendingInvitation, PendingInvitationServiceInterface } from "../tier-1/pendingInvitation.service";
 import { PendingInvitationType } from "../../enums/pendingInvitationType.enum";
-import { InvitingEntityId } from "../../repositories/pendingInvitation.dynamo.repository";
+import { InvitingEntityId, PendingInvitation, PendingInvitationRepositoryInterface } from "../../repositories/pendingInvitation.dynamo.repository";
 
 @injectable()
 export class InvitationService implements InvitationServiceInterface {
@@ -21,7 +20,7 @@ export class InvitationService implements InvitationServiceInterface {
     @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
     @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
     @inject(TYPES.OneOnOneServiceInterface) private oneOnOneService: OneOnOneServiceInterface,
-    @inject(TYPES.PendingInvitationServiceInterface) private pendingInvitationService: PendingInvitationServiceInterface,
+    @inject(TYPES.PendingInvitationRepositoryInterface) private pendingInvitationRepository: PendingInvitationRepositoryInterface,
   ) {}
 
   public async createOneOnOnes(params: CreateOneOnOnesInput): Promise<CreateOneOnOnesOutput> {
@@ -158,7 +157,7 @@ export class InvitationService implements InvitationServiceInterface {
         await this.organizationService.addUserToOrganization({ organizationId: invitingEntityId as OrganizationId, userId, role: role as Role });
       }
 
-      await this.pendingInvitationService.deletePendingInvitation(pendingInvitation);
+      await this.pendingInvitationRepository.deletePendingInvitation(pendingInvitation);
     } catch (error: unknown) {
       this.loggerService.error("Error in processPendingInvitation", { error, params }, this.constructor.name);
 
@@ -209,11 +208,7 @@ export class InvitationService implements InvitationServiceInterface {
       }
 
       if (!user && (invitation.email || invitation.phone)) {
-        await this.pendingInvitationService.createPendingInvitation({
-          type,
-          invitingEntityId,
-          ...invitation,
-        });
+        await this.pendingInvitationRepository.createPendingInvitation({ pendingInvitation: { createdAt: new Date().toISOString(), type, invitingEntityId, ...invitation } });
 
         return { success: true, invitation };
       }

@@ -5,10 +5,10 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { UserRemovedFromOrganizationSnsServiceInterface } from "../sns-services/userRemovedFromOrganization.sns.service";
-import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 import { RawMembership } from "../repositories/membership.dynamo.repository";
 import { MembershipType } from "../enums/membershipType.enum";
+import { OrganizationServiceInterface } from "../services/tier-1/organization.service";
+import { UserServiceInterface } from "../services/tier-1/user.service";
 
 @injectable()
 export class UserRemovedFromOrganizationDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -17,8 +17,8 @@ export class UserRemovedFromOrganizationDynamoProcessorService implements Dynamo
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserRemovedFromOrganizationSnsServiceInterface) private userRemovedFromOrganizationSnsService: UserRemovedFromOrganizationSnsServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
+    @inject(TYPES.OrganizationServiceInterface) private organizationService: OrganizationServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserRemovedFromOrganizationDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -49,9 +49,9 @@ export class UserRemovedFromOrganizationDynamoProcessorService implements Dynamo
       const organizationId = entityId as OrganizationId;
 
       const [ { users: organizationMembers }, { user }, { organization } ] = await Promise.all([
-        this.userMediatorService.getUsersByOrganizationId({ organizationId }),
-        this.userMediatorService.getUser({ userId }),
-        this.organizationMediatorService.getOrganization({ organizationId }),
+        this.userService.getUsersByEntityId({ entityId: organizationId }),
+        this.userService.getUser({ userId }),
+        this.organizationService.getOrganization({ organizationId }),
       ]);
 
       const organizationMemberIds = organizationMembers.map((organizationMember) => organizationMember.id);

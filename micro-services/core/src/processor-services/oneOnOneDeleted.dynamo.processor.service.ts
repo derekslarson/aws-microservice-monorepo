@@ -5,8 +5,8 @@ import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { UserRemovedAsFriendSnsServiceInterface } from "../sns-services/userRemovedAsFriend.sns.service";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
 import { RawOneOnOne } from "../repositories/oneOnOne.dynamo.repository";
+import { UserServiceInterface } from "../services/tier-1/user.service";
 
 @injectable()
 export class OneOnOneDeletedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -15,7 +15,7 @@ export class OneOnOneDeletedDynamoProcessorService implements DynamoProcessorSer
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.UserRemovedAsFriendSnsServiceInterface) private userRemovedAsFriendSnsService: UserRemovedAsFriendSnsServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: UserRemovedAsFriendDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -44,8 +44,8 @@ export class OneOnOneDeletedDynamoProcessorService implements DynamoProcessorSer
       const { oldImage: { createdBy, otherUserId } } = record;
 
       const [ { user: userA }, { user: userB } ] = await Promise.all([
-        this.userMediatorService.getUser({ userId: createdBy }),
-        this.userMediatorService.getUser({ userId: otherUserId }),
+        this.userService.getUser({ userId: createdBy }),
+        this.userService.getUser({ userId: otherUserId }),
       ]);
 
       await this.userRemovedAsFriendSnsService.sendMessage({

@@ -11,12 +11,11 @@ import * as SNSSubscriptions from "@aws-cdk/aws-sns-subscriptions";
 import * as SQS from "@aws-cdk/aws-sqs";
 import * as EC2 from "@aws-cdk/aws-ec2";
 import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
-import {
-  Environment,
-  generateExportNames,
-  LogLevel,
-} from "@yac/util";
+
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { Environment } from "@yac/util/src/enums/environment.enum";
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import * as OpenSearch from "../constructs/aws-opensearch";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 import { YacUserServiceNestedStack } from "./yac.user.service.nestedStack";
@@ -66,13 +65,8 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const userRemovedFromMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromMeetingSnsTopicArn);
     const userRemovedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedAsFriendSnsTopicArn);
 
-    const friendMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageCreatedSnsTopicArn);
-    const groupMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupMessageCreatedSnsTopicArn);
-    const meetingMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageCreatedSnsTopicArn);
-
-    const friendMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageUpdatedSnsTopicArn);
-    const groupMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupMessageUpdatedSnsTopicArn);
-    const meetingMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageUpdatedSnsTopicArn);
+    const messageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageCreatedSnsTopicArn);
+    const messageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageUpdatedSnsTopicArn);
 
     const messageTranscodedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
     const messageTranscribedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn);
@@ -263,34 +257,14 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       resources: [ userRemovedAsFriendSnsTopicArn ],
     });
 
-    const friendMessageCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
+    const messageCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ friendMessageCreatedSnsTopicArn ],
+      resources: [ messageCreatedSnsTopicArn ],
     });
 
-    const groupMessageCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
+    const messageUpdatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ groupMessageCreatedSnsTopicArn ],
-    });
-
-    const meetingMessageCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "SNS:Publish" ],
-      resources: [ meetingMessageCreatedSnsTopicArn ],
-    });
-
-    const friendMessageUpdatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "SNS:Publish" ],
-      resources: [ friendMessageUpdatedSnsTopicArn ],
-    });
-
-    const groupMessageUpdatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "SNS:Publish" ],
-      resources: [ groupMessageUpdatedSnsTopicArn ],
-    });
-
-    const meetingMessageUpdatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
-      actions: [ "SNS:Publish" ],
-      resources: [ meetingMessageUpdatedSnsTopicArn ],
+      resources: [ messageUpdatedSnsTopicArn ],
     });
 
     const createUserRequestSnsPublishPolicyStatement = new IAM.PolicyStatement({
@@ -329,14 +303,8 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN: userRemovedFromMeetingSnsTopicArn,
       USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN: userRemovedAsFriendSnsTopicArn,
 
-      FRIEND_MESSAGE_CREATED_SNS_TOPIC_ARN: friendMessageCreatedSnsTopicArn,
-      GROUP_MESSAGE_CREATED_SNS_TOPIC_ARN: groupMessageCreatedSnsTopicArn,
-      MEETING_MESSAGE_CREATED_SNS_TOPIC_ARN: meetingMessageCreatedSnsTopicArn,
-
-      FRIEND_MESSAGE_UPDATED_SNS_TOPIC_ARN: friendMessageUpdatedSnsTopicArn,
-      GROUP_MESSAGE_UPDATED_SNS_TOPIC_ARN: groupMessageUpdatedSnsTopicArn,
-      MEETING_MESSAGE_UPDATED_SNS_TOPIC_ARN: meetingMessageUpdatedSnsTopicArn,
-
+      MESSAGE_CREATED_SNS_TOPIC_ARN: messageCreatedSnsTopicArn,
+      MESSAGE_UPDATED_SNS_TOPIC_ARN: messageUpdatedSnsTopicArn,
       MESSAGE_TRANSCODED_SNS_TOPIC_ARN: messageTranscodedSnsTopicArn,
       MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN: messageTranscribedSnsTopicArn,
 
@@ -385,12 +353,8 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         userRemovedFromGroupSnsPublishPolicyStatement,
         userRemovedFromMeetingSnsPublishPolicyStatement,
         userRemovedAsFriendSnsPublishPolicyStatement,
-        friendMessageCreatedSnsPublishPolicyStatement,
-        groupMessageCreatedSnsPublishPolicyStatement,
-        meetingMessageCreatedSnsPublishPolicyStatement,
-        friendMessageUpdatedSnsPublishPolicyStatement,
-        groupMessageUpdatedSnsPublishPolicyStatement,
-        meetingMessageUpdatedSnsPublishPolicyStatement,
+        messageCreatedSnsPublishPolicyStatement,
+        messageUpdatedSnsPublishPolicyStatement,
         createUserRequestSnsPublishPolicyStatement,
         openSearchFullAccessPolicyStatement,
       ],

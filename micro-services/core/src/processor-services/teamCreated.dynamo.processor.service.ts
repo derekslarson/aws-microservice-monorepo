@@ -6,7 +6,7 @@ import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { TeamCreatedSnsServiceInterface } from "../sns-services/teamCreated.sns.service";
 import { RawTeam } from "../repositories/team.dynamo.repository";
-import { TeamMediatorServiceInterface } from "../mediator-services/team.mediator.service";
+import { TeamServiceInterface } from "../services/tier-1/team.service";
 
 @injectable()
 export class TeamCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -15,7 +15,7 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.TeamCreatedSnsServiceInterface) private teamCreatedSnsService: TeamCreatedSnsServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamMediatorServiceInterface,
+    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: TeamCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -43,7 +43,7 @@ export class TeamCreatedDynamoProcessorService implements DynamoProcessorService
 
       const { newImage: { id: teamId } } = record;
 
-      const { team } = await this.teamMediatorService.getTeam({ teamId });
+      const { team } = await this.teamService.getTeam({ teamId });
 
       await this.teamCreatedSnsService.sendMessage({ team, teamMemberIds: [ team.createdBy ] });
     } catch (error: unknown) {

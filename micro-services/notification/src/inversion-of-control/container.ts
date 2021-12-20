@@ -6,9 +6,6 @@ import { ListenerMappingService, ListenerMappingServiceInterface } from "../enti
 import { apiGatewayManagementFactory, ApiGatewayManagementFactory } from "../factories/apiGatewayManagement.factory";
 import { WebSocketMediatorService, WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";
 import { MeetingCreatedSnsProcessorService } from "../processor-services/meetingCreated.sns.processor.service";
-import { FriendMessageCreatedSnsProcessorService } from "../processor-services/friendMessageCreated.sns.processor.service";
-import { GroupMessageCreatedSnsProcessorService } from "../processor-services/groupMessageCreated.sns.processor.service";
-import { MeetingMessageCreatedSnsProcessorService } from "../processor-services/meetingMessageCreated.sns.processor.service";
 import { GroupCreatedSnsProcessorService } from "../processor-services/groupCreated.sns.processor.service";
 import { TeamCreatedSnsProcessorService } from "../processor-services/teamCreated.sns.processor.service";
 import { UserAddedAsFriendSnsProcessorService } from "../processor-services/userAddedAsFriend.sns.processor.service";
@@ -22,12 +19,11 @@ import { UserRemovedFromTeamSnsProcessorService } from "../processor-services/us
 import { ListenerMappingDynamoRepository, ListenerMappingRepositoryInterface } from "../repositories/listenerMapping.dynamo.repository";
 import { WebSocketService, WebSocketServiceInterface } from "../services/webSocket.service";
 import { TYPES } from "./types";
-import { FriendMessageUpdatedSnsProcessorService } from "../processor-services/friendMessageUpdated.sns.processor.service";
-import { GroupMessageUpdatedSnsProcessorService } from "../processor-services/groupMessageUpdated.sns.processor.service";
-import { MeetingMessageUpdatedSnsProcessorService } from "../processor-services/meetingMessageUpdated.sns.processor.service";
 import { PushNotificationService, PushNotificationServiceInterface } from "../services/pushNotification.service";
 import { PushNotificationMediatorService, PushNotificationMediatorServiceInterface } from "../mediator-services/pushNotification.mediator.service";
 import { PushNotificationController, PushNotificationControllerInterface } from "../controllers/pushNotification.controller";
+import { MessageCreatedSnsProcessorService } from "../processor-services/messageCreated.sns.processor.service";
+import { MessageUpdatedSnsProcessorService } from "../processor-services/messageUpdated.sns.processor.service";
 
 const container = new Container();
 
@@ -57,12 +53,8 @@ try {
   container.bind<SnsProcessorServiceInterface>(TYPES.TeamCreatedSnsProcessorServiceInterface).to(TeamCreatedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.MeetingCreatedSnsProcessorServiceInterface).to(MeetingCreatedSnsProcessorService);
   container.bind<SnsProcessorServiceInterface>(TYPES.GroupCreatedSnsProcessorServiceInterface).to(GroupCreatedSnsProcessorService);
-  container.bind<SnsProcessorServiceInterface>(TYPES.FriendMessageCreatedSnsProcessorServiceInterface).to(FriendMessageCreatedSnsProcessorService);
-  container.bind<SnsProcessorServiceInterface>(TYPES.FriendMessageUpdatedSnsProcessorServiceInterface).to(FriendMessageUpdatedSnsProcessorService);
-  container.bind<SnsProcessorServiceInterface>(TYPES.GroupMessageCreatedSnsProcessorServiceInterface).to(GroupMessageCreatedSnsProcessorService);
-  container.bind<SnsProcessorServiceInterface>(TYPES.GroupMessageUpdatedSnsProcessorServiceInterface).to(GroupMessageUpdatedSnsProcessorService);
-  container.bind<SnsProcessorServiceInterface>(TYPES.MeetingMessageCreatedSnsProcessorServiceInterface).to(MeetingMessageCreatedSnsProcessorService);
-  container.bind<SnsProcessorServiceInterface>(TYPES.MeetingMessageUpdatedSnsProcessorServiceInterface).to(MeetingMessageUpdatedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.MessageCreatedSnsProcessorServiceInterface).to(MessageCreatedSnsProcessorService);
+  container.bind<SnsProcessorServiceInterface>(TYPES.MessageUpdatedSnsProcessorServiceInterface).to(MessageUpdatedSnsProcessorService);
 
   // Entity Services
   container.bind<ListenerMappingServiceInterface>(TYPES.ListenerMappingServiceInterface).to(ListenerMappingService);
@@ -90,12 +82,8 @@ try {
     container.get(TYPES.TeamCreatedSnsProcessorServiceInterface),
     container.get(TYPES.MeetingCreatedSnsProcessorServiceInterface),
     container.get(TYPES.GroupCreatedSnsProcessorServiceInterface),
-    container.get(TYPES.FriendMessageCreatedSnsProcessorServiceInterface),
-    container.get(TYPES.FriendMessageUpdatedSnsProcessorServiceInterface),
-    container.get(TYPES.GroupMessageCreatedSnsProcessorServiceInterface),
-    container.get(TYPES.GroupMessageUpdatedSnsProcessorServiceInterface),
-    container.get(TYPES.MeetingMessageCreatedSnsProcessorServiceInterface),
-    container.get(TYPES.MeetingMessageUpdatedSnsProcessorServiceInterface),
+    container.get(TYPES.MessageCreatedSnsProcessorServiceInterface),
+    container.get(TYPES.MessageUpdatedSnsProcessorServiceInterface),
   ]);
 
   container.bind<S3ProcessorServiceInterface[]>(TYPES.S3ProcessorServicesInterface).toConstantValue([]);

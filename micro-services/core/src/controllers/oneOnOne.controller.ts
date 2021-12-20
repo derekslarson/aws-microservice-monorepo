@@ -14,9 +14,9 @@ export class OneOnOneController extends BaseController implements OneOnOneContro
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.OneOnOneMediatorServiceInterface) private oneOnOneMediatorService: OneOnOneServiceInterface,
-    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationServiceInterface,
-    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationOrchestratorService: ConversationServiceInterface,
+    @inject(TYPES.OneOnOneServiceInterface) private oneOnOneService: OneOnOneServiceInterface,
+    @inject(TYPES.InvitationServiceInterface) private invitationService: InvitationServiceInterface,
+    @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
   ) {
     super();
   }
@@ -35,7 +35,7 @@ export class OneOnOneController extends BaseController implements OneOnOneContro
         throw new ForbiddenError("Forbidden");
       }
 
-      const { successes, failures } = await this.invitationOrchestratorService.createOneOnOnes({ userId, users });
+      const { successes, failures } = await this.invitationService.createOneOnOnes({ userId, users });
 
       const response = {
         message: `One-on-ones created${failures.length ? ", but with some failures." : "."}`,
@@ -64,7 +64,7 @@ export class OneOnOneController extends BaseController implements OneOnOneContro
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.oneOnOneMediatorService.deleteOneOnOne({ oneOnOneId });
+      await this.oneOnOneService.deleteOneOnOne({ oneOnOneId });
 
       return this.generateSuccessResponse({ message: "One-on-one deleted." });
     } catch (error: unknown) {
@@ -88,7 +88,7 @@ export class OneOnOneController extends BaseController implements OneOnOneContro
         throw new ForbiddenError("Forbidden");
       }
 
-      const { oneOnOnes, lastEvaluatedKey } = await this.conversationOrchestratorService.getOneOnOnesByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { oneOnOnes, lastEvaluatedKey } = await this.conversationService.getOneOnOnesByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ oneOnOnes, lastEvaluatedKey });
     } catch (error: unknown) {

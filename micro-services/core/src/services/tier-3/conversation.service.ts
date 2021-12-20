@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
 import { ConversationId, ConversationType, GroupId, LoggerServiceInterface, MeetingId, NotFoundError, OneOnOneId, OrganizationId, TeamId, UserId } from "@yac/util";
 import { TYPES } from "../../inversion-of-control/types";
@@ -5,8 +6,10 @@ import { Meeting as MeetingEntity, MeetingByUserId as MeetingByUserIdEntity, Mee
 import { Group as GroupEntity, GroupByUserId as GroupByUserIdEntity, GroupServiceInterface } from "../tier-1/group.service";
 import { OneOnOne as OneOnOneEntity, OneOnOneByUserId as OneOnOneByUserIdEntity, OneOnOneServiceInterface } from "../tier-1/oneOnOne.service";
 import { Message as MessageEntity, MessageServiceInterface } from "../tier-2/message.service";
-import { MembershipServiceInterface } from "../../entity-services/membership.service";
 import { User as UserEntity, UserServiceInterface } from "../tier-1/user.service";
+import { MembershipRepositoryInterface } from "../../repositories/membership.dynamo.repository";
+import { OneOnOneAndGroupServiceInterface } from "../tier-2/oneOnOneAndGroup.service";
+import { KeyPrefix } from "../../enums/keyPrefix.enum";
 
 @injectable()
 export class ConversationService implements ConversationServiceInterface {
@@ -16,9 +19,9 @@ export class ConversationService implements ConversationServiceInterface {
     @inject(TYPES.MeetingServiceInterface) private meetingService: MeetingServiceInterface,
     @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
     @inject(TYPES.OneOnOneServiceInterface) private oneOnOneService: OneOnOneServiceInterface,
-    // @inject(TYPES.OneOnOneAndGroupServiceInterface) private oneOnOneAndGroupService: OneOnOneAndGroupServiceInterface,
+    @inject(TYPES.OneOnOneAndGroupServiceInterface) private oneOnOneAndGroupService: OneOnOneAndGroupServiceInterface,
     @inject(TYPES.MessageServiceInterface) private messageFetchingService: MessageServiceInterface,
-    @inject(TYPES.MembershipServiceInterface) private membershipService: MembershipServiceInterface,
+    @inject(TYPES.MembershipRepositoryInterface) private membershipRepository: MembershipRepositoryInterface,
   ) {}
 
   public async getMeetingsByUserId(params: GetMeetingsByUserIdInput): Promise<GetMeetingsByUserIdOutput> {
@@ -187,13 +190,58 @@ export class ConversationService implements ConversationServiceInterface {
     }
   }
 
+  public async getOneOnOnesAndGroupsByUserId(params: GetOneOnOnesAndGroupsByUserIdInput): Promise<GetOneOnOnesAndGroupsByUserIdOutput> {
+    try {
+      this.loggerService.trace("getOneOnOnesAndGroupsByUserId called", { params }, this.constructor.name);
+
+      const { userId, limit, exclusiveStartKey } = params;
+
+      const { oneOnOnesAndGroups: oneOnOneAndGroupEntities, lastEvaluatedKey } = await this.oneOnOneAndGroupService.getOneOnOnesAndGroupsByUserId({ userId, limit, exclusiveStartKey });
+
+      const oneOnOneEntities = oneOnOneAndGroupEntities.filter((oneOnOneOrGroup) => !oneOnOneOrGroup.id.startsWith(KeyPrefix.Group)) as OneOnOneByUserIdEntity [];
+      const userIds = oneOnOneEntities.map(({ createdBy, otherUserId }) => (userId === createdBy ? otherUserId : createdBy));
+
+      const { users } = await this.userService.getUsers({ userIds });
+
+      const userMap: Record<string, UserEntity> = {};
+      users.forEach((user) => userMap[user.id] = user);
+
+      const oneOnOnesAndGroups = await Promise.all(oneOnOneAndGroupEntities.map(async (oneOnOneOrGroupEntity) => {
+        const { messages: [ recentMessage ] } = await this.messageFetchingService.getMessagesByConversationId({ requestingUserId: userId, conversationId: oneOnOneOrGroupEntity.id });
+
+        if (oneOnOneOrGroupEntity.id.startsWith(KeyPrefix.Group)) {
+          return { ...oneOnOneOrGroupEntity as GroupByUserIdEntity, recentMessage };
+        }
+
+        const otherUserId = oneOnOneOrGroupEntity.id.split(/_(?=user_)/).find((id) => id !== userId) as UserId;
+        const otherUser = userMap[otherUserId];
+
+        return {
+          ...oneOnOneOrGroupEntity as OneOnOneByUserIdEntity,
+          recentMessage,
+          name: otherUser.name,
+          username: otherUser.username,
+          email: otherUser.email,
+          phone: otherUser.phone,
+          image: otherUser.image,
+        };
+      }));
+
+      return { oneOnOnesAndGroups, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getOneOnOnesAndGroupsByUserId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
   public async isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput> {
     try {
       this.loggerService.trace("isConversationMember called", { params }, this.constructor.name);
 
       const { conversationId, userId } = params;
 
-      await this.membershipService.getMembership({ entityId: conversationId, userId });
+      await this.membershipRepository.getMembership({ entityId: conversationId, userId });
 
       return { isConversationMember: true };
     } catch (error: unknown) {
@@ -215,7 +263,7 @@ export interface ConversationServiceInterface {
   getGroupsByTeamId(params: GetGroupsByTeamIdInput): Promise<GetGroupsByTeamIdOutput>;
   getGroupsByOrganizationId(params: GetGroupsByOrganizationIdInput): Promise<GetGroupsByTeamIdOutput>;
   getOneOnOnesByUserId(params: GetOneOnOnesByUserIdInput): Promise<GetOneOnOnesByUserIdOutput>;
-  // getOneOnOnesAndGroupsByUserId(params: GetOneOnOnesAndGroupsByUserIdInput): Promise<GetOneOnOnesAndGroupsByUserIdOutput>;
+  getOneOnOnesAndGroupsByUserId(params: GetOneOnOnesAndGroupsByUserIdInput): Promise<GetOneOnOnesAndGroupsByUserIdOutput>;
   isConversationMember(params: IsConversationMemberInput): Promise<IsConversationMemberOutput>
 }
 

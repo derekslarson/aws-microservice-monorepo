@@ -6,8 +6,8 @@ import { EnvConfigInterface } from "../config/env.config";
 import { EntityType } from "../enums/entityType.enum";
 import { OrganizationCreatedSnsServiceInterface } from "../sns-services/organizationCreated.sns.service";
 import { RawOrganization } from "../repositories/organization.dynamo.repository";
-import { OrganizationMediatorServiceInterface } from "../mediator-services/organization.mediator.service";
-import { UserMediatorServiceInterface } from "../mediator-services/user.mediator.service";
+import { OrganizationServiceInterface } from "../services/tier-1/organization.service";
+import { UserServiceInterface } from "../services/tier-1/user.service";
 
 @injectable()
 export class OrganizationCreatedDynamoProcessorService implements DynamoProcessorServiceInterface {
@@ -16,8 +16,8 @@ export class OrganizationCreatedDynamoProcessorService implements DynamoProcesso
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.OrganizationCreatedSnsServiceInterface) private organizationCreatedSnsService: OrganizationCreatedSnsServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationMediatorServiceInterface,
-    @inject(TYPES.UserMediatorServiceInterface) private userMediatorService: UserMediatorServiceInterface,
+    @inject(TYPES.OrganizationServiceInterface) private organizationService: OrganizationServiceInterface,
+    @inject(TYPES.UserServiceInterface) private userService: UserServiceInterface,
     @inject(TYPES.EnvConfigInterface) envConfig: OrganizationCreatedDynamoProcessorServiceConfigInterface,
   ) {
     this.coreTableName = envConfig.tableNames.core;
@@ -46,8 +46,8 @@ export class OrganizationCreatedDynamoProcessorService implements DynamoProcesso
       const { newImage: { id: organizationId, createdBy: userId } } = record;
 
       const [ { organization }, { user } ] = await Promise.all([
-        this.organizationMediatorService.getOrganization({ organizationId }),
-        this.userMediatorService.getUser({ userId }),
+        this.organizationService.getOrganization({ organizationId }),
+        this.userService.getUser({ userId }),
       ]);
 
       await this.organizationCreatedSnsService.sendMessage({ organization, organizationMemberIds: [ organization.createdBy ], createdByUser: user });

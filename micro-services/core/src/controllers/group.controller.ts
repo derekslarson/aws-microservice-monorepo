@@ -22,11 +22,11 @@ export class GroupController extends BaseController implements GroupControllerIn
   constructor(
     @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.InvitationOrchestratorServiceInterface) private invitationOrchestratorService: InvitationServiceInterface,
-    @inject(TYPES.OrganizationMediatorServiceInterface) private organizationMediatorService: OrganizationServiceInterface,
-    @inject(TYPES.GroupMediatorServiceInterface) private groupMediatorService: GroupServiceInterface,
-    @inject(TYPES.ConversationOrchestratorServiceInterface) private conversationService: ConversationServiceInterface,
-    @inject(TYPES.TeamMediatorServiceInterface) private teamMediatorService: TeamServiceInterface,
+    @inject(TYPES.InvitationServiceInterface) private invitationService: InvitationServiceInterface,
+    @inject(TYPES.OrganizationServiceInterface) private organizationService: OrganizationServiceInterface,
+    @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
+    @inject(TYPES.ConversationServiceInterface) private conversationService: ConversationServiceInterface,
+    @inject(TYPES.TeamServiceInterface) private teamService: TeamServiceInterface,
   ) {
     super();
   }
@@ -43,21 +43,21 @@ export class GroupController extends BaseController implements GroupControllerIn
 
       if (teamId) {
         const [ { isTeamAdmin }, { team } ] = await Promise.all([
-          this.teamMediatorService.isTeamAdmin({ teamId, userId: jwtId }),
-          this.teamMediatorService.getTeam({ teamId }),
+          this.teamService.isTeamAdmin({ teamId, userId: jwtId }),
+          this.teamService.getTeam({ teamId }),
         ]);
 
         if (!isTeamAdmin || team.organizationId !== organizationId) {
           throw new ForbiddenError("Forbidden");
         }
       } else {
-        const { isOrganizationAdmin } = await this.organizationMediatorService.isOrganizationAdmin({ organizationId, userId: jwtId });
+        const { isOrganizationAdmin } = await this.organizationService.isOrganizationAdmin({ organizationId, userId: jwtId });
 
         if (!isOrganizationAdmin) {
           throw new ForbiddenError("Forbidden");
         }
       }
-      const { group } = await this.groupMediatorService.createGroup({ name, createdBy: jwtId, organizationId, teamId });
+      const { group } = await this.groupService.createGroup({ name, createdBy: jwtId, organizationId, teamId });
 
       const response: CreateGroupResponse = { group };
 
@@ -79,13 +79,13 @@ export class GroupController extends BaseController implements GroupControllerIn
         body: updates,
       } = this.validationService.validate({ dto: UpdateGroupDto, request, getUserIdFromJwt: true });
 
-      const { isGroupAdmin } = await this.groupMediatorService.isGroupAdmin({ groupId, userId: jwtId });
+      const { isGroupAdmin } = await this.groupService.isGroupAdmin({ groupId, userId: jwtId });
 
       if (!isGroupAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.groupMediatorService.updateGroup({ groupId, updates });
+      await this.groupService.updateGroup({ groupId, updates });
 
       const response: UpdateGroupResponse = { message: "Group updated." };
 
@@ -106,13 +106,13 @@ export class GroupController extends BaseController implements GroupControllerIn
         pathParameters: { groupId },
       } = this.validationService.validate({ dto: GetGroupDto, request, getUserIdFromJwt: true });
 
-      const { isGroupMember } = await this.groupMediatorService.isGroupMember({ groupId, userId: jwtId });
+      const { isGroupMember } = await this.groupService.isGroupMember({ groupId, userId: jwtId });
 
       if (!isGroupMember) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { group } = await this.groupMediatorService.getGroup({ groupId });
+      const { group } = await this.groupService.getGroup({ groupId });
 
       const response: GetGroupResponse = { group };
 
@@ -134,13 +134,13 @@ export class GroupController extends BaseController implements GroupControllerIn
         queryStringParameters: { mime_type: mimeType },
       } = this.validationService.validate({ dto: GetGroupImageUploadUrlDto, request, getUserIdFromJwt: true });
 
-      const { isGroupAdmin } = await this.groupMediatorService.isGroupAdmin({ groupId, userId: jwtId });
+      const { isGroupAdmin } = await this.groupService.isGroupAdmin({ groupId, userId: jwtId });
 
       if (!isGroupAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { uploadUrl } = this.groupMediatorService.getGroupImageUploadUrl({ groupId, mimeType });
+      const { uploadUrl } = this.groupService.getGroupImageUploadUrl({ groupId, mimeType });
 
       const response: GetGroupImageUploadUrlResponse = { uploadUrl };
 
@@ -162,13 +162,13 @@ export class GroupController extends BaseController implements GroupControllerIn
         body: { users },
       } = this.validationService.validate({ dto: AddUsersToGroupDto, request, getUserIdFromJwt: true });
 
-      const { isGroupAdmin } = await this.groupMediatorService.isGroupAdmin({ groupId, userId: jwtId });
+      const { isGroupAdmin } = await this.groupService.isGroupAdmin({ groupId, userId: jwtId });
 
       if (!isGroupAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { successes, failures } = await this.invitationOrchestratorService.addUsersToGroup({ groupId, users });
+      const { successes, failures } = await this.invitationService.addUsersToGroup({ groupId, users });
 
       const response: AddUsersToGroupResponse = {
         message: `Users added to group${failures.length ? ", but with some failures." : "."}`,
@@ -193,13 +193,13 @@ export class GroupController extends BaseController implements GroupControllerIn
         pathParameters: { groupId, userId },
       } = this.validationService.validate({ dto: RemoveUserFromGroupDto, request, getUserIdFromJwt: true });
 
-      const { isGroupAdmin } = await this.groupMediatorService.isGroupAdmin({ groupId, userId: jwtId });
+      const { isGroupAdmin } = await this.groupService.isGroupAdmin({ groupId, userId: jwtId });
 
       if (!isGroupAdmin) {
         throw new ForbiddenError("Forbidden");
       }
 
-      await this.groupMediatorService.removeUserFromGroup({ groupId, userId });
+      await this.groupService.removeUserFromGroup({ groupId, userId });
 
       const response: RemoveUserFromGroupResponse = { message: "User removed from group." };
 
@@ -247,7 +247,7 @@ export class GroupController extends BaseController implements GroupControllerIn
         queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetGroupsByTeamIdDto, request, getUserIdFromJwt: true });
 
-      const { isTeamMember } = await this.teamMediatorService.isTeamMember({ teamId, userId: jwtId });
+      const { isTeamMember } = await this.teamService.isTeamMember({ teamId, userId: jwtId });
 
       if (!isTeamMember) {
         throw new ForbiddenError("Forbidden");
@@ -275,7 +275,7 @@ export class GroupController extends BaseController implements GroupControllerIn
         queryStringParameters: { exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetGroupsByOrganizationIdDto, request, getUserIdFromJwt: true });
 
-      const { isOrganizationMember } = await this.organizationMediatorService.isOrganizationMember({ organizationId, userId: jwtId });
+      const { isOrganizationMember } = await this.organizationService.isOrganizationMember({ organizationId, userId: jwtId });
 
       if (!isOrganizationMember) {
         throw new ForbiddenError("Forbidden");
