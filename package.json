@@ -2,26 +2,14 @@
   "name": "yac-api-v4",
   "private": true,
   "workspaces": [
-    "micro-services/*",
-    "micro-services/auth/ui",
-    "micro-services/*/e2e/test-stack"
+    "microservices/*",
+    "microservices/auth/ui",
+    "microservices/*/e2e/test-stack"
   ],
   "version": "0.1.0",
-  "license": "MIT",
-  "bin": {
-    "yac-api-v4": "bin/yac-api-v4.js"
-  },
   "scripts": {
-    "build": "yarn  clean && webpack --bail --config config/webpack/webpack.config.ts",
-    "build:dev": "yarn  clean && webpack --bail --config config/webpack/webpack.config.ts",
     "build:unit-tests": "yarn clean:unit-tests && tsc --project ./tsconfig.test.json",
-    "clean": "rm -rf ./dist && rm -rf ./cdk.out",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
-    "deploy:local": "yarn build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
-    "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
-    "deploy:dev": "yarn  build:dev && cdk deploy --context environment=dev",
-    "deploy:stage": "yarn  build && cdk deploy --context environment=stage",
-    "deploy:prod": "yarn  build && cdk deploy --context environment=prod",
     "nyc": "nyc node config/jasmine/jasmine.runner.js",
     "test:unit": "yarn clean:unit-tests && yarn build:unit-tests && yarn nyc"
   },

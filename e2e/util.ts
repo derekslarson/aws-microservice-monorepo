@@ -7,11 +7,11 @@ import crypto from "crypto";
 import ksuid from "ksuid";
 import jwt from "jsonwebtoken";
 import * as jose from "node-jose";
-import { RawUser } from "../micro-services/auth/src/repositories/user.dynamo.repository";
-import { EntityType } from "../micro-services/auth/src/enums/entityType.enum";
-import { MakeRequired, UserId } from "../micro-services/util/src/types";
-import { AccessTokenPayload } from "../micro-services/auth/src/services/tier-1/token.service";
-import { RawSession } from "../micro-services/auth/src/repositories/session.dyanmo.repository";
+import { RawUser } from "../microservices/auth/src/repositories/user.dynamo.repository";
+import { EntityType } from "../microservices/auth/src/enums/entityType.enum";
+import { MakeRequired, UserId } from "../microservices/util/src/types";
+import { AccessTokenPayload } from "../microservices/auth/src/services/tier-1/token.service";
+import { RawSession } from "../microservices/auth/src/repositories/session.dyanmo.repository";
 
 const ssm = new SSM({ region: "us-east-1" });
 export const s3 = new S3({ region: "us-east-1" });
