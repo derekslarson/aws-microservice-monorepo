@@ -1,7 +1,8 @@
 /* eslint-disable max-len */
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, SnsFactory } from "@yac/util";
 import { SNS } from "aws-sdk";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { SnsFactory } from "@yac/util/src/factories/sns.factory";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { PushNotificationEvent } from "../enums/pushNotification.event.enum";

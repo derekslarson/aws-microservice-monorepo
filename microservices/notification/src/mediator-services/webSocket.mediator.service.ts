@@ -1,5 +1,10 @@
 import { inject, injectable } from "inversify";
-import { Group, LoggerServiceInterface, Meeting, Message, Team, User } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { User } from "@yac/util/src/api-contracts/business-objects/user.model";
+import { Team } from "@yac/util/src/api-contracts/business-objects/team.model";
+import { Group } from "@yac/util/src/api-contracts/business-objects/group.model";
+import { Meeting } from "@yac/util/src/api-contracts/business-objects/meeting.model";
+import { Message } from "@yac/util/src/api-contracts/business-objects/message.model";
 import { TYPES } from "../inversion-of-control/types";
 import { ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
 import { ListenerType } from "../enums/listenerType.enum";

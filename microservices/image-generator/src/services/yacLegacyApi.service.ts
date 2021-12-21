@@ -1,15 +1,17 @@
 import "reflect-metadata";
-import { LoggerServiceInterface, HttpRequestServiceInterface } from "@yac/util";
 import { injectable, inject } from "inversify";
-
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { HttpRequestServiceInterface } from "@yac/util/src/services/http.request.service";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 
 @injectable()
 export class YacLegacyApiService implements YacLegacyApiServiceInterface {
-  constructor(@inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+  constructor(
+    @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.EnvConfigInterface) private envConfig: YacLegacyApiServiceEnvConfigType,
-    @inject(TYPES.HttpRequestServiceInterface) private httpService: HttpRequestServiceInterface) {}
+    @inject(TYPES.HttpRequestServiceInterface) private httpService: HttpRequestServiceInterface,
+  ) {}
 
   public async getMessage(messageId: string, isGroup: boolean, token: string): Promise<YacMessage> {
     try {

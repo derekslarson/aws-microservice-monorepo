@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { LoggerServiceInterface, generateInternalServerErrorResponse } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { generateInternalServerErrorResponse } from "@yac/util/src/util/internalServerError.response.generator";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 import { WebSocketControllerInterface } from "../controllers/webSocket.controller";

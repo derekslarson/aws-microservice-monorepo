@@ -1,7 +1,8 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord } from "@yac/util";
+import { SnsProcessorServiceInterface, SnsProcessorServiceRecord } from "@yac/util/src/services/interfaces/sns.processor.service.interface";
 import { EventBridgeEvent } from "aws-lambda/trigger/eventbridge";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { TranscriptionServiceInterface } from "../services/transcription.service";

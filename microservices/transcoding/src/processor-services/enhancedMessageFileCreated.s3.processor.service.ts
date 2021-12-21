@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, S3ProcessorServiceInterface, S3ProcessorServiceRecord } from "@yac/util";
+import { S3ProcessorServiceInterface, S3ProcessorServiceRecord } from "@yac/util/src/services/interfaces/s3.processor.service.interface";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { TranscodingServiceInterface } from "../services/transcoding.service";

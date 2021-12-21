@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/util";
 import { ApiGatewayManagementApi } from "aws-sdk";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { ApiGatewayManagementFactory } from "../factories/apiGatewayManagement.factory";

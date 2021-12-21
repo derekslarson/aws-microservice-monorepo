@@ -1,13 +1,14 @@
 import "reflect-metadata";
-import { LoggerServiceInterface, SqsEventControllerInterface } from "@yac/util";
 import { SQSEvent } from "aws-lambda";
+import { SqsEventControllerInterface } from "@yac/util/src/controllers/sqsEvent.controller";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 
-export const handler = async (event: SQSEvent): Promise<void> => {
-  const sqsEventController = container.get<SqsEventControllerInterface>(TYPES.SqsEventControllerInterface);
-  const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
+const sqsEventController = container.get<SqsEventControllerInterface>(TYPES.SqsEventControllerInterface);
+const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
+export const handler = async (event: SQSEvent): Promise<void> => {
   try {
     loggerService.trace("sqsEvent called", { event }, "sqsEvent handler");
 

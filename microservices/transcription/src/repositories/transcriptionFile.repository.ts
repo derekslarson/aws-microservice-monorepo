@@ -1,8 +1,10 @@
 import "reflect-metadata";
-import { BaseS3Repository, GetObjectInput, GetObjectOutput, LoggerServiceInterface, S3Factory } from "@yac/util";
 import { injectable, inject } from "inversify";
-import { EnvConfigInterface } from "../config/env.config";
+import { BaseS3Repository, GetObjectInput, GetObjectOutput } from "@yac/util/src/repositories/base.s3.repository";
+import { S3Factory } from "@yac/util/src/factories/s3.factory";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { TYPES } from "../inversion-of-control/types";
+import { EnvConfigInterface } from "../config/env.config";
 
 @injectable()
 export class TranscriptionS3Repository extends BaseS3Repository implements TranscriptionFileRepositoryInterface {

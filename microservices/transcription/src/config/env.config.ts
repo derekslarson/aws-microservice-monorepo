@@ -1,10 +1,8 @@
-import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util";
+import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util/src/config/env.config";
 
 export const envConfig: EnvConfigInterface = {
   environment: process.env.ENVIRONMENT || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
-  audoAiApiDomain: process.env.AUDO_AI_API_DOMAIN || "",
-  audoAiApiKey: process.env.AUDO_AI_API_KEY || "",
   tableNames: {},
   bucketNames: {
     message: process.env.MESSAGE_S3_BUCKET_NAME || "",
@@ -20,8 +18,6 @@ export const envConfig: EnvConfigInterface = {
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
   environment: string,
-  audoAiApiDomain: string;
-  audoAiApiKey: string;
   tableNames: Record<string, never>;
   snsTopicArns: {
     messageTranscoded: string;

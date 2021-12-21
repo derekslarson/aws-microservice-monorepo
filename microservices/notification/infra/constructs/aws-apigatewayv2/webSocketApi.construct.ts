@@ -5,7 +5,8 @@ import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
 import * as CDK from "@aws-cdk/core";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as IAM from "@aws-cdk/aws-iam";
-import { Environment, generateExportNames } from "@yac/util";
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { Environment } from "@yac/util/src/enums/environment.enum";
 import { WebSocketIntegration } from "./webSocketIntegration.construct";
 import { WebSocketRouteIntegrationConfig } from "../aws-apigatewayv2-integrations/lambdaWebSocketIntegration.construct";
 

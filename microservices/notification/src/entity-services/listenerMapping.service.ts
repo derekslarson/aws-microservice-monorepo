@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { TYPES } from "../inversion-of-control/types";
 import { ListenerMappingRepositoryInterface, ListenerMapping as ListenerMappingEntity } from "../repositories/listenerMapping.dynamo.repository";
 import { ListenerType } from "../enums/listenerType.enum";

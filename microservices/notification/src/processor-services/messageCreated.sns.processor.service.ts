@@ -1,6 +1,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { LoggerServiceInterface, SnsProcessorServiceInterface, SnsProcessorServiceRecord, MessageCreatedSnsMessage, ConversationType, User } from "@yac/util";
+import { SnsProcessorServiceInterface, SnsProcessorServiceRecord } from "@yac/util/src/services/interfaces/sns.processor.service.interface";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { MessageCreatedSnsMessage } from "@yac/util/src/api-contracts/sns-topics/messageCreated.snsMessage.model";
+import { ConversationType } from "@yac/util/src/enums/conversationType.enum";
+import { User } from "@yac/util/src/api-contracts/business-objects/user.model";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { WebSocketMediatorServiceInterface } from "../mediator-services/webSocket.mediator.service";

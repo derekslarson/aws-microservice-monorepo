@@ -1,5 +1,7 @@
 import { inject, injectable } from "inversify";
-import { MessageTranscodedSnsMessage, LoggerServiceInterface, NotFoundError } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { NotFoundError } from "@yac/util/src/errors/notFound.error";
+import { MessageTranscodedSnsMessage } from "@yac/util/src/api-contracts/sns-topics/messageTranscoded.snsMessage.model";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageTranscribedSnsServiceInterface } from "../sns-services/messageTranscribed.sns.service";
 import { Transcribe, TranscribeFactory } from "../factories/transcribe.factory";

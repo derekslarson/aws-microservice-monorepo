@@ -4,8 +4,10 @@ import * as IAM from "@aws-cdk/aws-iam";
 import * as SSM from "@aws-cdk/aws-ssm";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as S3 from "@aws-cdk/aws-s3";
-import { Environment, generateExportNames, LogLevel } from "@yac/util";
 import * as S3Notifications from "@aws-cdk/aws-s3-notifications";
+import { Environment } from "@yac/util/src/enums/environment.enum";
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 
 export class YacTranscodingServiceStack extends CDK.Stack {
   constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
@@ -35,12 +37,6 @@ export class YacTranscodingServiceStack extends CDK.Stack {
     // S3 Buckets
     const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `RawMessageS3Bucket_${id}`, rawMessageS3BucketArn);
     const enhancedMessageS3Bucket = S3.Bucket.fromBucketArn(this, `EnhancedMessageS3Bucket_${id}`, enhancedMessageS3BucketArn);
-
-    // Layers
-    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
-      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
-      code: Lambda.Code.fromAsset("dist/dependencies"),
-    });
 
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
@@ -78,7 +74,6 @@ export class YacTranscodingServiceStack extends CDK.Stack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/s3Event"),
       handler: "s3Event.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, rawMessageS3BucketFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, messageTranscodedSnsPublishPolicyStatement ],

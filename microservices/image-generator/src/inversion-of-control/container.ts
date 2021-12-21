@@ -1,5 +1,5 @@
 import { Container } from "inversify";
-import { coreContainerModule } from "@yac/util";
+import { utilContainerModule } from "@yac/util/src/inversion-of-control/container";
 import { TYPES } from "./types";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { MediaDynamoRepository, MediaDynamoRepositoryInterface } from "../repositories/media.dynamo.repository";
@@ -12,7 +12,7 @@ import { MediaController, MediaControllerInterface } from "../controllers/media.
 const container = new Container();
 
 try {
-  container.load(coreContainerModule);
+  container.load(utilContainerModule);
 
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
   container.bind<MediaDynamoRepositoryInterface>(TYPES.MediaDynamoRepositoryInterface).to(MediaDynamoRepository);

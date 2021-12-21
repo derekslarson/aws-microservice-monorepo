@@ -9,8 +9,10 @@ import * as SNSSubscriptions from "@aws-cdk/aws-sns-subscriptions";
 import * as SQS from "@aws-cdk/aws-sqs";
 import * as EventBridge from "@aws-cdk/aws-events";
 import * as EventBridgeTargets from "@aws-cdk/aws-events-targets";
-import { Environment, generateExportNames, LogLevel } from "@yac/util";
 import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
+import { Environment } from "@yac/util/src/enums/environment.enum";
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 
 export class YacTranscriptionServiceStack extends CDK.Stack {
   constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
@@ -24,9 +26,6 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
     }
 
     const stackPrefix = environment === Environment.Local ? developer : environment;
-
-    // SSM Imports
-    const audoAiApiKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/audo-ai-api-key`);
 
     const ExportNames = generateExportNames(stackPrefix);
 
@@ -42,15 +41,9 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
     const transcriptionS3Bucket = new S3.Bucket(this, `TranscriptionS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
 
     // SNS Topics
-    const messageTranscodedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn)
+    const messageTranscodedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn);
     const transcriptionJobCompletedSnsTopic = new SNS.Topic(this, `TranscriptionJobCompleted_${id}`, { topicName: `TranscriptionJobCompleted_${id}` });
     const transcriptionJobFailedSnsTopic = new SNS.Topic(this, `TranscriptionJobFailed_${id}`, { topicName: `TranscriptionJobFailed_${id}` });
-
-    // Layers
-    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
-      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
-      code: Lambda.Code.fromAsset("dist/dependencies"),
-    });
 
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
@@ -79,8 +72,6 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
     const environmentVariables: Record<string, string> = {
       ENVIRONMENT: stackPrefix,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
-      AUDO_AI_API_DOMAIN: "https://api.audo.ai",
-      AUDO_AI_API_KEY: audoAiApiKey,
       MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,
       TRANSCRIPTION_S3_BUCKET_NAME: transcriptionS3Bucket.bucketName,
       MESSAGE_TRANSCODED_SNS_TOPIC_ARN: messageTranscodedSnsTopicArn,
@@ -101,7 +92,6 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
       handler: "sqsEvent.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, enhancedMessageS3BucketFullAccessPolicyStatement, transcriptionS3BucketFullAccessPolicyStatement, startTranscriptionJobPolicyStatement, messageTranscribedSnsPublishPolicyStatement ],

@@ -1,5 +1,5 @@
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { injectable, unmanaged } from "inversify";
-import { LoggerServiceInterface } from "@yac/util";
 import { ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
 import { ListenerType } from "../enums/listenerType.enum";
 

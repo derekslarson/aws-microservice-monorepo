@@ -1,8 +1,8 @@
 import "reflect-metadata";
-import { BadRequestError, LoggerServiceInterface } from "@yac/util";
 import { injectable, inject } from "inversify";
-import * as crypto from "crypto";
-
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { BadRequestError } from "@yac/util/src/errors/badRequest.error";
+import { CryptoFactory, Crypto } from "@yac/util/src/factories/crypto.factory";
 import { MediaInterface } from "../models/media.model";
 import { TYPES } from "../inversion-of-control/types";
 import { MediaDynamoRepositoryInterface } from "../repositories/media.dynamo.repository";
@@ -11,10 +11,17 @@ import { YacLegacyApiServiceInterface, YacMessage } from "./yacLegacyApi.service
 
 @injectable()
 export class MediaService implements MediaServiceInterface {
-  constructor(@inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
+  private crypto: Crypto;
+
+  constructor(
+    @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.MediaDynamoRepositoryInterface) private mediaRepository: MediaDynamoRepositoryInterface,
     @inject(TYPES.YacLegacyApiServiceInterface) private yacApiService: YacLegacyApiServiceInterface,
-    @inject(TYPES.BannerbearServiceInterface) private bannerbearService: BannerbearServiceInterface) { }
+    @inject(TYPES.BannerbearServiceInterface) private bannerbearService: BannerbearServiceInterface,
+    @inject(TYPES.CryptoFactory) cryptoFactory: CryptoFactory,
+  ) {
+    this.crypto = cryptoFactory();
+  }
 
   public async createMedia(messageId: string, isGroup: boolean, token: string): Promise<{ id: string }> {
     try {
@@ -74,7 +81,7 @@ export class MediaService implements MediaServiceInterface {
 
   private getChecksum(data: MediaChecksumInterface): string {
     const encodedData = Buffer.from(JSON.stringify(data)).toString("base64");
-    const hash = crypto.createHash("sha256");
+    const hash = this.crypto.createHash("sha256");
 
     return hash.update(encodedData).digest("hex");
   }

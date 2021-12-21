@@ -11,9 +11,12 @@ import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
 import * as Route53 from "@aws-cdk/aws-route53";
 import * as Route53Targets from "@aws-cdk/aws-route53-targets";
 import * as CustomResources from "@aws-cdk/custom-resources";
-import { Environment, generateExportNames, LogLevel, RouteProps } from "@yac/util";
-import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { Environment } from "@yac/util/src/enums/environment.enum";
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
+import { RouteProps } from "@yac/util/infra/constructs/http.api";
 import { WebSocketApi } from "../constructs/aws-apigatewayv2/webSocketApi.construct";
 import { LambdaWebSocketIntegration } from "../constructs/aws-apigatewayv2-integrations/lambdaWebSocketIntegration.construct";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
@@ -70,12 +73,6 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
     const groupCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `GroupCreatedSnsTopic_${id}`, groupCreatedSnsTopicArn);
     const messageCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageCreatedSnsTopic_${id}`, messageCreatedSnsTopicArn);
     const messageUpdatedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageUpdatedSnsTopic_${id}`, messageUpdatedSnsTopicArn);
-
-    // Layers
-    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
-      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
-      code: Lambda.Code.fromAsset("dist/dependencies"),
-    });
 
     // Databases
     const listenerMappingTable = new DynamoDB.Table(this, `ListenerMappingTable_${id}`, {
@@ -201,7 +198,6 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/connect"),
       handler: "connect.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement ],
@@ -212,7 +208,6 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/disconnect"),
       handler: "disconnect.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement ],
@@ -251,7 +246,6 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
       handler: "sqsEvent.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement, sendPushNotificationPolicyStatement ],
@@ -266,7 +260,6 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/registerDevice"),
       handler: "registerDevice.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, createPlatformEndpointPolicyStatement ],

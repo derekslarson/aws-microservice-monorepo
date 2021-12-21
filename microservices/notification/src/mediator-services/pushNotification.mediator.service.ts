@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { TYPES } from "../inversion-of-control/types";
 import { PushNotificationServiceInterface } from "../services/pushNotification.service";
 import { ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";

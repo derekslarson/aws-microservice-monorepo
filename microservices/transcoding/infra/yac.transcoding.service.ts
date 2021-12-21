@@ -1,5 +1,5 @@
 import * as CDK from "@aws-cdk/core";
-import { Environment } from "@yac/util";
+import { Environment } from "@yac/util/src/enums/environment.enum";
 import { YacTranscodingServiceStack } from "./stacks/yac.transcoding.service.stack";
 
 const app = new CDK.App();

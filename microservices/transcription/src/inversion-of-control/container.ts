@@ -1,4 +1,7 @@
-import { coreContainerModule, DynamoProcessorServiceInterface, S3ProcessorServiceInterface, SnsProcessorServiceInterface } from "@yac/util";
+import { utilContainerModule } from "@yac/util/src/inversion-of-control/container";
+import { SnsProcessorServiceInterface } from "@yac/util/src/services/interfaces/sns.processor.service.interface";
+import { S3ProcessorServiceInterface } from "@yac/util/src/services/interfaces/s3.processor.service.interface";
+import { DynamoProcessorServiceInterface } from "@yac/util/src/services/interfaces/dynamo.processor.service.interface";
 import { Container } from "inversify";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { transcribeFactory, TranscribeFactory } from "../factories/transcribe.factory";
@@ -13,12 +16,12 @@ import { TYPES } from "./types";
 const container = new Container();
 
 try {
-  container.load(coreContainerModule);
+  container.load(utilContainerModule);
 
   // Config
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
 
-  // General Services
+  // Services
   container.bind<TranscriptionServiceInterface>(TYPES.TranscriptionServiceInterface).to(TranscriptionService);
 
   // SNS Services

@@ -1,5 +1,10 @@
 import { inject, injectable } from "inversify";
-import { MessageTranscodedSnsMessage, MessageFileRepositoryInterface, HttpRequestServiceInterface, LoggerServiceInterface, MessageMimeType, FileOperation } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { HttpRequestServiceInterface } from "@yac/util/src/services/http.request.service";
+import { MessageFileRepositoryInterface } from "@yac/util/src/repositories/base.message.s3.repository";
+import { MessageMimeType } from "@yac/util/src/enums/message.mimeType.enum";
+import { FileOperation } from "@yac/util/src/enums/fileOperation.enum";
+import { MessageTranscodedSnsMessage } from "@yac/util/src/api-contracts/sns-topics/messageTranscoded.snsMessage.model";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { MessageTranscodedSnsServiceInterface } from "../sns-services/messageTranscoded.sns.service";

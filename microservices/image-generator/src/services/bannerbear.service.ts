@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { HttpRequestServiceInterface, LoggerServiceInterface } from "@yac/util";
-
+import { HttpRequestServiceInterface } from "@yac/util/src/services/http.request.service";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { MediaInterface } from "../models/media.model";

@@ -1,7 +1,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseDynamoRepository, IdServiceInterface, DocumentClientFactory, LoggerServiceInterface, NotFoundError } from "@yac/util";
-
+import { BaseDynamoRepository } from "@yac/util/src/repositories/base.dynamo.repository";
+import { DocumentClientFactory } from "@yac/util/src/factories/documentClient.factory";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { IdServiceInterface } from "@yac/util/src/services/id.service";
+import { NotFoundError } from "@yac/util/src/errors/notFound.error";
 import { EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "../inversion-of-control/types";
 import { MediaInterface } from "../models/media.model";

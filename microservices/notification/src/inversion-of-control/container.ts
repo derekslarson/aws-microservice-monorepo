@@ -1,5 +1,8 @@
-import { coreContainerModule, DynamoProcessorServiceInterface, S3ProcessorServiceInterface, SnsProcessorServiceInterface } from "@yac/util";
 import { Container } from "inversify";
+import { utilContainerModule } from "@yac/util/src/inversion-of-control/container";
+import { SnsProcessorServiceInterface } from "@yac/util/src/services/interfaces/sns.processor.service.interface";
+import { S3ProcessorServiceInterface } from "@yac/util/src/services/interfaces/s3.processor.service.interface";
+import { DynamoProcessorServiceInterface } from "@yac/util/src/services/interfaces/dynamo.processor.service.interface";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { WebSocketController, WebSocketControllerInterface } from "../controllers/webSocket.controller";
 import { ListenerMappingService, ListenerMappingServiceInterface } from "../entity-services/listenerMapping.service";
@@ -28,7 +31,7 @@ import { MessageUpdatedSnsProcessorService } from "../processor-services/message
 const container = new Container();
 
 try {
-  container.load(coreContainerModule);
+  container.load(utilContainerModule);
 
   // Config
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
