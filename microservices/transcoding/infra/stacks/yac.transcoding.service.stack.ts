@@ -71,7 +71,7 @@ export class YacTranscodingServiceStack extends CDK.Stack {
 
     // Lambdas
     const s3EventHandler = new Lambda.Function(this, `S3EventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/s3Event"),
       handler: "s3Event.handler",
       environment: environmentVariables,

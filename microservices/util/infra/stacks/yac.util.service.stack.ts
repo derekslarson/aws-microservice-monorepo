@@ -1,21 +1,25 @@
 /* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-new */
-
-import * as CDK from "@aws-cdk/core";
-import * as ACM from "@aws-cdk/aws-certificatemanager";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
-import * as Route53 from "@aws-cdk/aws-route53";
-import * as Route53Targets from "@aws-cdk/aws-route53-targets";
-import * as SNS from "@aws-cdk/aws-sns";
-import * as S3 from "@aws-cdk/aws-s3";
+import {
+  Stack,
+  StackProps,
+  RemovalPolicy,
+  CfnOutput,
+  aws_ssm as SSM,
+  aws_sns as SNS,
+  aws_certificatemanager as ACM,
+  aws_route53 as Route53,
+  aws_route53_targets as Route53Targets,
+  aws_s3 as S3,
+  aws_secretsmanager as SecretsManager,
+} from "aws-cdk-lib";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
+import { Construct } from "constructs";
 import { generateExportNames } from "../../src/enums/exportNames.enum";
 import { Environment } from "../../src/enums/environment.enum";
 
-export class YacUtilServiceStack extends CDK.Stack {
-  constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
+export class YacUtilServiceStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -56,7 +60,7 @@ export class YacUtilServiceStack extends CDK.Stack {
           allowedOrigins: [ "*" ],
         },
       ],
-      ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }),
+      ...(environment !== Environment.Prod && { removalPolicy: RemovalPolicy.DESTROY }),
     });
 
     const enhancedMessageS3Bucket = new S3.Bucket(this, `EnhancedMessageS3Bucket_${id}`, {
@@ -66,7 +70,7 @@ export class YacUtilServiceStack extends CDK.Stack {
           allowedOrigins: [ "*" ],
         },
       ],
-      ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }),
+      ...(environment !== Environment.Prod && { removalPolicy: RemovalPolicy.DESTROY }),
     });
 
     // SNS Topics
@@ -104,137 +108,137 @@ export class YacUtilServiceStack extends CDK.Stack {
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
 
     // Stack Exports (to be impported by other stacks)
-    new CDK.CfnOutput(this, `CustomDomainNameExport_${id}`, {
+    new CfnOutput(this, `CustomDomainNameExport_${id}`, {
       exportName: ExportNames.CustomDomainName,
       value: domainName.name,
     });
 
-    new CDK.CfnOutput(this, `RegionalDomainNameExport_${id}`, {
+    new CfnOutput(this, `RegionalDomainNameExport_${id}`, {
       exportName: ExportNames.RegionalDomainName,
       value: domainName.regionalDomainName,
     });
 
-    new CDK.CfnOutput(this, `RegionalHostedZoneIdExport_${id}`, {
+    new CfnOutput(this, `RegionalHostedZoneIdExport_${id}`, {
       exportName: ExportNames.RegionalHostedZoneId,
       value: domainName.regionalHostedZoneId,
     });
 
-    new CDK.CfnOutput(this, `UserCreatedSnsTopicExport_${id}`, {
+    new CfnOutput(this, `UserCreatedSnsTopicExport_${id}`, {
       exportName: ExportNames.UserCreatedSnsTopicArn,
       value: userCreatedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `OrganizationCreatedSnsTopicArnExport_${id}`, {
+    new CfnOutput(this, `OrganizationCreatedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.OrganizationCreatedSnsTopicArn,
       value: organizationCreatedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `TeamCreatedSnsTopicArnExport_${id}`, {
+    new CfnOutput(this, `TeamCreatedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.TeamCreatedSnsTopicArn,
       value: teamCreatedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `MeetingCreatedSnsTopicArnExport_${id}`, {
+    new CfnOutput(this, `MeetingCreatedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.MeetingCreatedSnsTopicArn,
       value: meetingCreatedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `GroupCreatedSnsTopicArnExport_${id}`, {
+    new CfnOutput(this, `GroupCreatedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.GroupCreatedSnsTopicArn,
       value: groupCreatedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `UserAddedToOrganizationSnsTopicExport_${id}`, {
+    new CfnOutput(this, `UserAddedToOrganizationSnsTopicExport_${id}`, {
       exportName: ExportNames.UserAddedToOrganizationSnsTopicArn,
       value: userAddedToOrganizationSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `UserAddedToTeamSnsTopicExport_${id}`, {
+    new CfnOutput(this, `UserAddedToTeamSnsTopicExport_${id}`, {
       exportName: ExportNames.UserAddedToTeamSnsTopicArn,
       value: userAddedToTeamSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `UserAddedToGroupSnsTopicExport_${id}`, {
+    new CfnOutput(this, `UserAddedToGroupSnsTopicExport_${id}`, {
       exportName: ExportNames.UserAddedToGroupSnsTopicArn,
       value: userAddedToGroupSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `UserAddedToMeetingSnsTopicExport_${id}`, {
+    new CfnOutput(this, `UserAddedToMeetingSnsTopicExport_${id}`, {
       exportName: ExportNames.UserAddedToMeetingSnsTopicArn,
       value: userAddedToMeetingSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `UserAddedAsFriendSnsTopicExport_${id}`, {
+    new CfnOutput(this, `UserAddedAsFriendSnsTopicExport_${id}`, {
       exportName: ExportNames.UserAddedAsFriendSnsTopicArn,
       value: userAddedAsFriendSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `UserRemovedFromOrganizationSnsTopicExport_${id}`, {
+    new CfnOutput(this, `UserRemovedFromOrganizationSnsTopicExport_${id}`, {
       exportName: ExportNames.UserRemovedFromOrganizationSnsTopicArn,
       value: userRemovedFromOrganizationSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `UserRemovedFromTeamSnsTopicExport_${id}`, {
+    new CfnOutput(this, `UserRemovedFromTeamSnsTopicExport_${id}`, {
       exportName: ExportNames.UserRemovedFromTeamSnsTopicArn,
       value: userRemovedFromTeamSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `UserRemovedFromGroupSnsTopicExport_${id}`, {
+    new CfnOutput(this, `UserRemovedFromGroupSnsTopicExport_${id}`, {
       exportName: ExportNames.UserRemovedFromGroupSnsTopicArn,
       value: userRemovedFromGroupSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `UserRemovedFromMeetingSnsTopicExport_${id}`, {
+    new CfnOutput(this, `UserRemovedFromMeetingSnsTopicExport_${id}`, {
       exportName: ExportNames.UserRemovedFromMeetingSnsTopicArn,
       value: userRemovedFromMeetingSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `UserRemovedAsFriendSnsTopicExport_${id}`, {
+    new CfnOutput(this, `UserRemovedAsFriendSnsTopicExport_${id}`, {
       exportName: ExportNames.UserRemovedAsFriendSnsTopicArn,
       value: userRemovedAsFriendSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `MessageCreatedSnsTopicArnExport_${id}`, {
+    new CfnOutput(this, `MessageCreatedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.MessageCreatedSnsTopicArn,
       value: messageCreatedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `MessageUpdatedSnsTopicArnExport_${id}`, {
+    new CfnOutput(this, `MessageUpdatedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.MessageUpdatedSnsTopicArn,
       value: messageUpdatedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `MessageTranscodedSnsTopicArnExport_${id}`, {
+    new CfnOutput(this, `MessageTranscodedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.MessageTranscodedSnsTopicArn,
       value: messageTranscodedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `MessageTranscribedSnsTopicArnExport_${id}`, {
+    new CfnOutput(this, `MessageTranscribedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.MessageTranscribedSnsTopicArn,
       value: messageTranscribedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `CreateUserRequestSnsTopicArnExport_${id}`, {
+    new CfnOutput(this, `CreateUserRequestSnsTopicArnExport_${id}`, {
       exportName: ExportNames.CreateUserRequestSnsTopicArn,
       value: createUserRequestSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `BillingPlanUpdatedSnsTopicArnExport_${id}`, {
+    new CfnOutput(this, `BillingPlanUpdatedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.BillingPlanUpdatedSnsTopicArn,
       value: billingPlanUpdatedSnsTopic.topicArn,
     });
 
-    new CDK.CfnOutput(this, `RawMessageS3BucketArnExport_${id}`, {
+    new CfnOutput(this, `RawMessageS3BucketArnExport_${id}`, {
       exportName: ExportNames.RawMessageS3BucketArn,
       value: rawMessageS3Bucket.bucketArn,
     });
 
-    new CDK.CfnOutput(this, `EnhancedMessageS3BucketArnExport_${id}`, {
+    new CfnOutput(this, `EnhancedMessageS3BucketArnExport_${id}`, {
       exportName: ExportNames.EnhancedMessageS3BucketArn,
       value: enhancedMessageS3Bucket.bucketArn,
     });
 
-    new CDK.CfnOutput(this, `MessageUploadTokenSecretArn_${id}`, {
+    new CfnOutput(this, `MessageUploadTokenSecretArn_${id}`, {
       exportName: ExportNames.MessageUploadTokenSecretArn,
       value: messageUploadTokenSecret.secretArn,
     });

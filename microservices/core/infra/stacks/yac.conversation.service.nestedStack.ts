@@ -20,7 +20,7 @@ export class YacConversationServiceNestedStack extends CDK.NestedStack {
     } = props;
 
     const getOneOnOnesAndGroupsByUserIdHandler = new Lambda.Function(this, `GetOneOnOnesAndGroupsByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getOneOnOnesAndGroupsByUserId"),
       handler: "getOneOnOnesAndGroupsByUserId.handler",
       environment: environmentVariables,

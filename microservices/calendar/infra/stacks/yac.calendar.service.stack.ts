@@ -53,7 +53,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
     };
 
     const initiateGoogleAccessFlowHandler = new Lambda.Function(this, `InitiateGoogleAccessFlowHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/initiateGoogleAccessFlow"),
       handler: "initiateGoogleAccessFlow.handler",
       environment: environmentVariables,
@@ -63,7 +63,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
     });
 
     const completeGoogleAccessFlowHandler = new Lambda.Function(this, `CompleteGoogleAccessFlowHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/completeGoogleAccessFlow"),
       handler: "completeGoogleAccessFlow.handler",
       environment: environmentVariables,
@@ -73,7 +73,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
     });
 
     const getGoogleEventsHandler = new Lambda.Function(this, `GetGoogleEventsHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getGoogleEvents"),
       handler: "getGoogleEvents.handler",
       environment: environmentVariables,
@@ -83,7 +83,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
     });
 
     const getGoogleAccountsHandler = new Lambda.Function(this, `GetGoogleAccountsHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getGoogleAccounts"),
       handler: "getGoogleAccounts.handler",
       environment: environmentVariables,
@@ -93,7 +93,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
     });
 
     const getGoogleSettingsHandler = new Lambda.Function(this, `GetGoogleSettingsHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getGoogleSettings"),
       handler: "getGoogleSettings.handler",
       environment: environmentVariables,
@@ -103,7 +103,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
     });
 
     const updateGoogleSettingsHandler = new Lambda.Function(this, `UpdateGoogleSettingsHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/updateGoogleSettings"),
       handler: "updateGoogleSettings.handler",
       environment: environmentVariables,

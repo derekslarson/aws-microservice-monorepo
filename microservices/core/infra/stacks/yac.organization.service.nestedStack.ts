@@ -17,7 +17,7 @@ export class YacOrganizationServiceNestedStack extends CDK.NestedStack {
     } = props;
 
     const createOrganizationHandler = new Lambda.Function(this, `CreateOrganization_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/createOrganization"),
       handler: "createOrganization.handler",
       environment: environmentVariables,
@@ -27,7 +27,7 @@ export class YacOrganizationServiceNestedStack extends CDK.NestedStack {
     });
 
     const updateOrganizationHandler = new Lambda.Function(this, `UpdateOrganization${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/updateOrganization"),
       handler: "updateOrganization.handler",
       environment: environmentVariables,
@@ -37,7 +37,7 @@ export class YacOrganizationServiceNestedStack extends CDK.NestedStack {
     });
 
     const getOrganizationHandler = new Lambda.Function(this, `GetOrganization_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getOrganization"),
       handler: "getOrganization.handler",
       environment: environmentVariables,
@@ -47,7 +47,7 @@ export class YacOrganizationServiceNestedStack extends CDK.NestedStack {
     });
 
     const addUsersToOrganizationHandler = new Lambda.Function(this, `AddUsersToOrganization_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/addUsersToOrganization"),
       handler: "addUsersToOrganization.handler",
       environment: environmentVariables,
@@ -57,7 +57,7 @@ export class YacOrganizationServiceNestedStack extends CDK.NestedStack {
     });
 
     const removeUserFromOrganizationHandler = new Lambda.Function(this, `RemoveUserFromOrganization_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/removeUserFromOrganization"),
       handler: "removeUserFromOrganization.handler",
       environment: environmentVariables,
@@ -67,7 +67,7 @@ export class YacOrganizationServiceNestedStack extends CDK.NestedStack {
     });
 
     const getOrganizationsByUserIdHandler = new Lambda.Function(this, `GetOrganizationsByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getOrganizationsByUserId"),
       handler: "getOrganizationsByUserId.handler",
       environment: environmentVariables,
@@ -77,7 +77,7 @@ export class YacOrganizationServiceNestedStack extends CDK.NestedStack {
     });
 
     const getOrganizationImageUploadUrlHandler = new Lambda.Function(this, `GetOrganizationImageUploadUrl_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getOrganizationImageUploadUrl"),
       handler: "getOrganizationImageUploadUrl.handler",
       environment: environmentVariables,

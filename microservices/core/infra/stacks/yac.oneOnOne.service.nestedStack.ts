@@ -19,7 +19,7 @@ export class YacOneOnOneServiceNestedStack extends CDK.NestedStack {
     } = props;
 
     const createOneOnOnesHandler = new Lambda.Function(this, `CreateOneOnOnes_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/createOneOnOnes"),
       handler: "createOneOnOnes.handler",
       environment: environmentVariables,
@@ -29,7 +29,7 @@ export class YacOneOnOneServiceNestedStack extends CDK.NestedStack {
     });
 
     const deleteOneOnOneHandler = new Lambda.Function(this, `DeleteOneOnOne_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/deleteOneOnOne"),
       handler: "deleteOneOnOne.handler",
       environment: environmentVariables,
@@ -39,7 +39,7 @@ export class YacOneOnOneServiceNestedStack extends CDK.NestedStack {
     });
 
     const getOneOnOnesByUserIdHandler = new Lambda.Function(this, `GetOneOnOnesByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getOneOnOnesByUserId"),
       handler: "getOneOnOnesByUserId.handler",
       environment: environmentVariables,

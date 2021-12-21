@@ -323,7 +323,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     // Dynamo Stream Handler
     new Lambda.Function(this, `CoreTableEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/coreTableEvent"),
       handler: "coreTableEvent.handler",
       environment: environmentVariables,
@@ -359,7 +359,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     // S3 Event Handler
     new Lambda.Function(this, `S3EventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/s3Event"),
       handler: "s3Event.handler",
       environment: environmentVariables,
@@ -373,7 +373,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     // SQS Event Handler
     new Lambda.Function(this, `SqsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
       handler: "sqsEvent.handler",
       environment: environmentVariables,

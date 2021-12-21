@@ -89,7 +89,7 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
 
     // Lambdas
     new Lambda.Function(this, `SqsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
       handler: "sqsEvent.handler",
       environment: environmentVariables,

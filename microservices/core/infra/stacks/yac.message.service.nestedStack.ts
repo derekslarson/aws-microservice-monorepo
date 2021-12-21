@@ -22,7 +22,7 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
     } = props;
 
     const createOneOnOneMessageHandler = new Lambda.Function(this, `CreateOneOnOneMessage_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/createOneOnOneMessage"),
       handler: "createOneOnOneMessage.handler",
       environment: environmentVariables,
@@ -32,7 +32,7 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
     });
 
     const createGroupMessageHandler = new Lambda.Function(this, `CreateGroupMessage_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/createGroupMessage"),
       handler: "createGroupMessage.handler",
       environment: environmentVariables,
@@ -42,7 +42,7 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
     });
 
     const createMeetingMessageHandler = new Lambda.Function(this, `CreateMeetingMessage_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/createMeetingMessage"),
       handler: "createMeetingMessage.handler",
       environment: environmentVariables,
@@ -52,7 +52,7 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
     });
 
     const getMessageHandler = new Lambda.Function(this, `GetMessage_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMessage"),
       handler: "getMessage.handler",
       environment: environmentVariables,
@@ -62,7 +62,7 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
     });
 
     const updateMessageByUserIdHandler = new Lambda.Function(this, `UpdateMessageByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/updateMessageByUserId"),
       handler: "updateMessageByUserId.handler",
       environment: environmentVariables,
@@ -72,7 +72,7 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
     });
 
     const updateMessageHandler = new Lambda.Function(this, `UpdateMessage${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/updateMessage"),
       handler: "updateMessage.handler",
       environment: environmentVariables,
@@ -82,7 +82,7 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
     });
 
     const getMessagesByOneOnOneIdHandler = new Lambda.Function(this, `GetMessagesByOneOnOneId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMessagesByOneOnOneId"),
       handler: "getMessagesByOneOnOneId.handler",
       environment: environmentVariables,
@@ -92,7 +92,7 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
     });
 
     const getMessagesByGroupIdHandler = new Lambda.Function(this, `GetMessagesByGroupId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMessagesByGroupId"),
       handler: "getMessagesByGroupId.handler",
       environment: environmentVariables,
@@ -102,7 +102,7 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
     });
 
     const getMessagesByMeetingIdHandler = new Lambda.Function(this, `GetMessagesByMeetingId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMessagesByMeetingId"),
       handler: "getMessagesByMeetingId.handler",
       environment: environmentVariables,
@@ -112,7 +112,7 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
     });
 
     const getMessagesByUserIdAndSearchTermHandler = new Lambda.Function(this, `GetMessagesByUserIdAndSearchTerm_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMessagesByUserIdAndSearchTerm"),
       handler: "getMessagesByUserIdAndSearchTerm.handler",
       environment: environmentVariables,

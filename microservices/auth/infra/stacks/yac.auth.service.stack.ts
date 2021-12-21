@@ -1,23 +1,29 @@
 /* eslint-disable max-len */
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
-import * as CustomResources from "@aws-cdk/custom-resources";
-import * as IAM from "@aws-cdk/aws-iam";
-import * as SNS from "@aws-cdk/aws-sns";
-import * as SNSSubscriptions from "@aws-cdk/aws-sns-subscriptions";
-import * as SQS from "@aws-cdk/aws-sqs";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as Events from "@aws-cdk/aws-events";
-import * as EventsTargets from "@aws-cdk/aws-events-targets";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import * as S3 from "@aws-cdk/aws-s3";
-import * as CloudFront from "@aws-cdk/aws-cloudfront";
-import * as CFOrigins from "@aws-cdk/aws-cloudfront-origins";
-import * as Route53 from "@aws-cdk/aws-route53";
-import * as S3Deployment from "@aws-cdk/aws-s3-deployment";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
+import {
+  Fn,
+  RemovalPolicy,
+  CfnOutput,
+  Duration,
+  custom_resources as CustomResources,
+  aws_ssm as SSM,
+  aws_sns as SNS,
+  aws_sns_subscriptions as SnsSubscriptions,
+  aws_sqs as SQS,
+  aws_route53 as Route53,
+  aws_dynamodb as DynamoDB,
+  aws_iam as IAM,
+  aws_s3 as S3,
+  aws_s3_deployment as S3Deployment,
+  aws_events as Events,
+  aws_events_targets as EventsTargets,
+  aws_lambda as Lambda,
+  aws_lambda_event_sources as LambdaEventSources,
+  aws_cloudfront as CloudFront,
+  aws_cloudfront_origins as CloudFrontOrigins,
+} from "aws-cdk-lib";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
+import { Construct } from "constructs";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
@@ -28,7 +34,7 @@ import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum"
 export type IYacAuthServiceStackProps = IYacHttpServiceProps;
 
 export class YacAuthServiceStack extends YacHttpServiceStack {
-  constructor(scope: CDK.Construct, id: string, props: IYacAuthServiceStackProps) {
+  constructor(scope: Construct, id: string, props: IYacAuthServiceStackProps) {
     super(scope, id, { ...props, addAuthorizer: false });
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -50,22 +56,22 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const slackClientRedirectUri = `${this.httpApi.apiURL}/oauth2/idpresponse`;
 
     // SNS Topic ARN Imports from Util
-    const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
-    const createUserRequestSnsTopicArn = CDK.Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn);
+    const userCreatedSnsTopicArn = Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
+    const createUserRequestSnsTopicArn = Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn);
 
     // SNS Topics
     const createUserRequestSnsTopic = SNS.Topic.fromTopicArn(this, `CreateUserRequestSnsTopic_${id}`, createUserRequestSnsTopicArn);
 
     // SQS Queues
     const snsEventSqsQueue = new SQS.Queue(this, `SnsEventSqsQueue_${id}`);
-    createUserRequestSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(snsEventSqsQueue));
+    createUserRequestSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(snsEventSqsQueue));
 
     // Tables
     const authTable = new DynamoDB.Table(this, `AuthTable_${id}`, {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY,
       stream: DynamoDB.StreamViewType.NEW_AND_OLD_IMAGES,
       timeToLiveAttribute: "ttl",
     });
@@ -80,7 +86,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
     const websiteBucket = new S3.Bucket(this, `IdYacComS3Bucket_${id}`, {
       websiteIndexDocument: "index.html",
       publicReadAccess: true,
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
     });
 
@@ -94,7 +100,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const websiteDistribution = new CloudFront.Distribution(this, `IdYacComDistribution_${id}`, {
       defaultBehavior: {
-        origin: new CFOrigins.S3Origin(websiteBucket),
+        origin: new CloudFrontOrigins.S3Origin(websiteBucket),
         originRequestPolicy: { originRequestPolicyId: distributionOriginRequestPolicy.originRequestPolicyId },
       },
       certificate: this.certificate,
@@ -161,155 +167,155 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     // Handlers
     new Lambda.Function(this, `AuthTableEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/authTableEvent"),
       handler: "authTableEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement, userCreatedSnsPublishPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.DynamoEventSource(authTable, { startingPosition: Lambda.StartingPosition.LATEST }),
       ],
     });
 
     new Lambda.Function(this, `SqsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
       handler: "sqsEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(snsEventSqsQueue),
       ],
     });
 
     const authorizerHandler = new Lambda.Function(this, `AuthorizerHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/authorizer"),
       handler: "authorizer.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     // Since the authorizer couldn't be added in the super call (authorizerHandler didn't exist yet) we need to add it here
     this.httpApi.addAuthorizer(this, id, { authorizerHandler });
 
     const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/login"),
       handler: "login.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, sendEmailPolicyStatement, sendTextPolicyStatement, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const loginViaExternalProviderHandler = new Lambda.Function(this, `LoginViaExternalProviderHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/loginViaExternalProvider"),
       handler: "loginViaExternalProvider.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/confirm"),
       handler: "confirm.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const createClientHandler = new Lambda.Function(this, `CreateClientHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/createClient"),
       handler: "createClient.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const oauth2AuthorizeHandler = new Lambda.Function(this, `Oauth2AuthorizeHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/oauth2Authorize"),
       handler: "oauth2Authorize.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const oauth2TokenHandler = new Lambda.Function(this, `Oauth2TokenHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/oauth2Token"),
       handler: "oauth2Token.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const oauth2RevokeHandler = new Lambda.Function(this, `Oauth2RevokeHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/oauth2Revoke"),
       handler: "oauth2Revoke.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const oauth2UserInfoHandler = new Lambda.Function(this, `Oauth2UserInfoHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/oauth2UserInfo"),
       handler: "oauth2UserInfo.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const oauth2IdpResponseHandler = new Lambda.Function(this, `Oauth2IdpResponseHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/oauth2IdpResponse"),
       handler: "oauth2IdpResponse.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getPublicJwksHandler = new Lambda.Function(this, `GetPublicJwksHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getPublicJwks"),
       handler: "getPublicJwks.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const rotateJwksHandler = new Lambda.Function(this, `RotateJwksHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/rotateJwks"),
       handler: "rotateJwks.handler",
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
-    const rule = new Events.Rule(this, `RotateJwksChronRule_${id}`, { schedule: Events.Schedule.rate(CDK.Duration.minutes(20)) });
+    const rule = new Events.Rule(this, `RotateJwksChronRule_${id}`, { schedule: Events.Schedule.rate(Duration.minutes(20)) });
     rule.addTarget(new EventsTargets.LambdaFunction(rotateJwksHandler));
 
     new CustomResources.AwsCustomResource(this, `AddJwksToAuthTable_${id}`, {
@@ -426,12 +432,12 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     otpAuthFlowRoutes.forEach((route) => otpFlowApi.addRoute(route));
 
-    new CDK.CfnOutput(this, `AuthorizerHandlerFunctionArnExport_${id}`, {
+    new CfnOutput(this, `AuthorizerHandlerFunctionArnExport_${id}`, {
       exportName: ExportNames.AuthorizerHandlerFunctionArn,
       value: authorizerHandler.functionArn,
     });
 
-    new CDK.CfnOutput(this, `AuthServiceBaseUrlExport_${id}`, { value: this.httpApi.apiURL });
+    new CfnOutput(this, `AuthServiceBaseUrlExport_${id}`, { value: this.httpApi.apiURL });
 
     new SSM.StringParameter(this, `AuthTableNameSsmParameter-${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/auth-table-name`,

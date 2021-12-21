@@ -108,7 +108,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
 
     // Dynamo Stream Handler
     new Lambda.Function(this, `BillingTableEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/billingTableEvent"),
       handler: "billingTableEvent.handler",
       environment: environmentVariables,
@@ -121,7 +121,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
     });
 
     new Lambda.Function(this, `SqsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
       handler: "sqsEvent.handler",
       environment: environmentVariables,
@@ -134,7 +134,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
     });
 
     const sendPendingQuantityUpdatesToStripeHandler = new Lambda.Function(this, `SendPendingQuantityUpdatesToStripeHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/sendPendingQuantityUpdatesToStripe"),
       handler: "sendPendingQuantityUpdatesToStripe.handler",
       environment: environmentVariables,
@@ -147,7 +147,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
     rule.addTarget(new EventsTargets.LambdaFunction(sendPendingQuantityUpdatesToStripeHandler));
 
     const getBillingPortalUrlHandler = new Lambda.Function(this, `GetBillingPortalUrlHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getBillingPortalUrl"),
       handler: "getBillingPortalUrl.handler",
       environment: environmentVariables,
@@ -157,7 +157,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
     });
 
     const stripeWebhookHandler = new Lambda.Function(this, `StripeWebhookHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/stripeWebhook"),
       handler: "stripeWebhook.handler",
       environment: environmentVariables,

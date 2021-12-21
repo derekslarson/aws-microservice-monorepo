@@ -17,7 +17,7 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
     } = props;
 
     const createGroupHandler = new Lambda.Function(this, `CreateGroup_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/createGroup"),
       handler: "createGroup.handler",
       environment: environmentVariables,
@@ -27,7 +27,7 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
     });
 
     const updateGroupHandler = new Lambda.Function(this, `UpdateGroup_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/updateGroup"),
       handler: "updateGroup.handler",
       environment: environmentVariables,
@@ -37,7 +37,7 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
     });
 
     const getGroupHandler = new Lambda.Function(this, `GetGroup_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getGroup"),
       handler: "getGroup.handler",
       environment: environmentVariables,
@@ -47,7 +47,7 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
     });
 
     const addUsersToGroupHandler = new Lambda.Function(this, `AddUsersToGroup_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/addUsersToGroup"),
       handler: "addUsersToGroup.handler",
       environment: environmentVariables,
@@ -57,7 +57,7 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
     });
 
     const removeUserFromGroupHandler = new Lambda.Function(this, `RemoveUserFromGroup_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/removeUserFromGroup"),
       handler: "removeUserFromGroup.handler",
       environment: environmentVariables,
@@ -67,7 +67,7 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
     });
 
     const getGroupsByUserIdHandler = new Lambda.Function(this, `GetGroupsByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getGroupsByUserId"),
       handler: "getGroupsByUserId.handler",
       environment: environmentVariables,
@@ -77,7 +77,7 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
     });
 
     const getGroupsByTeamIdHandler = new Lambda.Function(this, `GetGroupsByTeamId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getGroupsByTeamId"),
       handler: "getGroupsByTeamId.handler",
       environment: environmentVariables,
@@ -87,7 +87,7 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
     });
 
     const getGroupsByOrganizationIdHandler = new Lambda.Function(this, `GetGroupsByOrganizationId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getGroupsByOrganizationId"),
       handler: "getGroupsByOrganizationId.handler",
       environment: environmentVariables,
@@ -97,7 +97,7 @@ export class YacGroupServiceNestedStack extends CDK.NestedStack {
     });
 
     const getGroupImageUploadUrlHandler = new Lambda.Function(this, `GetGroupImageUploadUrl_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getGroupImageUploadUrl"),
       handler: "getGroupImageUploadUrl.handler",
       environment: environmentVariables,

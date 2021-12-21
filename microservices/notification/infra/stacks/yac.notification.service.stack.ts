@@ -195,7 +195,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
 
     // WebSocket Lambdas
     const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/connect"),
       handler: "connect.handler",
       environment: environmentVariables,
@@ -205,7 +205,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
     });
 
     const disconnectHandler = new Lambda.Function(this, `DisconnectHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/disconnect"),
       handler: "disconnect.handler",
       environment: environmentVariables,
@@ -243,7 +243,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
 
     // SQS Event Lambda Handler
     new Lambda.Function(this, `SqsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
       handler: "sqsEvent.handler",
       environment: environmentVariables,
@@ -257,7 +257,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
 
     // HTTP Lambdas
     const registerDeviceHandler = new Lambda.Function(this, `RegisterDeviceHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/registerDevice"),
       handler: "registerDevice.handler",
       environment: environmentVariables,

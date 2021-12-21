@@ -1,11 +1,14 @@
 /* eslint-disable no-new */
 /* eslint-disable no-console */
-import * as CDK from "@aws-cdk/core";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
-import * as ApiGatewayV2Authorizers from "@aws-cdk/aws-apigatewayv2-authorizers";
-import { Duration } from "@aws-cdk/core";
+import {
+  Duration,
+  Stack,
+  aws_lambda as Lambda,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
+import * as ApiGatewayV2Authorizers from "@aws-cdk/aws-apigatewayv2-authorizers-alpha";
+import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
 import { Environment } from "../../src/enums/environment.enum";
 
 export class HttpApi extends ApiGatewayV2.HttpApi {
@@ -13,7 +16,7 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
 
   private authorizer?: ApiGatewayV2Authorizers.HttpLambdaAuthorizer;
 
-  constructor(scope: CDK.Construct, id: string, props: HttpApiProps) {
+  constructor(scope: Construct, id: string, props: HttpApiProps) {
     const environment = scope.node.tryGetContext("environment") as string;
 
     super(scope, id, {
@@ -27,7 +30,7 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
         allowMethods: [ ApiGatewayV2.CorsHttpMethod.ANY ],
         allowHeaders: [ "*" ],
         exposeHeaders: [ "*" ],
-        maxAge: environment !== Environment.Prod ? CDK.Duration.minutes(300) : CDK.Duration.minutes(60 * 12),
+        maxAge: environment !== Environment.Prod ? Duration.minutes(300) : Duration.minutes(60 * 12),
       },
     });
 
@@ -49,7 +52,7 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
       new ApiGatewayV2.HttpRoute(this, `${method}${path}`, {
         httpApi: this,
         routeKey: ApiGatewayV2.HttpRouteKey.with(path, method),
-        integration: new ApiGatewayV2Integrations.LambdaProxyIntegration({ handler }),
+        integration: new ApiGatewayV2Integrations.HttpLambdaIntegration(`${method}${path}LambdaIntegration`, handler),
         authorizer: restricted ? this.authorizer : undefined,
       });
     } catch (error) {
@@ -67,10 +70,10 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
         throw Error("'restricted' not allowed in HttpApi without an authorizer");
       }
 
-      new ApiGatewayV2.HttpRoute(this, `${method}${path}`, {
+      new ApiGatewayV2.HttpRoute(this, `${method}${path}Route`, {
         httpApi: this,
         routeKey: ApiGatewayV2.HttpRouteKey.with(path, method),
-        integration: new ApiGatewayV2Integrations.HttpProxyIntegration({ url: proxyUrl, method }),
+        integration: new ApiGatewayV2Integrations.HttpUrlIntegration(`${method}${path}UrlIntegration`, proxyUrl, { method }),
         authorizer: restricted ? this.authorizer : undefined,
       });
     } catch (error) {
@@ -80,7 +83,7 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
     }
   }
 
-  public addAuthorizer(scope: CDK.Construct, id: string, props: AddAuthorizerProps): void {
+  public addAuthorizer(scope: Construct, id: string, props: AddAuthorizerProps): void {
     try {
       if (this.authorizer) {
         throw new Error("HttpApi already has an authorizer");
@@ -93,16 +96,14 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
         action: "lambda:InvokeFunction",
         principal: "apigateway.amazonaws.com",
         functionName: props.authorizerHandler.functionName,
-        sourceArn: CDK.Stack.of(scope).formatArn({
+        sourceArn: Stack.of(scope).formatArn({
           service: "execute-api",
           resource: this.apiId,
           resourceName: "authorizers/*",
         }),
       });
 
-      this.authorizer = new ApiGatewayV2Authorizers.HttpLambdaAuthorizer({
-        authorizerName: `LambdaAuthorizer_${id}`,
-        handler: props.authorizerHandler,
+      this.authorizer = new ApiGatewayV2Authorizers.HttpLambdaAuthorizer(`HttpLambdaAuthorizer_${id}`, props.authorizerHandler, {
         resultsCacheTtl: Duration.minutes(10),
         responseTypes: [ ApiGatewayV2Authorizers.HttpLambdaResponseType.IAM ],
       });

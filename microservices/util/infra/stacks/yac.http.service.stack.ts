@@ -1,21 +1,26 @@
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import * as Route53 from "@aws-cdk/aws-route53";
-import * as ACM from "@aws-cdk/aws-certificatemanager";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as Lambda from "@aws-cdk/aws-lambda";
+import {
+  Stack,
+  StackProps,
+  Fn,
+  aws_ssm as SSM,
+  aws_lambda as Lambda,
+  aws_certificatemanager as ACM,
+  aws_route53 as Route53,
+} from "aws-cdk-lib";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
+import { Construct } from "constructs";
 import { HttpApi } from "../constructs/http.api";
 import { Environment } from "../../src/enums/environment.enum";
 import { generateExportNames } from "../../src/enums/exportNames.enum";
 
-export interface IYacHttpServiceProps extends CDK.StackProps {
+export interface IYacHttpServiceProps extends StackProps {
   serviceName: string;
   // default true
   addAuthorizer?: boolean;
 }
 
-export class YacHttpServiceStack extends CDK.Stack {
+export class YacHttpServiceStack extends Stack {
   public httpApi: HttpApi;
 
   public domainName: ApiGatewayV2.IDomainName;
@@ -26,7 +31,7 @@ export class YacHttpServiceStack extends CDK.Stack {
 
   public zoneName: string;
 
-  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
     const environment = this.node.tryGetContext("environment") as string;
     const developer = this.node.tryGetContext("developer") as string;
@@ -37,13 +42,13 @@ export class YacHttpServiceStack extends CDK.Stack {
     }
 
     const ExportNames = generateExportNames(environment === Environment.Local ? developer : environment);
-    const customDomainName = CDK.Fn.importValue(ExportNames.CustomDomainName);
-    const regionalDomainName = CDK.Fn.importValue(ExportNames.RegionalDomainName);
-    const regionalHostedZoneId = CDK.Fn.importValue(ExportNames.RegionalHostedZoneId);
+    const customDomainName = Fn.importValue(ExportNames.CustomDomainName);
+    const regionalDomainName = Fn.importValue(ExportNames.RegionalDomainName);
+    const regionalHostedZoneId = Fn.importValue(ExportNames.RegionalHostedZoneId);
     let authorizerHandler: Lambda.IFunction | undefined;
 
     if (addAuthorizer) {
-      authorizerHandler = Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, CDK.Fn.importValue(ExportNames.AuthorizerHandlerFunctionArn));
+      authorizerHandler = Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, Fn.importValue(ExportNames.AuthorizerHandlerFunctionArn));
     }
 
     const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);

@@ -42,7 +42,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
 
     // Handlers
     const mediaRetrieveHandler = new Lambda.Function(this, `MediaRetrieve_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/mediaRetrieve"),
       handler: "mediaRetrieve.handler",
       environment: environmentVariables,
@@ -52,7 +52,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     });
 
     const mediaPushTaskHandler = new Lambda.Function(this, `MediaPush_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/mediaPush"),
       handler: "mediaPush.handler",
       environment: environmentVariables,
@@ -62,7 +62,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     });
 
     const callbackHandler = new Lambda.Function(this, `Callback_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/callback"),
       handler: "callback.handler",
       environment: environmentVariables,

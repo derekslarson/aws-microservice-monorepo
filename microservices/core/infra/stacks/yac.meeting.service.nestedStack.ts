@@ -17,7 +17,7 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
     } = props;
 
     const createMeetingHandler = new Lambda.Function(this, `CreateMeeting_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/createMeeting"),
       handler: "createMeeting.handler",
       environment: environmentVariables,
@@ -27,7 +27,7 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
     });
 
     const updateMeetingHandler = new Lambda.Function(this, `UpdateMeeting${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/updateMeeting"),
       handler: "updateMeeting.handler",
       environment: environmentVariables,
@@ -37,7 +37,7 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
     });
 
     const getMeetingHandler = new Lambda.Function(this, `GetMeeting_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMeeting"),
       handler: "getMeeting.handler",
       environment: environmentVariables,
@@ -47,7 +47,7 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
     });
 
     const addUsersToMeetingHandler = new Lambda.Function(this, `AddUsersToMeeting_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/addUsersToMeeting"),
       handler: "addUsersToMeeting.handler",
       environment: environmentVariables,
@@ -57,7 +57,7 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
     });
 
     const removeUserFromMeetingHandler = new Lambda.Function(this, `RemoveUserFromMeeting_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/removeUserFromMeeting"),
       handler: "removeUserFromMeeting.handler",
       environment: environmentVariables,
@@ -67,7 +67,7 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
     });
 
     const getMeetingsByUserIdHandler = new Lambda.Function(this, `GetMeetingsByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMeetingsByUserId"),
       handler: "getMeetingsByUserId.handler",
       environment: environmentVariables,
@@ -77,7 +77,7 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
     });
 
     const getMeetingsByTeamIdHandler = new Lambda.Function(this, `GetMeetingsByTeamId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMeetingsByTeamId"),
       handler: "getMeetingsByTeamId.handler",
       environment: environmentVariables,
@@ -87,7 +87,7 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
     });
 
     const getMeetingsByOrganizationIdHandler = new Lambda.Function(this, `GetMeetingsByOrganizationId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMeetingsByOrganizationId"),
       handler: "getMeetingsByOrganizationId.handler",
       environment: environmentVariables,
@@ -97,7 +97,7 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
     });
 
     const getMeetingImageUploadUrlHandler = new Lambda.Function(this, `GetMeetingImageUploadUrl_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/getMeetingImageUploadUrl"),
       handler: "getMeetingImageUploadUrl.handler",
       environment: environmentVariables,

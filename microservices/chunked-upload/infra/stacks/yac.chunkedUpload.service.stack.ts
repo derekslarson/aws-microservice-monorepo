@@ -105,7 +105,7 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
     const FSAccessPoint = Lambda.FileSystem.fromEfsAccessPoint(accessPoint, mountedPath);
 
     const uploadMessageChunkFileHandler = new Lambda.Function(this, `UploadMessageChunkHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/chunkUpload"),
       handler: "chunkUpload.handler",
       environment: environmentVariables,
@@ -118,7 +118,7 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
     });
 
     const finishChunkUploadHandler = new Lambda.Function(this, `FinishChunkUploadHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
+      runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/finishChunkUpload"),
       handler: "finishChunkUpload.handler",
       environment: environmentVariables,
