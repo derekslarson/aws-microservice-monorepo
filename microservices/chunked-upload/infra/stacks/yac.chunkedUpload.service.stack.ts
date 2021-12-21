@@ -8,14 +8,12 @@ import * as S3 from "@aws-cdk/aws-s3";
 import * as EC2 from "@aws-cdk/aws-ec2";
 import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
 import * as IAM from "@aws-cdk/aws-iam";
-import {
-  Environment,
-  LogLevel,
-  RouteProps,
-  generateExportNames,
-} from "@yac/util";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { Duration } from "@aws-cdk/core";
+import { Environment } from "@yac/util/src/enums/environment.enum";
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { RouteProps } from "@yac/util/infra/constructs/http.api";
 
 export class YacChunkedUploadService extends YacHttpServiceStack {
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
@@ -30,12 +28,6 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
 
     const stackPrefix = environment === Environment.Local ? developer : environment;
     const ExportNames = generateExportNames(stackPrefix);
-
-    // Layers
-    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
-      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
-      code: Lambda.Code.fromAsset("dist/dependencies"),
-    });
 
     // APIs
     const { httpApi } = this;
@@ -116,7 +108,6 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/chunkUpload"),
       handler: "chunkUpload.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       timeout: Duration.minutes(2),
       memorySize: 1024, // 1gb
@@ -130,7 +121,6 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/finishChunkUpload"),
       handler: "finishChunkUpload.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       timeout: Duration.minutes(5),
       memorySize: 1024 * 4, // 4gb

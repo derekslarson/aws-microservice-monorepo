@@ -1,4 +1,4 @@
-import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util";
+import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util/src/config/env.config";
 
 export const envConfig: EnvConfigInterface = {
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
@@ -6,7 +6,6 @@ export const envConfig: EnvConfigInterface = {
   bucketNames: {},
   snsTopicArns: {},
   yacApiUrl: process.env.YAC_API_URL || "",
-  dynamoRegion: process.env.DYNAMO_REGION || "",
   origin: `https://${process.env.ORIGIN || ""}`,
   bannerbear_key: "NZ94Ck1QiPrqtbUIItWUQQtt",
   bannerbear_webhook_key: "xma6dUGorbiriFkQQ3orugtt",
@@ -17,7 +16,6 @@ export const envConfig: EnvConfigInterface = {
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
-  dynamoRegion: string,
   origin: string,
   bannerbear_key: string,
   bannerbear_webhook_key: string,

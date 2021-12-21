@@ -1,5 +1,5 @@
 import { Container } from "inversify";
-import { coreContainerModule as baseContainer } from "@yac/util";
+import { utilContainerModule } from "@yac/util/src/inversion-of-control/container";
 import { TYPES } from "./types";
 import { MessageEfsRepository, MessageFileSystemRepositoryInterface } from "../repositories/message.efs.repository";
 import { MessageService, MessageServiceInterface } from "../services/message.service";
@@ -9,7 +9,7 @@ import { envConfig, EnvConfigInterface } from "../config/env.config";
 const container = new Container();
 
 try {
-  container.load(baseContainer);
+  container.load(utilContainerModule);
 
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
 

@@ -4,12 +4,10 @@ import * as DynamoDB from "@aws-cdk/aws-dynamodb";
 import * as IAM from "@aws-cdk/aws-iam";
 import * as Lambda from "@aws-cdk/aws-lambda";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import {
-  Environment,
-  LogLevel,
-  RouteProps,
-} from "@yac/util";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { Environment } from "@yac/util/src/enums/environment.enum";
+import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
+import { RouteProps } from "@yac/util/infra/constructs/http.api";
 
 export class YacImageGeneratorStack extends YacHttpServiceStack {
   constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
@@ -20,15 +18,6 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     if (!environment) {
       throw new Error("'environment' context param required.");
     }
-
-    // Layers
-    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
-      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
-      code: Lambda.Code.fromAsset("dist/dependencies"),
-    });
-
-    // APIs
-    const { httpApi } = this;
 
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
@@ -56,7 +45,6 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/mediaRetrieve"),
       handler: "mediaRetrieve.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy ],
@@ -67,7 +55,6 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/mediaPush"),
       handler: "mediaPush.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy ],
@@ -78,7 +65,6 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       runtime: Lambda.Runtime.NODEJS_12_X,
       code: Lambda.Code.fromAsset("dist/handlers/callback"),
       handler: "callback.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy ],
@@ -108,6 +94,6 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       },
     ];
 
-    routes.forEach((route) => httpApi.addRoute(route));
+    routes.forEach((route) => this.httpApi.addRoute(route));
   }
 }

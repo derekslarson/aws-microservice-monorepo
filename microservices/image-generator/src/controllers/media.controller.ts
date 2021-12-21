@@ -1,18 +1,21 @@
 import "reflect-metadata";
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, Request, Response, ValidationServiceInterface, RequestPortion, BaseController } from "@yac/util";
-
+import { BaseController } from "@yac/util/src/controllers/base.controller";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { ValidationServiceV2Interface } from "@yac/util/src/services/validation.service.v2";
+import { Request } from "@yac/util/src/models/http/request.model";
+import { Response } from "@yac/util/src/models/http/response.model";
 import { TYPES } from "../inversion-of-control/types";
 import { MediaServiceInterface } from "../services/media.service";
-import { MediaPushPathParametersDto, MediaPushQueryParametersDto } from "../models/media.push.input.model";
-import { MediaRetrievePathParametersDto, MediaRetrieveQueryParametersDto } from "../models/media.retrieve.input.model";
+import { PushMediaDto } from "../dtos/pushMedia.dto";
+import { RetrieveMediaDto } from "../dtos/retrieveMedia.dto";
 
 @injectable()
 export class MediaController extends BaseController implements MediaControllerInterface {
   constructor(
     @inject(TYPES.MediaServiceInterface) private mediaService: MediaServiceInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
-    @inject(TYPES.ValidationServiceInterface) private validationService: ValidationServiceInterface,
+    @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
   ) {
     super();
   }
@@ -20,12 +23,15 @@ export class MediaController extends BaseController implements MediaControllerIn
   public async pushMedia(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("pushMedia called", { request }, this.constructor.name);
-      const queryParametersInput = await this.validationService.validate(MediaPushQueryParametersDto, RequestPortion.QueryParameters, request.queryStringParameters);
-      const pathParametersInput = await this.validationService.validate(MediaPushPathParametersDto, RequestPortion.PathParameters, request.pathParameters);
-      const { messageId, folder } = pathParametersInput;
+
+      const {
+        pathParameters: { messageId, folder },
+        queryStringParameters: { token },
+      } = this.validationService.validate({ dto: PushMediaDto, request });
+
       const isGroup = folder === "group";
 
-      const responseBody = await this.mediaService.createMedia(messageId, isGroup, queryParametersInput.token);
+      const responseBody = await this.mediaService.createMedia(messageId, isGroup, token);
 
       return this.generateSuccessResponse(responseBody);
     } catch (error: unknown) {
@@ -38,12 +44,14 @@ export class MediaController extends BaseController implements MediaControllerIn
   public async retrieveMedia(request: Request): Promise<Response> {
     try {
       this.loggerService.trace("retrieveMedia called", { request }, this.constructor.name);
-      const queryParametersInput = await this.validationService.validate(MediaRetrieveQueryParametersDto, RequestPortion.QueryParameters, request.queryStringParameters);
-      const pathParametersInput = await this.validationService.validate(MediaRetrievePathParametersDto, RequestPortion.PathParameters, request.pathParameters);
-      const { messageId, folder } = pathParametersInput;
+      const {
+        pathParameters: { messageId, folder },
+        queryStringParameters: { token },
+      } = this.validationService.validate({ dto: RetrieveMediaDto, request });
+
       const isGroup = folder === "group";
 
-      const responseBody = await this.mediaService.getMedia(messageId, isGroup, queryParametersInput.token);
+      const responseBody = await this.mediaService.getMedia(messageId, isGroup, token);
 
       return this.generateFoundResponse(responseBody.url);
     } catch (error: unknown) {

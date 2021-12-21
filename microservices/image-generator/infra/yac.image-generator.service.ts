@@ -1,5 +1,5 @@
 import * as CDK from "@aws-cdk/core";
-import { Environment } from "@yac/util";
+import { Environment } from "@yac/util/src/enums/environment.enum";
 import { YacImageGeneratorStack } from "./stacks/yac.image-generator.service.stack";
 
 const app = new CDK.App();

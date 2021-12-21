@@ -1,6 +1,14 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BadRequestError, LoggerServiceInterface, MessageMimeType, MessageFileRepositoryInterface, MessageId, FriendConvoId, MeetingId, GroupId, FileOperation } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { MessageId } from "@yac/util/src/types/messageId.type";
+import { GroupId } from "@yac/util/src/types/groupId.type";
+import { MeetingId } from "@yac/util/src/types/meetingId.type";
+import { MessageFileRepositoryInterface } from "@yac/util/src/repositories/base.message.s3.repository";
+import { OneOnOneId } from "@yac/util/src/types/oneOnOneId.type";
+import { MessageMimeType } from "@yac/util/src/enums/message.mimeType.enum";
+import { BadRequestError } from "@yac/util/src/errors/badRequest.error";
+import { FileOperation } from "@yac/util/src/enums/fileOperation.enum";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageFileSystemRepositoryInterface } from "../repositories/message.efs.repository";
 
@@ -78,14 +86,14 @@ export interface MessageServiceInterface {
 }
 
 interface ProcessChunkInput {
-  conversationId: FriendConvoId | GroupId | MeetingId;
+  conversationId: OneOnOneId | GroupId | MeetingId;
   messageId: MessageId;
   chunkData: string;
   chunkNumber: number;
 }
 
 interface SaveMessageInput {
-  conversationId: FriendConvoId | GroupId | MeetingId;
+  conversationId: OneOnOneId | GroupId | MeetingId;
   messageId: MessageId;
   totalChunks: number;
   checksum: string;

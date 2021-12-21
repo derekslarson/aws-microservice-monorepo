@@ -1,12 +1,16 @@
 import "reflect-metadata";
 import { inject, injectable } from "inversify";
-import { isString, matches } from "class-validator";
-import { LoggerServiceInterface, Request, Response, ValidationServiceInterface, RequestPortion, BaseController, BadRequestError, UnauthorizedError } from "@yac/util";
-
+import { BaseController } from "@yac/util/src/controllers/base.controller";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { ValidationServiceV2Interface } from "@yac/util/src/services/validation.service.v2";
+import { Request } from "@yac/util/src/models/http/request.model";
+import { Response } from "@yac/util/src/models/http/response.model";
+import { UnauthorizedError } from "@yac/util/src/errors/unauthorized.error";
+import { BadRequestError } from "@yac/util/src/errors/badRequest.error";
 import { TYPES } from "../inversion-of-control/types";
 import { EnvConfigInterface } from "../config/env.config";
 import { MediaServiceInterface } from "../services/media.service";
-import { BannerbearCallbackBodyDto, BannerbearCallbackHeadersDto } from "../models/bannerbear.callback.input.model";
+import { BannerbearCallbackDto } from "../dtos/bannerbearCallback.dto";
 import { MediaInterface } from "../models/media.model";
 
 @injectable()
@@ -15,7 +19,7 @@ export class BannerbearController extends BaseController implements BannerbearCo
     @inject(TYPES.MediaServiceInterface) private mediaService: MediaServiceInterface,
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.EnvConfigInterface) private envConfig: BannerbearControllerEnvConfigType,
-    @inject(TYPES.ValidationServiceInterface) private validationService: ValidationServiceInterface,
+    @inject(TYPES.ValidationServiceV2Interface) private validationService: ValidationServiceV2Interface,
   ) {
     super();
   }
@@ -24,28 +28,27 @@ export class BannerbearController extends BaseController implements BannerbearCo
     try {
       this.loggerService.trace("callback called", { request }, this.constructor.name);
 
-      const headers = await this.validationService.validate(BannerbearCallbackHeadersDto, RequestPortion.Headers, request.headers);
+      const {
+        headers: { authorization },
+        body: { metadata: metadataJson, image_url: imageUrl },
+      } = this.validationService.validate({ dto: BannerbearCallbackDto, request });
 
-      if (!headers.authorization.includes(`Bearer ${this.envConfig.bannerbear_webhook_key}`)) {
+      if (!authorization.includes(`Bearer ${this.envConfig.bannerbear_webhook_key}`)) {
         throw new UnauthorizedError();
       }
 
-      if (!request.body) {
-        throw new BadRequestError("body is required");
-      }
-
-      const bodyValidation = await this.validationService.validate(BannerbearCallbackBodyDto, RequestPortion.Body, request.body);
-      let metadata;
+      let metadata: { id: MediaInterface["id"]; };
       try {
-        metadata = JSON.parse(bodyValidation.metadata) as {id: MediaInterface["id"]};
+        metadata = JSON.parse(metadataJson) as { id: MediaInterface["id"]; };
       } catch (error: unknown) {
-        throw new BadRequestError("metadata field is not a JSON");
+        throw new BadRequestError("metadata field is not JSON");
       }
 
-      if (metadata.id && !(isString(metadata.id) && matches(metadata.id, /^(USER|GROUP)-([0-9]+)$/g))) {
+      if (!/^(USER|GROUP)-([0-9]+)$/g.exec(metadata.id)) {
         throw new BadRequestError("metadata.id is invalid");
       }
-      await this.mediaService.updateMedia(metadata.id, bodyValidation.image_url);
+
+      await this.mediaService.updateMedia(metadata.id, imageUrl);
 
       return this.generateSuccessResponse({ message: "Succesfully completed the request. Media is now updated" });
     } catch (error: unknown) {

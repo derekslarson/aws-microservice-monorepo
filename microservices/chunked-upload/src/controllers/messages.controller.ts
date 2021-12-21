@@ -1,7 +1,12 @@
 import "reflect-metadata";
 import { inject, injectable } from "inversify";
-import { BaseController, Request, Response, LoggerServiceInterface, ValidationServiceV2Interface, MessageUploadTokenServiceInterface, UnauthorizedError } from "@yac/util";
-
+import { BaseController } from "@yac/util/src/controllers/base.controller";
+import { ValidationServiceV2Interface } from "@yac/util/src/services/validation.service.v2";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { MessageUploadTokenServiceInterface } from "@yac/util/src/services/messageUploadToken.service";
+import { Request } from "@yac/util/src/models/http/request.model";
+import { Response } from "@yac/util/src/models/http/response.model";
+import { UnauthorizedError } from "@yac/util/src/errors/unauthorized.error";
 import { TYPES } from "../inversion-of-control/types";
 import { MessageServiceInterface } from "../services/message.service";
 import { MessageChunkUploadDto } from "../dtos/message.chunkUpload.dto";

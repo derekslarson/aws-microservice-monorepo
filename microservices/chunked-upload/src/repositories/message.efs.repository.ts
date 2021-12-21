@@ -1,8 +1,16 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseEfsRepository, Crypto, CryptoFactory, FriendConvoId, FsFactory, GroupId, LoggerServiceInterface, MeetingId, MessageId, PathFactory } from "@yac/util";
-import { EnvConfigInterface } from "../config/env.config";
+import { BaseEfsRepository } from "@yac/util/src/repositories/base.efs.repository";
+import { Crypto, CryptoFactory } from "@yac/util/src/factories/crypto.factory";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { FsFactory } from "@yac/util/src/factories/fs.factory";
+import { PathFactory } from "@yac/util/src/factories/path.factory";
+import { MessageId } from "@yac/util/src/types/messageId.type";
+import { OneOnOneId } from "@yac/util/src/types/oneOnOneId.type";
+import { GroupId } from "@yac/util/src/types/groupId.type";
+import { MeetingId } from "@yac/util/src/types/meetingId.type";
 import { TYPES } from "../inversion-of-control/types";
+import { EnvConfigInterface } from "../config/env.config";
 
 @injectable()
 export class MessageEfsRepository extends BaseEfsRepository implements MessageFileSystemRepositoryInterface {
@@ -147,14 +155,14 @@ export interface MessageFileSystemRepositoryInterface {
 type MessageEFSRepositoryConfigInterface = Pick<EnvConfigInterface, "fileSystemPath">;
 
 interface AddMessageChunkInput {
-  conversationId: FriendConvoId | GroupId | MeetingId;
+  conversationId: OneOnOneId | GroupId | MeetingId;
   messageId: MessageId;
   chunkData: string;
   chunkNumber: number;
 }
 
 interface GetMediaMessageFileInput {
-  conversationId: FriendConvoId | GroupId | MeetingId;
+  conversationId: OneOnOneId | GroupId | MeetingId;
   messageId: MessageId;
 }
 
@@ -164,7 +172,7 @@ interface GetMediaMessageFileOutput {
 }
 
 interface ReadMessageDirectoryInput {
-  conversationId: FriendConvoId | GroupId | MeetingId;
+  conversationId: OneOnOneId | GroupId | MeetingId;
   messageId: MessageId;
 }
 
@@ -173,19 +181,19 @@ interface ReadMessageDirectoryOutput {
 }
 
 interface UpsertMessageDirectoryInput {
-  conversationId: FriendConvoId | GroupId | MeetingId;
+  conversationId: OneOnOneId | GroupId | MeetingId;
   messageId: MessageId;
 }
 
 type UpsertMessageDirectoryOutput = void;
 
 interface DeleteMessageDirectoryInput {
-  conversationId: FriendConvoId | GroupId | MeetingId;
+  conversationId: OneOnOneId | GroupId | MeetingId;
   messageId: MessageId;
 }
 
 interface GenerateDirectoryNameInput {
-  conversationId: FriendConvoId | GroupId | MeetingId;
+  conversationId: OneOnOneId | GroupId | MeetingId;
   messageId: MessageId;
 }
 
