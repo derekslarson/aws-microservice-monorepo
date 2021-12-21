@@ -1,9 +1,8 @@
-import * as IAM from "@aws-cdk/aws-iam";
-import * as CustomResources from "@aws-cdk/custom-resources";
-
-// keep this import separate from other imports to reduce chance for merge conflicts with v2-main
-// eslint-disable-next-line no-duplicate-imports, import/order
-import { Construct } from "@aws-cdk/core";
+import {
+  custom_resources as CustomResources,
+  aws_iam as IAM,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
 
 /**
  * Construction properties for ElasticsearchAccessPolicy
@@ -42,7 +41,7 @@ export class ElasticsearchAccessPolicy extends CustomResources.AwsCustomResource
           AccessPolicies: JSON.stringify(policyDocument.toJSON()),
         },
         // this is needed to limit the response body, otherwise it exceeds the CFN 4k limit
-        outputPath: "DomainConfig.ElasticsearchClusterConfig.AccessPolicies",
+        outputPaths: [ "DomainConfig.ElasticsearchClusterConfig.AccessPolicies" ],
         physicalResourceId: CustomResources.PhysicalResourceId.of(`${props.domainName}AccessPolicy`),
       },
       policy: CustomResources.AwsCustomResourcePolicy.fromSdkCalls({ resources: [ props.domainArn ] }),

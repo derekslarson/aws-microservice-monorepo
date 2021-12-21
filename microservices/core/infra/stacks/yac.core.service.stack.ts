@@ -1,17 +1,21 @@
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
-import * as IAM from "@aws-cdk/aws-iam";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as S3 from "@aws-cdk/aws-s3";
-import * as SNS from "@aws-cdk/aws-sns";
-import * as SNSSubscriptions from "@aws-cdk/aws-sns-subscriptions";
-import * as SQS from "@aws-cdk/aws-sqs";
-import * as EC2 from "@aws-cdk/aws-ec2";
-import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
-
+import {
+  Fn,
+  RemovalPolicy,
+  Duration,
+  aws_ssm as SSM,
+  aws_sns as SNS,
+  aws_sns_subscriptions as SnsSubscriptions,
+  aws_sqs as SQS,
+  aws_ec2 as EC2,
+  aws_dynamodb as DynamoDB,
+  aws_iam as IAM,
+  aws_s3 as S3,
+  aws_secretsmanager as SecretsManager,
+  aws_lambda as Lambda,
+  aws_lambda_event_sources as LambdaEventSources,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
@@ -28,7 +32,7 @@ import { YacMessageServiceNestedStack } from "./yac.message.service.nestedStack"
 import { YacConversationServiceNestedStack } from "./yac.conversation.service.nestedStack";
 
 export class YacCoreServiceStack extends YacHttpServiceStack {
-  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as Environment | undefined;
@@ -47,45 +51,45 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     const ExportNames = generateExportNames(stackPrefix);
 
     // SNS Topic ARN Imports from Util
-    const userCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
-    const organizationCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.OrganizationCreatedSnsTopicArn);
-    const teamCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
-    const meetingCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
-    const groupCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
+    const userCreatedSnsTopicArn = Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
+    const organizationCreatedSnsTopicArn = Fn.importValue(ExportNames.OrganizationCreatedSnsTopicArn);
+    const teamCreatedSnsTopicArn = Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
+    const meetingCreatedSnsTopicArn = Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
+    const groupCreatedSnsTopicArn = Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
 
-    const userAddedToOrganizationSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToOrganizationSnsTopicArn);
-    const userAddedToTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
-    const userAddedToGroupSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToGroupSnsTopicArn);
-    const userAddedToMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToMeetingSnsTopicArn);
-    const userAddedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedAsFriendSnsTopicArn);
+    const userAddedToOrganizationSnsTopicArn = Fn.importValue(ExportNames.UserAddedToOrganizationSnsTopicArn);
+    const userAddedToTeamSnsTopicArn = Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
+    const userAddedToGroupSnsTopicArn = Fn.importValue(ExportNames.UserAddedToGroupSnsTopicArn);
+    const userAddedToMeetingSnsTopicArn = Fn.importValue(ExportNames.UserAddedToMeetingSnsTopicArn);
+    const userAddedAsFriendSnsTopicArn = Fn.importValue(ExportNames.UserAddedAsFriendSnsTopicArn);
 
-    const userRemovedFromOrganizationSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromOrganizationSnsTopicArn);
-    const userRemovedFromTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromTeamSnsTopicArn);
-    const userRemovedFromGroupSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromGroupSnsTopicArn);
-    const userRemovedFromMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromMeetingSnsTopicArn);
-    const userRemovedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedAsFriendSnsTopicArn);
+    const userRemovedFromOrganizationSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromOrganizationSnsTopicArn);
+    const userRemovedFromTeamSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromTeamSnsTopicArn);
+    const userRemovedFromGroupSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromGroupSnsTopicArn);
+    const userRemovedFromMeetingSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromMeetingSnsTopicArn);
+    const userRemovedAsFriendSnsTopicArn = Fn.importValue(ExportNames.UserRemovedAsFriendSnsTopicArn);
 
-    const messageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageCreatedSnsTopicArn);
-    const messageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageUpdatedSnsTopicArn);
+    const messageCreatedSnsTopicArn = Fn.importValue(ExportNames.MessageCreatedSnsTopicArn);
+    const messageUpdatedSnsTopicArn = Fn.importValue(ExportNames.MessageUpdatedSnsTopicArn);
 
-    const messageTranscodedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
-    const messageTranscribedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn);
+    const messageTranscodedSnsTopicArn = Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
+    const messageTranscribedSnsTopicArn = Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn);
 
-    const createUserRequestSnsTopicArn = CDK.Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn);
+    const createUserRequestSnsTopicArn = Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn);
 
-    const billingPlanUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.BillingPlanUpdatedSnsTopicArn);
+    const billingPlanUpdatedSnsTopicArn = Fn.importValue(ExportNames.BillingPlanUpdatedSnsTopicArn);
 
     // Secret imports from Util
-    const messageUploadTokenSecretArn = CDK.Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
+    const messageUploadTokenSecretArn = Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
 
     // S3 Bucket ARN Imports from Util
-    const rawMessageS3BucketArn = CDK.Fn.importValue(ExportNames.RawMessageS3BucketArn);
-    const enhancedMessageS3BucketArn = CDK.Fn.importValue(ExportNames.EnhancedMessageS3BucketArn);
+    const rawMessageS3BucketArn = Fn.importValue(ExportNames.RawMessageS3BucketArn);
+    const enhancedMessageS3BucketArn = Fn.importValue(ExportNames.EnhancedMessageS3BucketArn);
 
     // S3 Buckets
     const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `RawMessageS3Bucket_${id}`, rawMessageS3BucketArn);
     const enhancedMessageS3Bucket = S3.Bucket.fromBucketArn(this, `EnhancedMessageS3Bucket_${id}`, enhancedMessageS3BucketArn);
-    const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket-${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
+    const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket-${id}`, { ...(environment !== Environment.Prod && { removalPolicy: RemovalPolicy.DESTROY }) });
 
     // SNS Topics
     const messageTranscodedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn);
@@ -101,7 +105,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY,
       stream: DynamoDB.StreamViewType.NEW_AND_OLD_IMAGES,
     });
 
@@ -316,10 +320,10 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     // SQS Queues
     const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`);
-    messageTranscodedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    messageTranscribedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    billingPlanUpdatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    messageTranscodedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    messageTranscribedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    billingPlanUpdatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Dynamo Stream Handler
     new Lambda.Function(this, `CoreTableEventHandler_${id}`, {
@@ -328,6 +332,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "coreTableEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [
         ...basePolicy,
         coreTableFullAccessPolicyStatement,
@@ -351,7 +356,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
         createUserRequestSnsPublishPolicyStatement,
         openSearchFullAccessPolicyStatement,
       ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.DynamoEventSource(coreTable, { startingPosition: Lambda.StartingPosition.LATEST }),
       ],
@@ -364,8 +369,9 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "s3Event.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.S3EventSource(imageS3Bucket, { events: [ S3.EventType.OBJECT_CREATED ] }),
       ],
@@ -378,8 +384,9 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       handler: "sqsEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
       ],

@@ -172,6 +172,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "authTableEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement, userCreatedSnsPublishPolicyStatement ],
       timeout: Duration.seconds(15),
       events: [
@@ -185,6 +186,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "sqsEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
       events: [
@@ -198,6 +200,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "authorizer.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -211,6 +214,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "login.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, sendEmailPolicyStatement, sendTextPolicyStatement, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -221,6 +225,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "loginViaExternalProvider.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -231,6 +236,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "confirm.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -241,6 +247,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "createClient.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -251,6 +258,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "oauth2Authorize.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -261,6 +269,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "oauth2Token.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -271,6 +280,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "oauth2Revoke.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -281,6 +291,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "oauth2UserInfo.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -291,6 +302,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "oauth2IdpResponse.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -301,6 +313,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "getPublicJwks.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -311,6 +324,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       handler: "rotateJwks.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });

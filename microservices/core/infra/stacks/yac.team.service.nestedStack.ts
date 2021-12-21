@@ -1,11 +1,14 @@
-import * as CDK from "@aws-cdk/core";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import {
+  Duration,
+  NestedStack,
+  aws_lambda as Lambda,
+} from "aws-cdk-lib";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
-export class YacTeamServiceNestedStack extends CDK.NestedStack {
+export class YacTeamServiceNestedStack extends NestedStack {
   constructor(scope: YacHttpServiceStack, id: string, props: YacNestedStackProps) {
     super(scope, id, props);
 
@@ -22,8 +25,9 @@ export class YacTeamServiceNestedStack extends CDK.NestedStack {
       handler: "createTeam.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const updateTeamHandler = new Lambda.Function(this, `UpdateTeam${id}`, {
@@ -32,8 +36,9 @@ export class YacTeamServiceNestedStack extends CDK.NestedStack {
       handler: "updateTeam.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getTeamHandler = new Lambda.Function(this, `GetTeam_${id}`, {
@@ -42,8 +47,9 @@ export class YacTeamServiceNestedStack extends CDK.NestedStack {
       handler: "getTeam.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const addUsersToTeamHandler = new Lambda.Function(this, `AddUsersToTeam_${id}`, {
@@ -52,8 +58,9 @@ export class YacTeamServiceNestedStack extends CDK.NestedStack {
       handler: "addUsersToTeam.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const removeUserFromTeamHandler = new Lambda.Function(this, `RemoveUserFromTeam_${id}`, {
@@ -62,8 +69,9 @@ export class YacTeamServiceNestedStack extends CDK.NestedStack {
       handler: "removeUserFromTeam.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getTeamsByUserIdHandler = new Lambda.Function(this, `GetTeamsByUserId_${id}`, {
@@ -72,8 +80,9 @@ export class YacTeamServiceNestedStack extends CDK.NestedStack {
       handler: "getTeamsByUserId.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getTeamsByOrganizationIdHandler = new Lambda.Function(this, `GetTeamsByOrganizationId_${id}`, {
@@ -82,8 +91,9 @@ export class YacTeamServiceNestedStack extends CDK.NestedStack {
       handler: "getTeamsByOrganizationId.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getTeamImageUploadUrlHandler = new Lambda.Function(this, `GetTeamImageUploadUrl_${id}`, {
@@ -92,8 +102,9 @@ export class YacTeamServiceNestedStack extends CDK.NestedStack {
       handler: "getTeamImageUploadUrl.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [

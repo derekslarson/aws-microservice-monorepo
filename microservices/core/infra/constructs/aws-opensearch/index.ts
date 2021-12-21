@@ -7,15 +7,22 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable max-classes-per-file */
 import { URL } from "url";
-import * as Elasticsearch from "@aws-cdk/aws-elasticsearch";
-import * as ACM from "@aws-cdk/aws-certificatemanager";
-import * as Cloudwatch from "@aws-cdk/aws-cloudwatch";
-import * as EC2 from "@aws-cdk/aws-ec2";
-import * as IAM from "@aws-cdk/aws-iam";
-import * as Logs from "@aws-cdk/aws-logs";
-import * as Route53 from "@aws-cdk/aws-route53";
-import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
-import * as CDK from "@aws-cdk/core";
+import {
+
+  SecretValue,
+  Stack,
+  Duration,
+  Resource,
+  aws_elasticsearch as Elasticsearch,
+  aws_cloudwatch as Cloudwatch,
+  aws_certificatemanager as ACM,
+  aws_logs as Logs,
+  aws_ec2 as EC2,
+  aws_route53 as Route53,
+  aws_iam as IAM,
+  aws_secretsmanager as SecretsManager,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
 import { LogGroupResourcePolicy } from "./logGroupResourcePolicy.construct";
 import { ElasticsearchAccessPolicy } from "./elasticsearchAccesPolicy.construct";
 
@@ -68,7 +75,7 @@ export interface DomainProps extends Omit<Elasticsearch.DomainProps, "useUnsigne
 /**
  * A new or imported domain.
  */
-abstract class DomainBase extends CDK.Resource implements Elasticsearch.IDomain {
+abstract class DomainBase extends Resource implements Elasticsearch.IDomain {
   public abstract readonly domainArn: string;
 
   public abstract readonly domainName: string;
@@ -220,7 +227,7 @@ abstract class DomainBase extends CDK.Resource implements Elasticsearch.IDomain 
     return new Cloudwatch.Metric({
       namespace: "AWS/ES",
       metricName,
-      dimensions: {
+      dimensionsMap: {
         DomainName: this.domainName,
         ClientId: this.stack.account,
       },
@@ -272,7 +279,7 @@ abstract class DomainBase extends CDK.Resource implements Elasticsearch.IDomain 
   public metricClusterIndexWritesBlocked(props?: Cloudwatch.MetricOptions): Cloudwatch.Metric {
     return this.metric("ClusterIndexWritesBlocked", {
       statistic: Cloudwatch.Statistic.MAXIMUM,
-      period: CDK.Duration.minutes(1),
+      period: Duration.minutes(1),
       ...props,
     });
   }
@@ -285,7 +292,7 @@ abstract class DomainBase extends CDK.Resource implements Elasticsearch.IDomain 
   public metricNodes(props?: Cloudwatch.MetricOptions): Cloudwatch.Metric {
     return this.metric("Nodes", {
       statistic: Cloudwatch.Statistic.MINIMUM,
-      period: CDK.Duration.hours(1),
+      period: Duration.hours(1),
       ...props,
     });
   }
@@ -435,11 +442,11 @@ export class Domain extends DomainBase implements Elasticsearch.IDomain, EC2.ICo
    * @param domainEndpoint The domain's endpoint.
    */
   public static fromDomainEndpoint(
-    scope: CDK.Construct,
+    scope: Construct,
     id: string,
     domainEndpoint: string,
   ): Elasticsearch.IDomain {
-    const stack = CDK.Stack.of(scope);
+    const stack = Stack.of(scope);
     const domainName = extractNameFromEndpoint(domainEndpoint);
     const domainArn = stack.formatArn({
       service: "es",
@@ -460,9 +467,10 @@ export class Domain extends DomainBase implements Elasticsearch.IDomain, EC2.ICo
    * @param id The construct's name.
    * @param attrs A `DomainAttributes` object.
    */
-  public static fromDomainAttributes(scope: CDK.Construct, id: string, attrs: Elasticsearch.DomainAttributes): Elasticsearch.IDomain {
+  public static fromDomainAttributes(scope: Construct, id: string, attrs: Elasticsearch.DomainAttributes): Elasticsearch.IDomain {
     const { domainArn, domainEndpoint } = attrs;
-    const domainName = CDK.Stack.of(scope).parseArn(domainArn).resourceName ?? extractNameFromEndpoint(domainEndpoint);
+
+    const domainName = extractNameFromEndpoint(domainEndpoint);
 
     return new class extends DomainBase {
       public readonly domainArn = domainArn;
@@ -514,13 +522,13 @@ export class Domain extends DomainBase implements Elasticsearch.IDomain, EC2.ICo
   /**
    * Master user password if fine grained access control is configured.
    */
-  public readonly masterUserPassword?: CDK.SecretValue;
+  public readonly masterUserPassword?: SecretValue;
 
   private readonly domain: Elasticsearch.CfnDomain;
 
   private readonly _connections: EC2.Connections | undefined;
 
-  constructor(scope: CDK.Construct, id: string, props: DomainProps) {
+  constructor(scope: Construct, id: string, props: DomainProps) {
     super(scope, id, { physicalName: props.domainName });
 
     const defaultInstanceType = "t3.small.search";
@@ -589,7 +597,7 @@ export class Domain extends DomainBase implements Elasticsearch.IDomain, EC2.ICo
     const advancedSecurityEnabled = (masterUserArn ?? masterUserName) != null;
     const internalUserDatabaseEnabled = masterUserName != null;
     const masterUserPasswordProp = props.fineGrainedAccessControl?.masterUserPassword;
-    const createMasterUserPassword = (): CDK.SecretValue => new SecretsManager.Secret(this, "MasterUser", {
+    const createMasterUserPassword = (): SecretValue => new SecretsManager.Secret(this, "MasterUser", {
       generateSecretString: {
         secretStringTemplate: JSON.stringify({ username: masterUserName }),
         generateStringKey: "password",
@@ -924,7 +932,7 @@ export class Domain extends DomainBase implements Elasticsearch.IDomain, EC2.ICo
  *
  * @param domainEndpoint The Elasticsearch domain endpoint
  */
-function extractNameFromEndpoint(domainEndpoint: string) {
+function extractNameFromEndpoint(domainEndpoint: string): string {
   const { hostname } = new URL(domainEndpoint);
   const domain = hostname.split(".")[0];
   const suffix = `-${domain.split("-").slice(-1)[0]}`;

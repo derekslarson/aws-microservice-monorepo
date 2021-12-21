@@ -1,12 +1,15 @@
-import * as CDK from "@aws-cdk/core";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import * as IAM from "@aws-cdk/aws-iam";
+import {
+  Duration,
+  NestedStack,
+  aws_lambda as Lambda,
+  aws_iam as IAM,
+} from "aws-cdk-lib";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
-export class YacOneOnOneServiceNestedStack extends CDK.NestedStack {
+export class YacOneOnOneServiceNestedStack extends NestedStack {
   constructor(scope: YacHttpServiceStack, id: string, props: YacOneOnOneServiceNestedStackProps) {
     super(scope, id, props);
 
@@ -24,8 +27,9 @@ export class YacOneOnOneServiceNestedStack extends CDK.NestedStack {
       handler: "createOneOnOnes.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const deleteOneOnOneHandler = new Lambda.Function(this, `DeleteOneOnOne_${id}`, {
@@ -34,8 +38,9 @@ export class YacOneOnOneServiceNestedStack extends CDK.NestedStack {
       handler: "deleteOneOnOne.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getOneOnOnesByUserIdHandler = new Lambda.Function(this, `GetOneOnOnesByUserId_${id}`, {
@@ -44,8 +49,9 @@ export class YacOneOnOneServiceNestedStack extends CDK.NestedStack {
       handler: "getOneOnOnesByUserId.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [

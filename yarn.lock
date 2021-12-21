@@ -172,7 +172,7 @@
     "@aws-cdk/core" "1.114.0"
     constructs "^3.3.69"
 
-"@aws-cdk/aws-cloudwatch@1.114.0", "@aws-cdk/aws-cloudwatch@~1.114.0":
+"@aws-cdk/aws-cloudwatch@1.114.0":
   version "1.114.0"
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-cloudwatch/-/aws-cloudwatch-1.114.0.tgz#c0bda176b3d98e30c749647cb7b5e501d0fbfb59"
   integrity sha512-rciOgv1iOqO5/8MzUJbQbTOthDGD41jXAKCcZ1r5tntxKdHO68IpQC5TMWuA94GWt1JD9ustRv+JUtEz1kECwA==
@@ -384,23 +384,6 @@
     "@aws-cdk/region-info" "1.114.0"
     constructs "^3.3.69"
 
-"@aws-cdk/aws-elasticsearch@~1.114.0":
-  version "1.114.0"
-  resolved "https://registry.yarnpkg.com/@aws-cdk/aws-elasticsearch/-/aws-elasticsearch-1.114.0.tgz#db953719b4c5a99df3bb4faba5f12c0fd5c316f6"
-  integrity sha512-gb8S/dJ528G6n65xjJLmsMTSLAEgRhS7Gand7vGV/QMJWqHWNsDp8TEKwbBM0S+gEktG034fIv6yYZOEuVDdCg==
-  dependencies:
-    "@aws-cdk/aws-certificatemanager" "1.114.0"
-    "@aws-cdk/aws-cloudwatch" "1.114.0"
-    "@aws-cdk/aws-ec2" "1.114.0"
-    "@aws-cdk/aws-iam" "1.114.0"
-    "@aws-cdk/aws-kms" "1.114.0"
-    "@aws-cdk/aws-logs" "1.114.0"
-    "@aws-cdk/aws-route53" "1.114.0"
-    "@aws-cdk/aws-secretsmanager" "1.114.0"
-    "@aws-cdk/core" "1.114.0"
-    "@aws-cdk/custom-resources" "1.114.0"
-    constructs "^3.3.69"
-
 "@aws-cdk/aws-events-targets@~1.114.0":
   version "1.114.0"
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-events-targets/-/aws-events-targets-1.114.0.tgz#29af87c82d1eb989f988c8f41fe66d3363a87a0b"
@@ -529,7 +512,7 @@
     "@aws-cdk/cx-api" "1.114.0"
     constructs "^3.3.69"
 
-"@aws-cdk/aws-logs@1.114.0", "@aws-cdk/aws-logs@~1.114.0":
+"@aws-cdk/aws-logs@1.114.0":
   version "1.114.0"
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-logs/-/aws-logs-1.114.0.tgz#4d27314c55ae3d07c69389b39f495cc3cacaccec"
   integrity sha512-WlVxCxztAIcsWD1gbSn+A5VcmEL9ixal/ETSFJnG3vTJXi5x/0q5Mg/dOmfTcxqrNvsnKM0tp8BcSbS2cd5qHQ==

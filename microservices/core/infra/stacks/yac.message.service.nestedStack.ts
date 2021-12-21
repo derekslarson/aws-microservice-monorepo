@@ -1,12 +1,15 @@
-import * as CDK from "@aws-cdk/core";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import * as IAM from "@aws-cdk/aws-iam";
+import {
+  Duration,
+  NestedStack,
+  aws_lambda as Lambda,
+  aws_iam as IAM,
+} from "aws-cdk-lib";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
-export class YacMessageServiceNestedStack extends CDK.NestedStack {
+export class YacMessageServiceNestedStack extends NestedStack {
   constructor(scope: YacHttpServiceStack, id: string, props: YacMessageServiceNestedStackProps) {
     super(scope, id, props);
 
@@ -27,8 +30,9 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       handler: "createOneOnOneMessage.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const createGroupMessageHandler = new Lambda.Function(this, `CreateGroupMessage_${id}`, {
@@ -37,8 +41,9 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       handler: "createGroupMessage.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const createMeetingMessageHandler = new Lambda.Function(this, `CreateMeetingMessage_${id}`, {
@@ -47,8 +52,9 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       handler: "createMeetingMessage.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getMessageHandler = new Lambda.Function(this, `GetMessage_${id}`, {
@@ -57,8 +63,9 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       handler: "getMessage.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const updateMessageByUserIdHandler = new Lambda.Function(this, `UpdateMessageByUserId_${id}`, {
@@ -67,8 +74,9 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       handler: "updateMessageByUserId.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const updateMessageHandler = new Lambda.Function(this, `UpdateMessage${id}`, {
@@ -77,8 +85,9 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       handler: "updateMessage.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getMessagesByOneOnOneIdHandler = new Lambda.Function(this, `GetMessagesByOneOnOneId_${id}`, {
@@ -87,8 +96,9 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       handler: "getMessagesByOneOnOneId.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getMessagesByGroupIdHandler = new Lambda.Function(this, `GetMessagesByGroupId_${id}`, {
@@ -97,8 +107,9 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       handler: "getMessagesByGroupId.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getMessagesByMeetingIdHandler = new Lambda.Function(this, `GetMessagesByMeetingId_${id}`, {
@@ -107,8 +118,9 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       handler: "getMessagesByMeetingId.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getMessagesByUserIdAndSearchTermHandler = new Lambda.Function(this, `GetMessagesByUserIdAndSearchTerm_${id}`, {
@@ -117,8 +129,9 @@ export class YacMessageServiceNestedStack extends CDK.NestedStack {
       handler: "getMessagesByUserIdAndSearchTerm.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [

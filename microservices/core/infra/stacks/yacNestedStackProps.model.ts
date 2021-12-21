@@ -1,8 +1,6 @@
-import * as CDK from "@aws-cdk/core";
-// import * as Lambda from "@aws-cdk/aws-lambda";
-import * as IAM from "@aws-cdk/aws-iam";
+import { NestedStackProps, aws_iam as IAM } from "aws-cdk-lib";
 
-export interface YacNestedStackProps extends CDK.NestedStackProps {
+export interface YacNestedStackProps extends NestedStackProps {
   environmentVariables: Record<string, string>;
   basePolicy: IAM.PolicyStatement[];
   coreTableFullAccessPolicyStatement: IAM.PolicyStatement;

@@ -1,11 +1,14 @@
-import * as CDK from "@aws-cdk/core";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import {
+  Duration,
+  NestedStack,
+  aws_lambda as Lambda,
+} from "aws-cdk-lib";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
-export class YacMeetingServiceNestedStack extends CDK.NestedStack {
+export class YacMeetingServiceNestedStack extends NestedStack {
   constructor(scope: YacHttpServiceStack, id: string, props: YacNestedStackProps) {
     super(scope, id, props);
 
@@ -22,8 +25,9 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
       handler: "createMeeting.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const updateMeetingHandler = new Lambda.Function(this, `UpdateMeeting${id}`, {
@@ -32,8 +36,9 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
       handler: "updateMeeting.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getMeetingHandler = new Lambda.Function(this, `GetMeeting_${id}`, {
@@ -42,8 +47,9 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
       handler: "getMeeting.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const addUsersToMeetingHandler = new Lambda.Function(this, `AddUsersToMeeting_${id}`, {
@@ -52,8 +58,9 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
       handler: "addUsersToMeeting.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const removeUserFromMeetingHandler = new Lambda.Function(this, `RemoveUserFromMeeting_${id}`, {
@@ -62,8 +69,9 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
       handler: "removeUserFromMeeting.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getMeetingsByUserIdHandler = new Lambda.Function(this, `GetMeetingsByUserId_${id}`, {
@@ -72,8 +80,9 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
       handler: "getMeetingsByUserId.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getMeetingsByTeamIdHandler = new Lambda.Function(this, `GetMeetingsByTeamId_${id}`, {
@@ -82,8 +91,9 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
       handler: "getMeetingsByTeamId.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getMeetingsByOrganizationIdHandler = new Lambda.Function(this, `GetMeetingsByOrganizationId_${id}`, {
@@ -92,8 +102,9 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
       handler: "getMeetingsByOrganizationId.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getMeetingImageUploadUrlHandler = new Lambda.Function(this, `GetMeetingImageUploadUrl_${id}`, {
@@ -102,8 +113,9 @@ export class YacMeetingServiceNestedStack extends CDK.NestedStack {
       handler: "getMeetingImageUploadUrl.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [
