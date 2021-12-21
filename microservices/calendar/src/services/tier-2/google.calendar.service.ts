@@ -1,6 +1,9 @@
 import { inject, injectable } from "inversify";
-import { BadRequestError, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
-import { calendar_v3 } from "googleapis";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { BadRequestError } from "@yac/util/src/errors/badRequest.error";
+import { NotFoundError } from "@yac/util/src/errors/notFound.error";
+import { calendar_v3 } from "@googleapis/calendar";
 import { TYPES } from "../../inversion-of-control/types";
 import { Account, GetOAuth2ClientOutput as AuthServiceOAuth2ClientOutput, GoogleAuthServiceInterface } from "../tier-1/google.auth.service";
 import { GoogleCalendarFactory } from "../../factories/google.calendar.factory";

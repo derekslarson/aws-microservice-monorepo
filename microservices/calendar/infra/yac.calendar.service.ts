@@ -1,5 +1,5 @@
 import * as CDK from "@aws-cdk/core";
-import { Environment } from "@yac/util";
+import { Environment } from "@yac/util/src/enums/environment.enum";
 import { YacCalendarServiceStack } from "./stacks/yac.calendar.service.stack";
 
 const app = new CDK.App();

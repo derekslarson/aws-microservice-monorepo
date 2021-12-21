@@ -1,5 +1,7 @@
 import { Record, String, Optional } from "runtypes";
-import { Limit, UserIdRuntype, DateRuntype } from "@yac/util";
+import { UserIdRuntype } from "@yac/util/src/runtypes/userId.runtype";
+import { Limit } from "@yac/util/src/runtypes/limit.runtype";
+import { DateRuntype } from "@yac/util/src/runtypes/date.runtype";
 
 export const GetGoogleEventsDto = Record({
   pathParameters: Record({ userId: UserIdRuntype }),

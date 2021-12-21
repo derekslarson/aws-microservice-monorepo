@@ -61,8 +61,6 @@
     "@yac/util": "0.1.0",
     "aws-sdk": "^2.783.0",
     "axios": "^0.21.1",
-    "class-transformer": "^0.3.1",
-    "class-validator": "^0.12.2",
     "crypto": "^1.0.1",
     "crypto-secure-random-digit": "^1.0.9",
     "inversify": "^5.0.1",

@@ -1,5 +1,8 @@
-import { coreContainerModule, DynamoProcessorServiceInterface, S3ProcessorServiceInterface, SnsProcessorServiceInterface } from "@yac/util";
 import { Container } from "inversify";
+import { utilContainerModule } from "@yac/util/src/inversion-of-control/container";
+import { SnsProcessorServiceInterface } from "@yac/util/src/services/interfaces/sns.processor.service.interface";
+import { S3ProcessorServiceInterface } from "@yac/util/src/services/interfaces/s3.processor.service.interface";
+import { DynamoProcessorServiceInterface } from "@yac/util/src/services/interfaces/dynamo.processor.service.interface";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "./types";
 import { CalendarController, CalendarControllerInterface } from "../controllers/calendar.controller";
@@ -14,7 +17,7 @@ import { GoogleSettingsService, GoogleSettingsServiceInterface } from "../servic
 const container = new Container();
 
 try {
-  container.load(coreContainerModule);
+  container.load(utilContainerModule);
 
   // Config
   container.bind<EnvConfigInterface>(TYPES.EnvConfigInterface).toConstantValue(envConfig);
@@ -22,12 +25,10 @@ try {
   // Controllers
   container.bind<CalendarControllerInterface>(TYPES.CalendarControllerInterface).to(CalendarController);
 
-  // Tier 1 Service
+  // Services
   container.bind<GoogleAuthServiceInterface>(TYPES.GoogleAuthServiceInterface).to(GoogleAuthService);
-  container.bind<GoogleSettingsServiceInterface>(TYPES.GoogleSettingsServiceInterface).to(GoogleSettingsService);
-
-  // Tier 2 Services
   container.bind<GoogleCalendarServiceInterface>(TYPES.GoogleCalendarServiceInterface).to(GoogleCalendarService);
+  container.bind<GoogleSettingsServiceInterface>(TYPES.GoogleSettingsServiceInterface).to(GoogleSettingsService);
 
   // Repositories
   container.bind<AuthFlowAttemptRepositoryInterface>(TYPES.AuthFlowAttemptRepositoryInterface).to(AuthFlowAttemptDynamoRepository);

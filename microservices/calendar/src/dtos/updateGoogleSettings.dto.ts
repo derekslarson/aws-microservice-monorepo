@@ -1,5 +1,5 @@
 import { Optional, Record, String } from "runtypes";
-import { UserIdRuntype } from "@yac/util";
+import { UserIdRuntype } from "@yac/util/src/runtypes/userId.runtype";
 
 export const UpdateGoogleSettingsDto = Record({
   pathParameters: Record({ userId: UserIdRuntype }),

@@ -1,6 +1,11 @@
 import "reflect-metadata";
 import { injectable, inject } from "inversify";
-import { BaseController, ForbiddenError, LoggerServiceInterface, Request, Response, ValidationServiceV2Interface } from "@yac/util";
+import { BaseController } from "@yac/util/src/controllers/base.controller";
+import { ValidationServiceV2Interface } from "@yac/util/src/services/validation.service.v2";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { ForbiddenError } from "@yac/util/src/errors/forbidden.error";
+import { Request } from "@yac/util/src/models/http/request.model";
+import { Response } from "@yac/util/src/models/http/response.model";
 import { TYPES } from "../inversion-of-control/types";
 import { InitiateGoogleAccessFlowDto } from "../dtos/initiateGoogleAccessFlow.dto";
 import { CompleteGoogleAccessFlowDto } from "../dtos/completeGoogleAccessFlow.dto";

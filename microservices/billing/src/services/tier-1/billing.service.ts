@@ -35,11 +35,11 @@ export class BillingService implements BillingServiceInterface {
     try {
       this.loggerService.trace("getBillingPortalUrl called", { params }, this.constructor.name);
 
-      const { organizationId } = params;
+      const { organizationId, returnUrl } = params;
 
       const { organizationStripeMapping } = await this.organizationStripeMappingRepository.getOrganizationStripeMapping({ organizationId });
 
-      const { url: billingPortalUrl } = await this.stripe.billingPortal.sessions.create({ customer: organizationStripeMapping.customerId });
+      const { url: billingPortalUrl } = await this.stripe.billingPortal.sessions.create({ customer: organizationStripeMapping.customerId, return_url: returnUrl });
 
       return { billingPortalUrl };
     } catch (error: unknown) {
@@ -152,6 +152,7 @@ type BillingServiceConfig = Pick<EnvConfigInterface, "stripe">;
 
 export interface GetBillingPortalUrlInput {
   organizationId: OrganizationId;
+  returnUrl: string;
 }
 
 export interface GetBillingPortalUrlOutput {

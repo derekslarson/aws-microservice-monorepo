@@ -31,6 +31,7 @@ export class BillingController extends BaseController implements BillingControll
       const {
         jwtId,
         pathParameters: { organizationId },
+        queryStringParameters: { return_url: returnUrl },
       } = this.validationService.validate({ dto: GetBillingPortalUrlDto, request, getUserIdFromJwt: true });
 
       const { isOrganizationAdmin } = await this.organizationService.isOrganizationAdmin({ userId: jwtId, organizationId: organizationId as OrganizationId });
@@ -39,7 +40,7 @@ export class BillingController extends BaseController implements BillingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { billingPortalUrl } = await this.billingService.getBillingPortalUrl({ organizationId: organizationId as OrganizationId });
+      const { billingPortalUrl } = await this.billingService.getBillingPortalUrl({ organizationId: organizationId as OrganizationId, returnUrl });
 
       return this.generateSuccessResponse({ billingPortalUrl });
     } catch (error: unknown) {

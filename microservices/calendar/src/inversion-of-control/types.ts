@@ -1,17 +1,15 @@
-import { TYPES as CORE_TYPES } from "@yac/util";
+import { TYPES as UTIL_TYPES } from "@yac/util/src/inversion-of-control/types";
 
 const TYPES = {
-  ...CORE_TYPES,
+  ...UTIL_TYPES,
 
   // Controllers
   CalendarControllerInterface: Symbol.for("CalendarControllerInterface"),
 
-  // Tier 1 Services
+  // Services
   GoogleAuthServiceInterface: Symbol.for("GoogleAuthServiceInterface"),
-  GoogleSettingsServiceInterface: Symbol.for("GoogleSettingsServiceInterface"),
-
-  // Tier 2 Services
   GoogleCalendarServiceInterface: Symbol.for("GoogleCalendarServiceInterface"),
+  GoogleSettingsServiceInterface: Symbol.for("GoogleSettingsServiceInterface"),
 
   // Repositories
   AuthFlowAttemptRepositoryInterface: Symbol.for("AuthFlowAttemptRepositoryInterface"),

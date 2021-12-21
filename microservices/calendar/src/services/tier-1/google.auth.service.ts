@@ -1,6 +1,11 @@
 import { inject, injectable } from "inversify";
-import { BadRequestError, GoogleOAuth2Client, GoogleOAuth2ClientFactory, IdServiceInterface, Jwt, JwtFactory, LoggerServiceInterface, NotFoundError, UserId } from "@yac/util";
-import { Auth } from "googleapis";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { IdServiceInterface } from "@yac/util/src/services/id.service";
+import { GoogleOAuth2Client, GoogleOAuth2ClientFactory } from "@yac/util/src/factories/google.oAuth2ClientFactory";
+import { Jwt, JwtFactory } from "@yac/util/src/factories/jwt.factory";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { BadRequestError } from "@yac/util/src/errors/badRequest.error";
+import { NotFoundError } from "@yac/util/src/errors/notFound.error";
 import { TYPES } from "../../inversion-of-control/types";
 import { GoogleCredentials, GoogleCredentialsRepositoryInterface } from "../../repositories/google.credentials.dynamo.repository";
 import { EnvConfigInterface } from "../../config/env.config";
@@ -106,16 +111,14 @@ export class GoogleAuthService implements GoogleAuthServiceInterface {
 
       const { googleCredentials } = await this.googleCredentialsRepository.getGoogleCredentials({ userId, accountId });
 
-      const googleCredentialsSnakeCase: Auth.Credentials = {
+      oAuth2Client.setCredentials({
         access_token: googleCredentials.accessToken,
         refresh_token: googleCredentials.refreshToken,
         id_token: googleCredentials.idToken,
         token_type: googleCredentials.tokenType,
         expiry_date: googleCredentials.expiryDate,
         scope: googleCredentials.scope,
-      };
-
-      oAuth2Client.setCredentials(googleCredentialsSnakeCase);
+      });
 
       const { token: freshAccesToken } = await oAuth2Client.getAccessToken();
 

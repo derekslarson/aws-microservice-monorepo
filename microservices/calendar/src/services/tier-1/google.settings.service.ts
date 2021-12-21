@@ -1,5 +1,6 @@
 import { inject, injectable } from "inversify";
-import { LoggerServiceInterface, UserId } from "@yac/util";
+import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
+import { UserId } from "@yac/util/src/types/userId.type";
 import { TYPES } from "../../inversion-of-control/types";
 import { GoogleSettings, GoogleSettingsRepositoryInterface } from "../../repositories/google.settings.dynamo.repository";
 
