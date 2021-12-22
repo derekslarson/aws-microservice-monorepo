@@ -29,7 +29,7 @@
         "assets/build/"
       ],
       "@yac/*": [
-        "micro-services/*"
+        "microservices/*"
       ]
     }
   },

@@ -1,0 +1,4 @@
+{
+  "app": "npx ts-node ./infra/yac.transcription.service.ts",
+  "context": {}
+}

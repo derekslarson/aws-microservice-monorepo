@@ -1,5 +1,0 @@
-{
-  "local-dereklarson-yac-core-service": {
-    "MessageCreatedSnsTopicOutput": "arn:aws:sns:us-east-2:644653163171:messageCreatedSnsTopic"
-  }
-}

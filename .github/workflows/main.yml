@@ -15,12 +15,10 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: '12.x'
-      - name: Install dependencies
+      - name: Install Dependencies
         run: yarn
       - name: Bootstrap
         run: npx lerna bootstrap
-      - name: Build Core
-        run: yarn workspace @yac/util build:library
       - name: Build Other Services
         run: npx lerna run build:dev
       - name: Test

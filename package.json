@@ -2,55 +2,34 @@
   "name": "yac-api-v4",
   "private": true,
   "workspaces": [
-    "micro-services/*",
-    "micro-services/auth/ui",
-    "micro-services/*/e2e/test-stack"
+    "microservices/*",
+    "microservices/auth/ui",
+    "microservices/*/e2e/test-stack"
   ],
   "version": "0.1.0",
-  "license": "MIT",
-  "bin": {
-    "yac-api-v4": "bin/yac-api-v4.js"
+  "engines": {
+    "node": "~14.15.0"
   },
   "scripts": {
-    "build": "yarn  clean && webpack --bail --config config/webpack/webpack.config.release.js && yarn  build:layer",
-    "build:dev": "yarn  clean && webpack --bail --config config/webpack/webpack.config.dev.js && yarn  build:layer",
-    "build:layer": "ts-node ./infra/layer/buildLayer.ts && cd ./dist/dependencies/nodejs && yarn install",
+    "build:local": "lerna run build:local",
+    "build:dev": "lerna run build:dev",
+    "build:stage": "lerna run build:stage",
+    "build:prod": "lerna run build:prod",
+    "clean": "lerna run clean",
     "build:unit-tests": "yarn clean:unit-tests && tsc --project ./tsconfig.test.json",
-    "clean": "rm -rf ./dist && rm -rf ./cdk.out",
-    "clean:layer": "rm -rf ./infra/layer/dependencies && rm -f ./infra/layer/support/buildLayer.js",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
-    "deploy:local": "yarn build:dev && cdk deploy --context environment=local --context developer=$(whoami)",
-    "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
-    "deploy:dev": "yarn  build:dev && cdk deploy --context environment=dev",
-    "deploy:stage": "yarn  build && cdk deploy --context environment=stage",
-    "deploy:prod": "yarn  build && cdk deploy --context environment=prod",
     "nyc": "nyc node config/jasmine/jasmine.runner.js",
     "test:unit": "yarn clean:unit-tests && yarn build:unit-tests && yarn nyc"
   },
   "devDependencies": {
-    "@aws-cdk/assert": "~1.114.0",
-    "@aws-cdk/aws-apigatewayv2": "~1.114.0",
-    "@aws-cdk/aws-apigatewayv2-integrations": "~1.114.0",
-    "@aws-cdk/aws-dynamodb": "~1.114.0",
-    "@aws-cdk/aws-elasticsearch": "~1.114.0",
-    "@aws-cdk/aws-iam": "~1.114.0",
-    "@aws-cdk/aws-lambda": "~1.114.0",
-    "@aws-cdk/aws-lambda-event-sources": "~1.114.0",
-    "@aws-cdk/aws-sns": "~1.114.0",
-    "@aws-cdk/aws-ssm": "~1.114.0",
-    "@aws-cdk/core": "~1.114.0",
-    "@aws-cdk/custom-resources": "~1.114.0",
-    "@types/aws-lambda": "^8.10.72",
-    "@types/elasticsearch": "^5.0.37",
+    "@types/case-sensitive-paths-webpack-plugin": "^2.1.6",
     "@types/jasmine": "^3.6.4",
-    "@types/jsonwebtoken": "^8.5.0",
-    "@types/node": "10.17.27",
-    "@types/react": "^17.0.3",
-    "@types/react-dom": "^17.0.3",
-    "@types/testing-library__dom": "^7.5.0",
-    "@types/uuid": "^8.3.0",
+    "@types/terser-webpack-plugin": "^5.2.0",
+    "@types/yargs": "^17.0.2",
     "@typescript-eslint/eslint-plugin": "^4.15.2",
-    "aws-cdk": "~1.114.0",
+    "aws-cdk": "2.2.0",
+    "aws-cdk-lib": "~2.2.0",
+    "constructs": "^10.0.13",
     "case-sensitive-paths-webpack-plugin": "^2.4.0",
     "eslint": "^7.20.0",
     "eslint-config-airbnb-typescript": "^11.4.0",
@@ -59,36 +38,18 @@
     "jasmine": "^3.6.4",
     "jasmine-core": "^3.6.0",
     "jasmine-spec-reporter": "^6.0.0",
-    "jsonwebtoken": "^8.5.1",
-    "ksuid": "^2.0.0",
     "lerna": "^4.0.0",
-    "node-jose": "^2.0.0",
     "nyc": "^15.1.0",
+    "terser-webpack-plugin": "^5.3.0",
     "ts-loader": "^8.0.17",
     "ts-node": "^8.1.0",
     "typescript": "^4.2.2",
-    "uglifyjs-webpack-plugin": "^2.2.0",
     "webpack": "^5.24.1",
-    "webpack-cli": "^4.5.0"
+    "webpack-cli": "^4.5.0",
+    "yargs": "^17.2.0"
   },
-  "dependencies": {
-    "aws-sdk": "^2.783.0",
-    "axios": "^0.21.1",
-    "class-transformer": "^0.3.1",
-    "class-validator": "^0.12.2",
-    "crypto-secure-random-digit": "^1.0.9",
-    "inversify": "^5.0.1",
-    "querystring": "^0.2.1",
-    "reflect-metadata": "^0.1.13",
-    "serialize-error": "^7.0.1",
-    "source-map-support": "^0.5.16",
-    "uuid": "^8.3.1"
-  },
+  "dependencies": {},
   "resolutions": {
     "@types/jasmine": "^3.6.4"
-  },
-  "volta": {
-    "node": "15.11.0",
-    "yarn": "1.19.2"
   }
 }

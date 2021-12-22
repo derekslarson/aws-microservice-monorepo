@@ -1,0 +1,50 @@
+{
+  "name": "@yac/core",
+  "version": "0.1.0",
+  "scripts": {
+    "build:watch": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --config ../../config/webpack/webpack.config.ts --watch",
+    "build:local": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --bail --config ../../config/webpack/webpack.config.ts",
+    "build:dev": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --bail --config ../../config/webpack/webpack.config.ts",
+    "build:stage": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --bail --config ../../config/webpack/webpack.config.ts",
+    "build:prod": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --bail --config ../../config/webpack/webpack.config.ts",
+    "build:unit-tests": "yarn clean:unit-tests && tsc --project tsconfig.test.json",
+    "build:e2e-tests": "yarn clean:unit-tests && tsc --project tsconfig.e2e.test.json",
+    "clean": "rm -rf ./dist && rm -rf ./cdk.out",
+    "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
+    "clean:e2e-tests": "rm -rf ./compiled_e2e_tests",
+    "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",
+    "synth:dev": "cdk synth --context environment=dev",
+    "synth:stage": "cdk synth --context environment=stage",
+    "synth:prod": "cdk synth --context environment=prod",
+    "deploy:local": "yarn build:local && cdk deploy --context environment=local --context developer=$(whoami)",
+    "deploy:dev": "yarn build:dev && cdk deploy --context environment=dev",
+    "deploy:stage": "yarn build:stage && cdk deploy --context environment=stage",
+    "deploy:prod": "yarn build:prod && cdk deploy --context environment=prod",
+    "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)",
+    "nyc": "nyc node ../../config/jasmine/jasmine.runner.js",
+    "nyc:coverage-report": "nyc node ../../config/jasmine/jasmine.runner.js --reporter html --reporter text -t coverage --report-dir coverage/summary",
+    "test:e2e": "yarn clean:e2e-tests && yarn build:e2e-tests && ts-node ./e2e/runner.ts --environment=$(whoami)",
+    "test:unit": "yarn clean:unit-tests && yarn build:unit-tests && yarn nyc"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.85",
+    "@types/node": "10.17.27",
+    "@types/node-jose": "^1.1.8",
+    "@aws-cdk/aws-apigatewayv2-alpha": "^2.2.0-alpha.0",
+    "aws-cdk": "2.2.0",
+    "aws-cdk-lib": "~2.2.0",
+    "constructs": "^10.0.13",
+    "@types/aws4": "^1.5.2",
+    "@types/elasticsearch": "^5.0.37",
+    "@types/sharp": "^0.28.4"
+  },
+  "dependencies": {
+    "@yac/util": "0.1.0",
+    "aws-sdk": "^2.783.0",
+    "aws4": "^1.11.0",
+    "inversify": "^5.0.1",
+    "jdenticon": "^3.1.0",
+    "reflect-metadata": "^0.1.13",
+    "runtypes": "^6.3.1"
+  }
+}
