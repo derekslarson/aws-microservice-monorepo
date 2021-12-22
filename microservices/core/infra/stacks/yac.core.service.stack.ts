@@ -14,13 +14,13 @@ import {
   aws_secretsmanager as SecretsManager,
   aws_lambda as Lambda,
   aws_lambda_event_sources as LambdaEventSources,
+  aws_opensearchservice as OpenSearch,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
-import * as OpenSearch from "../constructs/aws-opensearch";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 import { YacUserServiceNestedStack } from "./yac.user.service.nestedStack";
 import { YacOrganizationServiceNestedStack } from "./yac.organization.service.nestedStack";
@@ -136,7 +136,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     // OpenSearch Domain
     const openSearchDomain = new OpenSearch.Domain(this, `OpenSearchDomain_${id}`, {
-      version: OpenSearch.Version.V1_0,
+      version: OpenSearch.EngineVersion.OPENSEARCH_1_0,
       domainName: id.toLowerCase(),
       capacity: {
         masterNodeInstanceType: openSearchInstanceTypeMap[environment],
@@ -425,6 +425,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       basePolicy,
       coreTableFullAccessPolicyStatement,
       imageS3BucketFullAccessPolicyStatement,
+      openSearchFullAccessPolicyStatement,
     });
 
     new YacOneOnOneServiceNestedStack(this, `YacOneOnOneServiceNestedStack_${id}`, {

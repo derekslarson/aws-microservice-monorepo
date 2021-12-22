@@ -631,7 +631,7 @@ export interface DeindexMessageForSearchInput {
 
 export type DeindexMessageForSearchOutput = void;
 
-type MessageSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getMessagesBySearchTerm" | "getMeetingsBySearchTerm">;
+type MessageSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getMessagesBySearchTerm">;
 
 interface ConvertMessageEntitiesToMessagesInput {
   messageEntities: MessageEntity[];

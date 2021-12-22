@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { IdServiceInterface } from "@yac/util/src/services/id.service";
@@ -186,7 +187,28 @@ export class MeetingService implements MeetingServiceInterface {
     try {
       this.loggerService.trace("getMeetingsByUserId called", { params }, this.constructor.name);
 
-      const { userId, sortByDueAt, exclusiveStartKey, limit } = params;
+      const { userId, searchTerm, sortByDueAt, exclusiveStartKey, limit } = params;
+
+      if (searchTerm) {
+        const { memberships } = await this.membershipRepository.getMembershipsByUserId({ userId, type: MembershipFetchType.Meeting });
+
+        const meetingIds = memberships.map((membership) => membership.entityId);
+
+        const { meetings: meetingEntities, lastEvaluatedKey } = await this.getMeetingsBySearchTerm({ meetingIds, searchTerm, exclusiveStartKey, limit });
+
+        const membershipMap: Record<string, MeetingMembership> = {};
+        memberships.forEach((membership) => membershipMap[membership.entityId] = membership);
+
+        const meetings = meetingEntities.map((meetingEntity) => ({
+          ...meetingEntity,
+          role: membershipMap[meetingEntity.id].role,
+          activeAt: membershipMap[meetingEntity.id].activeAt,
+          lastViewedAt: membershipMap[meetingEntity.id].userActiveAt,
+          unseenMessages: membershipMap[meetingEntity.id].unseenMessages,
+        }));
+
+        return { meetings, lastEvaluatedKey };
+      }
 
       const { memberships, lastEvaluatedKey } = await this.membershipRepository.getMembershipsByUserId({
         userId,
@@ -198,19 +220,15 @@ export class MeetingService implements MeetingServiceInterface {
 
       const meetingIds = memberships.map((membership) => membership.entityId);
 
-      const { meetings: meetingEntities } = await this.meetingRepository.getMeetings({ meetingIds });
+      const { meetings: meetingEntities } = await this.getMeetings({ meetingIds });
 
-      const meetings = meetingEntities.map((meetingEntity, i) => {
-        const { entity: meeting } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Meeting, entity: meetingEntity });
-
-        return {
-          ...meeting,
-          role: memberships[i].role,
-          activeAt: memberships[i].activeAt,
-          lastViewedAt: memberships[i].userActiveAt,
-          unseenMessages: memberships[i].unseenMessages,
-        };
-      });
+      const meetings = meetingEntities.map((meetingEntity, i) => ({
+        ...meetingEntity,
+        role: memberships[i].role,
+        activeAt: memberships[i].activeAt,
+        lastViewedAt: memberships[i].userActiveAt,
+        unseenMessages: memberships[i].unseenMessages,
+      }));
 
       return { meetings, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -224,7 +242,17 @@ export class MeetingService implements MeetingServiceInterface {
     try {
       this.loggerService.trace("getMeetingsByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, exclusiveStartKey, limit } = params;
+      const { teamId, searchTerm, exclusiveStartKey, limit } = params;
+
+      if (searchTerm) {
+        const { meetings: meetingEntities } = await this.meetingRepository.getMeetingsByTeamId({ teamId });
+
+        const meetingIds = meetingEntities.map((meetingEntity) => meetingEntity.id);
+
+        const { meetings, lastEvaluatedKey } = await this.getMeetingsBySearchTerm({ meetingIds, searchTerm, exclusiveStartKey, limit });
+
+        return { meetings, lastEvaluatedKey };
+      }
 
       const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingRepository.getMeetingsByTeamId({
         teamId,
@@ -250,13 +278,19 @@ export class MeetingService implements MeetingServiceInterface {
     try {
       this.loggerService.trace("getMeetingsByOrganizationId called", { params }, this.constructor.name);
 
-      const { organizationId, exclusiveStartKey, limit } = params;
+      const { organizationId, searchTerm, exclusiveStartKey, limit } = params;
 
-      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingRepository.getMeetingsByOrganizationId({
-        organizationId,
-        exclusiveStartKey,
-        limit,
-      });
+      if (searchTerm) {
+        const { meetings: meetingEntities } = await this.meetingRepository.getMeetingsByOrganizationId({ organizationId });
+
+        const meetingIds = meetingEntities.map((meetingEntity) => meetingEntity.id);
+
+        const { meetings, lastEvaluatedKey } = await this.getMeetingsBySearchTerm({ meetingIds, searchTerm, exclusiveStartKey, limit });
+
+        return { meetings, lastEvaluatedKey };
+      }
+
+      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingRepository.getMeetingsByOrganizationId({ organizationId, exclusiveStartKey, limit });
 
       const meetings = meetingEntities.map((meetingEntity) => {
         const { entity: meeting } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Meeting, entity: meetingEntity });
@@ -267,26 +301,6 @@ export class MeetingService implements MeetingServiceInterface {
       return { meetings, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingsByOrganizationId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getMeetingsBySearchTerm(params: GetMeetingsBySearchTermInput): Promise<GetMeetingsBySearchTermOutput> {
-    try {
-      this.loggerService.trace("getMeetingsBySearchTerm called", { params }, this.constructor.name);
-
-      const { searchTerm, meetingIds, limit, exclusiveStartKey } = params;
-
-      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingSearchRepository.getMeetingsBySearchTerm({ searchTerm, meetingIds, limit, exclusiveStartKey });
-
-      const searchMeetingIds = meetingEntities.map((meeting) => meeting.id);
-
-      const { meetings } = await this.getMeetings({ meetingIds: searchMeetingIds });
-
-      return { meetings, lastEvaluatedKey };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getMeetingsBySearchTerm", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -380,6 +394,26 @@ export class MeetingService implements MeetingServiceInterface {
       throw error;
     }
   }
+
+  private async getMeetingsBySearchTerm(params: GetMeetingsBySearchTermInput): Promise<GetMeetingsBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getMeetingsBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, meetingIds, limit, exclusiveStartKey } = params;
+
+      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingSearchRepository.getMeetingsBySearchTerm({ searchTerm, meetingIds, limit, exclusiveStartKey });
+
+      const searchMeetingIds = meetingEntities.map((meeting) => meeting.id);
+
+      const { meetings } = await this.getMeetings({ meetingIds: searchMeetingIds });
+
+      return { meetings, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMeetingsBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface MeetingServiceInterface {
@@ -390,7 +424,6 @@ export interface MeetingServiceInterface {
   getMeetingsByUserId(params: GetMeetingsByUserIdInput): Promise<GetMeetingsByUserIdOutput>;
   getMeetingsByTeamId(params: GetMeetingsByTeamIdInput): Promise<GetMeetingsByTeamIdOutput>;
   getMeetingsByOrganizationId(params: GetMeetingsByOrganizationIdInput): Promise<GetMeetingsByOrganizationIdOutput>;
-  getMeetingsBySearchTerm(params: GetMeetingsBySearchTermInput): Promise<GetMeetingsBySearchTermOutput>;
   getMeetingImageUploadUrl(params: GetMeetingImageUploadUrlInput): GetMeetingImageUploadUrlOutput;
   addUserToMeeting(params: AddUserToMeetingInput): Promise<AddUserToMeetingOutput>;
   removeUserFromMeeting(params: RemoveUserFromMeetingInput): Promise<RemoveUserFromMeetingOutput>;
@@ -477,6 +510,7 @@ export type RemoveUserFromMeetingOutput = void;
 
 export interface GetMeetingsByUserIdInput {
   userId: UserId;
+  searchTerm?: string;
   sortByDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
@@ -489,6 +523,7 @@ export interface GetMeetingsByUserIdOutput {
 
 export interface GetMeetingsByTeamIdInput {
   teamId: TeamId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -500,6 +535,7 @@ export interface GetMeetingsByTeamIdOutput {
 
 export interface GetMeetingsByOrganizationIdInput {
   organizationId: OrganizationId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -539,14 +575,14 @@ export interface DeindexMeetingForSearchInput {
 
 export type DeindexMeetingForSearchOutput = void;
 
-export interface GetMeetingsBySearchTermInput {
+interface GetMeetingsBySearchTermInput {
   searchTerm: string;
   meetingIds?: MeetingId[];
   limit?: number;
   exclusiveStartKey?: string;
 }
 
-export interface GetMeetingsBySearchTermOutput {
+interface GetMeetingsBySearchTermOutput {
   meetings: Meeting[];
   lastEvaluatedKey?: string;
 }

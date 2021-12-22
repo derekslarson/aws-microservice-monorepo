@@ -2,6 +2,7 @@ import {
   Duration,
   NestedStack,
   aws_lambda as Lambda,
+  aws_iam as IAM,
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
@@ -9,7 +10,7 @@ import { RouteProps } from "@yac/util/infra/constructs/http.api";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
 export class YacMeetingServiceNestedStack extends NestedStack {
-  constructor(scope: YacHttpServiceStack, id: string, props: YacNestedStackProps) {
+  constructor(scope: YacHttpServiceStack, id: string, props: YacMeetingServiceNestedStackProps) {
     super(scope, id, props);
 
     const {
@@ -17,6 +18,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
       basePolicy,
       coreTableFullAccessPolicyStatement,
       imageS3BucketFullAccessPolicyStatement,
+      openSearchFullAccessPolicyStatement,
     } = props;
 
     const createMeetingHandler = new Lambda.Function(this, `CreateMeeting_${id}`, {
@@ -81,7 +83,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
       environment: environmentVariables,
       memorySize: 2048,
       architecture: Lambda.Architecture.ARM_64,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
 
@@ -92,7 +94,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
       environment: environmentVariables,
       memorySize: 2048,
       architecture: Lambda.Architecture.ARM_64,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
 
@@ -103,7 +105,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
       environment: environmentVariables,
       memorySize: 2048,
       architecture: Lambda.Architecture.ARM_64,
-      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
+      initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
 
@@ -177,4 +179,8 @@ export class YacMeetingServiceNestedStack extends NestedStack {
 
     routes.forEach((route) => scope.httpApi.addRoute(route));
   }
+}
+
+export interface YacMeetingServiceNestedStackProps extends YacNestedStackProps {
+  openSearchFullAccessPolicyStatement: IAM.PolicyStatement;
 }

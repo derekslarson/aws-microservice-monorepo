@@ -226,7 +226,7 @@ export class MeetingController extends BaseController implements MeetingControll
       const {
         jwtId,
         pathParameters: { userId },
-        queryStringParameters: { exclusiveStartKey, limit, sortBy },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit, sortBy },
       } = this.validationService.validate({ dto: GetMeetingsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
@@ -235,6 +235,7 @@ export class MeetingController extends BaseController implements MeetingControll
 
       const { meetings, lastEvaluatedKey } = await this.conversationService.getMeetingsByUserId({
         userId,
+        searchTerm,
         sortByDueAt: sortBy === "dueAt",
         exclusiveStartKey,
         limit: limit ? parseInt(limit, 10) : undefined,
@@ -257,7 +258,7 @@ export class MeetingController extends BaseController implements MeetingControll
       const {
         jwtId,
         pathParameters: { teamId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMeetingsByTeamIdDto, request, getUserIdFromJwt: true });
 
       const { isTeamMember } = await this.teamService.isTeamMember({ teamId, userId: jwtId });
@@ -266,7 +267,7 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.conversationService.getMeetingsByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { meetings, lastEvaluatedKey } = await this.conversationService.getMeetingsByTeamId({ teamId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetMeetingsByTeamIdResponse = { meetings, lastEvaluatedKey };
 
@@ -285,7 +286,7 @@ export class MeetingController extends BaseController implements MeetingControll
       const {
         jwtId,
         pathParameters: { organizationId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMeetingsByOrganizationIdDto, request, getUserIdFromJwt: true });
 
       const { isOrganizationMember } = await this.organizationService.isOrganizationMember({ organizationId, userId: jwtId });
@@ -294,7 +295,12 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.conversationService.getMeetingsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { meetings, lastEvaluatedKey } = await this.conversationService.getMeetingsByOrganizationId({
+        organizationId,
+        searchTerm,
+        exclusiveStartKey,
+        limit: limit ? parseInt(limit, 10) : undefined,
+      });
 
       const response: GetMeetingsByOrganizationIdResponse = { meetings, lastEvaluatedKey };
 

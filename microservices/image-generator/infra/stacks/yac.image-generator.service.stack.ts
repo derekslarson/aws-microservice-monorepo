@@ -14,7 +14,7 @@ import { RouteProps } from "@yac/util/infra/constructs/http.api";
 
 export class YacImageGeneratorStack extends YacHttpServiceStack {
   constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
-    super(scope, id, props);
+    super(scope, id, { ...props, addAuthorizer: false });
 
     const environment = this.node.tryGetContext("environment") as string;
 

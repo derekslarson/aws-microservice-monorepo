@@ -6,6 +6,7 @@ export const GetMeetingsByUserIdDto = Record({
   pathParameters: Record({ userId: UserId }),
   queryStringParameters: Record({
     sortBy: Optional(Union(Literal("dueAt"), Literal("activeAt"))),
+    searchTerm: Optional(String),
     exclusiveStartKey: Optional(String),
     limit: Optional(Limit),
   }),
