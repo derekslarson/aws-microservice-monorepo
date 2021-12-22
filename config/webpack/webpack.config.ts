@@ -3,17 +3,18 @@ import path from "path";
 import fs from "fs";
 import CaseSensitivePathsPlugin from "case-sensitive-paths-webpack-plugin";
 import TerserPlugin from "terser-webpack-plugin";
-import { Configuration, EntryObject } from "webpack";
+import { Configuration, Entry } from "webpack";
 
 const handlerFileNames = fs.readdirSync("./src/handlers");
 
-const entryObject: EntryObject = {};
+const entryObject: Entry = {};
 handlerFileNames.forEach((fileName) => entryObject[fileName.split(".")[0]] = `./src/handlers/${fileName}`);
 
 const config: Configuration = {
   mode: "production",
   target: "node",
   resolve: { extensions: [ ".js", ".ts" ] },
+  // aws-sdk is present in the execution environment by default
   externals: [ /^aws-sdk/ ],
   entry: entryObject,
   output: {

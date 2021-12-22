@@ -1,17 +1,21 @@
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as IAM from "@aws-cdk/aws-iam";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import {
+  RemovalPolicy,
+  Duration,
+  aws_ssm as SSM,
+  aws_dynamodb as DynamoDB,
+  aws_iam as IAM,
+  aws_lambda as Lambda,
+} from "aws-cdk-lib";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
+import { Construct } from "constructs";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
 
 export class YacCalendarServiceStack extends YacHttpServiceStack {
-  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -32,7 +36,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY,
     });
 
     // Policies
@@ -59,7 +63,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const completeGoogleAccessFlowHandler = new Lambda.Function(this, `CompleteGoogleAccessFlowHandler_${id}`, {
@@ -69,7 +73,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getGoogleEventsHandler = new Lambda.Function(this, `GetGoogleEventsHandler_${id}`, {
@@ -79,7 +83,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getGoogleAccountsHandler = new Lambda.Function(this, `GetGoogleAccountsHandler_${id}`, {
@@ -89,7 +93,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const getGoogleSettingsHandler = new Lambda.Function(this, `GetGoogleSettingsHandler_${id}`, {
@@ -99,7 +103,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const updateGoogleSettingsHandler = new Lambda.Function(this, `UpdateGoogleSettingsHandler_${id}`, {
@@ -109,7 +113,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [

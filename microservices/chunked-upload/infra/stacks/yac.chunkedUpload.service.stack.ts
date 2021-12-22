@@ -1,22 +1,27 @@
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import * as EFS from "@aws-cdk/aws-efs";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as S3 from "@aws-cdk/aws-s3";
-import * as EC2 from "@aws-cdk/aws-ec2";
-import * as SecretsManager from "@aws-cdk/aws-secretsmanager";
-import * as IAM from "@aws-cdk/aws-iam";
+import {
+  Fn,
+  RemovalPolicy,
+  Duration,
+  CfnOutput,
+  aws_ssm as SSM,
+  aws_s3 as S3,
+  aws_iam as IAM,
+  aws_lambda as Lambda,
+  aws_secretsmanager as SecretsManager,
+  aws_ec2 as EC2,
+  aws_efs as EFS,
+} from "aws-cdk-lib";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
+import { Construct } from "constructs";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
-import { Duration } from "@aws-cdk/core";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
 
 export class YacChunkedUploadService extends YacHttpServiceStack {
-  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -33,10 +38,10 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
     const { httpApi } = this;
 
     // Secret imports from Util
-    const messageUploadTokenSecretArn = CDK.Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
+    const messageUploadTokenSecretArn = Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
 
     // S3 Bucket ARN Imports from Util
-    const messageS3BucketArn = CDK.Fn.importValue(ExportNames.RawMessageS3BucketArn);
+    const messageS3BucketArn = Fn.importValue(ExportNames.RawMessageS3BucketArn);
     const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket_${id}`, messageS3BucketArn);
     const mountedPath = "/mnt/messages";
 
@@ -83,7 +88,7 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
     });
     fileSystemSecurityGroup.addIngressRule(lambdaSecurityGroup, EC2.Port.tcp(2049), "for any member of LambdaSecurityGroup");
 
-    const fileSystem = new EFS.FileSystem(this, `MessageEFS_${id}`, { vpc, removalPolicy: CDK.RemovalPolicy.DESTROY, securityGroup: fileSystemSecurityGroup });
+    const fileSystem = new EFS.FileSystem(this, `MessageEFS_${id}`, { vpc, removalPolicy: RemovalPolicy.DESTROY, securityGroup: fileSystemSecurityGroup });
 
     // create a new access point from the filesystem
     const accessPoint = fileSystem.addAccessPoint(`AccessPoint_${id}`, {
@@ -147,27 +152,27 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
 
     routes.forEach((route) => httpApi.addRoute(route));
 
-    new CDK.CfnOutput(this, `ChunkedUploadsFSIdExport_${id}`, {
+    new CfnOutput(this, `ChunkedUploadsFSIdExport_${id}`, {
       exportName: ExportNames.ChunkedUploadsFSId,
       value: fileSystem.fileSystemId,
     });
 
-    new CDK.CfnOutput(this, `ChunkedUploadsFSAccessPointIdExport_${id}`, {
+    new CfnOutput(this, `ChunkedUploadsFSAccessPointIdExport_${id}`, {
       exportName: ExportNames.ChunkedUploadsFSAccessPointId,
       value: accessPoint.accessPointId,
     });
 
-    new CDK.CfnOutput(this, `ChunkedUploadsFSAccessPathExport_${id}`, {
+    new CfnOutput(this, `ChunkedUploadsFSAccessPathExport_${id}`, {
       exportName: ExportNames.ChunkedUploadsFSMountedPath,
       value: mountedPath,
     });
 
-    new CDK.CfnOutput(this, `ChunkedUploadsVPCIdExport_${id}`, {
+    new CfnOutput(this, `ChunkedUploadsVPCIdExport_${id}`, {
       exportName: ExportNames.ChunkedUploadsVPCId,
       value: vpc.vpcId,
     });
 
-    new CDK.CfnOutput(this, `ChunkedUploadsVPCAvailabilityZoneExport_${id}`, {
+    new CfnOutput(this, `ChunkedUploadsVPCAvailabilityZoneExport_${id}`, {
       exportName: ExportNames.ChunkedUploadsVPCAvailabilityZone,
       value: vpc.availabilityZones.join(","),
     });

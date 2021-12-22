@@ -1,28 +1,35 @@
+/* eslint-disable no-console */
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as SNS from "@aws-cdk/aws-sns";
-import * as SNSSubscriptions from "@aws-cdk/aws-sns-subscriptions";
-import * as SQS from "@aws-cdk/aws-sqs";
-import * as IAM from "@aws-cdk/aws-iam";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
-import * as Route53 from "@aws-cdk/aws-route53";
-import * as Route53Targets from "@aws-cdk/aws-route53-targets";
-import * as CustomResources from "@aws-cdk/custom-resources";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import {
+  Fn,
+  Duration,
+  RemovalPolicy,
+  CfnOutput,
+  custom_resources as CustomResources,
+  aws_dynamodb as DynamoDB,
+  aws_iam as IAM,
+  aws_lambda as Lambda,
+  aws_lambda_event_sources as LambdaEventSources,
+  aws_sns as SNS,
+  aws_sns_subscriptions as SnsSubscriptions,
+  aws_ssm as SSM,
+  aws_sqs as SQS,
+  aws_route53 as Route53,
+  aws_route53_targets as Route53Targets,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
+import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
-import { WebSocketApi } from "../constructs/aws-apigatewayv2/webSocketApi.construct";
-import { LambdaWebSocketIntegration } from "../constructs/aws-apigatewayv2-integrations/lambdaWebSocketIntegration.construct";
+import { WebSocketApi } from "@yac/util/infra/constructs/webSocket.api";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacNotificationServiceStack extends YacHttpServiceStack {
-  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -37,20 +44,22 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
     const ExportNames = generateExportNames(stackPrefix);
 
     // Imported SNS Topic ARNs from Util
-    const userAddedToTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
-    const userRemovedFromTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromTeamSnsTopicArn);
-    const userAddedToGroupSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToGroupSnsTopicArn);
-    const userRemovedFromGroupSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromGroupSnsTopicArn);
-    const userAddedToMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToMeetingSnsTopicArn);
-    const userRemovedFromMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromMeetingSnsTopicArn);
-    const userAddedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedAsFriendSnsTopicArn);
-    const userRemovedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedAsFriendSnsTopicArn);
-    const teamCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
-    const meetingCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
-    const groupCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
+    const userAddedToTeamSnsTopicArn = Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
+    const userRemovedFromTeamSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromTeamSnsTopicArn);
+    const userAddedToGroupSnsTopicArn = Fn.importValue(ExportNames.UserAddedToGroupSnsTopicArn);
+    const userRemovedFromGroupSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromGroupSnsTopicArn);
+    const userAddedToMeetingSnsTopicArn = Fn.importValue(ExportNames.UserAddedToMeetingSnsTopicArn);
+    const userRemovedFromMeetingSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromMeetingSnsTopicArn);
+    const userAddedAsFriendSnsTopicArn = Fn.importValue(ExportNames.UserAddedAsFriendSnsTopicArn);
+    const userRemovedAsFriendSnsTopicArn = Fn.importValue(ExportNames.UserRemovedAsFriendSnsTopicArn);
+    const teamCreatedSnsTopicArn = Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
+    const meetingCreatedSnsTopicArn = Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
+    const groupCreatedSnsTopicArn = Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
 
-    const messageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageCreatedSnsTopicArn);
-    const messageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageUpdatedSnsTopicArn);
+    const messageCreatedSnsTopicArn = Fn.importValue(ExportNames.MessageCreatedSnsTopicArn);
+    const messageUpdatedSnsTopicArn = Fn.importValue(ExportNames.MessageUpdatedSnsTopicArn);
+
+    const authorizerHandlerFunctionArn = Fn.importValue(ExportNames.AuthorizerHandlerFunctionArn);
 
     const pushNotificationFailedSnsTopic = new SNS.Topic(this, `PushNotificationFailedSnsTopic_${id}`, { topicName: `PushNotificationFailedSnsTopic_${id}` });
 
@@ -58,7 +67,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
     const gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/gcm-server-key`);
 
     // Imported User Pool Id from Auth
-    // const userPoolId = CDK.Fn.importValue(ExportNames.UserPoolId);
+    // const userPoolId = Fn.importValue(ExportNames.UserPoolId);
 
     // SNS Topics
     const userAddedToTeamSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn);
@@ -79,7 +88,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY,
     });
 
     listenerMappingTable.addGlobalSecondaryIndex({
@@ -180,18 +189,18 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
 
     // SQS Queues
     const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`);
-    userAddedToTeamSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userRemovedFromTeamSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userAddedToGroupSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userRemovedFromGroupSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userAddedToMeetingSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userRemovedFromMeetingSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userAddedAsFriendSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userRemovedAsFriendSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    teamCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    groupCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    messageCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    messageUpdatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedToTeamSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedFromTeamSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedToGroupSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedFromGroupSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedToMeetingSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedFromMeetingSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedAsFriendSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedAsFriendSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    teamCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    groupCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    messageCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    messageUpdatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // WebSocket Lambdas
     const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
@@ -201,7 +210,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const disconnectHandler = new Lambda.Function(this, `DisconnectHandler_${id}`, {
@@ -211,7 +220,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     // WebSocket API
@@ -223,9 +232,12 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2DomainProperties(webSocketDomainName.regionalDomainName, webSocketDomainName.regionalHostedZoneId)),
     });
 
+    const authorizerHandler = Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, authorizerHandlerFunctionArn);
+
     const webSocketApi = new WebSocketApi(this, `WebSocketApi_${id}`, {
-      connectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: connectHandler }) },
-      disconnectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: disconnectHandler }) },
+      connectRouteOptions: { integration: new ApiGatewayV2Integrations.WebSocketLambdaIntegration(`WebSocketConnectRouteIntegration_${id}`, connectHandler) },
+      disconnectRouteOptions: { integration: new ApiGatewayV2Integrations.WebSocketLambdaIntegration(`WebSocketConnectRouteIntegration_${id}`, disconnectHandler) },
+      authorizerHandler,
       defaultDomainMapping: {
         domainName: webSocketDomainName,
         mappingKey: "notification",
@@ -249,7 +261,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement, sendPushNotificationPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
       ],
@@ -263,7 +275,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, createPlatformEndpointPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [
@@ -278,7 +290,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
     routes.forEach((route) => this.httpApi.addRoute(route));
 
     // PushNotificationFailedSnsTopic ARN Export (to be imported by test stack)
-    new CDK.CfnOutput(this, `PushNotificationFailedSnsTopicArnExport_${id}`, {
+    new CfnOutput(this, `PushNotificationFailedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.PushNotificationFailedSnsTopicArn,
       value: pushNotificationFailedSnsTopic.topicArn,
     });

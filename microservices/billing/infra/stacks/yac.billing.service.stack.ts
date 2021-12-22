@@ -1,16 +1,21 @@
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as SNS from "@aws-cdk/aws-sns";
-import * as SNSSubscriptions from "@aws-cdk/aws-sns-subscriptions";
-import * as SQS from "@aws-cdk/aws-sqs";
-import * as IAM from "@aws-cdk/aws-iam";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import * as Events from "@aws-cdk/aws-events";
-import * as EventsTargets from "@aws-cdk/aws-events-targets";
+import {
+  Fn,
+  RemovalPolicy,
+  Duration,
+  aws_ssm as SSM,
+  aws_sns as SNS,
+  aws_sns_subscriptions as SnsSubscriptions,
+  aws_sqs as SQS,
+  aws_dynamodb as DynamoDB,
+  aws_iam as IAM,
+  aws_events as Events,
+  aws_events_targets as EventsTargets,
+  aws_lambda as Lambda,
+  aws_lambda_event_sources as LambdaEventSources,
+} from "aws-cdk-lib";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
+import { Construct } from "constructs";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
@@ -19,7 +24,7 @@ import { RouteProps } from "@yac/util/infra/constructs/http.api";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacBillingServiceStack extends YacHttpServiceStack {
-  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -34,10 +39,10 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
     const ExportNames = generateExportNames(stackPrefix);
 
     // SNS Topic ARN Imports from Util
-    const organizationCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.OrganizationCreatedSnsTopicArn);
-    const userAddedToOrganizationSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToOrganizationSnsTopicArn);
-    const userRemovedFromOrganizationSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromOrganizationSnsTopicArn);
-    const billingPlanUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.BillingPlanUpdatedSnsTopicArn);
+    const organizationCreatedSnsTopicArn = Fn.importValue(ExportNames.OrganizationCreatedSnsTopicArn);
+    const userAddedToOrganizationSnsTopicArn = Fn.importValue(ExportNames.UserAddedToOrganizationSnsTopicArn);
+    const userRemovedFromOrganizationSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromOrganizationSnsTopicArn);
+    const billingPlanUpdatedSnsTopicArn = Fn.importValue(ExportNames.BillingPlanUpdatedSnsTopicArn);
 
     // Manually Set SSM Parameters for Stripe
     const stripeApiKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-api-key`);
@@ -55,7 +60,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY,
       stream: DynamoDB.StreamViewType.NEW_AND_OLD_IMAGES,
     });
 
@@ -102,9 +107,9 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
 
     const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`, {});
 
-    organizationCreatedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userAddedToOrganizationSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userRemovedFromOrganizationSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    organizationCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedToOrganizationSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedFromOrganizationSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Dynamo Stream Handler
     new Lambda.Function(this, `BillingTableEventHandler_${id}`, {
@@ -114,7 +119,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement, billingPlanUpdatedSnsPublishPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.DynamoEventSource(billingTable, { startingPosition: Lambda.StartingPosition.LATEST }),
       ],
@@ -127,7 +132,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
       ],
@@ -140,10 +145,10 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
-    const rule = new Events.Rule(this, `SendPendingQuantityUpdatesToStripeChronRule_${id}`, { schedule: Events.Schedule.rate(CDK.Duration.minutes(1)) });
+    const rule = new Events.Rule(this, `SendPendingQuantityUpdatesToStripeChronRule_${id}`, { schedule: Events.Schedule.rate(Duration.minutes(1)) });
     rule.addTarget(new EventsTargets.LambdaFunction(sendPendingQuantityUpdatesToStripeHandler));
 
     const getBillingPortalUrlHandler = new Lambda.Function(this, `GetBillingPortalUrlHandler_${id}`, {
@@ -153,7 +158,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const stripeWebhookHandler = new Lambda.Function(this, `StripeWebhookHandler_${id}`, {
@@ -163,7 +168,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [

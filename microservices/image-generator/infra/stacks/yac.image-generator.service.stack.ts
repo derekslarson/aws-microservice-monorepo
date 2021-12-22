@@ -1,16 +1,19 @@
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
-import * as IAM from "@aws-cdk/aws-iam";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
+import {
+  Duration,
+  aws_dynamodb as DynamoDB,
+  aws_iam as IAM,
+  aws_lambda as Lambda,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
 
 export class YacImageGeneratorStack extends YacHttpServiceStack {
-  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -48,7 +51,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const mediaPushTaskHandler = new Lambda.Function(this, `MediaPush_${id}`, {
@@ -58,7 +61,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     const callbackHandler = new Lambda.Function(this, `Callback_${id}`, {
@@ -68,7 +71,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     // permissions for the handler
