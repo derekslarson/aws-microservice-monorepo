@@ -2,6 +2,7 @@
   "name": "@yac/transcription",
   "version": "0.1.0",
   "scripts": {
+    "build:watch": "yarn clean && webpack --config ../../config/webpack/webpack.config.ts --watch",
     "build:local": "yarn clean && webpack --bail --config ../../config/webpack/webpack.config.ts",
     "build:dev": "yarn clean && webpack --bail --config ../../config/webpack/webpack.config.ts",
     "build:stage": "yarn clean && webpack --bail --config ../../config/webpack/webpack.config.ts",

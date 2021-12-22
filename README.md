@@ -1,5 +1,4 @@
-#Yac ApiV4
-We went cloud all the way.
+#Yac Api V4
 ## Main Stack
 - aws-cdk
 - aws-sdk
