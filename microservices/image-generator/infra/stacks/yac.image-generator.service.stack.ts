@@ -50,6 +50,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       handler: "mediaRetrieve.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy ],
       timeout: Duration.seconds(15),
     });
@@ -60,6 +61,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       handler: "mediaPush.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy ],
       timeout: Duration.seconds(15),
     });
@@ -70,6 +72,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       handler: "callback.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy ],
       timeout: Duration.seconds(15),
     });

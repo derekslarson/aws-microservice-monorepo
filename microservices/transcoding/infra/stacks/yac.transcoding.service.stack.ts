@@ -1,16 +1,22 @@
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as IAM from "@aws-cdk/aws-iam";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as S3 from "@aws-cdk/aws-s3";
-import * as S3Notifications from "@aws-cdk/aws-s3-notifications";
+import {
+  Fn,
+  Duration,
+  Stack,
+  StackProps,
+  aws_iam as IAM,
+  aws_lambda as Lambda,
+  aws_s3 as S3,
+  aws_s3_notifications as S3Notifications,
+  aws_ssm as SSM,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 
-export class YacTranscodingServiceStack extends CDK.Stack {
-  constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
+export class YacTranscodingServiceStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -28,11 +34,11 @@ export class YacTranscodingServiceStack extends CDK.Stack {
     const ExportNames = generateExportNames(stackPrefix);
 
     // SNS Topic ARN Imports from Util
-    const messageTranscodedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
+    const messageTranscodedSnsTopicArn = Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
 
     // S3 Bucket ARN Imports from Util
-    const rawMessageS3BucketArn = CDK.Fn.importValue(ExportNames.RawMessageS3BucketArn);
-    const enhancedMessageS3BucketArn = CDK.Fn.importValue(ExportNames.EnhancedMessageS3BucketArn);
+    const rawMessageS3BucketArn = Fn.importValue(ExportNames.RawMessageS3BucketArn);
+    const enhancedMessageS3BucketArn = Fn.importValue(ExportNames.EnhancedMessageS3BucketArn);
 
     // S3 Buckets
     const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `RawMessageS3Bucket_${id}`, rawMessageS3BucketArn);
@@ -76,8 +82,9 @@ export class YacTranscodingServiceStack extends CDK.Stack {
       handler: "s3Event.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, rawMessageS3BucketFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, messageTranscodedSnsPublishPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
     rawMessageS3Bucket.addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));

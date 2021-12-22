@@ -1,21 +1,28 @@
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as IAM from "@aws-cdk/aws-iam";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as S3 from "@aws-cdk/aws-s3";
-import * as SNS from "@aws-cdk/aws-sns";
-import * as SNSSubscriptions from "@aws-cdk/aws-sns-subscriptions";
-import * as SQS from "@aws-cdk/aws-sqs";
-import * as EventBridge from "@aws-cdk/aws-events";
-import * as EventBridgeTargets from "@aws-cdk/aws-events-targets";
-import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
+import {
+  Fn,
+  Duration,
+  Stack,
+  StackProps,
+  RemovalPolicy,
+  aws_iam as IAM,
+  aws_lambda as Lambda,
+  aws_lambda_event_sources as LambdaEventSources,
+  aws_s3 as S3,
+  aws_sns as SNS,
+  aws_sns_subscriptions as SnsSubscriptions,
+  aws_sqs as SQS,
+  aws_ssm as SSM,
+  aws_events as Events,
+  aws_events_targets as EventsTargets,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 
-export class YacTranscriptionServiceStack extends CDK.Stack {
-  constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
+export class YacTranscriptionServiceStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -30,15 +37,15 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
     const ExportNames = generateExportNames(stackPrefix);
 
     // SNS Topic ARN Imports from Util
-    const messageTranscodedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
-    const messageTranscribedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn);
+    const messageTranscodedSnsTopicArn = Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
+    const messageTranscribedSnsTopicArn = Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn);
 
     // S3 Bucket ARN Imports from Util
-    const enhancedMessageS3BucketArn = CDK.Fn.importValue(ExportNames.EnhancedMessageS3BucketArn);
+    const enhancedMessageS3BucketArn = Fn.importValue(ExportNames.EnhancedMessageS3BucketArn);
 
     // S3 Buckets
     const enhancedMessageS3Bucket = S3.Bucket.fromBucketArn(this, `EnhancedMessageS3Bucket_${id}`, enhancedMessageS3BucketArn);
-    const transcriptionS3Bucket = new S3.Bucket(this, `TranscriptionS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: CDK.RemovalPolicy.DESTROY }) });
+    const transcriptionS3Bucket = new S3.Bucket(this, `TranscriptionS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: RemovalPolicy.DESTROY }) });
 
     // SNS Topics
     const messageTranscodedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn);
@@ -83,9 +90,9 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
 
     // SQS Queues
     const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`);
-    messageTranscodedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    transcriptionJobCompletedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    transcriptionJobFailedSnsTopic.addSubscription(new SNSSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    messageTranscodedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    transcriptionJobCompletedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    transcriptionJobFailedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Lambdas
     new Lambda.Function(this, `SqsEventHandler_${id}`, {
@@ -94,15 +101,16 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
       handler: "sqsEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, enhancedMessageS3BucketFullAccessPolicyStatement, transcriptionS3BucketFullAccessPolicyStatement, startTranscriptionJobPolicyStatement, messageTranscribedSnsPublishPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
       ],
     });
 
-    new EventBridge.Rule(this, `TranscriptionJobCompletedEvent_${id}`, {
-      targets: [ new EventBridgeTargets.SnsTopic(transcriptionJobCompletedSnsTopic) ],
+    new Events.Rule(this, `TranscriptionJobCompletedEvent_${id}`, {
+      targets: [ new EventsTargets.SnsTopic(transcriptionJobCompletedSnsTopic) ],
       eventPattern: {
         source: [ "aws.transcribe" ],
         detailType: [ "Transcribe Job State Change" ],
@@ -113,8 +121,8 @@ export class YacTranscriptionServiceStack extends CDK.Stack {
       },
     });
 
-    new EventBridge.Rule(this, `TranscriptionJobFailedEvent_${id}`, {
-      targets: [ new EventBridgeTargets.SnsTopic(transcriptionJobCompletedSnsTopic) ],
+    new Events.Rule(this, `TranscriptionJobFailedEvent_${id}`, {
+      targets: [ new EventsTargets.SnsTopic(transcriptionJobCompletedSnsTopic) ],
       eventPattern: {
         source: [ "aws.transcribe" ],
         detailType: [ "Transcribe Job State Change" ],

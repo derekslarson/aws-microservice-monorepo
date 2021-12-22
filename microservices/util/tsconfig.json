@@ -1,17 +1,15 @@
 {
   "include": [
-    "index.ts"
+    "src"
   ],
   "exclude": [
     "dist",
-    "lib"
+    "node_modules",
   ],
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "rootDir": "./",
-    "skipLibCheck": true,
-    "declaration": true,
-    "outDir": "./lib",
-    "declarationDir": "./lib"
+    "outDir": "./dist",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
   }
 }

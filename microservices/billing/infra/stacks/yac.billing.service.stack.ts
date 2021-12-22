@@ -118,6 +118,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       handler: "billingTableEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement, billingPlanUpdatedSnsPublishPolicyStatement ],
       timeout: Duration.seconds(15),
       events: [
@@ -131,6 +132,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       handler: "sqsEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
       events: [
@@ -144,6 +146,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       handler: "sendPendingQuantityUpdatesToStripe.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -157,6 +160,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       handler: "getBillingPortalUrl.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -167,6 +171,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       handler: "stripeWebhook.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });

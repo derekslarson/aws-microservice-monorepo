@@ -209,6 +209,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       handler: "connect.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -219,6 +220,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       handler: "disconnect.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -260,6 +262,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       handler: "sqsEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement, sendPushNotificationPolicyStatement ],
       timeout: Duration.seconds(15),
       events: [
@@ -274,6 +277,7 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       handler: "registerDevice.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, createPlatformEndpointPolicyStatement ],
       timeout: Duration.seconds(15),
     });

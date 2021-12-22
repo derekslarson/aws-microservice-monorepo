@@ -62,6 +62,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       handler: "initiateGoogleAccessFlow.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -72,6 +73,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       handler: "completeGoogleAccessFlow.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -82,6 +84,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       handler: "getGoogleEvents.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -92,6 +95,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       handler: "getGoogleAccounts.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -102,6 +106,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       handler: "getGoogleSettings.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
@@ -112,6 +117,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       handler: "updateGoogleSettings.handler",
       environment: environmentVariables,
       memorySize: 2048,
+      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
     });
