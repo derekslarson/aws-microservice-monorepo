@@ -112,7 +112,7 @@ export class UserController extends BaseController implements UserControllerInte
       const {
         jwtId,
         pathParameters: { organizationId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetUsersByOrganizationIdDto, request, getUserIdFromJwt: true });
 
       const { isOrganizationMember } = await this.organizationService.isOrganizationMember({ organizationId, userId: jwtId });
@@ -121,7 +121,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: organizationId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByOrganizationIdResponse = { users, lastEvaluatedKey };
 
@@ -140,7 +140,7 @@ export class UserController extends BaseController implements UserControllerInte
       const {
         jwtId,
         pathParameters: { teamId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetUsersByTeamIdDto, request, getUserIdFromJwt: true });
 
       const { isTeamMember } = await this.teamService.isTeamMember({ teamId, userId: jwtId });
@@ -149,7 +149,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: teamId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByTeamIdResponse = { users, lastEvaluatedKey };
 
@@ -168,7 +168,7 @@ export class UserController extends BaseController implements UserControllerInte
       const {
         jwtId,
         pathParameters: { groupId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetUsersByGroupIdDto, request, getUserIdFromJwt: true });
 
       const { isGroupMember } = await this.groupService.isGroupMember({ groupId, userId: jwtId });
@@ -177,7 +177,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: groupId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: groupId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByGroupIdResponse = { users, lastEvaluatedKey };
 
@@ -196,7 +196,7 @@ export class UserController extends BaseController implements UserControllerInte
       const {
         jwtId,
         pathParameters: { meetingId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetUsersByMeetingIdDto, request, getUserIdFromJwt: true });
 
       const { isMeetingMember } = await this.meetingService.isMeetingMember({ meetingId, userId: jwtId });
@@ -205,7 +205,7 @@ export class UserController extends BaseController implements UserControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: meetingId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { users, lastEvaluatedKey } = await this.userService.getUsersByEntityId({ entityId: meetingId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetUsersByMeetingIdResponse = { users, lastEvaluatedKey };
 

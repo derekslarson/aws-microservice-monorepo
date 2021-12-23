@@ -225,14 +225,14 @@ export class GroupController extends BaseController implements GroupControllerIn
       const {
         jwtId,
         pathParameters: { userId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetGroupsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { groups, lastEvaluatedKey } = await this.conversationService.getGroupsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { groups, lastEvaluatedKey } = await this.conversationService.getGroupsByUserId({ searchTerm, userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetGroupsByUserIdResponse = { groups, lastEvaluatedKey };
 
@@ -251,7 +251,7 @@ export class GroupController extends BaseController implements GroupControllerIn
       const {
         jwtId,
         pathParameters: { teamId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetGroupsByTeamIdDto, request, getUserIdFromJwt: true });
 
       const { isTeamMember } = await this.teamService.isTeamMember({ teamId, userId: jwtId });
@@ -260,7 +260,7 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      const { groups, lastEvaluatedKey } = await this.conversationService.getGroupsByTeamId({ teamId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { groups, lastEvaluatedKey } = await this.conversationService.getGroupsByTeamId({ teamId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetGroupsByTeamIdResponse = { groups, lastEvaluatedKey };
 
@@ -279,7 +279,7 @@ export class GroupController extends BaseController implements GroupControllerIn
       const {
         jwtId,
         pathParameters: { organizationId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetGroupsByOrganizationIdDto, request, getUserIdFromJwt: true });
 
       const { isOrganizationMember } = await this.organizationService.isOrganizationMember({ organizationId, userId: jwtId });
@@ -288,7 +288,7 @@ export class GroupController extends BaseController implements GroupControllerIn
         throw new ForbiddenError("Forbidden");
       }
 
-      const { groups, lastEvaluatedKey } = await this.conversationService.getGroupsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { groups, lastEvaluatedKey } = await this.conversationService.getGroupsByOrganizationId({ organizationId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetGroupsByOrganizationIdResponse = { groups, lastEvaluatedKey };
 

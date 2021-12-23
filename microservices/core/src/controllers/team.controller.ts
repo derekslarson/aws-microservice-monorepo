@@ -210,14 +210,14 @@ export class TeamController extends BaseController implements TeamControllerInte
       const {
         jwtId,
         pathParameters: { userId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetTeamsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamService.getTeamsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { teams, lastEvaluatedKey } = await this.teamService.getTeamsByUserId({ userId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetTeamsByUserIdResponse = { teams, lastEvaluatedKey };
 
@@ -236,7 +236,7 @@ export class TeamController extends BaseController implements TeamControllerInte
       const {
         jwtId,
         pathParameters: { organizationId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetTeamsByOrganizationIdDto, request, getUserIdFromJwt: true });
 
       const { isOrganizationMember } = await this.organizationService.isOrganizationMember({ organizationId, userId: jwtId });
@@ -245,7 +245,7 @@ export class TeamController extends BaseController implements TeamControllerInte
         throw new ForbiddenError("Forbidden");
       }
 
-      const { teams, lastEvaluatedKey } = await this.teamService.getTeamsByOrganizationId({ organizationId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { teams, lastEvaluatedKey } = await this.teamService.getTeamsByOrganizationId({ organizationId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetTeamsByOrganizationIdResponse = { teams, lastEvaluatedKey };
 

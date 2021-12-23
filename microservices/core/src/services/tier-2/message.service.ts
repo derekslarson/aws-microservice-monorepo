@@ -285,11 +285,17 @@ export class MessageService implements MessageServiceInterface {
 
   public async getMessagesByConversationId<T extends ConversationId, U extends UserId>(params: GetMessagesByConversationIdInput<T, U>): Promise<GetMessagesByConversationIdOutput<T>> {
     try {
-      this.loggerService.trace("getMessagesByEntityId called", { params }, this.constructor.name);
+      this.loggerService.trace("getMessagesByConversationId called", { params }, this.constructor.name);
 
-      const { conversationId, requestingUserId, newOnly, exclusiveStartKey, limit } = params;
+      const { conversationId, requestingUserId, searchTerm, newOnly, exclusiveStartKey, limit } = params;
 
       let userActiveAt: string | undefined;
+
+      if (searchTerm) {
+        const { messages, lastEvaluatedKey } = await this.getMessagesBySearchTerm({ conversationId, searchTerm, exclusiveStartKey, limit });
+
+        return { messages: messages as Message<T>[], lastEvaluatedKey };
+      }
 
       if (requestingUserId) {
         const { membership } = await this.membershipRepository.getMembership({ userId: requestingUserId, entityId: conversationId });
@@ -308,7 +314,23 @@ export class MessageService implements MessageServiceInterface {
 
       return { messages: messagesWithNew as Message<T>[], lastEvaluatedKey };
     } catch (error: unknown) {
-      this.loggerService.error("Error in getMessagesByEntityId", { error, params }, this.constructor.name);
+      this.loggerService.error("Error in getMessagesByConversationId", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getMessagesByUserIdAndSearchTerm(params: GetMessagesByUserIdAndSearchTermInput): Promise<GetMessagesByUserIdAndSearchTermOutput> {
+    try {
+      this.loggerService.trace("getMessagesByUserIdAndSearchTerm called", { params }, this.constructor.name);
+
+      const { userId, searchTerm, exclusiveStartKey, limit } = params;
+
+      const { messages, lastEvaluatedKey } = await this.getMessagesBySearchTerm({ userId, searchTerm, exclusiveStartKey, limit });
+
+      return { messages, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getMessagesByUserIdAndSearchTerm", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -326,7 +348,7 @@ export class MessageService implements MessageServiceInterface {
         conversationIds.push(params.conversationId);
       } else {
         const { memberships } = await this.membershipRepository.getMembershipsByUserId({ userId: params.userId });
-        memberships.map((membership) => [ MembershipType.Group, MembershipType.Meeting, MembershipType.OneOnOne ].includes(membership.type) && conversationIds?.push(membership.entityId as ConversationId));
+        memberships.map((membership) => [ MembershipType.Group, MembershipType.Meeting, MembershipType.OneOnOne ].includes(membership.type) && conversationIds.push(membership.entityId as ConversationId));
       }
 
       const { messages: messageEntities, lastEvaluatedKey } = await this.messageSearchRepository.getMessagesBySearchTerm({ searchTerm, conversationIds, limit, exclusiveStartKey });
@@ -472,7 +494,7 @@ export interface MessageServiceInterface {
   getMessage(params: GetMessageInput): Promise<GetMessageOutput>;
   getMessages(params: GetMessagesInput): Promise<GetMessagesOutput>;
   getMessagesByConversationId<T extends ConversationId, U extends UserId>(params: GetMessagesByConversationIdInput<T, U>): Promise<GetMessagesByConversationIdOutput<T>>
-  getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput>;
+  getMessagesByUserIdAndSearchTerm(params: GetMessagesByUserIdAndSearchTermInput): Promise<GetMessagesByUserIdAndSearchTermOutput>;
   indexMessageForSearch(params: IndexMessageForSearchInput): Promise<IndexMessageForSearchOutput>;
   deindexMessageForSearch(params: DeindexMessageForSearchInput): Promise<DeindexMessageForSearchOutput>;
 }
@@ -604,20 +626,25 @@ interface BaseGetMessagesBySearchTermInput {
   exclusiveStartKey?: string;
 }
 
-interface GetMessagesBySearchTermAndUserIdInput extends BaseGetMessagesBySearchTermInput {
+export interface GetMessagesByUserIdAndSearchTermInput extends BaseGetMessagesBySearchTermInput {
   userId: UserId;
 }
 
-interface GetMessagesBySearchTermAndConversationIdInput extends BaseGetMessagesBySearchTermInput {
-  conversationId: ConversationId;
-}
-
-export type GetMessagesBySearchTermInput = GetMessagesBySearchTermAndUserIdInput | GetMessagesBySearchTermAndConversationIdInput;
-
-export interface GetMessagesBySearchTermOutput {
+export interface GetMessagesByUserIdAndSearchTermOutput {
   messages: Message[];
   lastEvaluatedKey?: string;
 }
+
+interface GetMessagesBySearchTermOutput {
+  messages: Message[];
+  lastEvaluatedKey?: string;
+}
+
+interface GetMessagesByConversationIdAndSearchTermInput extends BaseGetMessagesBySearchTermInput {
+  conversationId: ConversationId;
+}
+
+type GetMessagesBySearchTermInput = GetMessagesByUserIdAndSearchTermInput | GetMessagesByConversationIdAndSearchTermInput;
 
 export interface IndexMessageForSearchInput {
   message: RawMessageEntity;

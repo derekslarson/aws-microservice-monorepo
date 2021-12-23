@@ -11,6 +11,7 @@ import { OneOnOneMembership as OneOnOneMembershipEntity, MembershipRepositoryInt
 import { TYPES } from "../../inversion-of-control/types";
 import { MembershipFetchType } from "../../enums/membershipFetchType.enum";
 import { MembershipType } from "../../enums/membershipType.enum";
+import { SearchRepositoryInterface } from "../../repositories/openSearch.repository";
 // import { SearchRepositoryInterface } from "../../repositories/openSearch.repository";
 
 @injectable()
@@ -18,7 +19,7 @@ export class OneOnOneService implements OneOnOneServiceInterface {
   constructor(
     @inject(TYPES.LoggerServiceInterface) private loggerService: LoggerServiceInterface,
     @inject(TYPES.OneOnOneRepositoryInterface) private oneOnOneRepository: OneOnOneRepositoryInterface,
-    // @inject(TYPES.SearchRepositoryInterface) private oneOnOneSearchRepository: OneOnOneSearchRepositoryInterface,
+    @inject(TYPES.SearchRepositoryInterface) private userSearchRepository: UserSearchRepositoryInterface,
     @inject(TYPES.MembershipRepositoryInterface) private membershipRepository: MembershipRepositoryInterface,
   ) {}
 
@@ -139,7 +140,28 @@ export class OneOnOneService implements OneOnOneServiceInterface {
     try {
       this.loggerService.trace("getOneOnOnesByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey, limit } = params;
+      const { userId, searchTerm, exclusiveStartKey, limit } = params;
+
+      if (searchTerm) {
+        const { memberships } = await this.membershipRepository.getMembershipsByUserId({ userId, type: MembershipFetchType.OneOnOne });
+
+        const oneOnOneIds = memberships.map((membership) => membership.entityId);
+
+        const { oneOnOnes: oneOnOneEntities, lastEvaluatedKey } = await this.getOneOnOnesBySearchTerm({ requestingUserId: userId, oneOnOneIds, searchTerm, exclusiveStartKey, limit });
+
+        const membershipMap: Record<string, OneOnOneMembership> = {};
+        memberships.forEach((membership) => membershipMap[membership.entityId] = membership);
+
+        const oneOnOnes = oneOnOneEntities.map((oneOnOneEntity) => ({
+          ...oneOnOneEntity,
+          role: membershipMap[oneOnOneEntity.id].role,
+          activeAt: membershipMap[oneOnOneEntity.id].activeAt,
+          lastViewedAt: membershipMap[oneOnOneEntity.id].userActiveAt,
+          unseenMessages: membershipMap[oneOnOneEntity.id].unseenMessages,
+        }));
+
+        return { oneOnOnes, lastEvaluatedKey };
+      }
 
       const { memberships, lastEvaluatedKey } = await this.membershipRepository.getMembershipsByUserId({
         userId,
@@ -150,7 +172,7 @@ export class OneOnOneService implements OneOnOneServiceInterface {
 
       const oneOnOneIds = memberships.map((membership) => membership.entityId);
 
-      const { oneOnOnes: oneOnOneEntities } = await this.oneOnOneRepository.getOneOnOnes({ oneOnOneIds });
+      const { oneOnOnes: oneOnOneEntities } = await this.getOneOnOnes({ oneOnOneIds });
 
       const oneOnOnes = oneOnOneEntities.map((oneOnOne, i) => ({
         ...oneOnOne,
@@ -168,80 +190,67 @@ export class OneOnOneService implements OneOnOneServiceInterface {
     }
   }
 
-  public async getOneOnOnesByTeamId(params: GetOneOnOnesByTeamIdInput): Promise<GetOneOnOnesByTeamIdOutput> {
-    try {
-      this.loggerService.trace("getOneOnOnesByTeamId called", { params }, this.constructor.name);
-
-      const { teamId, exclusiveStartKey, limit } = params;
-
-      const { oneOnOnes, lastEvaluatedKey } = await this.oneOnOneRepository.getOneOnOnesByTeamId({
-        teamId,
-        exclusiveStartKey,
-        limit,
-      });
-
-      return { oneOnOnes, lastEvaluatedKey };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getOneOnOnesByTeamId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getOneOnOnesByOrganizationId(params: GetOneOnOnesByOrganizationIdInput): Promise<GetOneOnOnesByOrganizationIdOutput> {
-    try {
-      this.loggerService.trace("getOneOnOnesByOrganizationId called", { params }, this.constructor.name);
-
-      const { organizationId, exclusiveStartKey, limit } = params;
-
-      const { oneOnOnes, lastEvaluatedKey } = await this.oneOnOneRepository.getOneOnOnesByOrganizationId({
-        organizationId,
-        exclusiveStartKey,
-        limit,
-      });
-
-      return { oneOnOnes, lastEvaluatedKey };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getOneOnOnesByOrganizationId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  // private async getOneOnOnesBySearchTerm(params: GetOneOnOnesBySearchTermInput): Promise<GetOneOnOnesBySearchTermOutput> {
+  // public async getOneOnOnesByTeamId(params: GetOneOnOnesByTeamIdInput): Promise<GetOneOnOnesByTeamIdOutput> {
   //   try {
-  //     this.loggerService.trace("getOneOnOnesBySearchTerm called", { params }, this.constructor.name);
+  //     this.loggerService.trace("getOneOnOnesByTeamId called", { params }, this.constructor.name);
 
-  //     const { requestingUserId, searchTerm, oneOnOneIds: oneOnOneIdsParam, limit, exclusiveStartKey } = params;
+  //     const { teamId, exclusiveStartKey, limit } = params;
 
-  //     let oneOnOneIds: OneOnOneId[];
-
-  //     if (oneOnOneIdsParam) {
-  //       oneOnOneIds = oneOnOneIdsParam;
-  //     } else {
-  //       const { memberships } = await this.membershipRepository.getMembershipsByUserId({
-  //         userId: requestingUserId,
-  //         type: MembershipFetchType.OneOnOne,
-  //       });
-
-  //       oneOnOneIds = memberships.map((membership) => membership.entityId);
-  //     }
-
-  //     const userIds = oneOnOneIds.map((oneOnOneId) => oneOnOneId.split(/_(?=user_)/).find((id) => id !== requestingUserId) as UserId);
-
-  //     const { users: userEntities, lastEvaluatedKey } = await this.oneOnOneSearchRepository.getUsersBySearchTerm({ searchTerm, userIds, limit, exclusiveStartKey });
-
-  //     const searchOneOnOneIds = userEntities.map((userEntity) => [ userEntity.id, requestingUserId ].sort().join("_") as OneOnOneId);
-
-  //     const { oneOnOnes } = await this.getOneOnOnes({ oneOnOneIds: searchOneOnOneIds });
+  //     const { oneOnOnes, lastEvaluatedKey } = await this.oneOnOneRepository.getOneOnOnesByTeamId({
+  //       teamId,
+  //       exclusiveStartKey,
+  //       limit,
+  //     });
 
   //     return { oneOnOnes, lastEvaluatedKey };
   //   } catch (error: unknown) {
-  //     this.loggerService.error("Error in getOneOnOnesBySearchTerm", { error, params }, this.constructor.name);
+  //     this.loggerService.error("Error in getOneOnOnesByTeamId", { error, params }, this.constructor.name);
 
   //     throw error;
   //   }
   // }
+
+  // public async getOneOnOnesByOrganizationId(params: GetOneOnOnesByOrganizationIdInput): Promise<GetOneOnOnesByOrganizationIdOutput> {
+  //   try {
+  //     this.loggerService.trace("getOneOnOnesByOrganizationId called", { params }, this.constructor.name);
+
+  //     const { organizationId, exclusiveStartKey, limit } = params;
+
+  //     const { oneOnOnes, lastEvaluatedKey } = await this.oneOnOneRepository.getOneOnOnesByOrganizationId({
+  //       organizationId,
+  //       exclusiveStartKey,
+  //       limit,
+  //     });
+
+  //     return { oneOnOnes, lastEvaluatedKey };
+  //   } catch (error: unknown) {
+  //     this.loggerService.error("Error in getOneOnOnesByOrganizationId", { error, params }, this.constructor.name);
+
+  //     throw error;
+  //   }
+  // }
+
+  private async getOneOnOnesBySearchTerm(params: GetOneOnOnesBySearchTermInput): Promise<GetOneOnOnesBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getOneOnOnesBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, requestingUserId, oneOnOneIds = [], limit, exclusiveStartKey } = params;
+
+      const otherUserIds = oneOnOneIds.map((oneOnOneId) => oneOnOneId.split(/_(?=user_)/).find((id) => id !== requestingUserId) as UserId);
+
+      const { users, lastEvaluatedKey } = await this.userSearchRepository.getUsersBySearchTerm({ searchTerm, userIds: otherUserIds, limit, exclusiveStartKey });
+
+      const searchOneOnOneIds = users.map((user) => [ requestingUserId, user.id ].sort().join("_") as OneOnOneId);
+
+      const { oneOnOnes } = await this.getOneOnOnes({ oneOnOneIds: searchOneOnOneIds });
+
+      return { oneOnOnes, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getOneOnOnesBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface OneOnOneServiceInterface {
@@ -250,8 +259,8 @@ export interface OneOnOneServiceInterface {
   getOneOnOne(params: GetOneOnOneInput): Promise<GetOneOnOneOutput>;
   getOneOnOnes(params: GetOneOnOnesInput): Promise<GetOneOnOnesOutput>;
   getOneOnOnesByUserId(params: GetOneOnOnesByUserIdInput): Promise<GetOneOnOnesByUserIdOutput>;
-  getOneOnOnesByTeamId(params: GetOneOnOnesByTeamIdInput): Promise<GetOneOnOnesByTeamIdOutput>;
-  getOneOnOnesByOrganizationId(params: GetOneOnOnesByOrganizationIdInput): Promise<GetOneOnOnesByOrganizationIdOutput>;
+  // getOneOnOnesByTeamId(params: GetOneOnOnesByTeamIdInput): Promise<GetOneOnOnesByTeamIdOutput>;
+  // getOneOnOnesByOrganizationId(params: GetOneOnOnesByOrganizationIdInput): Promise<GetOneOnOnesByOrganizationIdOutput>;
 }
 
 export type OneOnOne = OneOnOneEntity;
@@ -300,6 +309,7 @@ export type OneOnOneMembership = OneOnOneMembershipEntity;
 
 export interface GetOneOnOnesByUserIdInput {
   userId: UserId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -331,17 +341,17 @@ export interface GetOneOnOnesByOrganizationIdOutput {
   lastEvaluatedKey?: string;
 }
 
-// interface GetOneOnOnesBySearchTermInput {
-//   requestingUserId: UserId;
-//   searchTerm: string;
-//   oneOnOneIds?: OneOnOneId[];
-//   limit?: number;
-//   exclusiveStartKey?: string;
-// }
+interface GetOneOnOnesBySearchTermInput {
+  requestingUserId: UserId;
+  searchTerm: string;
+  oneOnOneIds?: OneOnOneId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
 
-// interface GetOneOnOnesBySearchTermOutput {
-//   oneOnOnes: OneOnOne[];
-//   lastEvaluatedKey?: string;
-// }
+interface GetOneOnOnesBySearchTermOutput {
+  oneOnOnes: OneOnOne[];
+  lastEvaluatedKey?: string;
+}
 
-// type OneOnOneSearchRepositoryInterface = Pick<SearchRepositoryInterface, "getUsersBySearchTerm">;
+type UserSearchRepositoryInterface = Pick<SearchRepositoryInterface, "getUsersBySearchTerm">;

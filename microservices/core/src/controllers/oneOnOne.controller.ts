@@ -86,14 +86,14 @@ export class OneOnOneController extends BaseController implements OneOnOneContro
       const {
         jwtId,
         pathParameters: { userId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetOneOnOnesByuserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { oneOnOnes, lastEvaluatedKey } = await this.conversationService.getOneOnOnesByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { oneOnOnes, lastEvaluatedKey } = await this.conversationService.getOneOnOnesByUserId({ userId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       return this.generateSuccessResponse({ oneOnOnes, lastEvaluatedKey });
     } catch (error: unknown) {

@@ -258,7 +258,7 @@ export class MeetingController extends BaseController implements MeetingControll
       const {
         jwtId,
         pathParameters: { teamId },
-        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
+        queryStringParameters: { sortBy, searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMeetingsByTeamIdDto, request, getUserIdFromJwt: true });
 
       const { isTeamMember } = await this.teamService.isTeamMember({ teamId, userId: jwtId });
@@ -267,7 +267,13 @@ export class MeetingController extends BaseController implements MeetingControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { meetings, lastEvaluatedKey } = await this.conversationService.getMeetingsByTeamId({ teamId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { meetings, lastEvaluatedKey } = await this.conversationService.getMeetingsByTeamId({
+        teamId,
+        searchTerm,
+        sortByDueAt: sortBy === "dueAt",
+        exclusiveStartKey,
+        limit: limit ? parseInt(limit, 10) : undefined,
+      });
 
       const response: GetMeetingsByTeamIdResponse = { meetings, lastEvaluatedKey };
 
@@ -286,7 +292,7 @@ export class MeetingController extends BaseController implements MeetingControll
       const {
         jwtId,
         pathParameters: { organizationId },
-        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
+        queryStringParameters: { sortBy, searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetMeetingsByOrganizationIdDto, request, getUserIdFromJwt: true });
 
       const { isOrganizationMember } = await this.organizationService.isOrganizationMember({ organizationId, userId: jwtId });
@@ -298,6 +304,7 @@ export class MeetingController extends BaseController implements MeetingControll
       const { meetings, lastEvaluatedKey } = await this.conversationService.getMeetingsByOrganizationId({
         organizationId,
         searchTerm,
+        sortByDueAt: sortBy === "dueAt",
         exclusiveStartKey,
         limit: limit ? parseInt(limit, 10) : undefined,
       });

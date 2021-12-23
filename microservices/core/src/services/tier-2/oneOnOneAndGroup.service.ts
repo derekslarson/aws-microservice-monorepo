@@ -7,11 +7,12 @@ import { OneOnOneId } from "@yac/util/src/types/oneOnOneId.type";
 import { TYPES } from "../../inversion-of-control/types";
 import { MembershipFetchType } from "../../enums/membershipFetchType.enum";
 import { MembershipType } from "../../enums/membershipType.enum";
-import { MembershipRepositoryInterface } from "../../repositories/membership.dynamo.repository";
+import { GroupMembership, MembershipRepositoryInterface, OneOnOneMembership } from "../../repositories/membership.dynamo.repository";
 import { User as UserEntity } from "../tier-1/user.service";
 import { Group as GroupEntity, GroupByUserId, GroupServiceInterface } from "../tier-1/group.service";
 import { OneOnOne as OneOnOneEntity, OneOnOneByUserId, OneOnOneServiceInterface } from "../tier-1/oneOnOne.service";
-// import { SearchRepositoryInterface } from "../../repositories/openSearch.repository";
+import { SearchRepositoryInterface } from "../../repositories/openSearch.repository";
+import { KeyPrefix } from "../../enums/keyPrefix.enum";
 
 @injectable()
 export class OneOnOneAndGroupService implements OneOnOneAndGroupServiceInterface {
@@ -20,25 +21,41 @@ export class OneOnOneAndGroupService implements OneOnOneAndGroupServiceInterface
     @inject(TYPES.GroupServiceInterface) private groupService: GroupServiceInterface,
     @inject(TYPES.OneOnOneServiceInterface) private oneOnOneService: OneOnOneServiceInterface,
     @inject(TYPES.MembershipRepositoryInterface) private membershipRepository: MembershipRepositoryInterface,
-    // @inject(TYPES.SearchRepositoryInterface) private searchRepository: SearchRepositoryInterface,
+    @inject(TYPES.SearchRepositoryInterface) private userAndGroupSearchRepository: UserAndGroupSearchRepositoryInterface,
   ) {}
 
   public async getOneOnOnesAndGroupsByUserId(params: GetOneOnOnesAndGroupsByUserIdInput): Promise<GetOneOnOnesAndGroupsByUserIdOutput> {
     try {
       this.loggerService.trace("getOneOnOnesAndGroupsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey, limit } = params;
+      const { userId, searchTerm, exclusiveStartKey, limit } = params;
 
-      const { memberships, lastEvaluatedKey } = await this.membershipRepository.getMembershipsByUserId({
-        userId,
-        type: MembershipFetchType.OneOnOneAndGroup,
-        exclusiveStartKey,
-        limit,
-      });
+      let memberships: (OneOnOneMembership | GroupMembership)[];
+      let lastEvaluatedKey: string | undefined;
 
       const oneOnOneIds: OneOnOneId[] = [];
       const groupIds: GroupId[] = [];
-      memberships.forEach((membership) => (membership.type === MembershipType.OneOnOne ? oneOnOneIds.push(membership.entityId) : groupIds.push(membership.entityId)));
+
+      if (searchTerm) {
+        ({ memberships } = await this.membershipRepository.getMembershipsByUserId({ userId, type: MembershipFetchType.OneOnOneAndGroup }));
+
+        const userAndGroupIds: (UserId | GroupId)[] = memberships.map((membership) => (membership.type === MembershipType.OneOnOne ? membership.entityId.split(/_(?=user_)/).find((id) => id !== userId) as UserId : membership.entityId));
+
+        const searchResponse = await this.userAndGroupSearchRepository.getUsersAndGroupsBySearchTerm({ userAndGroupIds, searchTerm, exclusiveStartKey, limit });
+
+        searchResponse.usersAndGroups.forEach(({ id }) => (id.startsWith(KeyPrefix.User) ? oneOnOneIds.push([ id, userId ].sort().join("_") as OneOnOneId) : groupIds.push(id as GroupId)));
+
+        lastEvaluatedKey = searchResponse.lastEvaluatedKey;
+      } else {
+        ({ memberships, lastEvaluatedKey } = await this.membershipRepository.getMembershipsByUserId({
+          userId,
+          type: MembershipFetchType.OneOnOneAndGroup,
+          exclusiveStartKey,
+          limit,
+        }));
+
+        memberships.forEach((membership) => (membership.type === MembershipType.OneOnOne ? oneOnOneIds.push(membership.entityId) : groupIds.push(membership.entityId)));
+      }
 
       const [ { oneOnOnes }, { groups } ] = await Promise.all([
         this.oneOnOneService.getOneOnOnes({ oneOnOneIds }),
@@ -73,6 +90,7 @@ export interface OneOnOneAndGroupServiceInterface {
 export interface GetOneOnOnesAndGroupsByUserIdInput {
   userId: UserId;
   limit?: number;
+  searchTerm?: string;
   exclusiveStartKey?: string;
 }
 
@@ -80,3 +98,5 @@ export interface GetOneOnOnesAndGroupsByUserIdOutput {
   oneOnOnesAndGroups: (OneOnOneByUserId | GroupByUserId)[];
   lastEvaluatedKey?: string;
 }
+
+type UserAndGroupSearchRepositoryInterface = Pick<SearchRepositoryInterface, "getUsersAndGroupsBySearchTerm">;

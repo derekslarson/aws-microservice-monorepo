@@ -4,5 +4,5 @@ import { Limit } from "../runtypes/limit.runtype";
 
 export const GetUsersByGroupIdDto = Record({
   pathParameters: Record({ groupId: GroupId }),
-  queryStringParameters: Record({ exclusiveStartKey: Optional(String), limit: Optional(Limit) }),
+  queryStringParameters: Record({ searchTerm: Optional(String), exclusiveStartKey: Optional(String), limit: Optional(Limit) }),
 });

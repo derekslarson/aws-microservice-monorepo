@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { IdServiceInterface } from "@yac/util/src/services/id.service";
@@ -171,7 +172,25 @@ export class OrganizationService implements OrganizationServiceInterface {
     try {
       this.loggerService.trace("getOrganizationsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey, limit } = params;
+      const { userId, searchTerm, exclusiveStartKey, limit } = params;
+
+      if (searchTerm) {
+        const { memberships } = await this.membershipRepository.getMembershipsByUserId({ userId, type: MembershipFetchType.Organization });
+
+        const organizationIds = memberships.map((membership) => membership.entityId);
+
+        const { organizations: organizationEntities, lastEvaluatedKey } = await this.getOrganizationsBySearchTerm({ organizationIds, searchTerm, exclusiveStartKey, limit });
+
+        const membershipMap: Record<string, OrganizationMembership> = {};
+        memberships.forEach((membership) => membershipMap[membership.entityId] = membership);
+
+        const organizations = organizationEntities.map((organizationEntity) => ({
+          ...organizationEntity,
+          role: membershipMap[organizationEntity.id].role,
+        }));
+
+        return { organizations, lastEvaluatedKey };
+      }
 
       const { memberships, lastEvaluatedKey } = await this.membershipRepository.getMembershipsByUserId({
         userId,
@@ -182,40 +201,16 @@ export class OrganizationService implements OrganizationServiceInterface {
 
       const organizationIds = memberships.map((membership) => membership.entityId);
 
-      const { organizations: organizationEntities } = await this.organizationRepository.getOrganizations({ organizationIds });
+      const { organizations: organizationEntities } = await this.getOrganizations({ organizationIds });
 
-      const organizations = organizationEntities.map((organizationEntity, i) => {
-        const { entity: organization } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Organization, entity: organizationEntity });
-
-        return {
-          ...organization,
-          role: memberships[i].role,
-        };
-      });
+      const organizations = organizationEntities.map((organizationEntity, i) => ({
+        ...organizationEntity,
+        role: memberships[i].role,
+      }));
 
       return { organizations, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getOrganizationsByUserId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getOrganizationsBySearchTerm(params: GetOrganizationsBySearchTermInput): Promise<GetOrganizationsBySearchTermOutput> {
-    try {
-      this.loggerService.trace("getOrganizationsBySearchTerm called", { params }, this.constructor.name);
-
-      const { searchTerm, organizationIds, limit, exclusiveStartKey } = params;
-
-      const { organizations: organizationEntities, lastEvaluatedKey } = await this.organizationSearchRepository.getOrganizationsBySearchTerm({ searchTerm, organizationIds, limit, exclusiveStartKey });
-
-      const searchOrganizationIds = organizationEntities.map((organization) => organization.id);
-
-      const { organizations } = await this.getOrganizations({ organizationIds: searchOrganizationIds });
-
-      return { organizations, lastEvaluatedKey };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getOrganizationsBySearchTerm", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -309,6 +304,26 @@ export class OrganizationService implements OrganizationServiceInterface {
       throw error;
     }
   }
+
+  private async getOrganizationsBySearchTerm(params: GetOrganizationsBySearchTermInput): Promise<GetOrganizationsBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getOrganizationsBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, organizationIds, limit, exclusiveStartKey } = params;
+
+      const { organizations: organizationEntities, lastEvaluatedKey } = await this.organizationSearchRepository.getOrganizationsBySearchTerm({ searchTerm, organizationIds, limit, exclusiveStartKey });
+
+      const searchOrganizationIds = organizationEntities.map((organization) => organization.id);
+
+      const { organizations } = await this.getOrganizations({ organizationIds: searchOrganizationIds });
+
+      return { organizations, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getOrganizationsBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface OrganizationServiceInterface {
@@ -317,7 +332,6 @@ export interface OrganizationServiceInterface {
   getOrganization(params: GetOrganizationInput): Promise<GetOrganizationOutput>;
   getOrganizations(params: GetOrganizationsInput): Promise<GetOrganizationsOutput>;
   getOrganizationsByUserId(params: GetOrganizationsByUserIdInput): Promise<GetOrganizationsByUserIdOutput>;
-  getOrganizationsBySearchTerm(params: GetOrganizationsBySearchTermInput): Promise<GetOrganizationsBySearchTermOutput>;
   getOrganizationImageUploadUrl(params: GetOrganizationImageUploadUrlInput): GetOrganizationImageUploadUrlOutput;
   addUserToOrganization(params: AddUserToOrganizationInput): Promise<AddUserToOrganizationOutput>;
   removeUserFromOrganization(params: RemoveUserFromOrganizationInput): Promise<RemoveUserFromOrganizationOutput>;
@@ -395,6 +409,7 @@ export type RemoveUserFromOrganizationOutput = void;
 
 export interface GetOrganizationsByUserIdInput {
   userId: UserId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -434,14 +449,14 @@ export interface DeindexOrganizationForSearchInput {
 
 export type DeindexOrganizationForSearchOutput = void;
 
-export interface GetOrganizationsBySearchTermInput {
+interface GetOrganizationsBySearchTermInput {
   searchTerm: string;
   organizationIds?: OrganizationId[];
   limit?: number;
   exclusiveStartKey?: string;
 }
 
-export interface GetOrganizationsBySearchTermOutput {
+interface GetOrganizationsBySearchTermOutput {
   organizations: Organization[];
   lastEvaluatedKey?: string;
 }

@@ -423,6 +423,7 @@ export type RemoveUserFromTeamOutput = void;
 
 export interface GetTeamsByUserIdInput {
   userId: UserId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -432,19 +433,9 @@ export interface GetTeamsByUserIdOutput {
   lastEvaluatedKey?: string;
 }
 
-export interface GetTeamsByTeamIdInput {
-  teamId: TeamId;
-  limit?: number;
-  exclusiveStartKey?: string;
-}
-
-export interface GetTeamsByTeamIdOutput {
-  teams: Team[];
-  lastEvaluatedKey?: string;
-}
-
 export interface GetTeamsByOrganizationIdInput {
   organizationId: OrganizationId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }

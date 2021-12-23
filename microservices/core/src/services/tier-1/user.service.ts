@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { UserId } from "@yac/util/src/types/userId.type";
@@ -10,7 +11,7 @@ import { EntityType } from "../../enums/entityType.enum";
 import { SearchRepositoryInterface } from "../../repositories/openSearch.repository";
 import { ImageMimeType } from "../../enums/image.mimeType.enum";
 import { SearchIndex } from "../../enums/searchIndex.enum";
-import { EntityId, MembershipRepositoryInterface } from "../../repositories/membership.dynamo.repository";
+import { EntityId, Membership, MembershipRepositoryInterface } from "../../repositories/membership.dynamo.repository";
 
 @injectable()
 export class UserService implements UserServiceInterface {
@@ -173,7 +174,25 @@ export class UserService implements UserServiceInterface {
     try {
       this.loggerService.trace("getUsersByEntityId called", { params }, this.constructor.name);
 
-      const { entityId, exclusiveStartKey, limit } = params;
+      const { entityId, searchTerm, exclusiveStartKey, limit } = params;
+
+      if (searchTerm) {
+        const { memberships } = await this.membershipRepository.getMembershipsByEntityId({ entityId });
+
+        const userIds = memberships.map((membership) => membership.userId);
+
+        const { users: userEntities, lastEvaluatedKey } = await this.getUsersBySearchTerm({ userIds, searchTerm, exclusiveStartKey, limit });
+
+        const membershipMap: Record<string, Membership> = {};
+        memberships.forEach((membership) => membershipMap[membership.userId] = membership);
+
+        const users = userEntities.map((userEntity) => ({
+          ...userEntity,
+          role: membershipMap[userEntity.id].role,
+        }));
+
+        return { users, lastEvaluatedKey };
+      }
 
       const { memberships, lastEvaluatedKey } = await this.membershipRepository.getMembershipsByEntityId({
         entityId,
@@ -183,42 +202,16 @@ export class UserService implements UserServiceInterface {
 
       const userIds = memberships.map((membership) => membership.userId);
 
-      const { users: userEntities } = await this.userRepository.getUsers({ userIds });
+      const { users: userEntities } = await this.getUsers({ userIds });
 
-      const users = userEntities.map((userEntity, i) => {
-        const { entity: user } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.User, entity: userEntity });
-
-        const userWithRole: WithRole<User> = {
-          ...user,
-          role: memberships[i].role,
-        };
-
-        return userWithRole;
-      });
+      const users = userEntities.map((userEntity, i) => ({
+        ...userEntity,
+        role: memberships[i].role,
+      }));
 
       return { users, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getUsersByEntityId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getUsersBySearchTerm(params: GetUsersBySearchTermInput): Promise<GetUsersBySearchTermOutput> {
-    try {
-      this.loggerService.trace("getUsersBySearchTerm called", { params }, this.constructor.name);
-
-      const { searchTerm, userIds, limit, exclusiveStartKey } = params;
-
-      const { users: userEntities, lastEvaluatedKey } = await this.userSearchRepository.getUsersBySearchTerm({ searchTerm, userIds, limit, exclusiveStartKey });
-
-      const searchUserIds = userEntities.map((user) => user.id);
-
-      const { users } = await this.getUsers({ userIds: searchUserIds });
-
-      return { users, lastEvaluatedKey };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getUsersBySearchTerm", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -274,6 +267,26 @@ export class UserService implements UserServiceInterface {
       throw error;
     }
   }
+
+  private async getUsersBySearchTerm(params: GetUsersBySearchTermInput): Promise<GetUsersBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getUsersBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, userIds, limit, exclusiveStartKey } = params;
+
+      const { users: userEntities, lastEvaluatedKey } = await this.userSearchRepository.getUsersBySearchTerm({ searchTerm, userIds, limit, exclusiveStartKey });
+
+      const searchUserIds = userEntities.map((user) => user.id);
+
+      const { users } = await this.getUsers({ userIds: searchUserIds });
+
+      return { users, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface UserServiceInterface {
@@ -285,7 +298,6 @@ export interface UserServiceInterface {
   getUserByUsername(params: GetUserByUsernameInput): Promise<GetUserByUsernameOutput>;
   getUsers(params: GetUsersInput): Promise<GetUsersOutput>;
   getUsersByEntityId(params: GetUsersByEntityIdInput): Promise<GetUsersByEntityIdOutput>
-  getUsersBySearchTerm(params: GetUsersBySearchTermInput): Promise<GetUsersBySearchTermOutput>;
   getUserImageUploadUrl(params: GetUserImageUploadUrlInput): GetUserImageUploadUrlOutput;
   indexUserForSearch(params: IndexUserForSearchInput): Promise<IndexUserForSearchOutput>;
   deindexUserForSearch(params: DeindexUserForSearchInput): Promise<DeindexUserForSearchOutput>;
@@ -357,24 +369,13 @@ export interface GetUsersOutput {
 
 export interface GetUsersByEntityIdInput {
   entityId: EntityId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
 
 export interface GetUsersByEntityIdOutput {
   users: WithRole<User>[];
-  lastEvaluatedKey?: string;
-}
-
-export interface GetUsersBySearchTermInput {
-  searchTerm: string;
-  userIds?: UserId[];
-  limit?: number;
-  exclusiveStartKey?: string;
-}
-
-export interface GetUsersBySearchTermOutput {
-  users: User[];
   lastEvaluatedKey?: string;
 }
 
@@ -398,5 +399,17 @@ export interface DeindexUserForSearchInput {
 }
 
 export type DeindexUserForSearchOutput = void;
+
+interface GetUsersBySearchTermInput {
+  searchTerm: string;
+  userIds?: UserId[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+interface GetUsersBySearchTermOutput {
+  users: User[];
+  lastEvaluatedKey?: string;
+}
 
 type UserSearchRepositoryInterface = Pick<SearchRepositoryInterface, "indexDocument" | "deindexDocument" | "getUsersBySearchTerm">;

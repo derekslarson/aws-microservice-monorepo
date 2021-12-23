@@ -59,9 +59,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("getMeetingsByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, searchTerm, limit, exclusiveStartKey } = params;
+      const { teamId, searchTerm, sortByDueAt, limit, exclusiveStartKey } = params;
 
-      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingService.getMeetingsByTeamId({ teamId, searchTerm, limit, exclusiveStartKey });
+      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingService.getMeetingsByTeamId({ teamId, searchTerm, sortByDueAt, limit, exclusiveStartKey });
 
       const meetings = await Promise.all(meetingEntities.map(async (meetingEntity) => {
         const { messages: [ recentMessage ] } = await this.messageService.getMessagesByConversationId({ conversationId: meetingEntity.id });
@@ -81,9 +81,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("getMeetingsByOrganizationId called", { params }, this.constructor.name);
 
-      const { organizationId, searchTerm, limit, exclusiveStartKey } = params;
+      const { organizationId, searchTerm, sortByDueAt, limit, exclusiveStartKey } = params;
 
-      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingService.getMeetingsByOrganizationId({ organizationId, searchTerm, limit, exclusiveStartKey });
+      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingService.getMeetingsByOrganizationId({ organizationId, searchTerm, sortByDueAt, limit, exclusiveStartKey });
 
       const meetings = await Promise.all(meetingEntities.map(async (meetingEntity) => {
         const { messages: [ recentMessage ] } = await this.messageService.getMessagesByConversationId({ conversationId: meetingEntity.id });
@@ -103,9 +103,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("getGroupsByUserId called", { params }, this.constructor.name);
 
-      const { userId, limit, exclusiveStartKey } = params;
+      const { userId, searchTerm, limit, exclusiveStartKey } = params;
 
-      const { groups: groupEntities, lastEvaluatedKey } = await this.groupService.getGroupsByUserId({ userId, limit, exclusiveStartKey });
+      const { groups: groupEntities, lastEvaluatedKey } = await this.groupService.getGroupsByUserId({ userId, searchTerm, limit, exclusiveStartKey });
 
       const groups = await Promise.all(groupEntities.map(async (groupEntity) => {
         const { messages: [ recentMessage ] } = await this.messageService.getMessagesByConversationId({ requestingUserId: userId, conversationId: groupEntity.id });
@@ -125,9 +125,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("getGroupsByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, limit, exclusiveStartKey } = params;
+      const { teamId, searchTerm, limit, exclusiveStartKey } = params;
 
-      const { groups: groupEntities, lastEvaluatedKey } = await this.groupService.getGroupsByTeamId({ teamId, limit, exclusiveStartKey });
+      const { groups: groupEntities, lastEvaluatedKey } = await this.groupService.getGroupsByTeamId({ teamId, searchTerm, limit, exclusiveStartKey });
 
       const groups = await Promise.all(groupEntities.map(async (groupEntity) => {
         const { messages: [ recentMessage ] } = await this.messageService.getMessagesByConversationId({ conversationId: groupEntity.id });
@@ -147,9 +147,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("getGroupsByOrganizationId called", { params }, this.constructor.name);
 
-      const { organizationId, limit, exclusiveStartKey } = params;
+      const { organizationId, searchTerm, limit, exclusiveStartKey } = params;
 
-      const { groups: groupEntities, lastEvaluatedKey } = await this.groupService.getGroupsByOrganizationId({ organizationId, limit, exclusiveStartKey });
+      const { groups: groupEntities, lastEvaluatedKey } = await this.groupService.getGroupsByOrganizationId({ organizationId, searchTerm, limit, exclusiveStartKey });
 
       const groups = await Promise.all(groupEntities.map(async (groupEntity) => {
         const { messages: [ recentMessage ] } = await this.messageService.getMessagesByConversationId({ conversationId: groupEntity.id });
@@ -169,9 +169,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("getOneOnOnessByUserId called", { params }, this.constructor.name);
 
-      const { userId, limit, exclusiveStartKey } = params;
+      const { userId, searchTerm, limit, exclusiveStartKey } = params;
 
-      const { oneOnOnes: oneOnOneEntities, lastEvaluatedKey } = await this.oneOnOneService.getOneOnOnesByUserId({ userId, limit, exclusiveStartKey });
+      const { oneOnOnes: oneOnOneEntities, lastEvaluatedKey } = await this.oneOnOneService.getOneOnOnesByUserId({ userId, searchTerm, limit, exclusiveStartKey });
 
       const userIds = oneOnOneEntities.map(({ createdBy, otherUserId }) => (userId === createdBy ? otherUserId : createdBy));
 
@@ -203,9 +203,9 @@ export class ConversationService implements ConversationServiceInterface {
     try {
       this.loggerService.trace("getOneOnOnesAndGroupsByUserId called", { params }, this.constructor.name);
 
-      const { userId, limit, exclusiveStartKey } = params;
+      const { userId, searchTerm, limit, exclusiveStartKey } = params;
 
-      const { oneOnOnesAndGroups: oneOnOneAndGroupEntities, lastEvaluatedKey } = await this.oneOnOneAndGroupService.getOneOnOnesAndGroupsByUserId({ userId, limit, exclusiveStartKey });
+      const { oneOnOnesAndGroups: oneOnOneAndGroupEntities, lastEvaluatedKey } = await this.oneOnOneAndGroupService.getOneOnOnesAndGroupsByUserId({ userId, searchTerm, limit, exclusiveStartKey });
 
       const oneOnOneEntities = oneOnOneAndGroupEntities.filter((oneOnOneOrGroup) => !oneOnOneOrGroup.id.startsWith(KeyPrefix.Group)) as OneOnOneByUserIdEntity [];
       const userIds = oneOnOneEntities.map(({ createdBy, otherUserId }) => (userId === createdBy ? otherUserId : createdBy));
@@ -322,6 +322,7 @@ export interface GetMeetingsByUserIdOutput {
 export interface GetMeetingsByTeamIdInput {
   teamId: TeamId;
   searchTerm?: string;
+  sortByDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -334,6 +335,7 @@ export interface GetMeetingsByTeamIdOutput {
 export interface GetMeetingsByOrganizationIdInput {
   organizationId: OrganizationId;
   searchTerm?: string;
+  sortByDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -345,6 +347,7 @@ export interface GetMeetingsByOrganizationIdOutput {
 
 export interface GetGroupsByUserIdInput {
   userId: UserId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -356,6 +359,7 @@ export interface GetGroupsByUserIdOutput {
 
 export interface GetGroupsByTeamIdInput {
   teamId: TeamId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -367,6 +371,7 @@ export interface GetGroupsByTeamIdOutput {
 
 export interface GetGroupsByOrganizationIdInput {
   organizationId: OrganizationId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -378,6 +383,7 @@ export interface GetGroupsByOrganizationIdOutput {
 
 export interface GetOneOnOnesByUserIdInput {
   userId: UserId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -389,6 +395,7 @@ export interface GetOneOnOnesByUserIdOutput {
 
 export interface GetOneOnOnesAndGroupsByUserIdInput {
   userId: UserId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }

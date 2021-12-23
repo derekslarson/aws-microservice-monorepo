@@ -4,5 +4,5 @@ import { Limit } from "../runtypes/limit.runtype";
 
 export const GetUsersByMeetingIdDto = Record({
   pathParameters: Record({ meetingId: MeetingId }),
-  queryStringParameters: Record({ exclusiveStartKey: Optional(String), limit: Optional(Limit) }),
+  queryStringParameters: Record({ searchTerm: Optional(String), exclusiveStartKey: Optional(String), limit: Optional(Limit) }),
 });

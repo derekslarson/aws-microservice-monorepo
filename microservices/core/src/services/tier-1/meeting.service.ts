@@ -194,7 +194,7 @@ export class MeetingService implements MeetingServiceInterface {
 
         const meetingIds = memberships.map((membership) => membership.entityId);
 
-        const { meetings: meetingEntities, lastEvaluatedKey } = await this.getMeetingsBySearchTerm({ meetingIds, searchTerm, exclusiveStartKey, limit });
+        const { meetings: meetingEntities, lastEvaluatedKey } = await this.getMeetingsBySearchTerm({ meetingIds, searchTerm, sortByDueAt, exclusiveStartKey, limit });
 
         const membershipMap: Record<string, MeetingMembership> = {};
         memberships.forEach((membership) => membershipMap[membership.entityId] = membership);
@@ -242,20 +242,17 @@ export class MeetingService implements MeetingServiceInterface {
     try {
       this.loggerService.trace("getMeetingsByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, searchTerm, exclusiveStartKey, limit } = params;
+      const { teamId, searchTerm, sortByDueAt, exclusiveStartKey, limit } = params;
 
       if (searchTerm) {
-        const { meetings: meetingEntities } = await this.meetingRepository.getMeetingsByTeamId({ teamId });
-
-        const meetingIds = meetingEntities.map((meetingEntity) => meetingEntity.id);
-
-        const { meetings, lastEvaluatedKey } = await this.getMeetingsBySearchTerm({ meetingIds, searchTerm, exclusiveStartKey, limit });
+        const { meetings, lastEvaluatedKey } = await this.getMeetingsBySearchTerm({ teamId, searchTerm, sortByDueAt, exclusiveStartKey, limit });
 
         return { meetings, lastEvaluatedKey };
       }
 
       const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingRepository.getMeetingsByTeamId({
         teamId,
+        sortByDueAt,
         exclusiveStartKey,
         limit,
       });
@@ -278,19 +275,15 @@ export class MeetingService implements MeetingServiceInterface {
     try {
       this.loggerService.trace("getMeetingsByOrganizationId called", { params }, this.constructor.name);
 
-      const { organizationId, searchTerm, exclusiveStartKey, limit } = params;
+      const { organizationId, sortByDueAt, searchTerm, exclusiveStartKey, limit } = params;
 
       if (searchTerm) {
-        const { meetings: meetingEntities } = await this.meetingRepository.getMeetingsByOrganizationId({ organizationId });
-
-        const meetingIds = meetingEntities.map((meetingEntity) => meetingEntity.id);
-
-        const { meetings, lastEvaluatedKey } = await this.getMeetingsBySearchTerm({ meetingIds, searchTerm, exclusiveStartKey, limit });
+        const { meetings, lastEvaluatedKey } = await this.getMeetingsBySearchTerm({ organizationId, searchTerm, sortByDueAt, exclusiveStartKey, limit });
 
         return { meetings, lastEvaluatedKey };
       }
 
-      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingRepository.getMeetingsByOrganizationId({ organizationId, exclusiveStartKey, limit });
+      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingRepository.getMeetingsByOrganizationId({ organizationId, sortByDueAt, exclusiveStartKey, limit });
 
       const meetings = meetingEntities.map((meetingEntity) => {
         const { entity: meeting } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Meeting, entity: meetingEntity });
@@ -399,9 +392,9 @@ export class MeetingService implements MeetingServiceInterface {
     try {
       this.loggerService.trace("getMeetingsBySearchTerm called", { params }, this.constructor.name);
 
-      const { searchTerm, meetingIds, limit, exclusiveStartKey } = params;
+      const { searchTerm, meetingIds, organizationId, sortByDueAt, limit, exclusiveStartKey } = params;
 
-      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingSearchRepository.getMeetingsBySearchTerm({ searchTerm, meetingIds, limit, exclusiveStartKey });
+      const { meetings: meetingEntities, lastEvaluatedKey } = await this.meetingSearchRepository.getMeetingsBySearchTerm({ searchTerm, meetingIds, organizationId, sortByDueAt, limit, exclusiveStartKey });
 
       const searchMeetingIds = meetingEntities.map((meeting) => meeting.id);
 
@@ -524,6 +517,7 @@ export interface GetMeetingsByUserIdOutput {
 export interface GetMeetingsByTeamIdInput {
   teamId: TeamId;
   searchTerm?: string;
+  sortByDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -536,6 +530,7 @@ export interface GetMeetingsByTeamIdOutput {
 export interface GetMeetingsByOrganizationIdInput {
   organizationId: OrganizationId;
   searchTerm?: string;
+  sortByDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -577,7 +572,10 @@ export type DeindexMeetingForSearchOutput = void;
 
 interface GetMeetingsBySearchTermInput {
   searchTerm: string;
+  teamId?: TeamId;
+  organizationId?: OrganizationId;
   meetingIds?: MeetingId[];
+  sortByDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }

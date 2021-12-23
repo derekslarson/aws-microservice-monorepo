@@ -205,14 +205,14 @@ export class OrganizationController extends BaseController implements Organizati
       const {
         jwtId,
         pathParameters: { userId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetOrganizationsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
         throw new ForbiddenError("Forbidden");
       }
 
-      const { organizations, lastEvaluatedKey } = await this.organizationService.getOrganizationsByUserId({ userId, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
+      const { organizations, lastEvaluatedKey } = await this.organizationService.getOrganizationsByUserId({ userId, searchTerm, exclusiveStartKey, limit: limit ? parseInt(limit, 10) : undefined });
 
       const response: GetOrganizationsByUserIdResponse = { organizations, lastEvaluatedKey };
 

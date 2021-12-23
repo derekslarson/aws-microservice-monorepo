@@ -235,7 +235,7 @@ export class MessageController extends BaseController implements MessageControll
         throw new ForbiddenError("Forbidden");
       }
 
-      const { messages, lastEvaluatedKey } = await this.messageService.getMessagesBySearchTerm({
+      const { messages, lastEvaluatedKey } = await this.messageService.getMessagesByUserIdAndSearchTerm({
         userId,
         searchTerm,
         exclusiveStartKey,

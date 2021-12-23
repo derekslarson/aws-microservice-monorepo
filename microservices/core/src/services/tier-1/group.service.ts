@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 import { inject, injectable } from "inversify";
 import { LoggerServiceInterface } from "@yac/util/src/services/logger.service";
 import { IdServiceInterface } from "@yac/util/src/services/id.service";
@@ -175,7 +176,28 @@ export class GroupService implements GroupServiceInterface {
     try {
       this.loggerService.trace("getGroupsByUserId called", { params }, this.constructor.name);
 
-      const { userId, exclusiveStartKey, limit } = params;
+      const { userId, searchTerm, exclusiveStartKey, limit } = params;
+
+      if (searchTerm) {
+        const { memberships } = await this.membershipRepository.getMembershipsByUserId({ userId, type: MembershipFetchType.Group });
+
+        const groupIds = memberships.map((membership) => membership.entityId);
+
+        const { groups: groupEntities, lastEvaluatedKey } = await this.getGroupsBySearchTerm({ groupIds, searchTerm, exclusiveStartKey, limit });
+
+        const membershipMap: Record<string, GroupMembership> = {};
+        memberships.forEach((membership) => membershipMap[membership.entityId] = membership);
+
+        const groups = groupEntities.map((groupEntity) => ({
+          ...groupEntity,
+          role: membershipMap[groupEntity.id].role,
+          activeAt: membershipMap[groupEntity.id].activeAt,
+          lastViewedAt: membershipMap[groupEntity.id].userActiveAt,
+          unseenMessages: membershipMap[groupEntity.id].unseenMessages,
+        }));
+
+        return { groups, lastEvaluatedKey };
+      }
 
       const { memberships, lastEvaluatedKey } = await this.membershipRepository.getMembershipsByUserId({
         userId,
@@ -186,19 +208,15 @@ export class GroupService implements GroupServiceInterface {
 
       const groupIds = memberships.map((membership) => membership.entityId);
 
-      const { groups: groupEntities } = await this.groupRepository.getGroups({ groupIds });
+      const { groups: groupEntities } = await this.getGroups({ groupIds });
 
-      const groups = groupEntities.map((groupEntity, i) => {
-        const { entity: group } = this.imageFileRepository.replaceImageMimeTypeForImage({ entityType: EntityType.Group, entity: groupEntity });
-
-        return {
-          ...group,
-          role: memberships[i].role,
-          activeAt: memberships[i].activeAt,
-          lastViewedAt: memberships[i].userActiveAt,
-          unseenMessages: memberships[i].unseenMessages,
-        };
-      });
+      const groups = groupEntities.map((groupEntity, i) => ({
+        ...groupEntity,
+        role: memberships[i].role,
+        activeAt: memberships[i].activeAt,
+        lastViewedAt: memberships[i].userActiveAt,
+        unseenMessages: memberships[i].unseenMessages,
+      }));
 
       return { groups, lastEvaluatedKey };
     } catch (error: unknown) {
@@ -212,7 +230,13 @@ export class GroupService implements GroupServiceInterface {
     try {
       this.loggerService.trace("getGroupsByTeamId called", { params }, this.constructor.name);
 
-      const { teamId, exclusiveStartKey, limit } = params;
+      const { teamId, searchTerm, exclusiveStartKey, limit } = params;
+
+      if (searchTerm) {
+        const { groups, lastEvaluatedKey } = await this.getGroupsBySearchTerm({ teamId, searchTerm, exclusiveStartKey, limit });
+
+        return { groups, lastEvaluatedKey };
+      }
 
       const { groups: groupEntities, lastEvaluatedKey } = await this.groupRepository.getGroupsByTeamId({
         teamId,
@@ -238,7 +262,13 @@ export class GroupService implements GroupServiceInterface {
     try {
       this.loggerService.trace("getGroupsByOrganizationId called", { params }, this.constructor.name);
 
-      const { organizationId, exclusiveStartKey, limit } = params;
+      const { organizationId, searchTerm, exclusiveStartKey, limit } = params;
+
+      if (searchTerm) {
+        const { groups, lastEvaluatedKey } = await this.getGroupsBySearchTerm({ organizationId, searchTerm, exclusiveStartKey, limit });
+
+        return { groups, lastEvaluatedKey };
+      }
 
       const { groups: groupEntities, lastEvaluatedKey } = await this.groupRepository.getGroupsByOrganizationId({
         organizationId,
@@ -255,26 +285,6 @@ export class GroupService implements GroupServiceInterface {
       return { groups, lastEvaluatedKey };
     } catch (error: unknown) {
       this.loggerService.error("Error in getGroupsByOrganizationId", { error, params }, this.constructor.name);
-
-      throw error;
-    }
-  }
-
-  public async getGroupsBySearchTerm(params: GetGroupsBySearchTermInput): Promise<GetGroupsBySearchTermOutput> {
-    try {
-      this.loggerService.trace("getGroupsBySearchTerm called", { params }, this.constructor.name);
-
-      const { searchTerm, groupIds, limit, exclusiveStartKey } = params;
-
-      const { groups: groupEntities, lastEvaluatedKey } = await this.groupSearchRepository.getGroupsBySearchTerm({ searchTerm, groupIds, limit, exclusiveStartKey });
-
-      const searchGroupIds = groupEntities.map((group) => group.id);
-
-      const { groups } = await this.getGroups({ groupIds: searchGroupIds });
-
-      return { groups, lastEvaluatedKey };
-    } catch (error: unknown) {
-      this.loggerService.error("Error in getGroupsBySearchTerm", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -368,6 +378,26 @@ export class GroupService implements GroupServiceInterface {
       throw error;
     }
   }
+
+  private async getGroupsBySearchTerm(params: GetGroupsBySearchTermInput): Promise<GetGroupsBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getGroupsBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, groupIds, limit, exclusiveStartKey } = params;
+
+      const { groups: groupEntities, lastEvaluatedKey } = await this.groupSearchRepository.getGroupsBySearchTerm({ searchTerm, groupIds, limit, exclusiveStartKey });
+
+      const searchGroupIds = groupEntities.map((group) => group.id);
+
+      const { groups } = await this.getGroups({ groupIds: searchGroupIds });
+
+      return { groups, lastEvaluatedKey };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getGroupsBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
 }
 
 export interface GroupServiceInterface {
@@ -378,7 +408,6 @@ export interface GroupServiceInterface {
   getGroupsByUserId(params: GetGroupsByUserIdInput): Promise<GetGroupsByUserIdOutput>;
   getGroupsByTeamId(params: GetGroupsByTeamIdInput): Promise<GetGroupsByTeamIdOutput>;
   getGroupsByOrganizationId(params: GetGroupsByOrganizationIdInput): Promise<GetGroupsByOrganizationIdOutput>;
-  getGroupsBySearchTerm(params: GetGroupsBySearchTermInput): Promise<GetGroupsBySearchTermOutput>;
   getGroupImageUploadUrl(params: GetGroupImageUploadUrlInput): GetGroupImageUploadUrlOutput;
   addUserToGroup(params: AddUserToGroupInput): Promise<AddUserToGroupOutput>;
   removeUserFromGroup(params: RemoveUserFromGroupInput): Promise<RemoveUserFromGroupOutput>;
@@ -463,6 +492,7 @@ export type RemoveUserFromGroupOutput = void;
 
 export interface GetGroupsByUserIdInput {
   userId: UserId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -474,6 +504,7 @@ export interface GetGroupsByUserIdOutput {
 
 export interface GetGroupsByTeamIdInput {
   teamId: TeamId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -485,6 +516,7 @@ export interface GetGroupsByTeamIdOutput {
 
 export interface GetGroupsByOrganizationIdInput {
   organizationId: OrganizationId;
+  searchTerm?: string;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -524,14 +556,16 @@ export interface DeindexGroupForSearchInput {
 
 export type DeindexGroupForSearchOutput = void;
 
-export interface GetGroupsBySearchTermInput {
+interface GetGroupsBySearchTermInput {
   searchTerm: string;
+  teamId?: TeamId;
+  organizationId?: OrganizationId;
   groupIds?: GroupId[];
   limit?: number;
   exclusiveStartKey?: string;
 }
 
-export interface GetGroupsBySearchTermOutput {
+interface GetGroupsBySearchTermOutput {
   groups: Group[];
   lastEvaluatedKey?: string;
 }

@@ -117,7 +117,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
     try {
       this.loggerService.trace("getGroupsBySearchTerm called", { params }, this.constructor.name);
 
-      const { searchTerm, groupIds, limit, exclusiveStartKey } = params;
+      const { searchTerm, groupIds, organizationId, teamId, limit, exclusiveStartKey } = params;
 
       const queryString = `
         SELECT *
@@ -127,6 +127,8 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
           OR name LIKE '%${searchTerm}%'
         )
         ${groupIds ? `AND id IN (${groupIds.join(", ")})` : ""}
+        ${teamId ? `AND teamId = '${teamId}'` : ""}
+        ${organizationId ? `AND organizationId = '${organizationId}' AND teamId IS NULL` : ""}
       `;
 
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
@@ -146,7 +148,7 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
     try {
       this.loggerService.trace("getMeetingsBySearchTerm called", { params }, this.constructor.name);
 
-      const { searchTerm, meetingIds, limit, exclusiveStartKey } = params;
+      const { searchTerm, meetingIds, teamId, organizationId, sortByDueAt, limit, exclusiveStartKey } = params;
 
       const queryString = `
         SELECT *
@@ -156,6 +158,9 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
           OR name LIKE '%${searchTerm}%'
         )
         ${meetingIds ? `AND id IN (${meetingIds.join(", ")})` : ""}
+        ${teamId ? `AND teamId = '${teamId}'` : ""}
+        ${organizationId ? `AND organizationId = '${organizationId}' AND teamId IS NULL` : ""}
+        ${sortByDueAt ? "ORDER BY dueAt DESC" : ""}
       `;
 
       const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
@@ -166,6 +171,43 @@ export class OpenSearchRepository implements SearchRepositoryInterface {
       };
     } catch (error: unknown) {
       this.loggerService.error("Error in getMeetingsBySearchTerm", { error, params }, this.constructor.name);
+
+      throw error;
+    }
+  }
+
+  public async getUsersAndGroupsBySearchTerm(params: GetUsersAndGroupsBySearchTermInput): Promise<GetUsersAndGroupsBySearchTermOutput> {
+    try {
+      this.loggerService.trace("getUsersAndGroupsBySearchTerm called", { params }, this.constructor.name);
+
+      const { searchTerm, userAndGroupIds, limit, exclusiveStartKey } = params;
+
+      const queryString = `
+        SELECT *
+        FROM ${SearchIndex.User}, ${SearchIndex.Group}
+        WHERE ( 
+          MATCH_PHRASE(name, '${searchTerm}')
+          OR MATCH_PHRASE(username, '${searchTerm}')
+          OR MATCH_PHRASE(email, '${searchTerm}')
+          OR MATCH_PHRASE(phone, '${searchTerm}')
+          OR MATCH_PHRASE(name, '${searchTerm}')
+          OR name LIKE '%${searchTerm}%'
+          OR username LIKE '%${searchTerm}%'
+          OR email LIKE '%${searchTerm}%'
+          OR phone LIKE '%${searchTerm}%'
+          OR name LIKE '%${searchTerm}%'
+        )
+        ${userAndGroupIds ? `AND id IN (${userAndGroupIds.join(", ")})` : ""}
+      `;
+
+      const { results, lastEvaluatedKey } = await this.query({ queryString, limit, exclusiveStartKey });
+
+      return {
+        usersAndGroups: results as (UserOnlyIdRequired | GroupOnlyIdRequired)[],
+        lastEvaluatedKey,
+      };
+    } catch (error: unknown) {
+      this.loggerService.error("Error in getUsersAndGroupsBySearchTerm", { error, params }, this.constructor.name);
 
       throw error;
     }
@@ -476,6 +518,7 @@ export interface SearchRepositoryInterface {
   getUsersBySearchTerm(params: GetUsersBySearchTermInput): Promise<GetUsersBySearchTermOutput>;
   getGroupsBySearchTerm(params: GetGroupsBySearchTermInput): Promise<GetGroupsBySearchTermOutput>;
   getMeetingsBySearchTerm(params: GetMeetingsBySearchTermInput): Promise<GetMeetingsBySearchTermOutput>;
+  getUsersAndGroupsBySearchTerm(params: GetUsersAndGroupsBySearchTermInput): Promise<GetUsersAndGroupsBySearchTermOutput>;
   getUsersGroupsAndMeetingsBySearchTerm(params: GetUsersGroupsAndMeetingsBySearchTermInput): Promise<GetUsersGroupsAndMeetingsBySearchTermOutput>;
   getMessagesBySearchTerm(params: GetMessagesBySearchTermInput): Promise<GetMessagesBySearchTermOutput>;
   getTeamsBySearchTerm(params: GetTeamsBySearchTermInput): Promise<GetTeamsBySearchTermOutput>;
@@ -516,6 +559,8 @@ export interface GetUsersBySearchTermOutput {
 export interface GetGroupsBySearchTermInput {
   searchTerm: string;
   groupIds?: GroupId[];
+  teamId?: TeamId;
+  organizationId?: OrganizationId;
   limit?: number;
   exclusiveStartKey?: string;
 }
@@ -528,12 +573,27 @@ export interface GetGroupsBySearchTermOutput {
 export interface GetMeetingsBySearchTermInput {
   searchTerm: string;
   meetingIds?: MeetingId[];
+  teamId?: TeamId;
+  organizationId?: OrganizationId;
+  sortByDueAt?: boolean;
   limit?: number;
   exclusiveStartKey?: string;
 }
 
 export interface GetMeetingsBySearchTermOutput {
   meetings: MeetingOnlyIdRequired[];
+  lastEvaluatedKey?: string;
+}
+
+export interface GetUsersAndGroupsBySearchTermInput {
+  searchTerm: string;
+  userAndGroupIds?: (UserId | GroupId)[];
+  limit?: number;
+  exclusiveStartKey?: string;
+}
+
+export interface GetUsersAndGroupsBySearchTermOutput {
+  usersAndGroups: (UserOnlyIdRequired | GroupOnlyIdRequired)[];
   lastEvaluatedKey?: string;
 }
 

@@ -27,7 +27,7 @@ export class ConversationController extends BaseController implements Conversati
       const {
         jwtId,
         pathParameters: { userId },
-        queryStringParameters: { exclusiveStartKey, limit },
+        queryStringParameters: { searchTerm, exclusiveStartKey, limit },
       } = this.validationService.validate({ dto: GetOneOnOnesAndGroupsByUserIdDto, request, getUserIdFromJwt: true });
 
       if (jwtId !== userId) {
@@ -36,6 +36,7 @@ export class ConversationController extends BaseController implements Conversati
 
       const { oneOnOnesAndGroups, lastEvaluatedKey } = await this.conversationService.getOneOnOnesAndGroupsByUserId({
         userId,
+        searchTerm,
         exclusiveStartKey,
         limit: limit ? parseInt(limit, 10) : undefined,
       });
