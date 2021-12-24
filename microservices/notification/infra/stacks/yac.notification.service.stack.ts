@@ -245,13 +245,13 @@ export class YacNotificationServiceStack extends Stack {
       },
     ];
 
-    const api = new HttpApi(this, `HttpApi_${id}`, {
+    const httpApi = new HttpApi(this, `HttpApi_${id}`, {
       serviceName: "notification",
       domainName,
       authorizerHandler,
     });
 
-    routes.forEach((route) => api.addRoute(route));
+    routes.forEach((route) => httpApi.addRoute(route));
 
     const ExportNames = generateExportNames(stackPrefix);
 

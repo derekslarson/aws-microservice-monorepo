@@ -32,9 +32,11 @@ export class YacUtilServiceStack extends Stack {
 
   public hostedZone: Route53.IHostedZone;
 
-  public googleClient: YacUtilServiceOAuth2Client;
+  public googleClient: OAuth2ClientData;
 
-  public slackClient: YacUtilServiceOAuth2Client;
+  public slackClient: OAuth2ClientData;
+
+  public stripe: StripeData;
 
   public gcmServerKey: string;
 
@@ -42,6 +44,14 @@ export class YacUtilServiceStack extends Stack {
     super(scope, id, props);
 
     const { environment, stackPrefix } = props;
+
+    // Manually set SSM parameters
+    this.stripe = {
+      apiKey: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-api-key`),
+      freePlanProductId: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-free-plan-product-id`),
+      paidPlanProductId: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-paid-plan-product-id`),
+      webhookSecret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-webhook-secret`),
+    };
 
     this.googleClient = {
       id: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`),
@@ -409,7 +419,14 @@ export interface YacUtilServiceSecrets {
   messageUploadToken: SecretsManager.Secret;
 }
 
-export interface YacUtilServiceOAuth2Client {
+export interface OAuth2ClientData {
   id: string;
   secret: string;
+}
+
+export interface StripeData {
+  apiKey: string;
+  freePlanProductId: string;
+  paidPlanProductId: string;
+  webhookSecret: string;
 }

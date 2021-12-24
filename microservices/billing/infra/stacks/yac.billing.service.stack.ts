@@ -1,6 +1,5 @@
 /* eslint-disable no-new */
 import {
-  Fn,
   RemovalPolicy,
   Duration,
   aws_ssm as SSM,
@@ -13,47 +12,21 @@ import {
   aws_events_targets as EventsTargets,
   aws_lambda as Lambda,
   aws_lambda_event_sources as LambdaEventSources,
+  StackProps,
+  Stack,
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Construct } from "constructs";
-import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
-import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
-import { RouteProps } from "@yac/util/infra/constructs/http.api";
+import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
-export class YacBillingServiceStack extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
+export class YacBillingServiceStack extends Stack {
+  constructor(scope: Construct, id: string, props: YacBillingServiceStackProps) {
     super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as string;
-    const developer = this.node.tryGetContext("developer") as string;
-
-    if (!environment) {
-      throw new Error("'environment' context param required.");
-    }
-
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-
-    const ExportNames = generateExportNames(stackPrefix);
-
-    // SNS Topic ARN Imports from Util
-    const organizationCreatedSnsTopicArn = Fn.importValue(ExportNames.OrganizationCreatedSnsTopicArn);
-    const userAddedToOrganizationSnsTopicArn = Fn.importValue(ExportNames.UserAddedToOrganizationSnsTopicArn);
-    const userRemovedFromOrganizationSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromOrganizationSnsTopicArn);
-    const billingPlanUpdatedSnsTopicArn = Fn.importValue(ExportNames.BillingPlanUpdatedSnsTopicArn);
-
-    // Manually Set SSM Parameters for Stripe
-    const stripeApiKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-api-key`);
-    const stripeFreePlanProductId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-free-plan-product-id`);
-    const stripePaidPlanProductId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-paid-plan-product-id`);
-    const stripeWebhookSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-webhook-secret`);
-
-    // SNS Topics
-    const organizationCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `OrganizationCreatedSnsTopic_${id}`, organizationCreatedSnsTopicArn);
-    const userAddedToOrganizationSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToOrganizationSnsTopic_${id}`, userAddedToOrganizationSnsTopicArn);
-    const userRemovedFromOrganizationSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedFromOrganizationSnsTopic_${id}`, userRemovedFromOrganizationSnsTopicArn);
+    const { environment, stackPrefix, domainName, authorizerHandler, snsTopics, stripe } = props;
 
     // Databases
     const billingTable = new DynamoDB.Table(this, `BillingTable_${id}`, {
@@ -86,35 +59,35 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
 
     const billingPlanUpdatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ billingPlanUpdatedSnsTopicArn ],
+      resources: [ snsTopics.billingPlanUpdated.topicArn ],
     });
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       BILLING_TABLE_NAME: billingTable.tableName,
-      STRIPE_API_KEY: stripeApiKey,
-      STRIPE_FREE_PLAN_PRODUCT_ID: stripeFreePlanProductId,
-      STRIPE_PAID_PLAN_PRODUCT_ID: stripePaidPlanProductId,
-      STRIPE_WEBHOOK_SECRET: stripeWebhookSecret,
+      STRIPE_API_KEY: stripe.apiKey,
+      STRIPE_FREE_PLAN_PRODUCT_ID: stripe.freePlanProductId,
+      STRIPE_PAID_PLAN_PRODUCT_ID: stripe.paidPlanProductId,
+      STRIPE_WEBHOOK_SECRET: stripe.webhookSecret,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
       GSI_TWO_INDEX_NAME: GlobalSecondaryIndex.Two,
-      ORGANIZATION_CREATED_SNS_TOPIC_ARN: organizationCreatedSnsTopicArn,
-      USER_ADDED_TO_ORGANIZATION_SNS_TOPIC_ARN: userAddedToOrganizationSnsTopicArn,
-      USER_REMOVED_FROM_ORGANIZATION_SNS_TOPIC_ARN: userRemovedFromOrganizationSnsTopicArn,
-      BILLING_PLAN_UPDATED_SNS_TOPIC_ARN: billingPlanUpdatedSnsTopicArn,
+      ORGANIZATION_CREATED_SNS_TOPIC_ARN: snsTopics.organizationCreated.topicArn,
+      USER_ADDED_TO_ORGANIZATION_SNS_TOPIC_ARN: snsTopics.userAddedToOrganization.topicArn,
+      USER_REMOVED_FROM_ORGANIZATION_SNS_TOPIC_ARN: snsTopics.userRemovedFromOrganization.topicArn,
+      BILLING_PLAN_UPDATED_SNS_TOPIC_ARN: snsTopics.billingPlanUpdated.topicArn,
     };
 
     const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`, {});
 
-    organizationCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userAddedToOrganizationSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userRemovedFromOrganizationSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.organizationCreated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.userAddedToOrganization.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.userRemovedFromOrganization.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Dynamo Stream Handler
     new Lambda.Function(this, `BillingTableEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/billingTableEvent"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/billingTableEvent`),
       handler: "billingTableEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -128,7 +101,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
 
     new Lambda.Function(this, `SqsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sqsEvent`),
       handler: "sqsEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -142,7 +115,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
 
     const sendPendingQuantityUpdatesToStripeHandler = new Lambda.Function(this, `SendPendingQuantityUpdatesToStripeHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/sendPendingQuantityUpdatesToStripe"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sendPendingQuantityUpdatesToStripe`),
       handler: "sendPendingQuantityUpdatesToStripe.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -156,7 +129,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
 
     const getBillingPortalUrlHandler = new Lambda.Function(this, `GetBillingPortalUrlHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getBillingPortalUrl"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getBillingPortalUrl`),
       handler: "getBillingPortalUrl.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -167,7 +140,7 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
 
     const stripeWebhookHandler = new Lambda.Function(this, `StripeWebhookHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/stripeWebhook"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/stripeWebhook`),
       handler: "stripeWebhook.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -190,12 +163,38 @@ export class YacBillingServiceStack extends YacHttpServiceStack {
       },
     ];
 
-    routes.forEach((route) => this.httpApi.addRoute(route));
+    const httpApi = new HttpApi(this, `HttpApi_${id}`, {
+      serviceName: "billing",
+      domainName,
+      authorizerHandler,
+    });
+
+    routes.forEach((route) => httpApi.addRoute(route));
 
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `BillingTableNameSsmParameter-${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/billing-table-name`,
       stringValue: billingTable.tableName,
     });
+  }
+}
+
+export interface YacBillingServiceStackProps extends StackProps {
+  environment: Environment;
+  stackPrefix: string;
+  domainName: ApiGatewayV2.IDomainName;
+  authorizerHandler: Lambda.Function;
+  snsTopics: {
+    userCreated: SNS.Topic;
+    organizationCreated: SNS.Topic;
+    userAddedToOrganization: SNS.Topic;
+    userRemovedFromOrganization: SNS.Topic;
+    billingPlanUpdated: SNS.Topic;
+  };
+  stripe: {
+    apiKey: string;
+    freePlanProductId: string;
+    paidPlanProductId: string;
+    webhookSecret: string;
   }
 }

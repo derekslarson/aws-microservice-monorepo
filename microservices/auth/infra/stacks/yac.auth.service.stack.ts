@@ -31,7 +31,7 @@ import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { HttpApi, ProxyRouteProps, RouteProps } from "@yac/util/infra/constructs/http.api";
-import { YacUtilServiceOAuth2Client } from "@yac/util/infra/stacks/yac.util.service.stack";
+import { OAuth2ClientData } from "@yac/util/infra/stacks/yac.util.service.stack";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacAuthServiceStack extends Stack {
@@ -450,8 +450,8 @@ export interface YacAuthServiceStackProps extends StackProps {
   environment: Environment;
   stackPrefix: string;
   domainName: ApiGatewayV2.IDomainName;
-  googleClient: YacUtilServiceOAuth2Client;
-  slackClient: YacUtilServiceOAuth2Client;
+  googleClient: OAuth2ClientData;
+  slackClient: OAuth2ClientData;
   hostedZone: Route53.IHostedZone;
   certificate: ACM.ICertificate;
   snsTopics: {

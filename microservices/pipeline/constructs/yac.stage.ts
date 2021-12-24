@@ -6,6 +6,7 @@ import { YacAuthServiceStack } from "@yac/auth/infra/stacks/yac.auth.service.sta
 import { YacCoreServiceStack } from "@yac/core/infra/stacks/yac.core.service.stack";
 import { YacStageProps } from "./yac.stage.props";
 import { YacNotificationServiceStack } from "../../notification/infra/stacks/yac.notification.service.stack";
+import { YacBillingServiceStack } from "../../billing/infra/stacks/yac.billing.service.stack";
 
 export class YacStage extends Stage {
   constructor(scope: Construct, id: string, props: YacStageProps) {
@@ -52,6 +53,16 @@ export class YacStage extends Stage {
       hostedZone: utilService.hostedZone,
       certificate: utilService.certificate,
       gcmServerKey: utilService.gcmServerKey,
+    });
+
+    new YacBillingServiceStack(this, "YacBillingService", {
+      stackName: `${stackPrefix}-YacBillingService`,
+      environment,
+      stackPrefix,
+      authorizerHandler: authService.authorizerHandler,
+      domainName: utilService.domainName,
+      snsTopics: utilService.snsTopics,
+      stripe: utilService.stripe,
     });
   }
 }
