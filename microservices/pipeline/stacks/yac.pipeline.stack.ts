@@ -30,7 +30,7 @@ export class YacPipelineStack extends Stack {
         commands: [
           "yarn",
           "npx lerna bootstrap",
-          `yarn workspace @yac/util build:${environment}`,
+          `npx lerna build:${environment}:v2`,
           `yarn workspace @yac/pipeline synth:${environment}`,
         ],
         primaryOutputDirectory: "microservices/pipeline/cdk.out",

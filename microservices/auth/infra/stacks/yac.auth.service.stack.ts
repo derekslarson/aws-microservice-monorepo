@@ -39,7 +39,16 @@ export class YacAuthServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: AuthServiceStackProps) {
     super(scope, id, props);
 
-    const { environment, stackPrefix, domainName, hostedZone: hostedZoneData, googleClient, slackClient, snsTopics } = props;
+    const { environment, stackPrefix, domainName, snsTopics } = props;
+
+    const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
+    const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
+    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
+
+    const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`);
+    const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`);
+    const slackClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-id`);
+    const slackClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-secret`);
 
     // SQS Queues
     const snsEventSqsQueue = new SQS.Queue(this, `SnsEventSqsQueue_${id}`);
@@ -79,11 +88,11 @@ export class YacAuthServiceStack extends Stack {
 
     const recordName = environment === Environment.Prod ? "api-v4" : environment === Environment.Dev ? "develop" : stackPrefix;
 
-    const certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, hostedZoneData.certificateArn);
+    const certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn);
 
     const hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, {
-      zoneName: hostedZoneData.name,
-      hostedZoneId: hostedZoneData.id,
+      zoneName: hostedZoneName,
+      hostedZoneId,
     });
 
     const websiteDistribution = new CloudFront.Distribution(this, `IdYacComDistribution_${id}`, {
@@ -92,7 +101,7 @@ export class YacAuthServiceStack extends Stack {
         originRequestPolicy: { originRequestPolicyId: distributionOriginRequestPolicy.originRequestPolicyId },
       },
       certificate,
-      domainNames: [ `${recordName}-assets.${hostedZoneData.name}` ],
+      domainNames: [ `${recordName}-assets.${hostedZoneName}` ],
     });
 
     const authUiCnameRecord = new Route53.CnameRecord(this, `CnameRecord_${id}`, {
@@ -149,11 +158,11 @@ export class YacAuthServiceStack extends Stack {
       CREATE_USER_REQUEST_SNS_TOPIC_ARN: snsTopics.createUserRequest.topicArn,
       AUTH_TABLE_NAME: authTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
-      GOOGLE_CLIENT_ID: googleClient.id,
-      GOOGLE_CLIENT_SECRET: googleClient.secret,
+      GOOGLE_CLIENT_ID: googleClientId,
+      GOOGLE_CLIENT_SECRET: googleClientSecret,
       GOOGLE_CLIENT_REDIRECT_URI: `${api.apiUrl}/oauth2/idpresponse`,
-      SLACK_CLIENT_ID: slackClient.id,
-      SLACK_CLIENT_SECRET: slackClient.secret,
+      SLACK_CLIENT_ID: slackClientId,
+      SLACK_CLIENT_SECRET: slackClientSecret,
       SLACK_CLIENT_REDIRECT_URI: `${api.apiUrl}/oauth2/idpresponse`,
     };
 
@@ -452,22 +461,10 @@ export class YacAuthServiceStack extends Stack {
   }
 }
 
-interface ClientData {
-  id: string;
-  secret: string;
-}
-
 export interface AuthServiceStackProps extends StackProps {
   environment: string;
   stackPrefix: string;
   domainName: ApiGatewayV2.IDomainName;
-  googleClient: ClientData;
-  slackClient: ClientData;
-  hostedZone: {
-    name: string;
-    id: string;
-    certificateArn: string;
-  };
   snsTopics: {
     createUserRequest: SNS.ITopic;
     userCreated: SNS.ITopic;
