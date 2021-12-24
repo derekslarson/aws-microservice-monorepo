@@ -28,28 +28,50 @@ export class YacUtilServiceStack extends Stack {
 
   public secrets: YacUtilServiceSecrets;
 
+  public certificate: ACM.ICertificate;
+
+  public hostedZone: Route53.IHostedZone;
+
+  public googleClient: YacUtilServiceOAuth2Client;
+
+  public slackClient: YacUtilServiceOAuth2Client;
+
+  public gcmServerKey: string;
+
   constructor(scope: Construct, id: string, props: YacUtilServiceProps) {
     super(scope, id, props);
 
     const { environment, stackPrefix } = props;
 
+    this.googleClient = {
+      id: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`),
+      secret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`),
+    };
+
+    this.slackClient = {
+      id: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-id`),
+      secret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-secret`),
+    };
+
+    this.gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/gcm-server-key`);
+
     const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
     const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
     const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
 
-    const certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn);
+    this.certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn);
 
-    const hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, {
+    this.hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, {
       zoneName: hostedZoneName,
       hostedZoneId,
     });
 
     const recordName = environment === Environment.Prod ? "api-v4" : environment === Environment.Dev ? "develop" : stackPrefix;
 
-    this.domainName = new ApiGatewayV2.DomainName(this, `DomainName_${id}`, { domainName: `${recordName}.${hostedZoneName}`, certificate });
+    this.domainName = new ApiGatewayV2.DomainName(this, `DomainName_${id}`, { domainName: `${recordName}.${hostedZoneName}`, certificate: this.certificate });
 
     new Route53.ARecord(this, `ARecord_${id}`, {
-      zone: hostedZone,
+      zone: this.hostedZone,
       recordName,
       target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2DomainProperties(this.domainName.regionalDomainName, this.domainName.regionalHostedZoneId)),
     });
@@ -95,7 +117,6 @@ export class YacUtilServiceStack extends Stack {
       createUserRequest: new SNS.Topic(this, `CreateUserRequestSnsTopic_${id}`, { topicName: `CreateUserRequestSnsTopic_${id}` }),
     };
 
-    // Secret for signing token for use in chunked upload flow (core and chunked-upload services)
     this.secrets = { messageUploadToken: new SecretsManager.Secret(this, `MessageUploadTokenSecret_${id}`) };
 
     const ExportNames = generateExportNames(stackPrefix);
@@ -386,4 +407,9 @@ export interface YacUtilServiceS3Buckets {
 
 export interface YacUtilServiceSecrets {
   messageUploadToken: SecretsManager.Secret;
+}
+
+export interface YacUtilServiceOAuth2Client {
+  id: string;
+  secret: string;
 }

@@ -34,27 +34,9 @@ export class YacNotificationServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacNotificationServiceStackProps) {
     super(scope, id, props);
 
-    const { environment, stackPrefix, domainName, authorizerHandler, snsTopics } = props;
-
-    const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
-    const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
-    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
-
-    const certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn);
-
-    const hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, {
-      zoneName: hostedZoneName,
-      hostedZoneId,
-    });
-
-    const ExportNames = generateExportNames(stackPrefix);
-
-    // Imported SNS Topic ARNs from Util
+    const { environment, stackPrefix, domainName, hostedZone, certificate, gcmServerKey, authorizerHandler, snsTopics } = props;
 
     const pushNotificationFailedSnsTopic = new SNS.Topic(this, `PushNotificationFailedSnsTopic_${id}`, { topicName: `PushNotificationFailedSnsTopic_${id}` });
-
-    // Imported SSM Parameters
-    const gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/gcm-server-key`);
 
     // Databases
     const listenerMappingTable = new DynamoDB.Table(this, `ListenerMappingTable_${id}`, {
@@ -143,7 +125,6 @@ export class YacNotificationServiceStack extends Stack {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       NOTIFICATION_MAPPING_TABLE_NAME: listenerMappingTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
-      JWKS_URL: `https://cognito-idp.${this.region}.amazonaws.com/test/.well-known/jwks.json`,
       USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: snsTopics.userAddedToTeam.topicArn,
       USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: snsTopics.userRemovedFromTeam.topicArn,
       USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: snsTopics.userAddedToGroup.topicArn,
@@ -178,7 +159,7 @@ export class YacNotificationServiceStack extends Stack {
     // WebSocket Lambdas
     const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/connect"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/connect`),
       handler: "connect.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -189,7 +170,7 @@ export class YacNotificationServiceStack extends Stack {
 
     const disconnectHandler = new Lambda.Function(this, `DisconnectHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/disconnect"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/disconnect`),
       handler: "disconnect.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -201,7 +182,7 @@ export class YacNotificationServiceStack extends Stack {
     const webSocketRecordName = environment === Environment.Prod ? "api-v4-ws" : environment === Environment.Dev ? "develop-ws" : `${stackPrefix}-ws`;
 
     // WebSocket API
-    const webSocketDomainName = new ApiGatewayV2.DomainName(this, `WebSocketDomainName_${id}`, { domainName: `${webSocketRecordName}.${hostedZoneName}`, certificate });
+    const webSocketDomainName = new ApiGatewayV2.DomainName(this, `WebSocketDomainName_${id}`, { domainName: `${webSocketRecordName}.${hostedZone.zoneName}`, certificate });
 
     new Route53.ARecord(this, `ARecord_${id}`, {
       zone: hostedZone,
@@ -246,7 +227,7 @@ export class YacNotificationServiceStack extends Stack {
     // HTTP Lambdas
     const registerDeviceHandler = new Lambda.Function(this, `RegisterDeviceHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/registerDevice"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/registerDevice`),
       handler: "registerDevice.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -271,6 +252,8 @@ export class YacNotificationServiceStack extends Stack {
     });
 
     routes.forEach((route) => api.addRoute(route));
+
+    const ExportNames = generateExportNames(stackPrefix);
 
     // PushNotificationFailedSnsTopic ARN Export (to be imported by test stack)
     new CfnOutput(this, `PushNotificationFailedSnsTopicArnExport_${id}`, {
@@ -301,6 +284,9 @@ export interface YacNotificationServiceStackProps extends StackProps {
   stackPrefix: string;
   domainName: ApiGatewayV2.IDomainName;
   authorizerHandler: Lambda.Function;
+  hostedZone: Route53.IHostedZone;
+  certificate: ACM.ICertificate;
+  gcmServerKey: string;
   snsTopics: {
     userCreated: SNS.Topic;
     organizationCreated: SNS.Topic;

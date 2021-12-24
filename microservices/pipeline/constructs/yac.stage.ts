@@ -25,6 +25,10 @@ export class YacStage extends Stage {
       stackPrefix,
       domainName: utilService.domainName,
       snsTopics: utilService.snsTopics,
+      googleClient: utilService.googleClient,
+      slackClient: utilService.slackClient,
+      hostedZone: utilService.hostedZone,
+      certificate: utilService.certificate,
     });
 
     new YacCoreServiceStack(this, "YacCoreService", {
@@ -45,6 +49,9 @@ export class YacStage extends Stage {
       authorizerHandler: authService.authorizerHandler,
       domainName: utilService.domainName,
       snsTopics: utilService.snsTopics,
+      hostedZone: utilService.hostedZone,
+      certificate: utilService.certificate,
+      gcmServerKey: utilService.gcmServerKey,
     });
   }
 }

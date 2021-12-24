@@ -2,7 +2,6 @@ import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util/src/conf
 
 export const envConfig: EnvConfigInterface = {
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
-  jwksUrl: process.env.JWKS_URL || "",
   webSocketApiEndpoint: process.env.WEBSOCKET_API_ENDPOINT || "",
   tableNames: { listenerMapping: process.env.NOTIFICATION_MAPPING_TABLE_NAME || "" },
   bucketNames: {},
@@ -26,7 +25,6 @@ export const envConfig: EnvConfigInterface = {
 };
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
-  jwksUrl: string;
   webSocketApiEndpoint: string;
   tableNames: {
     listenerMapping?: string;
