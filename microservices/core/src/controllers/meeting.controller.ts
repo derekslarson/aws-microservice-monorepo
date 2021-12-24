@@ -209,7 +209,7 @@ export class MeetingController extends BaseController implements MeetingControll
 
       await this.meetingService.removeUserFromMeeting({ meetingId, userId });
 
-      const response: RemoveUserFromMeetingResponse = { message: "User removed from meeting." };
+      const response: RemoveUserFromMeetingResponse = { message: "User removed from meeting!" };
 
       return this.generateSuccessResponse(response);
     } catch (error: unknown) {
