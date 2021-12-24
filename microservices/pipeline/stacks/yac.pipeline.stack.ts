@@ -37,7 +37,7 @@ export class YacPipelineStack extends Stack {
       }),
     });
 
-    pipeline.addStage(new YacStage(this, `YacStage${environment}`, { environment, stackPrefix }));
+    pipeline.addStage(new YacStage(this, `Stage_${stackPrefix}`, { environment, stackPrefix }));
   }
 }
 
