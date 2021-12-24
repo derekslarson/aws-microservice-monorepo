@@ -1,7 +1,7 @@
+/* eslint-disable no-nested-ternary */
 /* eslint-disable no-console */
 /* eslint-disable no-new */
 import {
-  Fn,
   Duration,
   RemovalPolicy,
   CfnOutput,
@@ -16,72 +16,45 @@ import {
   aws_sqs as SQS,
   aws_route53 as Route53,
   aws_route53_targets as Route53Targets,
+  StackProps,
+  aws_certificatemanager as ACM,
+  Stack,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
-import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
-import { RouteProps } from "@yac/util/infra/constructs/http.api";
+import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
 import { WebSocketApi } from "@yac/util/infra/constructs/webSocket.api";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
-export class YacNotificationServiceStack extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
+export class YacNotificationServiceStack extends Stack {
+  constructor(scope: Construct, id: string, props: YacNotificationServiceStackProps) {
     super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as string;
-    const developer = this.node.tryGetContext("developer") as string;
+    const { environment, stackPrefix, domainName, authorizerHandler, snsTopics } = props;
 
-    if (!environment) {
-      throw new Error("'environment' context param required.");
-    }
+    const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
+    const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
+    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
 
-    const stackPrefix = environment === Environment.Local ? developer : environment;
+    const certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn);
+
+    const hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, {
+      zoneName: hostedZoneName,
+      hostedZoneId,
+    });
 
     const ExportNames = generateExportNames(stackPrefix);
 
     // Imported SNS Topic ARNs from Util
-    const userAddedToTeamSnsTopicArn = Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
-    const userRemovedFromTeamSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromTeamSnsTopicArn);
-    const userAddedToGroupSnsTopicArn = Fn.importValue(ExportNames.UserAddedToGroupSnsTopicArn);
-    const userRemovedFromGroupSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromGroupSnsTopicArn);
-    const userAddedToMeetingSnsTopicArn = Fn.importValue(ExportNames.UserAddedToMeetingSnsTopicArn);
-    const userRemovedFromMeetingSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromMeetingSnsTopicArn);
-    const userAddedAsFriendSnsTopicArn = Fn.importValue(ExportNames.UserAddedAsFriendSnsTopicArn);
-    const userRemovedAsFriendSnsTopicArn = Fn.importValue(ExportNames.UserRemovedAsFriendSnsTopicArn);
-    const teamCreatedSnsTopicArn = Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
-    const meetingCreatedSnsTopicArn = Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
-    const groupCreatedSnsTopicArn = Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
-
-    const messageCreatedSnsTopicArn = Fn.importValue(ExportNames.MessageCreatedSnsTopicArn);
-    const messageUpdatedSnsTopicArn = Fn.importValue(ExportNames.MessageUpdatedSnsTopicArn);
-
-    const authorizerHandlerFunctionArn = Fn.importValue(ExportNames.AuthorizerHandlerFunctionArn);
 
     const pushNotificationFailedSnsTopic = new SNS.Topic(this, `PushNotificationFailedSnsTopic_${id}`, { topicName: `PushNotificationFailedSnsTopic_${id}` });
 
     // Imported SSM Parameters
     const gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/gcm-server-key`);
-
-    // Imported User Pool Id from Auth
-    // const userPoolId = Fn.importValue(ExportNames.UserPoolId);
-
-    // SNS Topics
-    const userAddedToTeamSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn);
-    const userRemovedFromTeamSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedFromTeamSnsTopic_${id}`, userRemovedFromTeamSnsTopicArn);
-    const userAddedToGroupSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToGroupSnsTopic_${id}`, userAddedToGroupSnsTopicArn);
-    const userRemovedFromGroupSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedFromGroupSnsTopic_${id}`, userRemovedFromGroupSnsTopicArn);
-    const userAddedToMeetingSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToMeetingSnsTopic_${id}`, userAddedToMeetingSnsTopicArn);
-    const userRemovedFromMeetingSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedFromMeetingSnsTopic_${id}`, userRemovedFromMeetingSnsTopicArn);
-    const userAddedAsFriendSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedAsFriendSnsTopic_${id}`, userAddedAsFriendSnsTopicArn);
-    const userRemovedAsFriendSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedAsFriendSnsTopic_${id}`, userRemovedAsFriendSnsTopicArn);
-    const teamCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `TeamCreatedSnsTopic_${id}`, teamCreatedSnsTopicArn);
-    const groupCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `GroupCreatedSnsTopic_${id}`, groupCreatedSnsTopicArn);
-    const messageCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageCreatedSnsTopic_${id}`, messageCreatedSnsTopicArn);
-    const messageUpdatedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageUpdatedSnsTopic_${id}`, messageUpdatedSnsTopicArn);
 
     // Databases
     const listenerMappingTable = new DynamoDB.Table(this, `ListenerMappingTable_${id}`, {
@@ -171,36 +144,36 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       NOTIFICATION_MAPPING_TABLE_NAME: listenerMappingTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
       JWKS_URL: `https://cognito-idp.${this.region}.amazonaws.com/test/.well-known/jwks.json`,
-      USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: userAddedToTeamSnsTopicArn,
-      USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: userRemovedFromTeamSnsTopicArn,
-      USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: userAddedToGroupSnsTopicArn,
-      USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN: userRemovedFromGroupSnsTopicArn,
-      USER_ADDED_TO_MEETING_SNS_TOPIC_ARN: userAddedToMeetingSnsTopicArn,
-      USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN: userRemovedFromMeetingSnsTopicArn,
-      USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN: userAddedAsFriendSnsTopicArn,
-      USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN: userRemovedAsFriendSnsTopicArn,
-      TEAM_CREATED_SNS_TOPIC_ARN: teamCreatedSnsTopicArn,
-      GROUP_CREATED_SNS_TOPIC_ARN: groupCreatedSnsTopicArn,
-      MESSAGE_CREATED_SNS_TOPIC_ARN: messageCreatedSnsTopicArn,
-      MESSAGE_UPDATED_SNS_TOPIC_ARN: messageUpdatedSnsTopicArn,
-      MEETING_CREATED_SNS_TOPIC_ARN: meetingCreatedSnsTopicArn,
+      USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: snsTopics.userAddedToTeam.topicArn,
+      USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: snsTopics.userRemovedFromTeam.topicArn,
+      USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: snsTopics.userAddedToGroup.topicArn,
+      USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN: snsTopics.userRemovedFromGroup.topicArn,
+      USER_ADDED_TO_MEETING_SNS_TOPIC_ARN: snsTopics.userAddedToMeeting.topicArn,
+      USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN: snsTopics.userRemovedFromMeeting.topicArn,
+      USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN: snsTopics.userAddedAsFriend.topicArn,
+      USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN: snsTopics.userRemovedAsFriend.topicArn,
+      TEAM_CREATED_SNS_TOPIC_ARN: snsTopics.teamCreated.topicArn,
+      GROUP_CREATED_SNS_TOPIC_ARN: snsTopics.groupCreated.topicArn,
+      MESSAGE_CREATED_SNS_TOPIC_ARN: snsTopics.messageCreated.topicArn,
+      MESSAGE_UPDATED_SNS_TOPIC_ARN: snsTopics.messageUpdated.topicArn,
+      MEETING_CREATED_SNS_TOPIC_ARN: snsTopics.meetingCreated.topicArn,
       PLATFORM_APPLICATION_ARN: platformApplicationArn,
     };
 
     // SQS Queues
     const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`);
-    userAddedToTeamSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userRemovedFromTeamSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userAddedToGroupSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userRemovedFromGroupSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userAddedToMeetingSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userRemovedFromMeetingSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userAddedAsFriendSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userRemovedAsFriendSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    teamCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    groupCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    messageCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    messageUpdatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.userAddedToTeam.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.userRemovedFromTeam.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.userAddedToGroup.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.userRemovedFromGroup.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.userAddedToMeeting.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.userRemovedFromMeeting.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.userAddedAsFriend.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.userRemovedAsFriend.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.teamCreated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.groupCreated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.messageCreated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.messageUpdated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // WebSocket Lambdas
     const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
@@ -225,16 +198,16 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       timeout: Duration.seconds(15),
     });
 
+    const webSocketRecordName = environment === Environment.Prod ? "api-v4-ws" : environment === Environment.Dev ? "develop-ws" : `${stackPrefix}-ws`;
+
     // WebSocket API
-    const webSocketDomainName = new ApiGatewayV2.DomainName(this, `WebSocketDomainName_${id}`, { domainName: `${this.webSocketRecordName}.${this.zoneName}`, certificate: this.certificate });
+    const webSocketDomainName = new ApiGatewayV2.DomainName(this, `WebSocketDomainName_${id}`, { domainName: `${webSocketRecordName}.${hostedZoneName}`, certificate });
 
     new Route53.ARecord(this, `ARecord_${id}`, {
-      zone: this.hostedZone,
-      recordName: this.webSocketRecordName,
+      zone: hostedZone,
+      recordName: webSocketRecordName,
       target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2DomainProperties(webSocketDomainName.regionalDomainName, webSocketDomainName.regionalHostedZoneId)),
     });
-
-    const authorizerHandler = Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, authorizerHandlerFunctionArn);
 
     const webSocketApi = new WebSocketApi(this, `WebSocketApi_${id}`, {
       connectRouteOptions: { integration: new ApiGatewayV2Integrations.WebSocketLambdaIntegration(`WebSocketConnectRouteIntegration_${id}`, connectHandler) },
@@ -291,7 +264,13 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       },
     ];
 
-    routes.forEach((route) => this.httpApi.addRoute(route));
+    const api = new HttpApi(this, `HttpApi_${id}`, {
+      serviceName: "notification",
+      domainName,
+      authorizerHandler,
+    });
+
+    routes.forEach((route) => api.addRoute(route));
 
     // PushNotificationFailedSnsTopic ARN Export (to be imported by test stack)
     new CfnOutput(this, `PushNotificationFailedSnsTopicArnExport_${id}`, {
@@ -315,14 +294,40 @@ export class YacNotificationServiceStack extends YacHttpServiceStack {
       stringValue: platformApplicationArn,
     });
   }
+}
 
-  public get webSocketRecordName(): string {
-    try {
-      return `${this.recordName}-ws`;
-    } catch (error) {
-      console.log(`${new Date().toISOString()} : Error in webSocketRecordName recordName getter:\n`, error);
+export interface YacNotificationServiceStackProps extends StackProps {
+  environment: Environment;
+  stackPrefix: string;
+  domainName: ApiGatewayV2.IDomainName;
+  authorizerHandler: Lambda.Function;
+  snsTopics: {
+    userCreated: SNS.Topic;
+    organizationCreated: SNS.Topic;
+    teamCreated: SNS.Topic;
+    meetingCreated: SNS.Topic;
+    groupCreated: SNS.Topic;
 
-      throw error;
-    }
+    userAddedToOrganization: SNS.Topic;
+    userAddedToTeam: SNS.Topic;
+    userAddedToGroup: SNS.Topic;
+    userAddedToMeeting: SNS.Topic;
+    userAddedAsFriend: SNS.Topic;
+
+    userRemovedFromOrganization: SNS.Topic;
+    userRemovedFromTeam: SNS.Topic;
+    userRemovedFromGroup: SNS.Topic;
+    userRemovedFromMeeting: SNS.Topic;
+    userRemovedAsFriend: SNS.Topic;
+
+    messageCreated: SNS.Topic;
+    messageUpdated: SNS.Topic;
+
+    messageTranscoded: SNS.Topic;
+    messageTranscribed: SNS.Topic;
+
+    billingPlanUpdated: SNS.Topic;
+
+    createUserRequest: SNS.Topic;
   }
 }

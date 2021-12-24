@@ -39,8 +39,6 @@ export class YacCoreServiceStack extends Stack {
 
     const { environment, stackPrefix, domainName, authorizerHandler, snsTopics, s3Buckets, secrets } = props;
 
-    // const ExportNames = generateExportNames(stackPrefix);
-
     // S3 Buckets
     const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket_${id}`, { removalPolicy: environment === Environment.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY });
 

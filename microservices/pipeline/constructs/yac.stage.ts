@@ -5,6 +5,7 @@ import { YacUtilServiceStack } from "@yac/util/infra/stacks/yac.util.service.sta
 import { YacAuthServiceStack } from "@yac/auth/infra/stacks/yac.auth.service.stack";
 import { YacCoreServiceStack } from "@yac/core/infra/stacks/yac.core.service.stack";
 import { YacStageProps } from "./yac.stage.props";
+import { YacNotificationServiceStack } from "../../notification/infra/stacks/yac.notification.service.stack";
 
 export class YacStage extends Stage {
   constructor(scope: Construct, id: string, props: YacStageProps) {
@@ -35,6 +36,15 @@ export class YacStage extends Stage {
       snsTopics: utilService.snsTopics,
       s3Buckets: utilService.s3Buckets,
       secrets: utilService.secrets,
+    });
+
+    new YacNotificationServiceStack(this, "YacNotificationService", {
+      stackName: `${stackPrefix}-YacNotificationService`,
+      environment,
+      stackPrefix,
+      authorizerHandler: authService.authorizerHandler,
+      domainName: utilService.domainName,
+      snsTopics: utilService.snsTopics,
     });
   }
 }
