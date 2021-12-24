@@ -7,8 +7,10 @@ import {
   StackProps,
   SecretValue,
   pipelines as Pipelines,
+  aws_codepipeline as CodePipeline,
   aws_codepipeline_actions as CodePipelineActions,
   aws_codebuild as CodeBuild,
+  aws_iam as IAM,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 // import { Environment } from "@yac/util/src/enums/environment.enum";
@@ -21,7 +23,13 @@ export class YacPipelineStack extends Stack {
     const { environment, stackPrefix } = props;
 
     const pipeline = new Pipelines.CodePipeline(this, "Pipeline", {
-      pipelineName: `${stackPrefix}-YacPipeline`,
+      codePipeline: new CodePipeline.Pipeline(this, "BasePipeline", {
+        pipelineName: `${stackPrefix}-Pipeline`,
+        role: new IAM.Role(this, "BasePipelineRole", {
+          assumedBy: new IAM.ServicePrincipal("codepipeline.amazonaws.com"),
+          managedPolicies: [ IAM.ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess") ],
+        }).withoutPolicyUpdates(),
+      }),
       codeBuildDefaults: {
         buildEnvironment: {
           buildImage: CodeBuild.LinuxBuildImage.STANDARD_5_0,

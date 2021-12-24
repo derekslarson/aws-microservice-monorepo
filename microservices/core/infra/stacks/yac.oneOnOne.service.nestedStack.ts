@@ -24,7 +24,7 @@ export class YacOneOnOneServiceNestedStack extends NestedStack {
 
     const createOneOnOnesHandler = new Lambda.Function(this, `CreateOneOnOnes_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/createOneOnOnes`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/createOneOnOnes`),
       handler: "createOneOnOnes.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -35,7 +35,7 @@ export class YacOneOnOneServiceNestedStack extends NestedStack {
 
     const deleteOneOnOneHandler = new Lambda.Function(this, `DeleteOneOnOne_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/deleteOneOnOne`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/deleteOneOnOne`),
       handler: "deleteOneOnOne.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -46,7 +46,7 @@ export class YacOneOnOneServiceNestedStack extends NestedStack {
 
     const getOneOnOnesByUserIdHandler = new Lambda.Function(this, `GetOneOnOnesByUserId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getOneOnOnesByUserId`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getOneOnOnesByUserId`),
       handler: "getOneOnOnesByUserId.handler",
       environment: environmentVariables,
       memorySize: 2048,

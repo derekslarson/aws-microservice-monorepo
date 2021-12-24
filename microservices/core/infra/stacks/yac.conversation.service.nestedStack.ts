@@ -25,7 +25,7 @@ export class YacConversationServiceNestedStack extends NestedStack {
 
     const getOneOnOnesAndGroupsByUserIdHandler = new Lambda.Function(this, `GetOneOnOnesAndGroupsByUserId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getOneOnOnesAndGroupsByUserId`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getOneOnOnesAndGroupsByUserId`),
       handler: "getOneOnOnesAndGroupsByUserId.handler",
       environment: environmentVariables,
       memorySize: 2048,

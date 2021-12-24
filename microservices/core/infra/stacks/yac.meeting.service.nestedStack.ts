@@ -24,7 +24,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
 
     const createMeetingHandler = new Lambda.Function(this, `CreateMeeting_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/createMeeting`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/createMeeting`),
       handler: "createMeeting.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -35,7 +35,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
 
     const updateMeetingHandler = new Lambda.Function(this, `UpdateMeeting${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/updateMeeting`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/updateMeeting`),
       handler: "updateMeeting.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -46,7 +46,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
 
     const getMeetingHandler = new Lambda.Function(this, `GetMeeting_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getMeeting`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getMeeting`),
       handler: "getMeeting.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -57,7 +57,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
 
     const addUsersToMeetingHandler = new Lambda.Function(this, `AddUsersToMeeting_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/addUsersToMeeting`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/addUsersToMeeting`),
       handler: "addUsersToMeeting.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -68,7 +68,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
 
     const removeUserFromMeetingHandler = new Lambda.Function(this, `RemoveUserFromMeeting_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/removeUserFromMeeting`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/removeUserFromMeeting`),
       handler: "removeUserFromMeeting.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -79,7 +79,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
 
     const getMeetingsByUserIdHandler = new Lambda.Function(this, `GetMeetingsByUserId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getMeetingsByUserId`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getMeetingsByUserId`),
       handler: "getMeetingsByUserId.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -90,7 +90,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
 
     const getMeetingsByTeamIdHandler = new Lambda.Function(this, `GetMeetingsByTeamId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getMeetingsByTeamId`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getMeetingsByTeamId`),
       handler: "getMeetingsByTeamId.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -101,7 +101,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
 
     const getMeetingsByOrganizationIdHandler = new Lambda.Function(this, `GetMeetingsByOrganizationId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getMeetingsByOrganizationId`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getMeetingsByOrganizationId`),
       handler: "getMeetingsByOrganizationId.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -112,7 +112,7 @@ export class YacMeetingServiceNestedStack extends NestedStack {
 
     const getMeetingImageUploadUrlHandler = new Lambda.Function(this, `GetMeetingImageUploadUrl_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getMeetingImageUploadUrl`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getMeetingImageUploadUrl`),
       handler: "getMeetingImageUploadUrl.handler",
       environment: environmentVariables,
       memorySize: 2048,
