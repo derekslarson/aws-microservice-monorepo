@@ -5,10 +5,15 @@ import CaseSensitivePathsPlugin from "case-sensitive-paths-webpack-plugin";
 import TerserPlugin from "terser-webpack-plugin";
 import { Configuration, Entry } from "webpack";
 
-console.log(fs.readdirSync("."));
-console.log(fs.readdirSync("./src"));
+function safeReaddirSync(dirPath: string): string[] {
+  try {
+    return fs.readdirSync(dirPath);
+  } catch (error) {
+    return [];
+  }
+}
 
-const handlerFileNames = fs.readdirSync("./src/handlers");
+const handlerFileNames = safeReaddirSync("./src/handlers");
 
 const entryObject: Entry = {};
 handlerFileNames.forEach((fileName) => entryObject[fileName.split(".")[0]] = `./src/handlers/${fileName}`);

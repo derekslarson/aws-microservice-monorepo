@@ -19,30 +19,15 @@
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)"
   },
   "devDependencies": {
-    "@aws-cdk/aws-ec2": "~1.114.0",
-    "@aws-cdk/aws-efs": "~1.114.0",
-    "@aws-cdk/aws-lambda": "~1.114.0",
-    "@aws-cdk/aws-ssm": "~1.114.0",
-    "@aws-cdk/core": "~1.114.0",
+    "@types/aws-lambda": "^8.10.85",
     "@types/node": "10.17.27",
-    "@typescript-eslint/eslint-plugin": "^4.15.2",
-    "@yac/util": "0.1.0",
-    "aws-cdk": "~1.114.0",
-    "case-sensitive-paths-webpack-plugin": "^2.4.0",
-    "eslint": "^7.20.0",
-    "eslint-config-airbnb-typescript": "^11.4.0",
-    "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-promise": "^4.3.1",
-    "ts-loader": "^8.0.17",
-    "ts-node": "^8.1.0",
-    "typescript": "^4.2.2",
-    "webpack": "^5.24.1",
-    "webpack-cli": "^4.5.0"
+    "@types/node-jose": "^1.1.8",
+    "@aws-cdk/aws-apigatewayv2-alpha": "^2.2.0-alpha.0",
+    "aws-cdk": "2.2.0",
+    "aws-cdk-lib": "~2.2.0",
+    "constructs": "^10.0.13"
   },
   "dependencies": {
-    "@types/crypto-js": "^4.0.2",
-    "aws-sdk": "^2.783.0",
-    "crypto-js": "^4.1.1",
-    "rmfr": "^2.0.0"
+    "aws-sdk": "^2.783.0"
   }
 }
