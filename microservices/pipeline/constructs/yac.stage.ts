@@ -11,7 +11,7 @@ export class YacStage extends Stage {
 
     const { environment, stackPrefix } = props;
 
-    new YacUtilServiceStack(this, `${stackPrefix}-YacUtilServiceStack`, {
+    new YacUtilServiceStack(this, "YacUtilService", {
       environment,
       stackPrefix,
     });
