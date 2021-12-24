@@ -39,17 +39,4 @@ new YacAuthServiceStack(app, stackId, {
     userCreated: SNS.Topic.fromTopicArn(app, `UserCreatedSnsTopic_${stackId}`, Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn)),
     createUserRequest: SNS.Topic.fromTopicArn(app, `CreateUserRequestSnsTopic_${stackId}`, Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn)),
   },
-  googleClient: {
-    id: SSM.StringParameter.valueForStringParameter(app, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`),
-    secret: SSM.StringParameter.valueForStringParameter(app, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`),
-  },
-  slackClient: {
-    id: SSM.StringParameter.valueForStringParameter(app, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-id`),
-    secret: SSM.StringParameter.valueForStringParameter(app, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-secret`),
-  },
-  hostedZone: {
-    name: SSM.StringParameter.valueForStringParameter(app, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`),
-    id: SSM.StringParameter.valueForStringParameter(app, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`),
-    certificateArn: SSM.StringParameter.valueForStringParameter(app, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`),
-  },
 });

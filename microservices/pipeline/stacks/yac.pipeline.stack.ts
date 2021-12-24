@@ -21,7 +21,6 @@ export class YacPipelineStack extends Stack {
     // const branch = environment === Environment.Prod ? "master" : "develop";
 
     const pipeline = new Pipelines.CodePipeline(this, `Pipeline_${id}`, {
-      selfMutation: false,
       synth: new Pipelines.ShellStep(`Synth_${id}`, {
         input: Pipelines.CodePipelineSource.gitHub("Yac-Team/yac-api-v4", "feature/new-pipeline", {
           authentication: SecretValue.secretsManager("yac-api-v4/github-oauth-token", { jsonField: "github-oauth-token" }),
@@ -30,7 +29,7 @@ export class YacPipelineStack extends Stack {
         commands: [
           "yarn",
           "npx lerna bootstrap",
-          `npx lerna build:${environment}:v2`,
+          `npx lerna run build:${environment}:v2`,
           `yarn workspace @yac/pipeline synth:${environment}`,
         ],
         primaryOutputDirectory: "microservices/pipeline/cdk.out",

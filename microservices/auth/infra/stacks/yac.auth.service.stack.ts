@@ -111,7 +111,7 @@ export class YacAuthServiceStack extends Stack {
     });
 
     new S3Deployment.BucketDeployment(this, `IdYacComDeployment_${id}`, {
-      sources: [ S3Deployment.Source.asset("ui/build") ],
+      sources: [ S3Deployment.Source.asset(`${__dirname}/../../ui/build`) ],
       destinationBucket: websiteBucket,
     });
 
@@ -169,7 +169,7 @@ export class YacAuthServiceStack extends Stack {
     // Handlers
     new Lambda.Function(this, `AuthTableEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/authTableEvent"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/authTableEvent`),
       handler: "authTableEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -183,7 +183,7 @@ export class YacAuthServiceStack extends Stack {
 
     new Lambda.Function(this, `SqsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sqsEvent`),
       handler: "sqsEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -197,7 +197,7 @@ export class YacAuthServiceStack extends Stack {
 
     this.authorizerHandler = new Lambda.Function(this, `AuthorizerHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/authorizer"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/authorizer`),
       handler: "authorizer.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -211,7 +211,7 @@ export class YacAuthServiceStack extends Stack {
 
     const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/login"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/login`),
       handler: "login.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -222,7 +222,7 @@ export class YacAuthServiceStack extends Stack {
 
     const loginViaExternalProviderHandler = new Lambda.Function(this, `LoginViaExternalProviderHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/loginViaExternalProvider"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/loginViaExternalProvider`),
       handler: "loginViaExternalProvider.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -233,7 +233,7 @@ export class YacAuthServiceStack extends Stack {
 
     const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/confirm"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/confirm`),
       handler: "confirm.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -244,7 +244,7 @@ export class YacAuthServiceStack extends Stack {
 
     const createClientHandler = new Lambda.Function(this, `CreateClientHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/createClient"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/createClient`),
       handler: "createClient.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -255,7 +255,7 @@ export class YacAuthServiceStack extends Stack {
 
     const oauth2AuthorizeHandler = new Lambda.Function(this, `Oauth2AuthorizeHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/oauth2Authorize"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/oauth2Authorize`),
       handler: "oauth2Authorize.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -266,7 +266,7 @@ export class YacAuthServiceStack extends Stack {
 
     const oauth2TokenHandler = new Lambda.Function(this, `Oauth2TokenHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/oauth2Token"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/oauth2Token`),
       handler: "oauth2Token.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -277,7 +277,7 @@ export class YacAuthServiceStack extends Stack {
 
     const oauth2RevokeHandler = new Lambda.Function(this, `Oauth2RevokeHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/oauth2Revoke"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/oauth2Revoke`),
       handler: "oauth2Revoke.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -288,7 +288,7 @@ export class YacAuthServiceStack extends Stack {
 
     const oauth2UserInfoHandler = new Lambda.Function(this, `Oauth2UserInfoHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/oauth2UserInfo"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/oauth2UserInfo`),
       handler: "oauth2UserInfo.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -299,7 +299,7 @@ export class YacAuthServiceStack extends Stack {
 
     const oauth2IdpResponseHandler = new Lambda.Function(this, `Oauth2IdpResponseHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/oauth2IdpResponse"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/oauth2IdpResponse`),
       handler: "oauth2IdpResponse.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -310,7 +310,7 @@ export class YacAuthServiceStack extends Stack {
 
     const getPublicJwksHandler = new Lambda.Function(this, `GetPublicJwksHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getPublicJwks"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getPublicJwks`),
       handler: "getPublicJwks.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -321,7 +321,7 @@ export class YacAuthServiceStack extends Stack {
 
     const rotateJwksHandler = new Lambda.Function(this, `RotateJwksHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/rotateJwks"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/rotateJwks`),
       handler: "rotateJwks.handler",
       environment: environmentVariables,
       memorySize: 2048,

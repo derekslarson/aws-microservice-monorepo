@@ -144,7 +144,7 @@
     "@aws-cdk/custom-resources" "1.114.0"
     constructs "^3.3.69"
 
-"@aws-cdk/aws-ec2@1.114.0", "@aws-cdk/aws-ec2@~1.114.0":
+"@aws-cdk/aws-ec2@1.114.0":
   version "1.114.0"
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-ec2/-/aws-ec2-1.114.0.tgz#97c2254c26d1b2ef401c23dd03c50f873c2695ff"
   integrity sha512-w0LH2/i7+MEB/7CMpQDmSfS1M8kiedjll13pjXaQMgdpaX9t1/Mmbfu2VAffDn89lTy0jB+W2JKPapBoZUI6lQ==
@@ -186,7 +186,7 @@
     "@aws-cdk/core" "1.114.0"
     constructs "^3.3.69"
 
-"@aws-cdk/aws-efs@1.114.0", "@aws-cdk/aws-efs@~1.114.0":
+"@aws-cdk/aws-efs@1.114.0":
   version "1.114.0"
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-efs/-/aws-efs-1.114.0.tgz#1d741e5a3c4bb019c4e456571ed378910ff07b38"
   integrity sha512-2ByRCNtj9GB3Sh6gxRFFze7SEizsa/96LlWhKS+hKWKBUBR0gV2yv9G7W914oFLOtNasaVcIapkigImmOtvgmA==
@@ -3260,11 +3260,6 @@
   integrity sha512-1bk/krfgJ2bVPUusnmvWHg8Xwr/4I29yFxvZBFi5FZOshQzfcZ7XdutFHpYMs1w5RD319pjJbDk7J2ibWSW6QQ==
   dependencies:
     "@types/webpack" "^4"
-
-"@types/crypto-js@^4.0.2":
-  version "4.0.2"
-  resolved "https://registry.yarnpkg.com/@types/crypto-js/-/crypto-js-4.0.2.tgz#4524325a175bf819fec6e42560c389ce1fb92c97"
-  integrity sha512-sCVniU+h3GcGqxOmng11BRvf9TfN9yIs8KKjB8C8d75W69cpTfZG80gau9yTx5SxF3gvHGbJhdESzzvnjtf3Og==
 
 "@types/elasticsearch@^5.0.37":
   version "5.0.38"
@@ -6349,11 +6344,6 @@ crypto-browserify@^3.11.0:
     public-encrypt "^4.0.0"
     randombytes "^2.0.0"
     randomfill "^1.0.3"
-
-crypto-js@^4.1.1:
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/crypto-js/-/crypto-js-4.1.1.tgz#9e485bcf03521041bd85844786b83fb7619736cf"
-  integrity sha512-o2JlM7ydqd3Qk9CA0L4NL6mTzU2sdx96a+oOfPu8Mkl/PK51vSyoi8/rQ8NknZtk44vq15lmhAj9CIAGwgeWKw==
 
 crypto-secure-random-digit@^1.0.9:
   version "1.0.9"
