@@ -5,6 +5,9 @@ import CaseSensitivePathsPlugin from "case-sensitive-paths-webpack-plugin";
 import TerserPlugin from "terser-webpack-plugin";
 import { Configuration, Entry } from "webpack";
 
+console.log(fs.readdirSync("."));
+console.log(fs.readdirSync("./src"));
+
 const handlerFileNames = fs.readdirSync("./src/handlers");
 
 const entryObject: Entry = {};

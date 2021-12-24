@@ -4,7 +4,7 @@
   "scripts": {
     "build:local": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --bail --config ../../config/webpack/webpack.config.ts",
     "build:dev": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --bail --config ../../config/webpack/webpack.config.ts",
-    "build:stage": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --bail --config ../../config/webpack/webpack.config.ts",
+    "build:stage": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --env service=util --bail --config ../../config/webpack/webpack.config.ts",
     "build:prod": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --bail --config ../../config/webpack/webpack.config.ts",
     "build:unit-tests": "yarn clean:unit-tests && tsc --project tsconfig.test.json",
     "clean": "rm -rf ./dist",

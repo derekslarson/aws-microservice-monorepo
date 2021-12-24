@@ -9,7 +9,7 @@ import {
   aws_codepipeline_actions as CodePipelineActions,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { Environment } from "@yac/util/src/enums/environment.enum";
+// import { Environment } from "@yac/util/src/enums/environment.enum";
 import { YacStage } from "../constructs/yac.stage";
 
 export class YacPipelineStack extends Stack {
@@ -18,12 +18,12 @@ export class YacPipelineStack extends Stack {
 
     const { environment, stackPrefix } = props;
 
-    const branch = environment === Environment.Prod ? "master" : "develop";
+    // const branch = environment === Environment.Prod ? "master" : "develop";
 
     const pipeline = new Pipelines.CodePipeline(this, `Pipeline_${id}`, {
       selfMutation: false,
       synth: new Pipelines.ShellStep(`Synth_${id}`, {
-        input: Pipelines.CodePipelineSource.gitHub("Yac-Team/yac-api-v4", branch, {
+        input: Pipelines.CodePipelineSource.gitHub("Yac-Team/yac-api-v4", "feature/new-pipeline", {
           authentication: SecretValue.secretsManager("yac-api-v4/github-oauth-token", { jsonField: "github-oauth-token" }),
           trigger: CodePipelineActions.GitHubTrigger.NONE,
         }),
