@@ -1,8 +1,9 @@
 /* eslint-disable no-new */
 import {
-  Fn,
   RemovalPolicy,
   Duration,
+  Stack,
+  StackProps,
   aws_ssm as SSM,
   aws_sns as SNS,
   aws_sns_subscriptions as SnsSubscriptions,
@@ -17,10 +18,11 @@ import {
   aws_opensearchservice as OpenSearch,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Environment } from "@yac/util/src/enums/environment.enum";
-import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+// import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
+import { HttpApi } from "@yac/util/infra/constructs/http.api";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 import { YacUserServiceNestedStack } from "./yac.user.service.nestedStack";
 import { YacOrganizationServiceNestedStack } from "./yac.organization.service.nestedStack";
@@ -31,74 +33,16 @@ import { YacOneOnOneServiceNestedStack } from "./yac.oneOnOne.service.nestedStac
 import { YacMessageServiceNestedStack } from "./yac.message.service.nestedStack";
 import { YacConversationServiceNestedStack } from "./yac.conversation.service.nestedStack";
 
-export class YacCoreServiceStack extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
+export class YacCoreServiceStack extends Stack {
+  constructor(scope: Construct, id: string, props: YacCoreServiceStackProps) {
     super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as Environment | undefined;
-    const developer = this.node.tryGetContext("developer") as string;
+    const { environment, stackPrefix, domainName, authorizerHandler, snsTopics, s3Buckets, secrets } = props;
 
-    if (!environment) {
-      throw new Error("'environment' context param required.");
-    }
-
-    if (!Object.values(Environment).includes(environment)) {
-      throw new Error("'environment' context param malformed.");
-    }
-
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-
-    const ExportNames = generateExportNames(stackPrefix);
-
-    // SNS Topic ARN Imports from Util
-    const userCreatedSnsTopicArn = Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
-    const organizationCreatedSnsTopicArn = Fn.importValue(ExportNames.OrganizationCreatedSnsTopicArn);
-    const teamCreatedSnsTopicArn = Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
-    const meetingCreatedSnsTopicArn = Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
-    const groupCreatedSnsTopicArn = Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
-
-    const userAddedToOrganizationSnsTopicArn = Fn.importValue(ExportNames.UserAddedToOrganizationSnsTopicArn);
-    const userAddedToTeamSnsTopicArn = Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
-    const userAddedToGroupSnsTopicArn = Fn.importValue(ExportNames.UserAddedToGroupSnsTopicArn);
-    const userAddedToMeetingSnsTopicArn = Fn.importValue(ExportNames.UserAddedToMeetingSnsTopicArn);
-    const userAddedAsFriendSnsTopicArn = Fn.importValue(ExportNames.UserAddedAsFriendSnsTopicArn);
-
-    const userRemovedFromOrganizationSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromOrganizationSnsTopicArn);
-    const userRemovedFromTeamSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromTeamSnsTopicArn);
-    const userRemovedFromGroupSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromGroupSnsTopicArn);
-    const userRemovedFromMeetingSnsTopicArn = Fn.importValue(ExportNames.UserRemovedFromMeetingSnsTopicArn);
-    const userRemovedAsFriendSnsTopicArn = Fn.importValue(ExportNames.UserRemovedAsFriendSnsTopicArn);
-
-    const messageCreatedSnsTopicArn = Fn.importValue(ExportNames.MessageCreatedSnsTopicArn);
-    const messageUpdatedSnsTopicArn = Fn.importValue(ExportNames.MessageUpdatedSnsTopicArn);
-
-    const messageTranscodedSnsTopicArn = Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
-    const messageTranscribedSnsTopicArn = Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn);
-
-    const createUserRequestSnsTopicArn = Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn);
-
-    const billingPlanUpdatedSnsTopicArn = Fn.importValue(ExportNames.BillingPlanUpdatedSnsTopicArn);
-
-    // Secret imports from Util
-    const messageUploadTokenSecretArn = Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
-
-    // S3 Bucket ARN Imports from Util
-    const rawMessageS3BucketArn = Fn.importValue(ExportNames.RawMessageS3BucketArn);
-    const enhancedMessageS3BucketArn = Fn.importValue(ExportNames.EnhancedMessageS3BucketArn);
+    // const ExportNames = generateExportNames(stackPrefix);
 
     // S3 Buckets
-    const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `RawMessageS3Bucket_${id}`, rawMessageS3BucketArn);
-    const enhancedMessageS3Bucket = S3.Bucket.fromBucketArn(this, `EnhancedMessageS3Bucket_${id}`, enhancedMessageS3BucketArn);
-    const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket-${id}`, { ...(environment !== Environment.Prod && { removalPolicy: RemovalPolicy.DESTROY }) });
-
-    // SNS Topics
-    const messageTranscodedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn);
-    const messageTranscribedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscribedSnsTopic_${id}`, messageTranscribedSnsTopicArn);
-    const userCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `UserCreatedSnsTopic_${id}`, userCreatedSnsTopicArn);
-    const billingPlanUpdatedSnsTopic = SNS.Topic.fromTopicArn(this, `BillingPlanUpdatedSnsTopic_${id}`, billingPlanUpdatedSnsTopicArn);
-
-    // Secrets
-    const messageUploadTokenSecret = SecretsManager.Secret.fromSecretCompleteArn(this, `MessageUploadTokenSecret_${id}`, messageUploadTokenSecretArn);
+    const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket_${id}`, { removalPolicy: environment === Environment.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY });
 
     // Databases
     const coreTable = new DynamoDB.Table(this, `CoreTable_${id}`, {
@@ -162,12 +106,12 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     const rawMessageS3BucketFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "s3:*" ],
-      resources: [ rawMessageS3Bucket.bucketArn, `${rawMessageS3Bucket.bucketArn}/*` ],
+      resources: [ s3Buckets.rawMessage.bucketArn, `${s3Buckets.rawMessage.bucketArn}/*` ],
     });
 
     const enhancedMessageS3BucketFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "s3:*" ],
-      resources: [ enhancedMessageS3Bucket.bucketArn, `${enhancedMessageS3Bucket.bucketArn}/*` ],
+      resources: [ s3Buckets.enhancedMessage.bucketArn, `${s3Buckets.enhancedMessage.bucketArn}/*` ],
     });
 
     const imageS3BucketFullAccessPolicyStatement = new IAM.PolicyStatement({
@@ -182,97 +126,97 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
 
     const userCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userCreatedSnsTopicArn ],
+      resources: [ snsTopics.userCreated.topicArn ],
     });
 
     const organizationCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ organizationCreatedSnsTopicArn ],
+      resources: [ snsTopics.organizationCreated.topicArn ],
     });
 
     const teamCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ teamCreatedSnsTopicArn ],
+      resources: [ snsTopics.teamCreated.topicArn ],
     });
 
     const groupCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ groupCreatedSnsTopicArn ],
+      resources: [ snsTopics.groupCreated.topicArn ],
     });
 
     const meetingCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ meetingCreatedSnsTopicArn ],
+      resources: [ snsTopics.meetingCreated.topicArn ],
     });
 
     const userAddedToOrganizationSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userAddedToOrganizationSnsTopicArn ],
+      resources: [ snsTopics.userAddedToOrganization.topicArn ],
     });
 
     const userAddedToTeamSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userAddedToTeamSnsTopicArn ],
+      resources: [ snsTopics.userAddedToTeam.topicArn ],
     });
 
     const userAddedToGroupSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userAddedToGroupSnsTopicArn ],
+      resources: [ snsTopics.userAddedToGroup.topicArn ],
     });
 
     const userAddedToMeetingSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userAddedToMeetingSnsTopicArn ],
+      resources: [ snsTopics.userAddedToMeeting.topicArn ],
     });
 
     const userAddedAsFriendSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userAddedAsFriendSnsTopicArn ],
+      resources: [ snsTopics.userAddedAsFriend.topicArn ],
     });
 
     const userRemovedFromOrganizationSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userRemovedFromOrganizationSnsTopicArn ],
+      resources: [ snsTopics.userRemovedFromOrganization.topicArn ],
     });
 
     const userRemovedFromTeamSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userRemovedFromTeamSnsTopicArn ],
+      resources: [ snsTopics.userRemovedFromTeam.topicArn ],
     });
 
     const userRemovedFromGroupSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userRemovedFromGroupSnsTopicArn ],
+      resources: [ snsTopics.userRemovedFromGroup.topicArn ],
     });
 
     const userRemovedFromMeetingSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userRemovedFromMeetingSnsTopicArn ],
+      resources: [ snsTopics.userRemovedFromMeeting.topicArn ],
     });
 
     const userRemovedAsFriendSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userRemovedAsFriendSnsTopicArn ],
+      resources: [ snsTopics.userRemovedAsFriend.topicArn ],
     });
 
     const messageCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ messageCreatedSnsTopicArn ],
+      resources: [ snsTopics.messageCreated.topicArn ],
     });
 
     const messageUpdatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ messageUpdatedSnsTopicArn ],
+      resources: [ snsTopics.messageUpdated.topicArn ],
     });
 
     const createUserRequestSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ createUserRequestSnsTopicArn ],
+      resources: [ snsTopics.createUserRequest.topicArn ],
     });
 
     const getMessageUploadTokenSecretPolicyStatement = new IAM.PolicyStatement({
       actions: [ "secretsmanager:GetSecretValue" ],
-      resources: [ messageUploadTokenSecret.secretArn ],
+      resources: [ secrets.messageUploadToken.secretArn ],
     });
 
     // Environment Variables
@@ -283,47 +227,47 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       GSI_TWO_INDEX_NAME: GlobalSecondaryIndex.Two,
       GSI_THREE_INDEX_NAME: GlobalSecondaryIndex.Three,
 
-      USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
-      ORGANIZATION_CREATED_SNS_TOPIC_ARN: organizationCreatedSnsTopicArn,
-      TEAM_CREATED_SNS_TOPIC_ARN: teamCreatedSnsTopicArn,
-      GROUP_CREATED_SNS_TOPIC_ARN: groupCreatedSnsTopicArn,
-      MEETING_CREATED_SNS_TOPIC_ARN: meetingCreatedSnsTopicArn,
+      USER_CREATED_SNS_TOPIC_ARN: snsTopics.userCreated.topicArn,
+      ORGANIZATION_CREATED_SNS_TOPIC_ARN: snsTopics.organizationCreated.topicArn,
+      TEAM_CREATED_SNS_TOPIC_ARN: snsTopics.teamCreated.topicArn,
+      GROUP_CREATED_SNS_TOPIC_ARN: snsTopics.groupCreated.topicArn,
+      MEETING_CREATED_SNS_TOPIC_ARN: snsTopics.meetingCreated.topicArn,
 
-      USER_ADDED_TO_ORGANIZATION_SNS_TOPIC_ARN: userAddedToOrganizationSnsTopicArn,
-      USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: userAddedToTeamSnsTopicArn,
-      USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: userAddedToGroupSnsTopicArn,
-      USER_ADDED_TO_MEETING_SNS_TOPIC_ARN: userAddedToMeetingSnsTopicArn,
-      USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN: userAddedAsFriendSnsTopicArn,
+      USER_ADDED_TO_ORGANIZATION_SNS_TOPIC_ARN: snsTopics.userAddedToOrganization.topicArn,
+      USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: snsTopics.userAddedToTeam.topicArn,
+      USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: snsTopics.userAddedToGroup.topicArn,
+      USER_ADDED_TO_MEETING_SNS_TOPIC_ARN: snsTopics.userAddedToMeeting.topicArn,
+      USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN: snsTopics.userAddedAsFriend.topicArn,
 
-      USER_REMOVED_FROM_ORGANIZATION_SNS_TOPIC_ARN: userRemovedFromOrganizationSnsTopicArn,
-      USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: userRemovedFromTeamSnsTopicArn,
-      USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN: userRemovedFromGroupSnsTopicArn,
-      USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN: userRemovedFromMeetingSnsTopicArn,
-      USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN: userRemovedAsFriendSnsTopicArn,
+      USER_REMOVED_FROM_ORGANIZATION_SNS_TOPIC_ARN: snsTopics.userRemovedFromOrganization.topicArn,
+      USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: snsTopics.userRemovedFromTeam.topicArn,
+      USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN: snsTopics.userRemovedFromGroup.topicArn,
+      USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN: snsTopics.userRemovedFromMeeting.topicArn,
+      USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN: snsTopics.userRemovedAsFriend.topicArn,
 
-      MESSAGE_CREATED_SNS_TOPIC_ARN: messageCreatedSnsTopicArn,
-      MESSAGE_UPDATED_SNS_TOPIC_ARN: messageUpdatedSnsTopicArn,
-      MESSAGE_TRANSCODED_SNS_TOPIC_ARN: messageTranscodedSnsTopicArn,
-      MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN: messageTranscribedSnsTopicArn,
+      MESSAGE_CREATED_SNS_TOPIC_ARN: snsTopics.messageCreated.topicArn,
+      MESSAGE_UPDATED_SNS_TOPIC_ARN: snsTopics.messageUpdated.topicArn,
+      MESSAGE_TRANSCODED_SNS_TOPIC_ARN: snsTopics.messageTranscoded.topicArn,
+      MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN: snsTopics.messageTranscribed.topicArn,
 
-      CREATE_USER_REQUEST_SNS_TOPIC_ARN: createUserRequestSnsTopicArn,
+      CREATE_USER_REQUEST_SNS_TOPIC_ARN: snsTopics.createUserRequest.topicArn,
 
-      BILLING_PLAN_UPDATED_SNS_TOPIC_ARN: billingPlanUpdatedSnsTopicArn,
+      BILLING_PLAN_UPDATED_SNS_TOPIC_ARN: snsTopics.billingPlanUpdated.topicArn,
 
-      RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
-      ENHANCED_MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,
+      RAW_MESSAGE_S3_BUCKET_NAME: s3Buckets.rawMessage.bucketName,
+      ENHANCED_MESSAGE_S3_BUCKET_NAME: s3Buckets.enhancedMessage.bucketName,
       IMAGE_S3_BUCKET_NAME: imageS3Bucket.bucketName,
 
       OPEN_SEARCH_DOMAIN_ENDPOINT: openSearchDomain.domainEndpoint,
-      MESSAGE_UPLOAD_TOKEN_SECRET_ID: messageUploadTokenSecret.secretArn,
+      MESSAGE_UPLOAD_TOKEN_SECRET_ID: secrets.messageUploadToken.secretArn,
     };
 
     // SQS Queues
     const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`);
-    messageTranscodedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    messageTranscribedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    userCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    billingPlanUpdatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.messageTranscoded.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.messageTranscribed.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.userCreated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.billingPlanUpdated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Dynamo Stream Handler
     new Lambda.Function(this, `CoreTableEventHandler_${id}`, {
@@ -392,7 +336,14 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       ],
     });
 
+    const api = new HttpApi(this, `HttpApi_${id}`, {
+      serviceName: "core",
+      domainName,
+      authorizerHandler,
+    });
+
     new YacUserServiceNestedStack(this, `YacUserServiceNestedStack_${id}`, {
+      api,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -400,6 +351,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacOrganizationServiceNestedStack(this, `YacOrganizationServiceNestedStack_${id}`, {
+      api,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -407,6 +359,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacTeamServiceNestedStack(this, `YacTeamServiceNestedStack_${id}`, {
+      api,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -414,6 +367,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacGroupServiceNestedStack(this, `YacGroupServiceNestedStack_${id}`, {
+      api,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -421,6 +375,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacMeetingServiceNestedStack(this, `YacMeetingServiceNestedStack_${id}`, {
+      api,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -429,6 +384,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacOneOnOneServiceNestedStack(this, `YacOneOnOneServiceNestedStack_${id}`, {
+      api,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -437,6 +393,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacMessageServiceNestedStack(this, `YacMessageServiceNestedStack_${id}`, {
+      api,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -448,6 +405,7 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
     });
 
     new YacConversationServiceNestedStack(this, `YacConversationServiceNestedStack_${id}`, {
+      api,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -465,5 +423,48 @@ export class YacCoreServiceStack extends YacHttpServiceStack {
       parameterName: `/yac-api-v4/${stackPrefix}/image-s3-bucket-name`,
       stringValue: imageS3Bucket.bucketName,
     });
+  }
+}
+
+export interface YacCoreServiceStackProps extends StackProps {
+  environment: Environment;
+  stackPrefix: string;
+  domainName: ApiGatewayV2.IDomainName;
+  authorizerHandler: Lambda.Function;
+  secrets: {
+    messageUploadToken: SecretsManager.Secret;
+  };
+  s3Buckets: {
+    rawMessage: S3.Bucket;
+    enhancedMessage: S3.Bucket;
+  };
+  snsTopics: {
+    userCreated: SNS.Topic;
+    organizationCreated: SNS.Topic;
+    teamCreated: SNS.Topic;
+    meetingCreated: SNS.Topic;
+    groupCreated: SNS.Topic;
+
+    userAddedToOrganization: SNS.Topic;
+    userAddedToTeam: SNS.Topic;
+    userAddedToGroup: SNS.Topic;
+    userAddedToMeeting: SNS.Topic;
+    userAddedAsFriend: SNS.Topic;
+
+    userRemovedFromOrganization: SNS.Topic;
+    userRemovedFromTeam: SNS.Topic;
+    userRemovedFromGroup: SNS.Topic;
+    userRemovedFromMeeting: SNS.Topic;
+    userRemovedAsFriend: SNS.Topic;
+
+    messageCreated: SNS.Topic;
+    messageUpdated: SNS.Topic;
+
+    messageTranscoded: SNS.Topic;
+    messageTranscribed: SNS.Topic;
+
+    billingPlanUpdated: SNS.Topic;
+
+    createUserRequest: SNS.Topic;
   }
 }

@@ -36,7 +36,7 @@ import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum"
 export class YacAuthServiceStack extends Stack {
   public authorizerHandler: Lambda.Function;
 
-  constructor(scope: Construct, id: string, props: AuthServiceStackProps) {
+  constructor(scope: Construct, id: string, props: YacAuthServiceStackProps) {
     super(scope, id, props);
 
     const { environment, stackPrefix, domainName, snsTopics } = props;
@@ -461,8 +461,8 @@ export class YacAuthServiceStack extends Stack {
   }
 }
 
-export interface AuthServiceStackProps extends StackProps {
-  environment: string;
+export interface YacAuthServiceStackProps extends StackProps {
+  environment: Environment;
   stackPrefix: string;
   domainName: ApiGatewayV2.IDomainName;
   snsTopics: {

@@ -1,19 +1,20 @@
 import {
   Duration,
+  Stack,
   NestedStack,
   aws_lambda as Lambda,
   aws_iam as IAM,
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
-import { YacHttpServiceStack } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
 export class YacOneOnOneServiceNestedStack extends NestedStack {
-  constructor(scope: YacHttpServiceStack, id: string, props: YacOneOnOneServiceNestedStackProps) {
+  constructor(scope: Stack, id: string, props: YacOneOnOneServiceNestedStackProps) {
     super(scope, id, props);
 
     const {
+      api,
       environmentVariables,
       basePolicy,
       coreTableFullAccessPolicyStatement,
@@ -75,7 +76,7 @@ export class YacOneOnOneServiceNestedStack extends NestedStack {
       },
     ];
 
-    routes.forEach((route) => scope.httpApi.addRoute(route));
+    routes.forEach((route) => api.addRoute(route));
   }
 }
 

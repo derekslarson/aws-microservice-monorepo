@@ -22,13 +22,13 @@ import { Environment } from "../../src/enums/environment.enum";
 export class YacUtilServiceStack extends Stack {
   public domainName: ApiGatewayV2.DomainName;
 
-  public snsTopics: UtilServiceSnsTopics;
+  public snsTopics: YacUtilServiceSnsTopics;
 
-  public s3Buckets: UtilServiceS3Buckets;
+  public s3Buckets: YacUtilServiceS3Buckets;
 
-  public secrets: UtilServiceSecrets;
+  public secrets: YacUtilServiceSecrets;
 
-  constructor(scope: Construct, id: string, props: UtilServiceProps) {
+  constructor(scope: Construct, id: string, props: YacUtilServiceProps) {
     super(scope, id, props);
 
     const { environment, stackPrefix } = props;
@@ -344,12 +344,12 @@ export class YacUtilServiceStack extends Stack {
   }
 }
 
-export interface UtilServiceProps extends StackProps {
-  environment: string;
+export interface YacUtilServiceProps extends StackProps {
+  environment: Environment;
   stackPrefix: string;
 }
 
-export interface UtilServiceSnsTopics {
+export interface YacUtilServiceSnsTopics {
   userCreated: SNS.Topic;
   organizationCreated: SNS.Topic;
   teamCreated: SNS.Topic;
@@ -379,11 +379,11 @@ export interface UtilServiceSnsTopics {
   createUserRequest: SNS.Topic;
 }
 
-export interface UtilServiceS3Buckets {
+export interface YacUtilServiceS3Buckets {
   rawMessage: S3.Bucket;
   enhancedMessage: S3.Bucket;
 }
 
-export interface UtilServiceSecrets {
+export interface YacUtilServiceSecrets {
   messageUploadToken: SecretsManager.Secret;
 }

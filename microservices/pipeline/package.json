@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@yac/util": "0.1.0",
-    "@yac/auth": "0.1.0"
+    "@yac/auth": "0.1.0",
+    "@yac/core": "0.1.0"
   }
 }

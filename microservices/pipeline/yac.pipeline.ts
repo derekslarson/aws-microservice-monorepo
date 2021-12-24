@@ -5,11 +5,13 @@ import { YacPipelineStack } from "./stacks/yac.pipeline.stack";
 
 const app = new App();
 
-const environment = app.node.tryGetContext("environment") as string;
+const environment = app.node.tryGetContext("environment") as Environment;
 const developer = app.node.tryGetContext("developer") as string;
 
 if (!environment) {
   throw new Error("'environment' context param required.");
+} else if (!Object.values(Environment).includes(environment)) {
+  throw new Error("'environment' context param malformed.");
 } else if (environment === Environment.Local && !developer) {
   throw new Error("'developer' context param required when 'environment' === 'local'.");
 }

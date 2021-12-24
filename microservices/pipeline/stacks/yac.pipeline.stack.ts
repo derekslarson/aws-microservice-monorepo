@@ -1,12 +1,14 @@
 /* eslint-disable no-nested-ternary */
 /* eslint-disable max-len */
 /* eslint-disable no-new */
+import { Environment } from "@yac/util/src/enums/environment.enum";
 import {
   Stack,
   StackProps,
   SecretValue,
   pipelines as Pipelines,
   aws_codepipeline_actions as CodePipelineActions,
+  aws_codebuild as CodeBuild,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 // import { Environment } from "@yac/util/src/enums/environment.enum";
@@ -18,9 +20,14 @@ export class YacPipelineStack extends Stack {
 
     const { environment, stackPrefix } = props;
 
-    // const branch = environment === Environment.Prod ? "master" : "develop";
-
-    const pipeline = new Pipelines.CodePipeline(this, `Pipeline_${id}`, {
+    const pipeline = new Pipelines.CodePipeline(this, "Pipeline", {
+      pipelineName: `${stackPrefix}-YacPipeline`,
+      codeBuildDefaults: {
+        buildEnvironment: {
+          buildImage: CodeBuild.LinuxBuildImage.STANDARD_5_0,
+          computeType: CodeBuild.ComputeType.LARGE,
+        },
+      },
       synth: new Pipelines.ShellStep(`Synth_${id}`, {
         input: Pipelines.CodePipelineSource.gitHub("Yac-Team/yac-api-v4", "feature/new-pipeline", {
           authentication: SecretValue.secretsManager("yac-api-v4/github-oauth-token", { jsonField: "github-oauth-token" }),
@@ -36,11 +43,11 @@ export class YacPipelineStack extends Stack {
       }),
     });
 
-    pipeline.addStage(new YacStage(this, `Stage${stackPrefix}`, { environment, stackPrefix }));
+    pipeline.addStage(new YacStage(this, stackPrefix, { environment, stackPrefix }));
   }
 }
 
 export interface PipelineStackProps extends StackProps {
-  environment: string;
+  environment: Environment;
   stackPrefix: string;
 }

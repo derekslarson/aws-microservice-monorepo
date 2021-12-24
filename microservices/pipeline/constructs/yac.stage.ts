@@ -3,6 +3,7 @@ import { Stage } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { YacUtilServiceStack } from "@yac/util/infra/stacks/yac.util.service.stack";
 import { YacAuthServiceStack } from "@yac/auth/infra/stacks/yac.auth.service.stack";
+import { YacCoreServiceStack } from "@yac/core/infra/stacks/yac.core.service.stack";
 import { YacStageProps } from "./yac.stage.props";
 
 export class YacStage extends Stage {
@@ -11,19 +12,29 @@ export class YacStage extends Stage {
 
     const { environment, stackPrefix } = props;
 
-    const utilService = new YacUtilServiceStack(this, `${stackPrefix}-YacUtilService`, {
+    const utilService = new YacUtilServiceStack(this, "YacUtilService", {
+      stackName: `${stackPrefix}-YacUtilService`,
       environment,
       stackPrefix,
     });
 
-    new YacAuthServiceStack(this, `${stackPrefix}-YacAuthServiceStack`, {
+    const authService = new YacAuthServiceStack(this, "YacAuthService", {
+      stackName: `${stackPrefix}-YacAuthService`,
       environment,
       stackPrefix,
-      snsTopics: {
-        userCreated: utilService.snsTopics.userCreated,
-        createUserRequest: utilService.snsTopics.createUserRequest,
-      },
       domainName: utilService.domainName,
+      snsTopics: utilService.snsTopics,
+    });
+
+    new YacCoreServiceStack(this, "YacCoreService", {
+      stackName: `${stackPrefix}-YacCoreService`,
+      environment,
+      stackPrefix,
+      authorizerHandler: authService.authorizerHandler,
+      domainName: utilService.domainName,
+      snsTopics: utilService.snsTopics,
+      s3Buckets: utilService.s3Buckets,
+      secrets: utilService.secrets,
     });
   }
 }
