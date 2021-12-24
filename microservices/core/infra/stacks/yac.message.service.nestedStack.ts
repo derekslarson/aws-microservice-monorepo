@@ -27,7 +27,7 @@ export class YacMessageServiceNestedStack extends NestedStack {
 
     const createOneOnOneMessageHandler = new Lambda.Function(this, `CreateOneOnOneMessage_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/createOneOnOneMessage"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/createOneOnOneMessage`),
       handler: "createOneOnOneMessage.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -38,7 +38,7 @@ export class YacMessageServiceNestedStack extends NestedStack {
 
     const createGroupMessageHandler = new Lambda.Function(this, `CreateGroupMessage_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/createGroupMessage"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/createGroupMessage`),
       handler: "createGroupMessage.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -49,7 +49,7 @@ export class YacMessageServiceNestedStack extends NestedStack {
 
     const createMeetingMessageHandler = new Lambda.Function(this, `CreateMeetingMessage_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/createMeetingMessage"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/createMeetingMessage`),
       handler: "createMeetingMessage.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -60,7 +60,7 @@ export class YacMessageServiceNestedStack extends NestedStack {
 
     const getMessageHandler = new Lambda.Function(this, `GetMessage_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getMessage"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getMessage`),
       handler: "getMessage.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -71,7 +71,7 @@ export class YacMessageServiceNestedStack extends NestedStack {
 
     const updateMessageByUserIdHandler = new Lambda.Function(this, `UpdateMessageByUserId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/updateMessageByUserId"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/updateMessageByUserId`),
       handler: "updateMessageByUserId.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -82,7 +82,7 @@ export class YacMessageServiceNestedStack extends NestedStack {
 
     const updateMessageHandler = new Lambda.Function(this, `UpdateMessage${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/updateMessage"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/updateMessage`),
       handler: "updateMessage.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -93,7 +93,7 @@ export class YacMessageServiceNestedStack extends NestedStack {
 
     const getMessagesByOneOnOneIdHandler = new Lambda.Function(this, `GetMessagesByOneOnOneId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByOneOnOneId"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getMessagesByOneOnOneId`),
       handler: "getMessagesByOneOnOneId.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -104,7 +104,7 @@ export class YacMessageServiceNestedStack extends NestedStack {
 
     const getMessagesByGroupIdHandler = new Lambda.Function(this, `GetMessagesByGroupId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByGroupId"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getMessagesByGroupId`),
       handler: "getMessagesByGroupId.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -115,7 +115,7 @@ export class YacMessageServiceNestedStack extends NestedStack {
 
     const getMessagesByMeetingIdHandler = new Lambda.Function(this, `GetMessagesByMeetingId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByMeetingId"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getMessagesByMeetingId`),
       handler: "getMessagesByMeetingId.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -126,7 +126,7 @@ export class YacMessageServiceNestedStack extends NestedStack {
 
     const getMessagesByUserIdAndSearchTermHandler = new Lambda.Function(this, `GetMessagesByUserIdAndSearchTerm_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getMessagesByUserIdAndSearchTerm"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/getMessagesByUserIdAndSearchTerm`),
       handler: "getMessagesByUserIdAndSearchTerm.handler",
       environment: environmentVariables,
       memorySize: 2048,

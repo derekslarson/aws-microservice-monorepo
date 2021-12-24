@@ -22,7 +22,7 @@ export class YacUserServiceNestedStack extends NestedStack {
 
     const updateUserHandler = new Lambda.Function(this, `UpdateUser${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/updateUser"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/updateUser`),
       handler: "updateUser.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -33,7 +33,7 @@ export class YacUserServiceNestedStack extends NestedStack {
 
     const getUserHandler = new Lambda.Function(this, `GetUser_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getUser"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUser`),
       handler: "getUser.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -44,7 +44,7 @@ export class YacUserServiceNestedStack extends NestedStack {
 
     const getUsersByOrganizationIdHandler = new Lambda.Function(this, `GetUsersByOrganizationId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getUsersByOrganizationId"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUsersByOrganizationId`),
       handler: "getUsersByOrganizationId.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -55,7 +55,7 @@ export class YacUserServiceNestedStack extends NestedStack {
 
     const getUsersByTeamIdHandler = new Lambda.Function(this, `GetUsersByTeamId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getUsersByTeamId"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUsersByTeamId`),
       handler: "getUsersByTeamId.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -66,7 +66,7 @@ export class YacUserServiceNestedStack extends NestedStack {
 
     const getUsersByGroupIdHandler = new Lambda.Function(this, `GetUsersByGroupId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getUsersByGroupId"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUsersByGroupId`),
       handler: "getUsersByGroupId.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -77,7 +77,7 @@ export class YacUserServiceNestedStack extends NestedStack {
 
     const getUsersByMeetingIdHandler = new Lambda.Function(this, `GetUsersByMeetingId_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getUsersByMeetingId"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUsersByMeetingId`),
       handler: "getUsersByMeetingId.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -88,7 +88,7 @@ export class YacUserServiceNestedStack extends NestedStack {
 
     const getUserImageUploadUrlHandler = new Lambda.Function(this, `GetUserImageUploadUrl_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getUserImageUploadUrl"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUserImageUploadUrl`),
       handler: "getUserImageUploadUrl.handler",
       environment: environmentVariables,
       memorySize: 2048,

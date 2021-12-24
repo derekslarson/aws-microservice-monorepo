@@ -272,7 +272,7 @@ export class YacCoreServiceStack extends Stack {
     // Dynamo Stream Handler
     new Lambda.Function(this, `CoreTableEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/coreTableEvent"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/coreTableEvent`),
       handler: "coreTableEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -309,7 +309,7 @@ export class YacCoreServiceStack extends Stack {
     // S3 Event Handler
     new Lambda.Function(this, `S3EventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/s3Event"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/s3Event`),
       handler: "s3Event.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -324,7 +324,7 @@ export class YacCoreServiceStack extends Stack {
     // SQS Event Handler
     new Lambda.Function(this, `SqsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sqsEvent`),
       handler: "sqsEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
