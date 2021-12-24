@@ -170,7 +170,7 @@ export class YacNotificationServiceStack extends Stack {
 
     const disconnectHandler = new Lambda.Function(this, `DisconnectHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/disconnect`),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/disconnect`),
       handler: "disconnect.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -212,7 +212,7 @@ export class YacNotificationServiceStack extends Stack {
     // SQS Event Lambda Handler
     new Lambda.Function(this, `SqsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sqsEvent`),
       handler: "sqsEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
