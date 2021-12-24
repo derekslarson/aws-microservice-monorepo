@@ -7,13 +7,13 @@ import {
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
-import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
 
 export class YacImageGeneratorStack extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
     super(scope, id, { ...props, addAuthorizer: false });
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -34,7 +34,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       // removes 'https://' from the begining of the url
-      ORIGIN: this.httpApi.apiURL.slice(8),
+      ORIGIN: this.httpApi.apiUrl.slice(8),
       STACK_NAME: id,
       ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,

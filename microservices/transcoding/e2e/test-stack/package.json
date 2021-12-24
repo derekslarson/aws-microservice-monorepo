@@ -2,11 +2,11 @@
   "name": "@yac/transcoding-testing",
   "version": "0.1.0",
   "scripts": {
-    "build:local": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts && yarn build:layer",
-    "build:dev": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts && yarn build:layer",
-    "build:stage": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts && yarn build:layer",
-    "build:prod": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts && yarn build:layer",
-    "build:layer": "ts-node ../../../../config/layer/buildLayer.ts",
+    "build:local": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
+    "build:dev": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
+    "build:stage": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
+    "build:prod": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
+    
     "clean": "rm -rf ./dist && rm -rf ./cdk.out",
     "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",
     "synth:dev": "cdk synth --context environment=dev",

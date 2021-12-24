@@ -1,8 +1,7 @@
 /* eslint-disable no-new */
-/* eslint-disable @typescript-eslint/no-floating-promises */
 import { App } from "aws-cdk-lib";
-import { YacUtilServiceStack } from "./stacks/yac.util.service.stack";
-import { Environment } from "../src/enums/environment.enum";
+import { Environment } from "@yac/util/src/enums/environment.enum";
+import { YacPipelineStack } from "./stacks/yac.pipeline.stack";
 
 const app = new App();
 
@@ -17,4 +16,4 @@ if (!environment) {
 
 const stackPrefix = environment === Environment.Local ? developer : environment;
 
-new YacUtilServiceStack(app, `${stackPrefix}-YacUtilService`, { environment, stackPrefix });
+new YacPipelineStack(app, `${stackPrefix}-YacPipeline`, { environment, stackPrefix });

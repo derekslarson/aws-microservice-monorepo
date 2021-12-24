@@ -1,8 +1,8 @@
-import * as CDK from "@aws-cdk/core";
-import { Environment } from "@yac/util";
+import { App } from "aws-cdk-lib";
+import { Environment } from "@yac/util/src/enums/environment.enum";
 import { YacMessageTesting } from "./stacks/yac.message.testing.stack";
 
-const app = new CDK.App();
+const app = new App();
 
 const environment = app.node.tryGetContext("environment") as string;
 const developer = app.node.tryGetContext("developer") as string;

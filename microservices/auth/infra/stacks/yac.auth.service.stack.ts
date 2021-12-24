@@ -1,11 +1,14 @@
+/* eslint-disable no-nested-ternary */
 /* eslint-disable max-len */
 /* eslint-disable no-new */
 import {
-  Fn,
   RemovalPolicy,
   CfnOutput,
   Duration,
+  Stack,
+  StackProps,
   custom_resources as CustomResources,
+  aws_certificatemanager as ACM,
   aws_ssm as SSM,
   aws_sns as SNS,
   aws_sns_subscriptions as SnsSubscriptions,
@@ -24,47 +27,23 @@ import {
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Construct } from "constructs";
-import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { HttpApi, ProxyRouteProps, RouteProps } from "@yac/util/infra/constructs/http.api";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
-export type IYacAuthServiceStackProps = IYacHttpServiceProps;
+export class YacAuthServiceStack extends Stack {
+  public authorizerHandler: Lambda.Function;
 
-export class YacAuthServiceStack extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: IYacAuthServiceStackProps) {
-    super(scope, id, { ...props, addAuthorizer: false });
+  constructor(scope: Construct, id: string, props: AuthServiceStackProps) {
+    super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as string;
-    const developer = this.node.tryGetContext("developer") as string;
-
-    if (!environment) {
-      throw new Error("'environment' context param required.");
-    }
-
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-    const ExportNames = generateExportNames(stackPrefix);
-
-    // Manually Set SSM Parameters for the external provider app clients
-    const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`);
-    const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`);
-    const googleClientRedirectUri = `${this.httpApi.apiURL}/oauth2/idpresponse`;
-    const slackClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-id`);
-    const slackClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-secret`);
-    const slackClientRedirectUri = `${this.httpApi.apiURL}/oauth2/idpresponse`;
-
-    // SNS Topic ARN Imports from Util
-    const userCreatedSnsTopicArn = Fn.importValue(ExportNames.UserCreatedSnsTopicArn);
-    const createUserRequestSnsTopicArn = Fn.importValue(ExportNames.CreateUserRequestSnsTopicArn);
-
-    // SNS Topics
-    const createUserRequestSnsTopic = SNS.Topic.fromTopicArn(this, `CreateUserRequestSnsTopic_${id}`, createUserRequestSnsTopicArn);
+    const { environment, stackPrefix, domainName, hostedZone: hostedZoneData, googleClient, slackClient, snsTopics } = props;
 
     // SQS Queues
     const snsEventSqsQueue = new SQS.Queue(this, `SnsEventSqsQueue_${id}`);
-    createUserRequestSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(snsEventSqsQueue));
+    snsTopics.createUserRequest.addSubscription(new SnsSubscriptions.SqsSubscription(snsEventSqsQueue));
 
     // Tables
     const authTable = new DynamoDB.Table(this, `AuthTable_${id}`, {
@@ -98,19 +77,28 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       },
     });
 
+    const recordName = environment === Environment.Prod ? "api-v4" : environment === Environment.Dev ? "develop" : stackPrefix;
+
+    const certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, hostedZoneData.certificateArn);
+
+    const hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, {
+      zoneName: hostedZoneData.name,
+      hostedZoneId: hostedZoneData.id,
+    });
+
     const websiteDistribution = new CloudFront.Distribution(this, `IdYacComDistribution_${id}`, {
       defaultBehavior: {
         origin: new CloudFrontOrigins.S3Origin(websiteBucket),
         originRequestPolicy: { originRequestPolicyId: distributionOriginRequestPolicy.originRequestPolicyId },
       },
-      certificate: this.certificate,
-      domainNames: [ `${this.recordName}-assets.${this.zoneName}` ],
+      certificate,
+      domainNames: [ `${recordName}-assets.${hostedZoneData.name}` ],
     });
 
     const authUiCnameRecord = new Route53.CnameRecord(this, `CnameRecord_${id}`, {
       domainName: websiteDistribution.distributionDomainName,
-      zone: this.hostedZone,
-      recordName: `${this.recordName}-assets`,
+      zone: hostedZone,
+      recordName: `${recordName}-assets`,
     });
 
     new S3Deployment.BucketDeployment(this, `IdYacComDeployment_${id}`, {
@@ -131,7 +119,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const userCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ userCreatedSnsTopicArn ],
+      resources: [ snsTopics.userCreated.topicArn ],
     });
 
     // Because we can't reference a resource for a phone number to allow,
@@ -143,26 +131,30 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const basePolicy: IAM.PolicyStatement[] = [];
 
+    const api = new HttpApi(this, `Api_${id}`, {
+      serviceName: "auth",
+      domainName,
+    });
+
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       JWKS_URI: `https://cognito-idp.${this.region}.amazonaws.com/test/.well-known/jwks.json`,
       ENVIRONMENT: environment,
       STACK_PREFIX: stackPrefix,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Info}`,
-      API_DOMAIN: `https://${this.httpApi.httpApiId}.execute-api.${this.region}.amazonaws.com`,
-      API_URL: this.httpApi.apiURL,
+      API_URL: api.apiUrl,
       MAIL_SENDER: "no-reply@yac.com",
       YAC_AUTH_UI: `https://${authUiCnameRecord.domainName}`,
-      USER_CREATED_SNS_TOPIC_ARN: userCreatedSnsTopicArn,
-      CREATE_USER_REQUEST_SNS_TOPIC_ARN: createUserRequestSnsTopicArn,
+      USER_CREATED_SNS_TOPIC_ARN: snsTopics.userCreated.topicArn,
+      CREATE_USER_REQUEST_SNS_TOPIC_ARN: snsTopics.createUserRequest.topicArn,
       AUTH_TABLE_NAME: authTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
-      GOOGLE_CLIENT_ID: googleClientId,
-      GOOGLE_CLIENT_SECRET: googleClientSecret,
-      GOOGLE_CLIENT_REDIRECT_URI: googleClientRedirectUri,
-      SLACK_CLIENT_ID: slackClientId,
-      SLACK_CLIENT_SECRET: slackClientSecret,
-      SLACK_CLIENT_REDIRECT_URI: slackClientRedirectUri,
+      GOOGLE_CLIENT_ID: googleClient.id,
+      GOOGLE_CLIENT_SECRET: googleClient.secret,
+      GOOGLE_CLIENT_REDIRECT_URI: `${api.apiUrl}/oauth2/idpresponse`,
+      SLACK_CLIENT_ID: slackClient.id,
+      SLACK_CLIENT_SECRET: slackClient.secret,
+      SLACK_CLIENT_REDIRECT_URI: `${api.apiUrl}/oauth2/idpresponse`,
     };
 
     // Handlers
@@ -194,7 +186,7 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       ],
     });
 
-    const authorizerHandler = new Lambda.Function(this, `AuthorizerHandler_${id}`, {
+    this.authorizerHandler = new Lambda.Function(this, `AuthorizerHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset("dist/handlers/authorizer"),
       handler: "authorizer.handler",
@@ -205,8 +197,8 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
       timeout: Duration.seconds(15),
     });
 
-    // Since the authorizer couldn't be added in the super call (authorizerHandler didn't exist yet) we need to add it here
-    this.httpApi.addAuthorizer(this, id, { authorizerHandler });
+    // Since the authorizer couldn't be added during the http api creation (authorizerHandler didn't exist yet) we need to add it here
+    api.addAuthorizer(this, id, { authorizerHandler: this.authorizerHandler });
 
     const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
@@ -425,8 +417,8 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const proxyRoutes: ProxyRouteProps[] = [];
 
-    routes.forEach((route) => this.httpApi.addRoute(route));
-    proxyRoutes.forEach((route) => this.httpApi.addProxyRoute(route));
+    routes.forEach((route) => api.addRoute(route));
+    proxyRoutes.forEach((route) => api.addProxyRoute(route));
 
     const otpAuthFlowRoutes: RouteProps[] = [
       loginRoute,
@@ -435,8 +427,8 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     const otpFlowApi = new HttpApi(this, `OtpFlowApi_${id}`, {
       serviceName: "auth-otp",
-      domainName: this.domainName,
-      authorizerHandler,
+      domainName,
+      authorizerHandler: this.authorizerHandler,
       corsPreflight: {
         allowCredentials: true,
         allowMethods: [ ApiGatewayV2.CorsHttpMethod.POST ],
@@ -446,16 +438,38 @@ export class YacAuthServiceStack extends YacHttpServiceStack {
 
     otpAuthFlowRoutes.forEach((route) => otpFlowApi.addRoute(route));
 
+    const ExportNames = generateExportNames(stackPrefix);
+
     new CfnOutput(this, `AuthorizerHandlerFunctionArnExport_${id}`, {
       exportName: ExportNames.AuthorizerHandlerFunctionArn,
-      value: authorizerHandler.functionArn,
+      value: this.authorizerHandler.functionArn,
     });
-
-    new CfnOutput(this, `AuthServiceBaseUrlExport_${id}`, { value: this.httpApi.apiURL });
 
     new SSM.StringParameter(this, `AuthTableNameSsmParameter-${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/auth-table-name`,
       stringValue: authTable.tableName,
     });
+  }
+}
+
+interface ClientData {
+  id: string;
+  secret: string;
+}
+
+export interface AuthServiceStackProps extends StackProps {
+  environment: string;
+  stackPrefix: string;
+  domainName: ApiGatewayV2.IDomainName;
+  googleClient: ClientData;
+  slackClient: ClientData;
+  hostedZone: {
+    name: string;
+    id: string;
+    certificateArn: string;
+  };
+  snsTopics: {
+    createUserRequest: SNS.ITopic;
+    userCreated: SNS.ITopic;
   }
 }

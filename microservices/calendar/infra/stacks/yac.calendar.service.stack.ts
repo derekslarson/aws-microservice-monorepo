@@ -9,13 +9,13 @@ import {
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Construct } from "constructs";
-import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
 
 export class YacCalendarServiceStack extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -29,7 +29,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
 
     const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`);
     const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`);
-    const googleClientRedirectUri = `${this.httpApi.apiURL}/google/callback`;
+    const googleClientRedirectUri = `${this.httpApi.apiUrl}/google/callback`;
 
     // Databases
     const calendarTable = new DynamoDB.Table(this, `CalendarTable_${id}`, {

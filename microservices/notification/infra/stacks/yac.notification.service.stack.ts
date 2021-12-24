@@ -20,7 +20,7 @@ import {
 import { Construct } from "constructs";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
-import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
@@ -29,7 +29,7 @@ import { WebSocketApi } from "@yac/util/infra/constructs/webSocket.api";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacNotificationServiceStack extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;

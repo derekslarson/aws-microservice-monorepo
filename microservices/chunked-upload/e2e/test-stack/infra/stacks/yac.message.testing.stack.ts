@@ -1,15 +1,20 @@
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as EC2 from "@aws-cdk/aws-ec2";
-import * as EFS from "@aws-cdk/aws-efs";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import { Environment, generateExportNames } from "@yac/util";
-import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
-import { HttpMethod } from "@aws-cdk/aws-apigatewayv2";
+import {
+  Fn,
+  Duration,
+  aws_ssm as SSM,
+  aws_lambda as Lambda,
+  aws_ec2 as EC2,
+  aws_efs as EFS,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
+import { Environment } from "@yac/util/src/enums/environment.enum";
+import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { HttpMethod } from "@aws-cdk/aws-apigatewayv2-alpha";
 
 export class YacMessageTesting extends YacHttpServiceStack {
-  constructor(scope: CDK.Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;
@@ -29,9 +34,9 @@ export class YacMessageTesting extends YacHttpServiceStack {
       code: Lambda.Code.fromAsset("dist/dependencies"),
     });
 
-    const FSFileSystemId = CDK.Fn.importValue(ExportNames.ChunkedUploadsFSId);
-    const FSAccessPointId = CDK.Fn.importValue(ExportNames.ChunkedUploadsFSAccessPointId);
-    const FSMountedPath = CDK.Fn.importValue(ExportNames.ChunkedUploadsFSMountedPath);
+    const FSFileSystemId = Fn.importValue(ExportNames.ChunkedUploadsFSId);
+    const FSAccessPointId = Fn.importValue(ExportNames.ChunkedUploadsFSAccessPointId);
+    const FSMountedPath = Fn.importValue(ExportNames.ChunkedUploadsFSMountedPath);
     
     const vpcId = SSM.StringParameter.valueFromLookup(this, `/yac-api-v4/${stackPrefix}/chunked-uploads-vpc-id`);
     const fileSystemSecurityGroupId = SSM.StringParameter.valueFromLookup(this, `/yac-api-v4/${stackPrefix}/chunked-uploads-fs-security-group-id`);
@@ -39,8 +44,8 @@ export class YacMessageTesting extends YacHttpServiceStack {
 
     const vpc = EC2.Vpc.fromLookup(this, `MessageTestVPC_${id}`, { vpcId })
 
-    const securityGroup = EC2.SecurityGroup.fromLookup(this, `FileSystemSecurityGroup_${id}`, fileSystemSecurityGroupId);
-    const lambdaSecurityGroup = EC2.SecurityGroup.fromLookup(this, `LambdaSecurityGroup_${id}`, lambdaSecurityGroupId);
+    const securityGroup = EC2.SecurityGroup.fromLookupById(this, `FileSystemSecurityGroup_${id}`, fileSystemSecurityGroupId);
+    const lambdaSecurityGroup = EC2.SecurityGroup.fromLookupById(this, `LambdaSecurityGroup_${id}`, lambdaSecurityGroupId);
     
     const fileSystem = EFS.FileSystem.fromFileSystemAttributes(this, `EFSFileSystem_${id}`, {
       fileSystemId: FSFileSystemId,
@@ -66,7 +71,7 @@ export class YacMessageTesting extends YacHttpServiceStack {
       vpc,
       environment: environmentVariables,
       memorySize: 512,
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       filesystem: lambdaFS
     });
 
@@ -79,7 +84,7 @@ export class YacMessageTesting extends YacHttpServiceStack {
       vpc,
       environment: environmentVariables,
       memorySize: 512,
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       filesystem: lambdaFS
     });
     

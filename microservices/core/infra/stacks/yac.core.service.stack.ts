@@ -17,7 +17,7 @@ import {
   aws_opensearchservice as OpenSearch,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
@@ -32,7 +32,7 @@ import { YacMessageServiceNestedStack } from "./yac.message.service.nestedStack"
 import { YacConversationServiceNestedStack } from "./yac.conversation.service.nestedStack";
 
 export class YacCoreServiceStack extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as Environment | undefined;

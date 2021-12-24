@@ -20,6 +20,7 @@
     "synth:stage": "lerna run synth:stage",
     "synth:prod": "lerna run synth:prod",
     "clean": "lerna run clean",
+    "deploy:pipeline": "cdk deploy --context environment=stage",
     "build:unit-tests": "yarn clean:unit-tests && tsc --project ./tsconfig.test.json",
     "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
     "nyc": "nyc node config/jasmine/jasmine.runner.js",

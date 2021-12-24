@@ -3,7 +3,6 @@ import { EnvConfigInterface as BaseEnvConfigInterface } from "@yac/util/src/conf
 export const envConfig: EnvConfigInterface = {
   jwksUri: process.env.JWKS_URI || "",
   logLevel: process.env.LOG_LEVEL ? parseInt(process.env.LOG_LEVEL, 10) : 2,
-  apiDomain: process.env.API_DOMAIN || "",
   apiUrl: process.env.API_URL || "",
   bucketNames: {},
   tableNames: { auth: process.env.AUTH_TABLE_NAME || "" },
@@ -28,7 +27,6 @@ export const envConfig: EnvConfigInterface = {
 
 export interface EnvConfigInterface extends BaseEnvConfigInterface {
   jwksUri: string;
-  apiDomain: string;
   apiUrl: string;
   mailSender: string;
   authUI: string;

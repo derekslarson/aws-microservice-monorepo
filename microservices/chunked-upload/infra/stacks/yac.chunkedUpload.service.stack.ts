@@ -14,14 +14,14 @@ import {
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Construct } from "constructs";
-import { YacHttpServiceStack, IYacHttpServiceProps } from "@yac/util/infra/stacks/yac.http.service.stack";
+import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
 
 export class YacChunkedUploadService extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: IYacHttpServiceProps) {
+  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
     super(scope, id, props);
 
     const environment = this.node.tryGetContext("environment") as string;

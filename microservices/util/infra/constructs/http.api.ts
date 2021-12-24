@@ -9,36 +9,35 @@ import { Construct } from "constructs";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import * as ApiGatewayV2Authorizers from "@aws-cdk/aws-apigatewayv2-authorizers-alpha";
 import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
-import { Environment } from "../../src/enums/environment.enum";
 
 export class HttpApi extends ApiGatewayV2.HttpApi {
-  public readonly apiURL: string;
+  public readonly apiUrl: string;
 
   private authorizer?: ApiGatewayV2Authorizers.HttpLambdaAuthorizer;
 
   constructor(scope: Construct, id: string, props: HttpApiProps) {
-    const environment = scope.node.tryGetContext("environment") as string;
+    const { domainName, serviceName, authorizerHandler } = props;
 
     super(scope, id, {
       ...props,
       defaultDomainMapping: {
-        domainName: props.domainName,
-        mappingKey: props.serviceName,
+        domainName,
+        mappingKey: serviceName,
       },
       corsPreflight: props.corsPreflight || {
-        allowOrigins: props.corsAllowedOrigins || [ "*" ],
+        allowOrigins: [ "*" ],
         allowMethods: [ ApiGatewayV2.CorsHttpMethod.ANY ],
         allowHeaders: [ "*" ],
         exposeHeaders: [ "*" ],
-        maxAge: environment !== Environment.Prod ? Duration.minutes(300) : Duration.minutes(60 * 12),
+        maxAge: Duration.hours(1),
       },
     });
 
-    if (props.authorizerHandler) {
-      this.addAuthorizer(scope, id, { authorizerHandler: props.authorizerHandler });
+    if (authorizerHandler) {
+      this.addAuthorizer(scope, id, { authorizerHandler });
     }
 
-    this.apiURL = `https://${props.domainName.name}/${props.serviceName}`;
+    this.apiUrl = `https://${domainName.name}/${serviceName}`;
   }
 
   public addRoute(props: RouteProps): void {
@@ -116,7 +115,7 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
 }
 
 interface HttpApiProps extends ApiGatewayV2.HttpApiProps {
-  serviceName: string
+  serviceName: string;
   domainName: ApiGatewayV2.IDomainName,
   corsAllowedOrigins?: string[];
   authorizerHandler?: Lambda.IFunction;

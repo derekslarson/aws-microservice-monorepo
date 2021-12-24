@@ -28,7 +28,7 @@ export class TokenService implements TokenServiceInterface {
     @inject(TYPES.JoseFactory) joseFactory: JoseFactory,
   ) {
     this.jose = joseFactory();
-    this.apiUrl = config.apiUrl;
+    this.url = config.url;
   }
 
   public async generateAccessAndRefreshTokens(params: GenerateAccessAndRefreshTokensInput): Promise<GenerateAccessAndRefreshTokensOutput> {
@@ -232,7 +232,7 @@ export class TokenService implements TokenServiceInterface {
       const payload: AccessTokenPayload = {
         sid: sessionId,
         cid: clientId,
-        iss: this.apiUrl,
+        iss: this.url,
         sub: userId,
         scope,
         nbf: nowSeconds,
