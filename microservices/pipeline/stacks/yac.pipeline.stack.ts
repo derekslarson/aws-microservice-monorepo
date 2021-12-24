@@ -33,7 +33,7 @@ export class YacPipelineStack extends Stack {
           `yarn workspace @yac/util build:${environment}`,
           `yarn workspace @yac/pipeline synth:${environment}`,
         ],
-        primaryOutputDirectory: "@yac/pipeline/cdk.out",
+        primaryOutputDirectory: "microservices/pipeline/cdk.out",
       }),
     });
 
