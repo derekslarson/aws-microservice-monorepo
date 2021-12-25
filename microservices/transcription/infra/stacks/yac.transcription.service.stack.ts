@@ -18,37 +18,18 @@ import {
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { Environment } from "@yac/util/src/enums/environment.enum";
-import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 
 export class YacTranscriptionServiceStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props: YacTranscriptionServiceStackProps) {
     super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as string;
-    const developer = this.node.tryGetContext("developer") as string;
-
-    if (!environment) {
-      throw new Error("'environment' context param required.");
-    }
-
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-
-    const ExportNames = generateExportNames(stackPrefix);
-
-    // SNS Topic ARN Imports from Util
-    const messageTranscodedSnsTopicArn = Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
-    const messageTranscribedSnsTopicArn = Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn);
-
-    // S3 Bucket ARN Imports from Util
-    const enhancedMessageS3BucketArn = Fn.importValue(ExportNames.EnhancedMessageS3BucketArn);
+    const { environment, stackPrefix, s3Buckets, snsTopics } = props;
 
     // S3 Buckets
-    const enhancedMessageS3Bucket = S3.Bucket.fromBucketArn(this, `EnhancedMessageS3Bucket_${id}`, enhancedMessageS3BucketArn);
     const transcriptionS3Bucket = new S3.Bucket(this, `TranscriptionS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: RemovalPolicy.DESTROY }) });
 
     // SNS Topics
-    const messageTranscodedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn);
     const transcriptionJobCompletedSnsTopic = new SNS.Topic(this, `TranscriptionJobCompleted_${id}`, { topicName: `TranscriptionJobCompleted_${id}` });
     const transcriptionJobFailedSnsTopic = new SNS.Topic(this, `TranscriptionJobFailed_${id}`, { topicName: `TranscriptionJobFailed_${id}` });
 
@@ -57,7 +38,7 @@ export class YacTranscriptionServiceStack extends Stack {
 
     const enhancedMessageS3BucketFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "s3:*" ],
-      resources: [ enhancedMessageS3Bucket.bucketArn, `${enhancedMessageS3Bucket.bucketArn}/*` ],
+      resources: [ s3Buckets.enhancedMessage.bucketArn, `${s3Buckets.enhancedMessage.bucketArn}/*` ],
     });
 
     const transcriptionS3BucketFullAccessPolicyStatement = new IAM.PolicyStatement({
@@ -72,17 +53,17 @@ export class YacTranscriptionServiceStack extends Stack {
 
     const messageTranscribedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ messageTranscribedSnsTopicArn ],
+      resources: [ snsTopics.messageTranscribed.topicArn ],
     });
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       ENVIRONMENT: stackPrefix,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
-      MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,
+      MESSAGE_S3_BUCKET_NAME: s3Buckets.enhancedMessage.bucketName,
       TRANSCRIPTION_S3_BUCKET_NAME: transcriptionS3Bucket.bucketName,
-      MESSAGE_TRANSCODED_SNS_TOPIC_ARN: messageTranscodedSnsTopicArn,
-      MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN: messageTranscribedSnsTopicArn,
+      MESSAGE_TRANSCODED_SNS_TOPIC_ARN: snsTopics.messageTranscoded.topicArn,
+      MESSAGE_TRANSCRIBED_SNS_TOPIC_ARN: snsTopics.messageTranscribed.topicArn,
       TRANSCRIPTION_JOB_COMPLETED_SNS_TOPIC_ARN: transcriptionJobCompletedSnsTopic.topicArn,
       TRANSCRIPTION_JOB_FAILED_SNS_TOPIC_ARN: transcriptionJobFailedSnsTopic.topicArn,
 
@@ -90,14 +71,14 @@ export class YacTranscriptionServiceStack extends Stack {
 
     // SQS Queues
     const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`);
-    messageTranscodedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    snsTopics.messageTranscoded.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
     transcriptionJobCompletedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
     transcriptionJobFailedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Lambdas
     new Lambda.Function(this, `SqsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/sqsEvent"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sqsEvent`),
       handler: "sqsEvent.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -147,5 +128,18 @@ export class YacTranscriptionServiceStack extends Stack {
       parameterName: `/yac-api-v4/${stackPrefix}/transcription-job-failed-sns-topic-arn`,
       stringValue: transcriptionJobFailedSnsTopic.topicArn,
     });
+  }
+}
+
+export interface YacTranscriptionServiceStackProps extends StackProps {
+  environment: Environment;
+  stackPrefix: string;
+  s3Buckets: {
+    rawMessage: S3.IBucket;
+    enhancedMessage: S3.IBucket;
+  };
+  snsTopics: {
+    messageTranscoded: SNS.ITopic;
+    messageTranscribed: SNS.ITopic
   }
 }

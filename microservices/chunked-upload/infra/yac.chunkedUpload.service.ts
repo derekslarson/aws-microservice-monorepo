@@ -1,19 +1,19 @@
-import { App } from "aws-cdk-lib";
-import { Environment } from "@yac/util/src/enums/environment.enum";
-import { YacChunkedUploadService } from "./stacks/yac.chunkedUpload.service.stack";
+// import { App } from "aws-cdk-lib";
+// import { Environment } from "@yac/util/src/enums/environment.enum";
+// import { YacChunkedUploadServiceStack } from "./stacks/yac.chunkedUpload.service.stack";
 
-const app = new App();
+// const app = new App();
 
-const environment = app.node.tryGetContext("environment") as string;
-const developer = app.node.tryGetContext("developer") as string;
+// const environment = app.node.tryGetContext("environment") as string;
+// const developer = app.node.tryGetContext("developer") as string;
 
-if (!environment) {
-  throw new Error("'environment' context param required.");
-} else if (environment === Environment.Local && !developer) {
-  throw new Error("'developer' context param required when 'environment' === 'local'.");
-}
+// if (!environment) {
+//   throw new Error("'environment' context param required.");
+// } else if (environment === Environment.Local && !developer) {
+//   throw new Error("'developer' context param required when 'environment' === 'local'.");
+// }
 
-const stackPrefix = environment === Environment.Local ? developer : environment;
+// const stackPrefix = environment === Environment.Local ? developer : environment;
 
-// eslint-disable-next-line no-new
-new YacChunkedUploadService(app, `${stackPrefix}-YacChunkedUploadService`, { serviceName: "chunked-upload" });
+// // eslint-disable-next-line no-new
+// new YacChunkedUploadServiceStack(app, `${stackPrefix}-YacChunkedUploadService`, { serviceName: "chunked-upload" });

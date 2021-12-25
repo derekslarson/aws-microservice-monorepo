@@ -8,6 +8,10 @@ import { YacStageProps } from "./yac.stage.props";
 import { YacNotificationServiceStack } from "../../notification/infra/stacks/yac.notification.service.stack";
 import { YacBillingServiceStack } from "../../billing/infra/stacks/yac.billing.service.stack";
 import { YacCalendarServiceStack } from "../../calendar/infra/stacks/yac.calendar.service.stack";
+import { YacChunkedUploadServiceStack } from "../../chunked-upload/infra/stacks/yac.chunkedUpload.service.stack";
+import { YacImageGeneratorServiceStack } from "../../image-generator/infra/stacks/yac.image-generator.service.stack";
+import { YacTranscodingServiceStack } from "../../transcoding/infra/stacks/yac.transcoding.service.stack";
+import { YacTranscriptionServiceStack } from "../../transcription/infra/stacks/yac.transcription.service.stack";
 
 export class YacStage extends Stage {
   constructor(scope: Construct, id: string, props: YacStageProps) {
@@ -73,6 +77,37 @@ export class YacStage extends Stage {
       authorizerHandler: authService.authorizerHandler,
       domainName: utilService.domainName,
       googleClient: utilService.googleClient,
+    });
+
+    new YacChunkedUploadServiceStack(this, "YacChunkedUploadService", {
+      stackName: `${stackPrefix}-YacChunkedUploadService`,
+      environment,
+      stackPrefix,
+      domainName: utilService.domainName,
+      secrets: utilService.secrets,
+      s3Buckets: utilService.s3Buckets,
+    });
+
+    new YacImageGeneratorServiceStack(this, "YacImageGeneratorService", {
+      stackName: `${stackPrefix}-YacImageGeneratorService`,
+      environment,
+      domainName: utilService.domainName,
+    });
+
+    new YacTranscodingServiceStack(this, "YacTranscodingService", {
+      stackName: `${stackPrefix}-YacTranscodingService`,
+      environment,
+      audoAiApiKey: utilService.audoAiApiKey,
+      s3Buckets: utilService.s3Buckets,
+      snsTopics: utilService.snsTopics,
+    });
+
+    new YacTranscriptionServiceStack(this, "YacTranscriptionService", {
+      stackName: `${stackPrefix}-YacTranscriptionService`,
+      environment,
+      stackPrefix,
+      s3Buckets: utilService.s3Buckets,
+      snsTopics: utilService.snsTopics,
     });
   }
 }

@@ -39,7 +39,7 @@ export class YacPipelineStack extends Stack {
       synth: new Pipelines.ShellStep(`Synth_${id}`, {
         input: Pipelines.CodePipelineSource.gitHub("Yac-Team/yac-api-v4", "feature/new-pipeline", {
           authentication: SecretValue.secretsManager("yac-api-v4/github-oauth-token", { jsonField: "github-oauth-token" }),
-          trigger: CodePipelineActions.GitHubTrigger.NONE,
+          trigger: CodePipelineActions.GitHubTrigger.WEBHOOK,
         }),
         commands: [
           "yarn",

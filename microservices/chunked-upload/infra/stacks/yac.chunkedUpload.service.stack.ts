@@ -1,6 +1,5 @@
 /* eslint-disable no-new */
 import {
-  Fn,
   RemovalPolicy,
   Duration,
   CfnOutput,
@@ -11,55 +10,36 @@ import {
   aws_secretsmanager as SecretsManager,
   aws_ec2 as EC2,
   aws_efs as EFS,
+  StackProps,
+  Stack,
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Construct } from "constructs";
-import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
-import { RouteProps } from "@yac/util/infra/constructs/http.api";
+import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
 
-export class YacChunkedUploadService extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
+export class YacChunkedUploadServiceStack extends Stack {
+  constructor(scope: Construct, id: string, props: YacChunkedUploadServiceStackProps) {
     super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as string;
-    const developer = this.node.tryGetContext("developer") as string;
+    const { environment, stackPrefix, domainName, s3Buckets, secrets } = props;
 
-    if (!environment) {
-      throw new Error("'environment' context param required.");
-    }
-
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-    const ExportNames = generateExportNames(stackPrefix);
-
-    // APIs
-    const { httpApi } = this;
-
-    // Secret imports from Util
-    const messageUploadTokenSecretArn = Fn.importValue(ExportNames.MessageUploadTokenSecretArn);
-
-    // S3 Bucket ARN Imports from Util
-    const messageS3BucketArn = Fn.importValue(ExportNames.RawMessageS3BucketArn);
-    const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `MessageS3Bucket_${id}`, messageS3BucketArn);
     const mountedPath = "/mnt/messages";
-
-    // Secrets
-    const messageUploadTokenSecret = SecretsManager.Secret.fromSecretCompleteArn(this, `MessageUploadTokenSecret_${id}`, messageUploadTokenSecretArn);
 
     const getMessageUploadTokenSecretPolicyStatement = new IAM.PolicyStatement({
       actions: [ "secretsmanager:GetSecretValue" ],
-      resources: [ messageUploadTokenSecret.secretArn ],
+      resources: [ secrets.messageUploadToken.secretArn ],
     });
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
-      RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
+      RAW_MESSAGE_S3_BUCKET_NAME: s3Buckets.rawMessage.bucketName,
       EFS_MOUNTED_PATH: mountedPath,
-      MESSAGE_UPLOAD_TOKEN_SECRET_ID: messageUploadTokenSecret.secretArn,
+      MESSAGE_UPLOAD_TOKEN_SECRET_ID: secrets.messageUploadToken.secretArn,
     };
 
     // vpc
@@ -71,7 +51,7 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
     vpc.addInterfaceEndpoint(`SMInterfaceEndpoint_${id}`, { service: { port: 443, name: `com.amazonaws.${this.region}.secretsmanager` } });
 
     new S3.CfnAccessPoint(this, `VpcMessageBucketAccessPoint_${id}`, {
-      bucket: rawMessageS3Bucket.bucketName,
+      bucket: s3Buckets.rawMessage.bucketName,
       name: `access-point-${id.toLowerCase().replace("_", "-")}`,
       vpcConfiguration: { vpcId: vpc.vpcId },
     });
@@ -111,7 +91,7 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
 
     const uploadMessageChunkFileHandler = new Lambda.Function(this, `UploadMessageChunkHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/chunkUpload"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/chunkUpload`),
       handler: "chunkUpload.handler",
       environment: environmentVariables,
       timeout: Duration.minutes(2),
@@ -124,7 +104,7 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
 
     const finishChunkUploadHandler = new Lambda.Function(this, `FinishChunkUploadHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/finishChunkUpload"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/finishChunkUpload`),
       handler: "finishChunkUpload.handler",
       environment: environmentVariables,
       timeout: Duration.minutes(5),
@@ -135,7 +115,7 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
       initialPolicy: [ getMessageUploadTokenSecretPolicyStatement ],
     });
 
-    rawMessageS3Bucket.grantReadWrite(finishChunkUploadHandler);
+    s3Buckets.rawMessage.grantReadWrite(finishChunkUploadHandler);
 
     // Lambda Routes
     const routes: RouteProps[] = [
@@ -150,7 +130,14 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
       },
     ];
 
-    routes.forEach((route) => httpApi.addRoute(route));
+    const api = new HttpApi(this, `HttpApi_${id}`, {
+      serviceName: "chunked-upload",
+      domainName,
+    });
+
+    routes.forEach((route) => api.addRoute(route));
+
+    const ExportNames = generateExportNames(stackPrefix);
 
     new CfnOutput(this, `ChunkedUploadsFSIdExport_${id}`, {
       exportName: ExportNames.ChunkedUploadsFSId,
@@ -192,4 +179,16 @@ export class YacChunkedUploadService extends YacHttpServiceStack {
       stringValue: vpc.vpcId,
     });
   }
+}
+
+export interface YacChunkedUploadServiceStackProps extends StackProps {
+  environment: Environment;
+  stackPrefix: string;
+  domainName: ApiGatewayV2.IDomainName;
+  s3Buckets: {
+    rawMessage: S3.IBucket;
+  };
+  secrets: {
+    messageUploadToken: SecretsManager.Secret;
+  };
 }

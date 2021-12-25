@@ -40,6 +40,8 @@ export class YacUtilServiceStack extends Stack {
 
   public gcmServerKey: string;
 
+  public audoAiApiKey: string;
+
   constructor(scope: Construct, id: string, props: YacUtilServiceProps) {
     super(scope, id, props);
 
@@ -62,6 +64,8 @@ export class YacUtilServiceStack extends Stack {
       id: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-id`),
       secret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-secret`),
     };
+
+    this.audoAiApiKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/audo-ai-api-key`);
 
     this.gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/gcm-server-key`);
 

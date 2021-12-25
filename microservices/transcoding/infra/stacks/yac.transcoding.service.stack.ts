@@ -1,6 +1,5 @@
 /* eslint-disable no-new */
 import {
-  Fn,
   Duration,
   Stack,
   StackProps,
@@ -8,58 +7,34 @@ import {
   aws_lambda as Lambda,
   aws_s3 as S3,
   aws_s3_notifications as S3Notifications,
-  aws_ssm as SSM,
+  aws_sns as SNS,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { Environment } from "@yac/util/src/enums/environment.enum";
-import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 
 export class YacTranscodingServiceStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props: YacTranscodingServiceStackProps) {
     super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as string;
-    const developer = this.node.tryGetContext("developer") as string;
-
-    if (!environment) {
-      throw new Error("'environment' context param required.");
-    }
-
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-
-    // SSM Imports
-    const audoAiApiKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/audo-ai-api-key`);
-
-    const ExportNames = generateExportNames(stackPrefix);
-
-    // SNS Topic ARN Imports from Util
-    const messageTranscodedSnsTopicArn = Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
-
-    // S3 Bucket ARN Imports from Util
-    const rawMessageS3BucketArn = Fn.importValue(ExportNames.RawMessageS3BucketArn);
-    const enhancedMessageS3BucketArn = Fn.importValue(ExportNames.EnhancedMessageS3BucketArn);
-
-    // S3 Buckets
-    const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `RawMessageS3Bucket_${id}`, rawMessageS3BucketArn);
-    const enhancedMessageS3Bucket = S3.Bucket.fromBucketArn(this, `EnhancedMessageS3Bucket_${id}`, enhancedMessageS3BucketArn);
+    const { environment, s3Buckets, snsTopics, audoAiApiKey } = props;
 
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
 
     const rawMessageS3BucketFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "s3:*" ],
-      resources: [ rawMessageS3Bucket.bucketArn, `${rawMessageS3Bucket.bucketArn}/*` ],
+      resources: [ s3Buckets.rawMessage.bucketArn, `${s3Buckets.rawMessage.bucketArn}/*` ],
     });
 
     const enhancedMessageS3BucketFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "s3:*" ],
-      resources: [ enhancedMessageS3Bucket.bucketArn, `${enhancedMessageS3Bucket.bucketArn}/*` ],
+      resources: [ s3Buckets.enhancedMessage.bucketArn, `${s3Buckets.enhancedMessage.bucketArn}/*` ],
     });
 
     const messageTranscodedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ messageTranscodedSnsTopicArn ],
+      resources: [ snsTopics.messageTranscoded.topicArn ],
     });
 
     // const mockHttpIntegrationDomain = `https://${developer}.yacchat.com/transcoding-testing`;
@@ -69,16 +44,16 @@ export class YacTranscodingServiceStack extends Stack {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       AUDO_AI_API_DOMAIN: "https://api.audo.ai",
       AUDO_AI_API_KEY: audoAiApiKey,
-      RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
-      ENHANCED_MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,
-      MESSAGE_TRANSCODED_SNS_TOPIC_ARN: messageTranscodedSnsTopicArn,
+      RAW_MESSAGE_S3_BUCKET_NAME: s3Buckets.rawMessage.bucketName,
+      ENHANCED_MESSAGE_S3_BUCKET_NAME: s3Buckets.enhancedMessage.bucketName,
+      MESSAGE_TRANSCODED_SNS_TOPIC_ARN: snsTopics.messageTranscoded.topicArn,
 
     };
 
     // Lambdas
     const s3EventHandler = new Lambda.Function(this, `S3EventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/s3Event"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/s3Event`),
       handler: "s3Event.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -87,7 +62,19 @@ export class YacTranscodingServiceStack extends Stack {
       timeout: Duration.seconds(15),
     });
 
-    rawMessageS3Bucket.addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
-    enhancedMessageS3Bucket.addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
+    s3Buckets.rawMessage.addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
+    s3Buckets.enhancedMessage.addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
+  }
+}
+
+export interface YacTranscodingServiceStackProps extends StackProps {
+  environment: Environment;
+  audoAiApiKey: string;
+  s3Buckets: {
+    rawMessage: S3.IBucket;
+    enhancedMessage: S3.IBucket;
+  };
+  snsTopics: {
+    messageTranscoded: SNS.ITopic
   }
 }

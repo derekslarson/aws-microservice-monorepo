@@ -4,23 +4,20 @@ import {
   aws_dynamodb as DynamoDB,
   aws_iam as IAM,
   aws_lambda as Lambda,
+  StackProps,
+  Stack,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
-import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
-import { RouteProps } from "@yac/util/infra/constructs/http.api";
+import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
 
-export class YacImageGeneratorStack extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
-    super(scope, id, { ...props, addAuthorizer: false });
+export class YacImageGeneratorServiceStack extends Stack {
+  constructor(scope: Construct, id: string, props: YacImageGeneratorServiceStackProps) {
+    super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as string;
-
-    if (!environment) {
-      throw new Error("'environment' context param required.");
-    }
+    const { environment, domainName } = props;
 
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
@@ -31,10 +28,15 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
     });
 
+    const api = new HttpApi(this, `HttpApi_${id}`, {
+      serviceName: "chunked-upload",
+      domainName,
+    });
+
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       // removes 'https://' from the begining of the url
-      ORIGIN: this.httpApi.apiUrl.slice(8),
+      ORIGIN: api.apiUrl.slice(8),
       STACK_NAME: id,
       ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
@@ -46,7 +48,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
     // Handlers
     const mediaRetrieveHandler = new Lambda.Function(this, `MediaRetrieve_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/mediaRetrieve"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/mediaRetrieve`),
       handler: "mediaRetrieve.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -57,7 +59,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
 
     const mediaPushTaskHandler = new Lambda.Function(this, `MediaPush_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/mediaPush"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/mediaPush`),
       handler: "mediaPush.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -68,7 +70,7 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
 
     const callbackHandler = new Lambda.Function(this, `Callback_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/callback"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/callback`),
       handler: "callback.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -100,6 +102,11 @@ export class YacImageGeneratorStack extends YacHttpServiceStack {
       },
     ];
 
-    routes.forEach((route) => this.httpApi.addRoute(route));
+    routes.forEach((route) => api.addRoute(route));
   }
+}
+
+export interface YacImageGeneratorServiceStackProps extends StackProps {
+  environment: Environment;
+  domainName: ApiGatewayV2.IDomainName;
 }
