@@ -2,34 +2,25 @@
 import {
   RemovalPolicy,
   Duration,
+  Stack,
   aws_ssm as SSM,
   aws_dynamodb as DynamoDB,
   aws_iam as IAM,
   aws_lambda as Lambda,
+  StackProps,
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Construct } from "constructs";
-import { YacHttpServiceStack, HttpServiceStackProps } from "@yac/util/infra/stacks/yac.http.service.stack";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
-import { RouteProps } from "@yac/util/infra/constructs/http.api";
+import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
+import { OAuth2ClientData } from "@yac/util/infra/stacks/yac.util.service.stack";
 
-export class YacCalendarServiceStack extends YacHttpServiceStack {
-  constructor(scope: Construct, id: string, props: HttpServiceStackProps) {
+export class YacCalendarServiceStack extends Stack {
+  constructor(scope: Construct, id: string, props: YacCalendarServiceStackProps) {
     super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as string;
-    const developer = this.node.tryGetContext("developer") as string;
-
-    if (!environment) {
-      throw new Error("'environment' context param required.");
-    }
-
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-
-    const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`);
-    const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`);
-    const googleClientRedirectUri = `${this.httpApi.apiUrl}/google/callback`;
+    const { environment, stackPrefix, domainName, authorizerHandler, googleClient } = props;
 
     // Databases
     const calendarTable = new DynamoDB.Table(this, `CalendarTable_${id}`, {
@@ -37,6 +28,12 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
       removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const httpApi = new HttpApi(this, `Api_${id}`, {
+      serviceName: "calendar",
+      domainName,
+      authorizerHandler,
     });
 
     // Policies
@@ -51,14 +48,14 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       CALENDAR_TABLE_NAME: calendarTable.tableName,
-      GOOGLE_CLIENT_ID: googleClientId,
-      GOOGLE_CLIENT_SECRET: googleClientSecret,
-      GOOGLE_CLIENT_REDIRECT_URI: googleClientRedirectUri,
+      GOOGLE_CLIENT_ID: googleClient.id,
+      GOOGLE_CLIENT_SECRET: googleClient.secret,
+      GOOGLE_CLIENT_REDIRECT_URI: `${httpApi.apiUrl}/google/callback`,
     };
 
     const initiateGoogleAccessFlowHandler = new Lambda.Function(this, `InitiateGoogleAccessFlowHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/initiateGoogleAccessFlow"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/initiateGoogleAccessFlow`),
       handler: "initiateGoogleAccessFlow.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -69,7 +66,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
 
     const completeGoogleAccessFlowHandler = new Lambda.Function(this, `CompleteGoogleAccessFlowHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/completeGoogleAccessFlow"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/completeGoogleAccessFlow`),
       handler: "completeGoogleAccessFlow.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -80,7 +77,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
 
     const getGoogleEventsHandler = new Lambda.Function(this, `GetGoogleEventsHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getGoogleEvents"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getGoogleEvents`),
       handler: "getGoogleEvents.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -91,7 +88,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
 
     const getGoogleAccountsHandler = new Lambda.Function(this, `GetGoogleAccountsHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getGoogleAccounts"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getGoogleAccounts`),
       handler: "getGoogleAccounts.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -102,7 +99,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
 
     const getGoogleSettingsHandler = new Lambda.Function(this, `GetGoogleSettingsHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/getGoogleSettings"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getGoogleSettings`),
       handler: "getGoogleSettings.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -113,7 +110,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
 
     const updateGoogleSettingsHandler = new Lambda.Function(this, `UpdateGoogleSettingsHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset("dist/handlers/updateGoogleSettings"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/updateGoogleSettings`),
       handler: "updateGoogleSettings.handler",
       environment: environmentVariables,
       memorySize: 2048,
@@ -160,7 +157,7 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       },
     ];
 
-    routes.forEach((route) => this.httpApi.addRoute(route));
+    routes.forEach((route) => httpApi.addRoute(route));
 
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `CalendarTableNameSsmParameter-${id}`, {
@@ -168,4 +165,12 @@ export class YacCalendarServiceStack extends YacHttpServiceStack {
       stringValue: calendarTable.tableName,
     });
   }
+}
+
+export interface YacCalendarServiceStackProps extends StackProps {
+  environment: Environment;
+  stackPrefix: string;
+  domainName: ApiGatewayV2.IDomainName;
+  googleClient: OAuth2ClientData;
+  authorizerHandler: Lambda.IFunction;
 }

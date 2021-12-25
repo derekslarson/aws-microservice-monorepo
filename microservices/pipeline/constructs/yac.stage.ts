@@ -7,6 +7,7 @@ import { YacCoreServiceStack } from "@yac/core/infra/stacks/yac.core.service.sta
 import { YacStageProps } from "./yac.stage.props";
 import { YacNotificationServiceStack } from "../../notification/infra/stacks/yac.notification.service.stack";
 import { YacBillingServiceStack } from "../../billing/infra/stacks/yac.billing.service.stack";
+import { YacCalendarServiceStack } from "../../calendar/infra/stacks/yac.calendar.service.stack";
 
 export class YacStage extends Stage {
   constructor(scope: Construct, id: string, props: YacStageProps) {
@@ -63,6 +64,15 @@ export class YacStage extends Stage {
       domainName: utilService.domainName,
       snsTopics: utilService.snsTopics,
       stripe: utilService.stripe,
+    });
+
+    new YacCalendarServiceStack(this, "YacCalendarService", {
+      stackName: `${stackPrefix}-YacCalendarService`,
+      environment,
+      stackPrefix,
+      authorizerHandler: authService.authorizerHandler,
+      domainName: utilService.domainName,
+      googleClient: utilService.googleClient,
     });
   }
 }
