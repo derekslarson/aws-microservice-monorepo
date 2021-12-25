@@ -29,7 +29,7 @@ export class YacImageGeneratorServiceStack extends Stack {
     });
 
     const api = new HttpApi(this, `HttpApi_${id}`, {
-      serviceName: "chunked-upload",
+      serviceName: "image-generator",
       domainName,
     });
 
