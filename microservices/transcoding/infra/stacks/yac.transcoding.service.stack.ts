@@ -62,8 +62,9 @@ export class YacTranscodingServiceStack extends Stack {
       timeout: Duration.seconds(15),
     });
 
-    s3Buckets.rawMessage.addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
-    s3Buckets.enhancedMessage.addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
+    // Using `fromBucketArn` here instead of the bucket itself is necessary to prevent a circular dependency (seems like a cdk bug)
+    S3.Bucket.fromBucketArn(this, `RawMessageBucket_${id}`, s3Buckets.rawMessage.bucketArn).addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
+    S3.Bucket.fromBucketArn(this, `EnhancedMessageBucket_${id}`, s3Buckets.enhancedMessage.bucketArn).addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
   }
 }
 
