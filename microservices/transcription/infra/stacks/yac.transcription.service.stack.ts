@@ -1,6 +1,5 @@
 /* eslint-disable no-new */
 import {
-  Fn,
   Duration,
   Stack,
   StackProps,
