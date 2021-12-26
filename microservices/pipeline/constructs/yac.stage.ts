@@ -9,6 +9,7 @@ import { YacNotificationServiceStack } from "../../notification/infra/stacks/yac
 import { YacBillingServiceStack } from "../../billing/infra/stacks/yac.billing.service.stack";
 import { YacCalendarServiceStack } from "../../calendar/infra/stacks/yac.calendar.service.stack";
 import { YacChunkedUploadServiceStack } from "../../chunked-upload/infra/stacks/yac.chunkedUpload.service.stack";
+import { YacChunkedUploadTestingStack } from "../../chunked-upload/e2e/test-stack/infra/stacks/yac.chunkedUpload.testing.stack";
 import { YacImageGeneratorServiceStack } from "../../image-generator/infra/stacks/yac.image-generator.service.stack";
 import { YacTranscodingServiceStack } from "../../transcoding/infra/stacks/yac.transcoding.service.stack";
 import { YacTranscriptionServiceStack } from "../../transcription/infra/stacks/yac.transcription.service.stack";
@@ -79,13 +80,21 @@ export class YacStage extends Stage {
       googleClient: utilService.googleClient,
     });
 
-    new YacChunkedUploadServiceStack(this, "YacChunkedUploadService", {
+    const chunkedUploadService = new YacChunkedUploadServiceStack(this, "YacChunkedUploadService", {
       stackName: `${stackPrefix}-YacChunkedUploadService`,
       environment,
-      stackPrefix,
       domainName: utilService.domainName,
       secrets: utilService.secrets,
       s3Buckets: utilService.s3Buckets,
+    });
+
+    new YacChunkedUploadTestingStack(this, "YacChunkedUploadTesting", {
+      stackName: `${stackPrefix}-YacChunkedUploadTesting`,
+      domainName: utilService.domainName,
+      vpc: chunkedUploadService.vpc,
+      fileSystemId: chunkedUploadService.fileSystem.fileSystemId,
+      fileSystemAccessPointId: chunkedUploadService.fileSystemAccessPoint.accessPointId,
+      fileSystemSecurityGroupId: chunkedUploadService.fileSystemSecurityGroup.securityGroupId,
     });
 
     new YacImageGeneratorServiceStack(this, "YacImageGeneratorService", {

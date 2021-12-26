@@ -4,6 +4,7 @@
   "scripts": {
     "predeploy:local": "source ../../../../.env",
     "build:local": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
+    "build:local:v2": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
     "build:dev": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
     "clean": "rm -rf ./dist && rm -rf ./cdk.out",
     "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",
