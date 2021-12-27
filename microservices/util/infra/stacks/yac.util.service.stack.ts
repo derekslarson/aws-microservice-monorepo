@@ -45,33 +45,35 @@ export class YacUtilServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacUtilServiceProps) {
     super(scope, id, props);
 
-    const { environment, stackPrefix } = props;
+    const { environment } = props;
+
+    const isLocal = !Object.values(Environment).includes(environment as Environment);
 
     // Manually set SSM parameters
     this.stripe = {
-      apiKey: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-api-key`),
-      freePlanProductId: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-free-plan-product-id`),
-      paidPlanProductId: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-paid-plan-product-id`),
-      webhookSecret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/stripe-webhook-secret`),
+      apiKey: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-api-key`),
+      freePlanProductId: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-free-plan-product-id`),
+      paidPlanProductId: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-paid-plan-product-id`),
+      webhookSecret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-webhook-secret`),
     };
 
     this.googleClient = {
-      id: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-id`),
-      secret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/google-client-secret`),
+      id: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/google-client-id`),
+      secret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/google-client-secret`),
     };
 
     this.slackClient = {
-      id: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-id`),
-      secret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/slack-client-secret`),
+      id: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/slack-client-id`),
+      secret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/slack-client-secret`),
     };
 
-    this.audoAiApiKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/audo-ai-api-key`);
+    this.audoAiApiKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/audo-ai-api-key`);
 
-    this.gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/gcm-server-key`);
+    this.gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/gcm-server-key`);
 
-    const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-name`);
-    const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/hosted-zone-id`);
-    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${environment === Environment.Local ? Environment.Dev : environment}/certificate-arn`);
+    const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/hosted-zone-name`);
+    const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/hosted-zone-id`);
+    const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/certificate-arn`);
 
     this.certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn);
 
@@ -80,7 +82,7 @@ export class YacUtilServiceStack extends Stack {
       hostedZoneId,
     });
 
-    const recordName = environment === Environment.Prod ? "api-v4" : environment === Environment.Dev ? "develop" : stackPrefix;
+    const recordName = environment === Environment.Prod ? "api-v4" : environment === Environment.Dev ? "develop" : environment;
 
     this.domainName = new ApiGatewayV2.DomainName(this, `DomainName_${id}`, { domainName: `${recordName}.${hostedZoneName}`, certificate: this.certificate });
 
@@ -133,9 +135,9 @@ export class YacUtilServiceStack extends Stack {
 
     this.secrets = { messageUploadToken: new SecretsManager.Secret(this, `MessageUploadTokenSecret_${id}`) };
 
-    const ExportNames = generateExportNames(stackPrefix);
+    const ExportNames = generateExportNames(environment);
 
-    // Stack Exports (to be impported by other stacks)
+    // Stack Exports (to be imported by other stacks)
     new CfnOutput(this, `CustomDomainNameExport_${id}`, {
       exportName: ExportNames.CustomDomainName,
       value: this.domainName.name,
@@ -270,118 +272,11 @@ export class YacUtilServiceStack extends Stack {
       exportName: ExportNames.MessageUploadTokenSecretArn,
       value: this.secrets.messageUploadToken.secretArn,
     });
-
-    // SSM Parameters (to be imported in e2e tests)
-    new SSM.StringParameter(this, `YacClientRedirectUriSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/user-added-to-team-sns-topic-arn`,
-      stringValue: this.snsTopics.userAddedToTeam.topicArn,
-    });
-
-    new SSM.StringParameter(this, `UserRemovedFromTeamSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/user-removed-from-team-sns-topic-arn`,
-      stringValue: this.snsTopics.userRemovedFromTeam.topicArn,
-    });
-
-    new SSM.StringParameter(this, `UserAddedToGroupSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/user-added-to-group-sns-topic-arn`,
-      stringValue: this.snsTopics.userAddedToGroup.topicArn,
-    });
-
-    new SSM.StringParameter(this, `UserRemovedFromGroupSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/user-removed-from-group-sns-topic-arn`,
-      stringValue: this.snsTopics.userRemovedFromGroup.topicArn,
-    });
-
-    new SSM.StringParameter(this, `UserAddedToMeetingSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/user-added-to-meeting-sns-topic-arn`,
-      stringValue: this.snsTopics.userAddedToMeeting.topicArn,
-    });
-
-    new SSM.StringParameter(this, `UserRemovedFromMeetingSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/user-removed-from-meeting-sns-topic-arn`,
-      stringValue: this.snsTopics.userRemovedFromMeeting.topicArn,
-    });
-
-    new SSM.StringParameter(this, `UserAddedAsFriendSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/user-added-as-friend-sns-topic-arn`,
-      stringValue: this.snsTopics.userAddedAsFriend.topicArn,
-    });
-
-    new SSM.StringParameter(this, `UserRemovedAsFriendSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/user-removed-as-friend-sns-topic-arn`,
-      stringValue: this.snsTopics.userRemovedAsFriend.topicArn,
-    });
-
-    new SSM.StringParameter(this, `TeamCreatedSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/team-created-sns-topic-arn`,
-      stringValue: this.snsTopics.teamCreated.topicArn,
-    });
-
-    new SSM.StringParameter(this, `MeetingCreatedSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/meeting-created-sns-topic-arn`,
-      stringValue: this.snsTopics.meetingCreated.topicArn,
-    });
-
-    new SSM.StringParameter(this, `GroupCreatedSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/group-created-sns-topic-arn`,
-      stringValue: this.snsTopics.groupCreated.topicArn,
-    });
-
-    new SSM.StringParameter(this, `MessageCreatedSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/message-created-sns-topic-arn`,
-      stringValue: this.snsTopics.messageCreated.topicArn,
-    });
-
-    new SSM.StringParameter(this, `MessageUpdatedSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/message-updated-sns-topic-arn`,
-      stringValue: this.snsTopics.messageUpdated.topicArn,
-    });
-
-    new SSM.StringParameter(this, `MessageTranscodedSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/message-transcoded-sns-topic-arn`,
-      stringValue: this.snsTopics.messageTranscoded.topicArn,
-    });
-
-    new SSM.StringParameter(this, `MessageTranscribedSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/message-transcribed-sns-topic-arn`,
-      stringValue: this.snsTopics.messageTranscribed.topicArn,
-    });
-
-    new SSM.StringParameter(this, `CreateUserRequestSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/create-user-request-sns-topic-arn`,
-      stringValue: this.snsTopics.createUserRequest.topicArn,
-    });
-
-    new SSM.StringParameter(this, `OrganizationCreatedSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/organization-created-sns-topic-arn`,
-      stringValue: this.snsTopics.organizationCreated.topicArn,
-    });
-
-    new SSM.StringParameter(this, `BillingPlanUpdatedSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/billing-plan-updated-sns-topic-arn`,
-      stringValue: this.snsTopics.billingPlanUpdated.topicArn,
-    });
-
-    new SSM.StringParameter(this, `RawMessageS3BucketNameSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/raw-message-s3-bucket-name`,
-      stringValue: this.s3Buckets.rawMessage.bucketName,
-    });
-
-    new SSM.StringParameter(this, `EnhancedMessageS3BucketNameSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/enhanced-message-s3-bucket-name`,
-      stringValue: this.s3Buckets.enhancedMessage.bucketName,
-    });
-
-    new SSM.StringParameter(this, `MessageUploadTokenSecretIdSsmParameter_${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/message-upload-token-secret-id`,
-      stringValue: this.secrets.messageUploadToken.secretArn,
-    });
   }
 }
 
 export interface YacUtilServiceProps extends StackProps {
-  environment: Environment;
-  stackPrefix: string;
+  environment: string;
 }
 
 export interface YacUtilServiceSnsTopics {

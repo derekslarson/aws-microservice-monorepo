@@ -69,7 +69,7 @@ export class YacTranscodingServiceStack extends Stack {
 }
 
 export interface YacTranscodingServiceStackProps extends StackProps {
-  environment: Environment;
+  environment: string;
   audoAiApiKey: string;
   s3Buckets: {
     rawMessage: S3.IBucket;

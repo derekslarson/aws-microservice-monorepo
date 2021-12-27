@@ -16,7 +16,7 @@ export class YacTranscriptionTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacTranscriptionTestingStackProps) {
     super(scope, id, props);
 
-    const { stackPrefix, snsTopics } = props;
+    const { environment, snsTopics } = props;
         
     // Databases
     const testingTable = new DynamoDB.Table(this, `TestingTable_${id}`, {
@@ -53,14 +53,14 @@ export class YacTranscriptionTestingStack extends Stack {
 
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `TranscriptionTestingTableNameSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/transcription-testing-table-name`,
+      parameterName: `/yac-api-v4/${environment}/transcription-testing-table-name`,
       stringValue: testingTable.tableName,
     });
   }
 }
 
 export interface YacTranscriptionTestingStackProps extends StackProps {
-  stackPrefix: string;
+  environment: string;
   snsTopics: {
     messageTranscribed: SNS.ITopic
   }

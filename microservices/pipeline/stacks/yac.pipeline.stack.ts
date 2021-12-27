@@ -1,5 +1,3 @@
-/* eslint-disable no-nested-ternary */
-/* eslint-disable max-len */
 /* eslint-disable no-new */
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import {
@@ -13,18 +11,19 @@ import {
   aws_iam as IAM,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
-// import { Environment } from "@yac/util/src/enums/environment.enum";
 import { YacStage } from "../constructs/yac.stage";
 
 export class YacPipelineStack extends Stack {
   constructor(scope: Construct, id: string, props: PipelineStackProps) {
     super(scope, id, props);
 
-    const { environment, stackPrefix } = props;
+    const { environment, branch } = props;
+
+    const isProd = environment === Environment.Prod;
 
     const pipeline = new Pipelines.CodePipeline(this, "Pipeline", {
       codePipeline: new CodePipeline.Pipeline(this, "BasePipeline", {
-        pipelineName: `${stackPrefix}-Pipeline`,
+        pipelineName: `${environment}-Pipeline`,
         role: new IAM.Role(this, "BasePipelineRole", {
           assumedBy: new IAM.ServicePrincipal("codepipeline.amazonaws.com"),
           managedPolicies: [ IAM.ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess") ],
@@ -37,7 +36,7 @@ export class YacPipelineStack extends Stack {
         },
       },
       synth: new Pipelines.ShellStep(`Synth_${id}`, {
-        input: Pipelines.CodePipelineSource.gitHub("Yac-Team/yac-api-v4", "feature/new-pipeline", {
+        input: Pipelines.CodePipelineSource.gitHub("Yac-Team/yac-api-v4", branch, {
           authentication: SecretValue.secretsManager("yac-api-v4/github-oauth-token", { jsonField: "github-oauth-token" }),
           trigger: CodePipelineActions.GitHubTrigger.WEBHOOK,
         }),
@@ -51,11 +50,15 @@ export class YacPipelineStack extends Stack {
       }),
     });
 
-    pipeline.addStage(new YacStage(this, stackPrefix, { environment, stackPrefix }));
+    pipeline.addStage(new YacStage(this, isProd ? Environment.Stage : environment, { environment: isProd ? Environment.Stage : environment }));
+
+    if (isProd) {
+      pipeline.addStage(new YacStage(this, Environment.Prod, { environment: Environment.Prod }));
+    }
   }
 }
 
-export interface PipelineStackProps extends StackProps {
-  environment: Environment;
-  stackPrefix: string;
+interface PipelineStackProps extends StackProps {
+  environment: string;
+  branch: string;
 }

@@ -40,6 +40,12 @@
     "@yac/util": "0.1.0",
     "@yac/auth": "0.1.0",
     "@yac/core": "0.1.0",
-    "@yac/billing": "0.1.0"
+    "@yac/billing": "0.1.0",
+    "@yac/notification": "0.1.0",
+    "@yac/transcoding": "0.1.0",
+    "@yac/transcription": "0.1.0",
+    "@yac/chunked-upload": "0.1.0",
+    "@yac/calendar": "0.1.0",
+    "@yac/image-generator": "0.1.0"
   }
 }

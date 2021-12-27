@@ -184,7 +184,7 @@ export class YacChunkedUploadServiceStack extends Stack {
 }
 
 export interface YacChunkedUploadServiceStackProps extends StackProps {
-  environment: Environment;
+  environment: string;
   domainName: ApiGatewayV2.IDomainName;
   s3Buckets: {
     rawMessage: S3.IBucket;

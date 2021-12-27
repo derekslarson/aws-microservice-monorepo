@@ -20,7 +20,7 @@ export class YacTranscodingTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacTranscodingTestingStackProps) {
     super(scope, id, props);
 
-    const { stackPrefix, domainName, snsTopics } = props;
+    const { environment, domainName, snsTopics } = props;
 
     // Databases
     const testingTable = new DynamoDB.Table(this, `TestingTable_${id}`, {
@@ -74,14 +74,14 @@ export class YacTranscodingTestingStack extends Stack {
     
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `TranscodingTestingTableNameSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/transcoding-testing-table-name`,
+      parameterName: `/yac-api-v4/${environment}/transcoding-testing-table-name`,
       stringValue: testingTable.tableName,
     });
   }
 }
 
 export interface YacTranscodingTestingStackProps extends StackProps {
-  stackPrefix: string;
+  environment: string;
   domainName: ApiGatewayV2.IDomainName;
   snsTopics: {
     messageTranscoded: SNS.ITopic;

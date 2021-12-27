@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 /* eslint-disable no-new */
 import {
   RemovalPolicy,
@@ -37,7 +38,7 @@ export class YacCoreServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacCoreServiceStackProps) {
     super(scope, id, props);
 
-    const { environment, stackPrefix, domainName, authorizerHandler, snsTopics, s3Buckets, secrets } = props;
+    const { environment, domainName, authorizerHandler, snsTopics, s3Buckets, secrets } = props;
 
     // S3 Buckets
     const imageS3Bucket = new S3.Bucket(this, `ImageS3Bucket_${id}`, { removalPolicy: environment === Environment.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY });
@@ -69,21 +70,16 @@ export class YacCoreServiceStack extends Stack {
       sortKey: { name: "gsi3sk", type: DynamoDB.AttributeType.STRING },
     });
 
-    const openSearchInstanceTypeMap: Record<Environment, string> = {
-      [Environment.Local]: "t3.small.search",
-      [Environment.Dev]: "t3.medium.search",
-      [Environment.Stage]: "t3.medium.search",
-      [Environment.Prod]: "m6g.2xlarge.search",
-    };
+    const openSearchInstanceType = environment === Environment.Prod ? "m6g.2xlarge.search"
+      : environment === Environment.Stage || environment === Environment.Dev ? "t3.medium.search" : "t3.small.search";
 
-    // OpenSearch Domain
     const openSearchDomain = new OpenSearch.Domain(this, `OpenSearchDomain_${id}`, {
       version: OpenSearch.EngineVersion.OPENSEARCH_1_0,
       domainName: id.toLowerCase(),
       capacity: {
-        masterNodeInstanceType: openSearchInstanceTypeMap[environment],
+        masterNodeInstanceType: openSearchInstanceType,
         masterNodes: 2,
-        dataNodeInstanceType: openSearchInstanceTypeMap[environment],
+        dataNodeInstanceType: openSearchInstanceType,
         dataNodes: 1,
       },
       ebs: {
@@ -413,20 +409,19 @@ export class YacCoreServiceStack extends Stack {
     });
 
     new SSM.StringParameter(this, `CoreTableNameSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/core-table-name`,
+      parameterName: `/yac-api-v4/${environment}/core-table-name`,
       stringValue: coreTable.tableName,
     });
 
     new SSM.StringParameter(this, `ImageS3BucketNameSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/image-s3-bucket-name`,
+      parameterName: `/yac-api-v4/${environment}/image-s3-bucket-name`,
       stringValue: imageS3Bucket.bucketName,
     });
   }
 }
 
 export interface YacCoreServiceStackProps extends StackProps {
-  environment: Environment;
-  stackPrefix: string;
+  environment: string;
   domainName: ApiGatewayV2.IDomainName;
   authorizerHandler: Lambda.Function;
   secrets: {

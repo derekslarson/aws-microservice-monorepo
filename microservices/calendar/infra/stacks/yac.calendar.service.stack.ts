@@ -20,7 +20,7 @@ export class YacCalendarServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacCalendarServiceStackProps) {
     super(scope, id, props);
 
-    const { environment, stackPrefix, domainName, authorizerHandler, googleClient } = props;
+    const { environment, domainName, authorizerHandler, googleClient } = props;
 
     // Databases
     const calendarTable = new DynamoDB.Table(this, `CalendarTable_${id}`, {
@@ -161,15 +161,14 @@ export class YacCalendarServiceStack extends Stack {
 
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `CalendarTableNameSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/calendar-table-name`,
+      parameterName: `/yac-api-v4/${environment}/calendar-table-name`,
       stringValue: calendarTable.tableName,
     });
   }
 }
 
 export interface YacCalendarServiceStackProps extends StackProps {
-  environment: Environment;
-  stackPrefix: string;
+  environment: string;
   domainName: ApiGatewayV2.IDomainName;
   googleClient: OAuth2ClientData;
   authorizerHandler: Lambda.IFunction;

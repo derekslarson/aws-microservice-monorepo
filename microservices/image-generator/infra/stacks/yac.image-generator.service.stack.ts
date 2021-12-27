@@ -107,6 +107,6 @@ export class YacImageGeneratorServiceStack extends Stack {
 }
 
 export interface YacImageGeneratorServiceStackProps extends StackProps {
-  environment: Environment;
+  environment: string;
   domainName: ApiGatewayV2.IDomainName;
 }

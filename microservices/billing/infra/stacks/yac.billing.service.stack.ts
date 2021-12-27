@@ -26,7 +26,7 @@ export class YacBillingServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacBillingServiceStackProps) {
     super(scope, id, props);
 
-    const { environment, stackPrefix, domainName, authorizerHandler, snsTopics, stripe } = props;
+    const { environment, domainName, authorizerHandler, snsTopics, stripe } = props;
 
     // Databases
     const billingTable = new DynamoDB.Table(this, `BillingTable_${id}`, {
@@ -173,15 +173,14 @@ export class YacBillingServiceStack extends Stack {
 
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `BillingTableNameSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/billing-table-name`,
+      parameterName: `/yac-api-v4/${environment}/billing-table-name`,
       stringValue: billingTable.tableName,
     });
   }
 }
 
 export interface YacBillingServiceStackProps extends StackProps {
-  environment: Environment;
-  stackPrefix: string;
+  environment: string;
   domainName: ApiGatewayV2.IDomainName;
   authorizerHandler: Lambda.Function;
   snsTopics: {

@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-floating-promises */
-import { CognitoIdentityServiceProvider, DynamoDB, S3, SNS, SSM, TranscribeService, SecretsManager } from "aws-sdk";
+import { CloudFormation, CognitoIdentityServiceProvider, DynamoDB, S3, SNS, SSM, TranscribeService, SecretsManager } from "aws-sdk";
 import crypto from "crypto";
 import ksuid from "ksuid";
 import jwt from "jsonwebtoken";
@@ -14,6 +14,8 @@ import { RawUser } from "@yac/auth/src/repositories/user.dynamo.repository";
 import { RawSession } from "@yac/auth/src/repositories/session.dynamo.repository";
 import { EntityType } from "../microservices/auth/src/enums/entityType.enum";
 import { AccessTokenPayload } from "../microservices/auth/src/services/tier-1/token.service";
+
+const cloudFormation = new CloudFormation({ region: "us-east-1" });
 
 const ssm = new SSM({ region: "us-east-1" });
 export const s3 = new S3({ region: "us-east-1" });
@@ -385,6 +387,24 @@ export async function generateMessageUploadToken(conversationId: string, message
 
 export async function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(() => resolve(), ms));
+}
+
+export async function getExportsByEnvironment(environment: string, nextToken?: string, prevExports?: Record<string, string>): Promise<Record<string, string>> {
+  const { Exports = [], NextToken } = await cloudFormation.listExports({ NextToken: nextToken }).promise();
+
+  const exports: Record<string, string> = prevExports || {};
+
+  Exports.forEach((exp) => {
+    if (exp.Name?.startsWith(environment) && exp.Value) {
+      exports[exp.Name] = exp.Value;
+    }
+  });
+
+  if (NextToken) {
+    return getExportsByEnvironment(environment, NextToken, exports);
+  }
+
+  return exports;
 }
 
 export const ISO_DATE_REGEX = /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})[Z]/;

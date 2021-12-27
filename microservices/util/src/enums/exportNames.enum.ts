@@ -54,13 +54,15 @@ const ExportNames = {
   ChunkedUploadsVPCSecurityGroupSSM: "chunkedUploadsVPCSecurityGroupSSM",
 
   AuthorizerHandlerFunctionArn: "authorizerHandlerFunctionArn",
+
+  AuthTableName: "authTableName",
 };
 
-export function generateExportNames(id: string): Readonly<typeof ExportNames> {
+export function generateExportNames(environment: string): Readonly<typeof ExportNames> {
   const exportNamesCopy = { ...ExportNames };
 
   return Object.freeze(Object.entries(exportNamesCopy).reduce((acc, [ key, val ]) => {
-    acc[key as keyof typeof ExportNames] = `${id}-${val}`;
+    acc[key as keyof typeof ExportNames] = `${environment}-${val}`;
 
     return acc;
   }, exportNamesCopy));

@@ -11,7 +11,6 @@ import {
   aws_sns as SNS,
   aws_sns_subscriptions as SnsSubscriptions,
   aws_sqs as SQS,
-  aws_ssm as SSM,
   aws_events as Events,
   aws_events_targets as EventsTargets,
 } from "aws-cdk-lib";
@@ -23,7 +22,7 @@ export class YacTranscriptionServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacTranscriptionServiceStackProps) {
     super(scope, id, props);
 
-    const { environment, stackPrefix, s3Buckets, snsTopics } = props;
+    const { environment, s3Buckets, snsTopics } = props;
 
     // S3 Buckets
     const transcriptionS3Bucket = new S3.Bucket(this, `TranscriptionS3Bucket_${id}`, { ...(environment !== Environment.Prod && { removalPolicy: RemovalPolicy.DESTROY }) });
@@ -57,7 +56,7 @@ export class YacTranscriptionServiceStack extends Stack {
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
-      ENVIRONMENT: stackPrefix,
+      ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       MESSAGE_S3_BUCKET_NAME: s3Buckets.enhancedMessage.bucketName,
       TRANSCRIPTION_S3_BUCKET_NAME: transcriptionS3Bucket.bucketName,
@@ -95,7 +94,7 @@ export class YacTranscriptionServiceStack extends Stack {
         source: [ "aws.transcribe" ],
         detailType: [ "Transcribe Job State Change" ],
         detail: {
-          TranscriptionJobName: [ { prefix: `${stackPrefix}_` } ],
+          TranscriptionJobName: [ { prefix: `${environment}_` } ],
           TranscriptionJobStatus: [ "COMPLETED" ],
         },
       },
@@ -107,32 +106,31 @@ export class YacTranscriptionServiceStack extends Stack {
         source: [ "aws.transcribe" ],
         detailType: [ "Transcribe Job State Change" ],
         detail: {
-          TranscriptionJobName: [ { prefix: `${stackPrefix}_` } ],
+          TranscriptionJobName: [ { prefix: `${environment}_` } ],
           TranscriptionJobStatus: [ "FAILED" ],
         },
       },
     });
 
-    new SSM.StringParameter(this, `TranscriptionS3BucketNameSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/transcription-s3-bucket-name`,
-      stringValue: transcriptionS3Bucket.bucketName,
-    });
+    // new SSM.StringParameter(this, `TranscriptionS3BucketNameSsmParameter-${id}`, {
+    //   parameterName: `/yac-api-v4/${environment}/transcription-s3-bucket-name`,
+    //   stringValue: transcriptionS3Bucket.bucketName,
+    // });
 
-    new SSM.StringParameter(this, `TranscriptionJobCompletedSnsTopicArnSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/transcription-job-completed-sns-topic-arn`,
-      stringValue: transcriptionJobCompletedSnsTopic.topicArn,
-    });
+    // new SSM.StringParameter(this, `TranscriptionJobCompletedSnsTopicArnSsmParameter-${id}`, {
+    //   parameterName: `/yac-api-v4/${environment}/transcription-job-completed-sns-topic-arn`,
+    //   stringValue: transcriptionJobCompletedSnsTopic.topicArn,
+    // });
 
-    new SSM.StringParameter(this, `TranscriptionJobFailedSnsTopicArnSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/transcription-job-failed-sns-topic-arn`,
-      stringValue: transcriptionJobFailedSnsTopic.topicArn,
-    });
+    // new SSM.StringParameter(this, `TranscriptionJobFailedSnsTopicArnSsmParameter-${id}`, {
+    //   parameterName: `/yac-api-v4/${environment}/transcription-job-failed-sns-topic-arn`,
+    //   stringValue: transcriptionJobFailedSnsTopic.topicArn,
+    // });
   }
 }
 
 export interface YacTranscriptionServiceStackProps extends StackProps {
-  environment: Environment;
-  stackPrefix: string;
+  environment: string;
   s3Buckets: {
     rawMessage: S3.IBucket;
     enhancedMessage: S3.IBucket;

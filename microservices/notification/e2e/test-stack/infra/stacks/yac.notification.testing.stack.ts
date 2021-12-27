@@ -18,7 +18,7 @@ export class YacNotificationTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacNotificationTestingStackProps) {
     super(scope, id, props);
 
-    const { stackPrefix, snsTopics } = props;
+    const { environment, snsTopics } = props;
 
     // Databases
     const snsEventTable = new DynamoDB.Table(this, `SnsEventTable_${id}`, {
@@ -55,14 +55,14 @@ export class YacNotificationTestingStack extends Stack {
 
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `ListenerMappingTableNameSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/notification-testing-sns-event-table-name`,
+      parameterName: `/yac-api-v4/${environment}/notification-testing-sns-event-table-name`,
       stringValue: snsEventTable.tableName,
     });
   }
 }
 
 export interface YacNotificationTestingStackProps extends StackProps {
-  stackPrefix: string;
+  environment: string;
   snsTopics: {
     pushNotificationFailed: SNS.ITopic;
   }

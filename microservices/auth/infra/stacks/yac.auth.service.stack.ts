@@ -9,7 +9,6 @@ import {
   StackProps,
   custom_resources as CustomResources,
   aws_certificatemanager as ACM,
-  aws_ssm as SSM,
   aws_sns as SNS,
   aws_sns_subscriptions as SnsSubscriptions,
   aws_sqs as SQS,
@@ -40,7 +39,7 @@ export class YacAuthServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacAuthServiceStackProps) {
     super(scope, id, props);
 
-    const { environment, stackPrefix, domainName, snsTopics, hostedZone, certificate, googleClient, slackClient } = props;
+    const { environment, domainName, snsTopics, hostedZone, certificate, googleClient, slackClient } = props;
 
     // SQS Queues
     const snsEventSqsQueue = new SQS.Queue(this, `SnsEventSqsQueue_${id}`);
@@ -78,7 +77,7 @@ export class YacAuthServiceStack extends Stack {
       },
     });
 
-    const recordName = environment === Environment.Prod ? "api-v4" : environment === Environment.Dev ? "develop" : stackPrefix;
+    const recordName = environment === Environment.Prod ? "api-v4" : environment === Environment.Dev ? "develop" : environment;
 
     const websiteDistribution = new CloudFront.Distribution(this, `IdYacComDistribution_${id}`, {
       defaultBehavior: {
@@ -134,7 +133,6 @@ export class YacAuthServiceStack extends Stack {
     const environmentVariables: Record<string, string> = {
       JWKS_URI: `https://cognito-idp.${this.region}.amazonaws.com/test/.well-known/jwks.json`,
       ENVIRONMENT: environment,
-      STACK_PREFIX: stackPrefix,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Info}`,
       API_URL: api.apiUrl,
       MAIL_SENDER: "no-reply@yac.com",
@@ -432,23 +430,22 @@ export class YacAuthServiceStack extends Stack {
 
     otpAuthFlowRoutes.forEach((route) => otpFlowApi.addRoute(route));
 
-    const ExportNames = generateExportNames(stackPrefix);
+    const ExportNames = generateExportNames(environment);
 
     new CfnOutput(this, `AuthorizerHandlerFunctionArnExport_${id}`, {
       exportName: ExportNames.AuthorizerHandlerFunctionArn,
       value: this.authorizerHandler.functionArn,
     });
 
-    new SSM.StringParameter(this, `AuthTableNameSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/auth-table-name`,
-      stringValue: authTable.tableName,
+    new CfnOutput(this, `AuthTableNameExport_${id}`, {
+      exportName: ExportNames.AuthorizerHandlerFunctionArn,
+      value: authTable.tableName,
     });
   }
 }
 
 export interface YacAuthServiceStackProps extends StackProps {
-  environment: Environment;
-  stackPrefix: string;
+  environment: string;
   domainName: ApiGatewayV2.IDomainName;
   googleClient: OAuth2ClientData;
   slackClient: OAuth2ClientData;

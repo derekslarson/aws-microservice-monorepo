@@ -36,7 +36,7 @@ export class YacNotificationServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacNotificationServiceStackProps) {
     super(scope, id, props);
 
-    const { environment, stackPrefix, domainName, hostedZone, certificate, gcmServerKey, authorizerHandler, snsTopics } = props;
+    const { environment, domainName, hostedZone, certificate, gcmServerKey, authorizerHandler, snsTopics } = props;
 
     this.pushNotificationFailedSnsTopic = new SNS.Topic(this, `PushNotificationFailedSnsTopic_${id}`, { topicName: `PushNotificationFailedSnsTopic_${id}` });
 
@@ -181,7 +181,7 @@ export class YacNotificationServiceStack extends Stack {
       timeout: Duration.seconds(15),
     });
 
-    const webSocketRecordName = environment === Environment.Prod ? "api-v4-ws" : environment === Environment.Dev ? "develop-ws" : `${stackPrefix}-ws`;
+    const webSocketRecordName = environment === Environment.Prod ? "api-v4-ws" : environment === Environment.Dev ? "develop-ws" : `${environment}-ws`;
 
     // WebSocket API
     const webSocketDomainName = new ApiGatewayV2.DomainName(this, `WebSocketDomainName_${id}`, { domainName: `${webSocketRecordName}.${hostedZone.zoneName}`, certificate });
@@ -255,7 +255,7 @@ export class YacNotificationServiceStack extends Stack {
 
     routes.forEach((route) => httpApi.addRoute(route));
 
-    const ExportNames = generateExportNames(stackPrefix);
+    const ExportNames = generateExportNames(environment);
 
     // PushNotificationFailedSnsTopic ARN Export (to be imported by test stack)
     new CfnOutput(this, `PushNotificationFailedSnsTopicArnExport_${id}`, {
@@ -265,25 +265,24 @@ export class YacNotificationServiceStack extends Stack {
 
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `ListenerMappingTableNameSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/listener-mapping-table-name`,
+      parameterName: `/yac-api-v4/${environment}/listener-mapping-table-name`,
       stringValue: listenerMappingTable.tableName,
     });
 
     new SSM.StringParameter(this, `PushNotificationFailedSnsTopicArnSsmParameter_-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/push-notification-failed-sns-topic-arn`,
+      parameterName: `/yac-api-v4/${environment}/push-notification-failed-sns-topic-arn`,
       stringValue: this.pushNotificationFailedSnsTopic.topicArn,
     });
 
     new SSM.StringParameter(this, `PlatformApplicationArnSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${stackPrefix}/platform-application-arn`,
+      parameterName: `/yac-api-v4/${environment}/platform-application-arn`,
       stringValue: platformApplicationArn,
     });
   }
 }
 
 export interface YacNotificationServiceStackProps extends StackProps {
-  environment: Environment;
-  stackPrefix: string;
+  environment: string;
   domainName: ApiGatewayV2.IDomainName;
   authorizerHandler: Lambda.Function;
   hostedZone: Route53.IHostedZone;
