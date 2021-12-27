@@ -16,32 +16,33 @@ export class YacChunkedUploadTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacChunkedUploadTestingStackProps) {
     super(scope, id, props);
 
-    const { domainName, vpc, fileSystemId, fileSystemAccessPointId, fileSystemSecurityGroupId } = props;
+    const { domainName, vpc, fileSystem } = props;
 
     // Environment Variables
     const environmentVariables: Record<string, string> = { FS_PATH: "/mnt/messages" };
     
-    const fileSystemSecurityGroup = EC2.SecurityGroup.fromSecurityGroupId(this, `FileSystemSecurityGroup_${id}`, fileSystemSecurityGroupId);
+    const efsFileSystemSecurityGroup = EC2.SecurityGroup.fromSecurityGroupId(this, `FileSystemSecurityGroup_${id}`, fileSystem.securityGroupId);
 
     const lambdaSecurityGroup = new EC2.SecurityGroup(this, `LambdaSecurityGroup_${id}`, {
       vpc,
       allowAllOutbound: true,
       description: `Security Rule to deploy all lambdas that wanna have access to MessageEFS_${id} instance`,
     });
+
+    efsFileSystemSecurityGroup.addIngressRule(lambdaSecurityGroup, EC2.Port.tcp(2049), "for any member of LambdaSecurityGroup");
+
     
-    const fileSystem = EFS.FileSystem.fromFileSystemAttributes(this, `EFSFileSystem_${id}`, {
-      fileSystemId: fileSystemId,
-      securityGroup: fileSystemSecurityGroup
+    const efsFileSystem = EFS.FileSystem.fromFileSystemAttributes(this, `EfsFileSystem_${id}`, {
+      fileSystemId: fileSystem.id,
+      securityGroup: efsFileSystemSecurityGroup
     });
 
-    const  fileSystemAccessPoint =  EFS.AccessPoint.fromAccessPointAttributes(this, `EfsAccessPoint_${id}`, {
-      accessPointId: fileSystemAccessPointId,
-      fileSystem
+    const  efsFileSystemAccessPoint =  EFS.AccessPoint.fromAccessPointAttributes(this, `EfsAccessPoint_${id}`, {
+      accessPointId: fileSystem.accessPointId,
+      fileSystem: efsFileSystem
     });
         
-    const lambdaFS = Lambda.FileSystem.fromEfsAccessPoint(fileSystemAccessPoint, "/mnt/messages");
-
-    fileSystemSecurityGroup.addIngressRule(lambdaSecurityGroup, EC2.Port.tcp(2049), "for any member of LambdaSecurityGroup");
+    const lambdaFileSystem = Lambda.FileSystem.fromEfsAccessPoint(efsFileSystemAccessPoint, "/mnt/messages");
 
     // SNS Event Lambda Handler
     const checkEFSLambda = new Lambda.Function(this, `CheckEfsHandler_${id}`, {
@@ -53,7 +54,7 @@ export class YacChunkedUploadTestingStack extends Stack {
       environment: environmentVariables,
       memorySize: 512,
       timeout: Duration.seconds(15),
-      filesystem: lambdaFS
+      filesystem: lambdaFileSystem
     });
 
     const deleteFromEFSLambda = new Lambda.Function(this, `DeleteFromEfsHandler_${id}`, {
@@ -65,7 +66,7 @@ export class YacChunkedUploadTestingStack extends Stack {
       environment: environmentVariables,
       memorySize: 512,
       timeout: Duration.seconds(15),
-      filesystem: lambdaFS
+      filesystem: lambdaFileSystem
     });
 
     const api = new HttpApi(this, `HttpApi_${id}`, {
@@ -91,7 +92,9 @@ export class YacChunkedUploadTestingStack extends Stack {
 export interface YacChunkedUploadTestingStackProps extends StackProps {
   domainName: ApiGatewayV2.IDomainName;
   vpc: EC2.Vpc;
-  fileSystemId: string;
-  fileSystemSecurityGroupId: string;
-  fileSystemAccessPointId: string;
+  fileSystem: {
+    id: string;
+    securityGroupId: string;
+    accessPointId: string;
+  }
 }

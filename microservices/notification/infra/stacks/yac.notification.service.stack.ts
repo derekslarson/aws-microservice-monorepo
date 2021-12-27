@@ -31,12 +31,14 @@ import { WebSocketApi } from "@yac/util/infra/constructs/webSocket.api";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacNotificationServiceStack extends Stack {
+  public pushNotificationFailedSnsTopic: SNS.ITopic;
+
   constructor(scope: Construct, id: string, props: YacNotificationServiceStackProps) {
     super(scope, id, props);
 
     const { environment, stackPrefix, domainName, hostedZone, certificate, gcmServerKey, authorizerHandler, snsTopics } = props;
 
-    const pushNotificationFailedSnsTopic = new SNS.Topic(this, `PushNotificationFailedSnsTopic_${id}`, { topicName: `PushNotificationFailedSnsTopic_${id}` });
+    this.pushNotificationFailedSnsTopic = new SNS.Topic(this, `PushNotificationFailedSnsTopic_${id}`, { topicName: `PushNotificationFailedSnsTopic_${id}` });
 
     // Databases
     const listenerMappingTable = new DynamoDB.Table(this, `ListenerMappingTable_${id}`, {
@@ -69,7 +71,7 @@ export class YacNotificationServiceStack extends Stack {
           Platform: platformApplicationPlatform,
           Attributes: {
             PlatformCredential: gcmServerKey,
-            EventDeliveryFailure: pushNotificationFailedSnsTopic.topicArn,
+            EventDeliveryFailure: this.pushNotificationFailedSnsTopic.topicArn,
           },
         },
         physicalResourceId: CustomResources.PhysicalResourceId.of(platformApplicationName),
@@ -82,7 +84,7 @@ export class YacNotificationServiceStack extends Stack {
           PlatformApplicationArn: platformApplicationArn,
           Attributes: {
             PlatformCredential: gcmServerKey,
-            EventDeliveryFailure: pushNotificationFailedSnsTopic.topicArn,
+            EventDeliveryFailure: this.pushNotificationFailedSnsTopic.topicArn,
           },
         },
         physicalResourceId: CustomResources.PhysicalResourceId.of(platformApplicationName),
@@ -258,7 +260,7 @@ export class YacNotificationServiceStack extends Stack {
     // PushNotificationFailedSnsTopic ARN Export (to be imported by test stack)
     new CfnOutput(this, `PushNotificationFailedSnsTopicArnExport_${id}`, {
       exportName: ExportNames.PushNotificationFailedSnsTopicArn,
-      value: pushNotificationFailedSnsTopic.topicArn,
+      value: this.pushNotificationFailedSnsTopic.topicArn,
     });
 
     // SSM Parameters (to be imported in e2e tests)
@@ -269,7 +271,7 @@ export class YacNotificationServiceStack extends Stack {
 
     new SSM.StringParameter(this, `PushNotificationFailedSnsTopicArnSsmParameter_-${id}`, {
       parameterName: `/yac-api-v4/${stackPrefix}/push-notification-failed-sns-topic-arn`,
-      stringValue: pushNotificationFailedSnsTopic.topicArn,
+      stringValue: this.pushNotificationFailedSnsTopic.topicArn,
     });
 
     new SSM.StringParameter(this, `PlatformApplicationArnSsmParameter-${id}`, {

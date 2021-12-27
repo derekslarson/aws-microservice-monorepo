@@ -16,13 +16,13 @@ if (!environment) {
 
 const requiredParams = [
   "raw-message-s3-bucket-name",
-  "message-testing-utils-endpoint",
   "message-upload-token-secret-id",
 ];
 
 (async () => {
   const initialEnvVals = await getSsmParameters(environment, requiredParams);
-  initialEnvVals.baseUrl = `https://${environment === "dev" ? "develop" : environment}.yacchat.com/message`;
+  initialEnvVals.baseUrl = `https://${environment === "dev" ? "develop" : environment}.yacchat.com/chunked-upload`;
+  initialEnvVals.testStackBaseUrl = `https://${environment === "dev" ? "develop" : environment}.yacchat.com/chunkedupload-testing`;
 
   setEnvVars(initialEnvVals);
 

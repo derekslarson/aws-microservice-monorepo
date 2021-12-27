@@ -25,9 +25,6 @@
     "skipLibCheck": true,
     "baseUrl": "/",
     "paths": {
-      "@yac-assets/*": [
-        "assets/build/"
-      ],
       "@yac/*": [
         "microservices/*"
       ]

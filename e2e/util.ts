@@ -1,3 +1,4 @@
+/* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-console */
@@ -7,11 +8,12 @@ import crypto from "crypto";
 import ksuid from "ksuid";
 import jwt from "jsonwebtoken";
 import * as jose from "node-jose";
-import { RawUser } from "../microservices/auth/src/repositories/user.dynamo.repository";
+import { MakeRequired } from "@yac/util/src/types/makeRequired.type";
+import { UserId } from "@yac/util/src/types/userId.type";
+import { RawUser } from "@yac/auth/src/repositories/user.dynamo.repository";
+import { RawSession } from "@yac/auth/src/repositories/session.dynamo.repository";
 import { EntityType } from "../microservices/auth/src/enums/entityType.enum";
-import { MakeRequired, UserId } from "../microservices/util/src/types";
 import { AccessTokenPayload } from "../microservices/auth/src/services/tier-1/token.service";
-import { RawSession } from "../microservices/auth/src/repositories/session.dyanmo.repository";
 
 const ssm = new SSM({ region: "us-east-1" });
 export const s3 = new S3({ region: "us-east-1" });

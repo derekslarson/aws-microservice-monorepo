@@ -1,59 +1,30 @@
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
-import * as SNS from "@aws-cdk/aws-sns";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as IAM from "@aws-cdk/aws-iam";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
-import { Environment, generateExportNames } from "@yac/util";
+import {
+  RemovalPolicy,
+  Duration,
+  Stack,
+  StackProps,
+  aws_ssm as SSM,
+  aws_sns as SNS,
+  aws_dynamodb as DynamoDB,
+  aws_iam as IAM,
+  aws_lambda as Lambda,
+  aws_lambda_event_sources as LambdaEventSources,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
 
-export class YacCoreTestingStack extends CDK.Stack {
-  constructor(scope: CDK.Construct, id: string, props: CDK.StackProps) {
+export class YacCoreTestingStack extends Stack {
+  constructor(scope: Construct, id: string, props: YacCoreTestingStackProps) {
     super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as string;
-    const developer = this.node.tryGetContext("developer") as string;
-
-    if (!environment) {
-      throw new Error("'environment' context param required.");
-    }
-
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-
-    const ExportNames = generateExportNames(stackPrefix);
-
-    // Imported SNS Topic ARNs from Util
-    const userAddedToTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToTeamSnsTopicArn);
-    const userRemovedFromTeamSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromTeamSnsTopicArn);
-    const userAddedToGroupSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToGroupSnsTopicArn);
-    const userRemovedFromGroupSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromGroupSnsTopicArn);
-    const userAddedToMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedToMeetingSnsTopicArn);
-    const userRemovedFromMeetingSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedFromMeetingSnsTopicArn);
-    const userAddedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserAddedAsFriendSnsTopicArn);
-    const userRemovedAsFriendSnsTopicArn = CDK.Fn.importValue(ExportNames.UserRemovedAsFriendSnsTopicArn);
-    const teamCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.TeamCreatedSnsTopicArn);
-    const meetingCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingCreatedSnsTopicArn);
-    const groupCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupCreatedSnsTopicArn);
-    const friendMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageCreatedSnsTopicArn);
-    const friendMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.FriendMessageUpdatedSnsTopicArn);
-    const groupMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupMessageCreatedSnsTopicArn);
-    const groupMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.GroupMessageUpdatedSnsTopicArn);
-    const meetingMessageCreatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageCreatedSnsTopicArn);
-    const meetingMessageUpdatedSnsTopicArn = CDK.Fn.importValue(ExportNames.MeetingMessageUpdatedSnsTopicArn);
-
-    // Layers
-    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
-      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
-      code: Lambda.Code.fromAsset("dist/dependencies"),
-    });
-        
+    const { stackPrefix, snsTopics } = props;
+ 
     // Databases
     const snsEventTable = new DynamoDB.Table(this, `SnsEventTable_${id}`, {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY,
     });
 
     // Policies
@@ -70,31 +41,26 @@ export class YacCoreTestingStack extends CDK.Stack {
     // SNS Event Lambda Handler
     new Lambda.Function(this, `SnsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/snsEvent`),
       handler: "snsEvent.handler",
-//    // layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, snsEventTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       events: [
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, userAddedToTeamSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromTeamSnsTopic_${id}`, userRemovedFromTeamSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToGroupSnsTopic_${id}`, userAddedToGroupSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromGroupSnsTopic_${id}`, userRemovedFromGroupSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToMeetingSnsTopic_${id}`, userAddedToMeetingSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromMeetingSnsTopic_${id}`, userRemovedFromMeetingSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedAsFriendSnsTopic_${id}`, userAddedAsFriendSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedAsFriendSnsTopic_${id}`, userRemovedAsFriendSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `TeamCreatedSnsTopic_${id}`, teamCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MeetingCreatedSnsTopic_${id}`, meetingCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `GroupCreatedSnsTopic_${id}`, groupCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `FriendMessageCreatedSnsTopic_${id}`, friendMessageCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `FriendMessageUpdatedSnsTopic_${id}`, friendMessageUpdatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `GroupMessageCreatedSnsTopic_${id}`, groupMessageCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `GroupMessageUpdatedSnsTopic_${id}`, groupMessageUpdatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MeetingMessageCreatedSnsTopic_${id}`, meetingMessageCreatedSnsTopicArn)),
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MeetingMessageUpdatedSnsTopic_${id}`, meetingMessageUpdatedSnsTopicArn)),
+        new LambdaEventSources.SnsEventSource(snsTopics.userAddedToTeam),
+        new LambdaEventSources.SnsEventSource(snsTopics.userRemovedFromTeam),
+        new LambdaEventSources.SnsEventSource(snsTopics.userAddedToGroup),
+        new LambdaEventSources.SnsEventSource(snsTopics.userRemovedFromGroup),
+        new LambdaEventSources.SnsEventSource(snsTopics.userAddedToMeeting),
+        new LambdaEventSources.SnsEventSource(snsTopics.userRemovedFromMeeting),
+        new LambdaEventSources.SnsEventSource(snsTopics.userAddedAsFriend),
+        new LambdaEventSources.SnsEventSource(snsTopics.userRemovedAsFriend),
+        new LambdaEventSources.SnsEventSource(snsTopics.teamCreated),
+        new LambdaEventSources.SnsEventSource(snsTopics.meetingCreated),
+        new LambdaEventSources.SnsEventSource(snsTopics.groupCreated),
+        new LambdaEventSources.SnsEventSource(snsTopics.messageCreated),
+        new LambdaEventSources.SnsEventSource(snsTopics.messageUpdated),
       ],
     });
 
@@ -103,5 +69,31 @@ export class YacCoreTestingStack extends CDK.Stack {
       parameterName: `/yac-api-v4/${stackPrefix}/core-testing-sns-event-table-name`,
       stringValue: snsEventTable.tableName,
     });
+  }
+}
+
+export interface YacCoreTestingStackProps extends StackProps {
+  stackPrefix: string;
+  snsTopics: {
+    userCreated: SNS.Topic;
+    organizationCreated: SNS.Topic;
+    teamCreated: SNS.Topic;
+    meetingCreated: SNS.Topic;
+    groupCreated: SNS.Topic;
+
+    userAddedToOrganization: SNS.Topic;
+    userAddedToTeam: SNS.Topic;
+    userAddedToGroup: SNS.Topic;
+    userAddedToMeeting: SNS.Topic;
+    userAddedAsFriend: SNS.Topic;
+
+    userRemovedFromOrganization: SNS.Topic;
+    userRemovedFromTeam: SNS.Topic;
+    userRemovedFromGroup: SNS.Topic;
+    userRemovedFromMeeting: SNS.Topic;
+    userRemovedAsFriend: SNS.Topic;
+
+    messageCreated: SNS.Topic;
+    messageUpdated: SNS.Topic;
   }
 }

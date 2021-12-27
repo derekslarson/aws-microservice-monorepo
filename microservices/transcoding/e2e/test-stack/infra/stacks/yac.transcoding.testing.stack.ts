@@ -1,50 +1,33 @@
 /* eslint-disable no-new */
-import * as CDK from "@aws-cdk/core";
-import * as DynamoDB from "@aws-cdk/aws-dynamodb";
-import * as SNS from "@aws-cdk/aws-sns";
-import * as SSM from "@aws-cdk/aws-ssm";
-import * as IAM from "@aws-cdk/aws-iam";
-import * as Lambda from "@aws-cdk/aws-lambda";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2";
-import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations";
-import * as LambdaEventSources from "@aws-cdk/aws-lambda-event-sources";
-import { Environment, generateExportNames } from "@yac/util";
+import {
+  RemovalPolicy,
+  Duration,
+  Stack,
+  StackProps,
+  aws_ssm as SSM,
+  aws_sns as SNS,
+  aws_dynamodb as DynamoDB,
+  aws_iam as IAM,
+  aws_lambda as Lambda,
+  aws_lambda_event_sources as LambdaEventSources,
+} from "aws-cdk-lib";
+import { Construct } from "constructs";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
+import * as ApiGatewayV2Integrations from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
+import { HttpApi } from "@yac/util/infra/constructs/http.api";
 
-export class YacTranscodingTestingStack extends CDK.Stack {
-  constructor(scope: CDK.Construct, id: string, props?: CDK.StackProps) {
+export class YacTranscodingTestingStack extends Stack {
+  constructor(scope: Construct, id: string, props: YacTranscodingTestingStackProps) {
     super(scope, id, props);
 
-    const environment = this.node.tryGetContext("environment") as string;
-    const developer = this.node.tryGetContext("developer") as string;
+    const { stackPrefix, domainName, snsTopics } = props;
 
-    if (!environment) {
-      throw new Error("'environment' context param required.");
-    }
-
-    const stackPrefix = environment === Environment.Local ? developer : environment;
-
-    const ExportNames = generateExportNames(stackPrefix);
-
-    // Imported Domain Name Related Resources from Util stack
-    const customDomainName = CDK.Fn.importValue(ExportNames.CustomDomainName);
-    const regionalDomainName = CDK.Fn.importValue(ExportNames.RegionalDomainName);
-    const regionalHostedZoneId = CDK.Fn.importValue(ExportNames.RegionalHostedZoneId);
-
-    // Imported SNS Topic ARNs from Util stack
-    const messageTranscodedSnsTopicArn = CDK.Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn);
-
-    // Layers
-    const dependencyLayer = new Lambda.LayerVersion(this, `DependencyLayer_${id}`, {
-      compatibleRuntimes: [ Lambda.Runtime.NODEJS_12_X ],
-      code: Lambda.Code.fromAsset("dist/dependencies"),
-    });
-        
     // Databases
     const testingTable = new DynamoDB.Table(this, `TestingTable_${id}`, {
       billingMode: DynamoDB.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "sk", type: DynamoDB.AttributeType.STRING },
-      removalPolicy: CDK.RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY,
     });
 
     // Policies
@@ -61,41 +44,32 @@ export class YacTranscodingTestingStack extends CDK.Stack {
     // SNS Event Lambda Handler
     new Lambda.Function(this, `SnsEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/snsEvent"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/snsEvent`),
       handler: "snsEvent.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, testingTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
       events: [
-        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, messageTranscodedSnsTopicArn)),
+        new LambdaEventSources.SnsEventSource(snsTopics.messageTranscoded),
       ],
     });
 
     const httpEventHandler = new Lambda.Function(this, `HttpEventHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset("dist/handlers/httpEvent"),
+      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/httpEvent`),
       handler: "httpEvent.handler",
-      layers: [ dependencyLayer ],
       environment: environmentVariables,
       memorySize: 2048,
       initialPolicy: [ ...basePolicy, testingTableFullAccessPolicyStatement ],
-      timeout: CDK.Duration.seconds(15),
+      timeout: Duration.seconds(15),
     });
 
-    const domainName = ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, {
-      name: customDomainName,
-      regionalDomainName,
-      regionalHostedZoneId,
-    });
 
-    new ApiGatewayV2.HttpApi(this, `TestingApi_${id}`, {
-      defaultIntegration: new ApiGatewayV2Integrations.LambdaProxyIntegration({ handler: httpEventHandler }),
-      defaultDomainMapping: {
-        domainName: domainName,
-        mappingKey: "transcoding-testing"
-      }
+    new HttpApi(this, `TestingApi_${id}`, {
+      serviceName: "transcoding-testing",
+      domainName,
+      defaultIntegration: new ApiGatewayV2Integrations.HttpLambdaIntegration(`DefaultIntegration_${id}`, httpEventHandler),
     })
     
     // SSM Parameters (to be imported in e2e tests)
@@ -103,5 +77,13 @@ export class YacTranscodingTestingStack extends CDK.Stack {
       parameterName: `/yac-api-v4/${stackPrefix}/transcoding-testing-table-name`,
       stringValue: testingTable.tableName,
     });
+  }
+}
+
+export interface YacTranscodingTestingStackProps extends StackProps {
+  stackPrefix: string;
+  domainName: ApiGatewayV2.IDomainName;
+  snsTopics: {
+    messageTranscoded: SNS.ITopic;
   }
 }

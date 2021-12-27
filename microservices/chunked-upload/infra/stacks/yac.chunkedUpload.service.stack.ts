@@ -20,11 +20,11 @@ import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
 export class YacChunkedUploadServiceStack extends Stack {
   public vpc: EC2.Vpc;
 
-  public fileSystem: EFS.FileSystem;
-
-  public fileSystemSecurityGroup: EC2.SecurityGroup;
-
-  public fileSystemAccessPoint: EFS.AccessPoint;
+  public fileSystem: {
+    id: string;
+    securityGroupId: string;
+    accessPointId: string;
+  };
 
   constructor(scope: Construct, id: string, props: YacChunkedUploadServiceStackProps) {
     super(scope, id, props);
@@ -61,15 +61,15 @@ export class YacChunkedUploadServiceStack extends Stack {
       vpcConfiguration: { vpcId: this.vpc.vpcId },
     });
 
-    this.fileSystemSecurityGroup = new EC2.SecurityGroup(this, `EFSSecurityGroup_${id}`, {
+    const efsFileSystemSecurityGroup = new EC2.SecurityGroup(this, `EFSSecurityGroup_${id}`, {
       vpc: this.vpc,
       allowAllOutbound: true,
     });
 
-    this.fileSystem = new EFS.FileSystem(this, `MessageEFS_${id}`, { vpc: this.vpc, removalPolicy: RemovalPolicy.DESTROY, securityGroup: this.fileSystemSecurityGroup });
+    const efsFileSystem = new EFS.FileSystem(this, `MessageEFS_${id}`, { vpc: this.vpc, removalPolicy: RemovalPolicy.DESTROY, securityGroup: efsFileSystemSecurityGroup });
 
     // create a new access point from the filesystem
-    this.fileSystemAccessPoint = this.fileSystem.addAccessPoint(`AccessPoint_${id}`, {
+    const efsFileSystemAccessPoint = efsFileSystem.addAccessPoint(`AccessPoint_${id}`, {
       // set /export/lambda as the root of the access point
       path: "/export/lambda",
       // as /export/lambda does not exist in a new efs filesystem, the efs will create the directory with the following createAcl
@@ -85,7 +85,7 @@ export class YacChunkedUploadServiceStack extends Stack {
       },
     });
 
-    const lambdaFileSystem = Lambda.FileSystem.fromEfsAccessPoint(this.fileSystemAccessPoint, mountedPath);
+    const lambdaFileSystem = Lambda.FileSystem.fromEfsAccessPoint(efsFileSystemAccessPoint, mountedPath);
 
     const uploadMessageChunkFileHandler = new Lambda.Function(this, `UploadMessageChunkHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
@@ -132,6 +132,12 @@ export class YacChunkedUploadServiceStack extends Stack {
     });
 
     routes.forEach((route) => api.addRoute(route));
+
+    this.fileSystem = {
+      id: efsFileSystem.fileSystemId,
+      securityGroupId: efsFileSystemSecurityGroup.securityGroupId,
+      accessPointId: efsFileSystemAccessPoint.accessPointId,
+    };
 
     // const ExportNames = generateExportNames(stackPrefix);
 

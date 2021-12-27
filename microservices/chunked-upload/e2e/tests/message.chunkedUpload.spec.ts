@@ -1,9 +1,10 @@
+/* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable no-empty */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import axios from "axios";
 import crypto from "crypto";
-import { MessageMimeType } from "@yac/util";
+import { MessageMimeType } from "@yac/util/src/enums/message.mimeType.enum";
 import { checkFileOnS3, getMessageFile, separateBufferIntoChunks } from "../utils";
 import { backoff, generateRandomString, generateMessageUploadToken } from "../../../../e2e/util";
 
@@ -35,11 +36,11 @@ describe("Chunked Message upload", () => {
       });
 
       afterEach(async () => {
-        await axios.delete(`${process.env["message-testing-utils-endpoint"] as string}/${fileSystemDir}`);
+        await axios.delete(`${process.env.testStackBaseUrl as string}/${fileSystemDir}`);
       });
 
       describe("under normal conditions", () => {
-        it("uploads a chunk correctly", async () => {
+        fit("uploads a chunk correctly", async () => {
           const chunkNumber = 0;
           const chunk = chunkedFile[chunkNumber];
 
@@ -50,7 +51,7 @@ describe("Chunked Message upload", () => {
 
           expect(req.status).toBe(201);
 
-          const checkOnServer = await backoff(() => axios.get(`${process.env["message-testing-utils-endpoint"] as string}/${fileSystemDir}/${chunkNumber}`), (res) => res.status === 200 || res.status === 404);
+          const checkOnServer = await backoff(() => axios.get(`${process.env.testStackBaseUrl as string}/${fileSystemDir}/${chunkNumber}`), (res) => res.status === 200 || res.status === 404);
 
           expect(checkOnServer.status).toBe(200);
           expect(checkOnServer.data.buffer).toEqual(chunk.toString("base64"));
