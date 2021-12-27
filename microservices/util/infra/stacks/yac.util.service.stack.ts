@@ -1,5 +1,3 @@
-/* eslint-disable no-nested-ternary */
-/* eslint-disable no-console */
 /* eslint-disable no-new */
 import {
   Stack,
@@ -8,39 +6,16 @@ import {
   CfnOutput,
   aws_ssm as SSM,
   aws_sns as SNS,
-  aws_certificatemanager as ACM,
-  aws_route53 as Route53,
-  aws_route53_targets as Route53Targets,
   aws_s3 as S3,
   aws_secretsmanager as SecretsManager,
 } from "aws-cdk-lib";
-import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Construct } from "constructs";
 import { generateExportNames } from "../../src/enums/exportNames.enum";
 import { Environment } from "../../src/enums/environment.enum";
+import { DomainName } from "../constructs/domainName";
 
 export class YacUtilServiceStack extends Stack {
-  public domainName: ApiGatewayV2.DomainName;
-
-  public snsTopics: YacUtilServiceSnsTopics;
-
-  public s3Buckets: YacUtilServiceS3Buckets;
-
-  public secrets: YacUtilServiceSecrets;
-
-  public certificate: ACM.ICertificate;
-
-  public hostedZone: Route53.IHostedZone;
-
-  public googleClient: OAuth2ClientData;
-
-  public slackClient: OAuth2ClientData;
-
-  public stripe: StripeData;
-
-  public gcmServerKey: string;
-
-  public audoAiApiKey: string;
+  public exports: YacUtilServiceExports;
 
   constructor(scope: Construct, id: string, props: YacUtilServiceProps) {
     super(scope, id, props);
@@ -50,228 +25,135 @@ export class YacUtilServiceStack extends Stack {
     const isLocal = !Object.values(Environment).includes(environment as Environment);
 
     // Manually set SSM parameters
-    this.stripe = {
-      apiKey: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-api-key`),
-      freePlanProductId: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-free-plan-product-id`),
-      paidPlanProductId: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-paid-plan-product-id`),
-      webhookSecret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-webhook-secret`),
-    };
+    const stripeApiKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-api-key`);
+    const stripeFreePlanProductId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-free-plan-product-id`);
+    const stripePaidPlanProductId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-paid-plan-product-id`);
+    const stripeWebhookSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/stripe-webhook-secret`);
 
-    this.googleClient = {
-      id: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/google-client-id`),
-      secret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/google-client-secret`),
-    };
+    const googleClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/google-client-id`);
+    const googleClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/google-client-secret`);
 
-    this.slackClient = {
-      id: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/slack-client-id`),
-      secret: SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/slack-client-secret`),
-    };
+    const slackClientId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/slack-client-id`);
+    const slackClientSecret = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/slack-client-secret`);
 
-    this.audoAiApiKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/audo-ai-api-key`);
+    const audoAiApiKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/audo-ai-api-key`);
 
-    this.gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/gcm-server-key`);
+    const gcmServerKey = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/gcm-server-key`);
 
     const hostedZoneName = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/hosted-zone-name`);
     const hostedZoneId = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/hosted-zone-id`);
     const certificateArn = SSM.StringParameter.valueForStringParameter(this, `/yac-api-v4/${isLocal ? Environment.Dev : environment}/certificate-arn`);
 
-    this.certificate = ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn);
-
-    this.hostedZone = Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, {
-      zoneName: hostedZoneName,
-      hostedZoneId,
+    // S3 Buckets
+    const rawMessageS3Bucket = new S3.Bucket(this, `RawMessageS3Bucket_${id}`, {
+      cors: [ { allowedMethods: [ S3.HttpMethods.PUT ], allowedOrigins: [ "*" ] } ],
+      removalPolicy: environment === Environment.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
     });
 
-    const recordName = environment === Environment.Prod ? "api-v4" : environment === Environment.Dev ? "develop" : environment;
-
-    this.domainName = new ApiGatewayV2.DomainName(this, `DomainName_${id}`, { domainName: `${recordName}.${hostedZoneName}`, certificate: this.certificate });
-
-    new Route53.ARecord(this, `ARecord_${id}`, {
-      zone: this.hostedZone,
-      recordName,
-      target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2DomainProperties(this.domainName.regionalDomainName, this.domainName.regionalHostedZoneId)),
+    const enhancedMessageS3Bucket = new S3.Bucket(this, `EnhancedMessageS3Bucket_${id}`, {
+      cors: [ { allowedMethods: [ S3.HttpMethods.GET ], allowedOrigins: [ "*" ] } ],
+      removalPolicy: environment === Environment.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
     });
 
-    this.s3Buckets = {
-      rawMessage: new S3.Bucket(this, `RawMessageS3Bucket_${id}`, {
-        cors: [ { allowedMethods: [ S3.HttpMethods.PUT ], allowedOrigins: [ "*" ] } ],
-        removalPolicy: environment === Environment.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
-      }),
-      enhancedMessage: new S3.Bucket(this, `EnhancedMessageS3Bucket_${id}`, {
-        cors: [ { allowedMethods: [ S3.HttpMethods.GET ], allowedOrigins: [ "*" ] } ],
-        removalPolicy: environment === Environment.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
-      }),
-    };
+    // SNS Topics
+    const userCreatedSnsTopic = new SNS.Topic(this, `UserCreatedSnsTopic_${id}`, { topicName: `UserCreatedSnsTopic_${id}` });
+    const organizationCreatedSnsTopic = new SNS.Topic(this, `OrganizationCreatedSnsTopic_${id}`, { topicName: `OrganizationCreatedSnsTopic_${id}` });
+    const teamCreatedSnsTopic = new SNS.Topic(this, `TeamCreatedSnsTopic_${id}`, { topicName: `TeamCreatedSnsTopic_${id}` });
+    const meetingCreatedSnsTopic = new SNS.Topic(this, `MeetingCreatedSnsTopic_${id}`, { topicName: `MeetingCreatedSnsTopic_${id}` });
+    const groupCreatedSnsTopic = new SNS.Topic(this, `GroupCreatedSnsTopic_${id}`, { topicName: `GroupCreatedSnsTopic_${id}` });
 
-    this.snsTopics = {
-      userCreated: new SNS.Topic(this, `UserCreatedSnsTopic_${id}`, { topicName: `UserCreatedSnsTopic_${id}` }),
-      organizationCreated: new SNS.Topic(this, `OrganizationCreatedSnsTopic_${id}`, { topicName: `OrganizationCreatedSnsTopic_${id}` }),
-      teamCreated: new SNS.Topic(this, `TeamCreatedSnsTopic_${id}`, { topicName: `TeamCreatedSnsTopic_${id}` }),
-      meetingCreated: new SNS.Topic(this, `MeetingCreatedSnsTopic_${id}`, { topicName: `MeetingCreatedSnsTopic_${id}` }),
-      groupCreated: new SNS.Topic(this, `GroupCreatedSnsTopic_${id}`, { topicName: `GroupCreatedSnsTopic_${id}` }),
+    const userAddedToOrganizationSnsTopic = new SNS.Topic(this, `UserAddedToOrganizationSnsTopic_${id}`, { topicName: `UserAddedToOrganizationSnsTopic_${id}` });
+    const userAddedToTeamSnsTopic = new SNS.Topic(this, `UserAddedToTeamSnsTopic_${id}`, { topicName: `UserAddedToTeamSnsTopic_${id}` });
+    const userAddedToGroupSnsTopic = new SNS.Topic(this, `UserAddedToGroupSnsTopic_${id}`, { topicName: `UserAddedToGroupSnsTopic_${id}` });
+    const userAddedToMeetingSnsTopic = new SNS.Topic(this, `UserAddedToMeetingSnsTopic_${id}`, { topicName: `UserAddedToMeetingSnsTopic_${id}` });
+    const userAddedAsFriendSnsTopic = new SNS.Topic(this, `UserAddedAsFriendSnsTopic_${id}`, { topicName: `UserAddedAsFriendSnsTopic_${id}` });
 
-      userAddedToOrganization: new SNS.Topic(this, `UserAddedToOrganizationSnsTopic_${id}`, { topicName: `UserAddedToOrganizationSnsTopic_${id}` }),
-      userAddedToTeam: new SNS.Topic(this, `UserAddedToTeamSnsTopic_${id}`, { topicName: `UserAddedToTeamSnsTopic_${id}` }),
-      userAddedToGroup: new SNS.Topic(this, `UserAddedToGroupSnsTopic_${id}`, { topicName: `UserAddedToGroupSnsTopic_${id}` }),
-      userAddedToMeeting: new SNS.Topic(this, `UserAddedToMeetingSnsTopic_${id}`, { topicName: `UserAddedToMeetingSnsTopic_${id}` }),
-      userAddedAsFriend: new SNS.Topic(this, `UserAddedAsFriendSnsTopic_${id}`, { topicName: `UserAddedAsFriendSnsTopic_${id}` }),
+    const userRemovedFromOrganizationSnsTopic = new SNS.Topic(this, `UserRemovedFromOrganizationSnsTopic_${id}`, { topicName: `UserRemovedFromOrganizationSnsTopic_${id}` });
+    const userRemovedFromTeamSnsTopic = new SNS.Topic(this, `UserRemovedFromTeamSnsTopic_${id}`, { topicName: `UserRemovedFromTeamSnsTopic_${id}` });
+    const userRemovedFromGroupSnsTopic = new SNS.Topic(this, `UserRemovedFromGroupSnsTopic_${id}`, { topicName: `UserRemovedFromGroupSnsTopic_${id}` });
+    const userRemovedFromMeetingSnsTopic = new SNS.Topic(this, `UserRemovedFromMeetingSnsTopic_${id}`, { topicName: `UserRemovedFromMeetingSnsTopic_${id}` });
+    const userRemovedAsFriendSnsTopic = new SNS.Topic(this, `UserRemovedAsFriendSnsTopic_${id}`, { topicName: `UserRemovedAsFriendSnsTopic_${id}` });
 
-      userRemovedFromOrganization: new SNS.Topic(this, `UserRemovedFromOrganizationSnsTopic_${id}`, { topicName: `UserRemovedFromOrganizationSnsTopic_${id}` }),
-      userRemovedFromTeam: new SNS.Topic(this, `UserRemovedFromTeamSnsTopic_${id}`, { topicName: `UserRemovedFromTeamSnsTopic_${id}` }),
-      userRemovedFromGroup: new SNS.Topic(this, `UserRemovedFromGroupSnsTopic_${id}`, { topicName: `UserRemovedFromGroupSnsTopic_${id}` }),
-      userRemovedFromMeeting: new SNS.Topic(this, `UserRemovedFromMeetingSnsTopic_${id}`, { topicName: `UserRemovedFromMeetingSnsTopic_${id}` }),
-      userRemovedAsFriend: new SNS.Topic(this, `UserRemovedAsFriendSnsTopic_${id}`, { topicName: `UserRemovedAsFriendSnsTopic_${id}` }),
+    const messageCreatedSnsTopic = new SNS.Topic(this, `MessageCreatedSnsTopic_${id}`, { topicName: `MessageCreatedSnsTopic_${id}` });
+    const messageUpdatedSnsTopic = new SNS.Topic(this, `MessageUpdatedSnsTopic_${id}`, { topicName: `MessageUpdatedSnsTopic_${id}` });
+    const messageTranscodedSnsTopic = new SNS.Topic(this, `MessageTranscodedSnsTopic_${id}`, { topicName: `MessageTranscodedSnsTopic_${id}` });
+    const messageTranscribedSnsTopic = new SNS.Topic(this, `MessageTranscribedSnsTopic_${id}`, { topicName: `MessageTranscribedSnsTopic_${id}` });
 
-      messageCreated: new SNS.Topic(this, `MessageCreatedSnsTopic_${id}`, { topicName: `MessageCreatedSnsTopic_${id}` }),
-      messageUpdated: new SNS.Topic(this, `MessageUpdatedSnsTopic_${id}`, { topicName: `MessageUpdatedSnsTopic_${id}` }),
+    const billingPlanUpdatedSnsTopic = new SNS.Topic(this, `BillingPlanUpdatedSnsTopic_${id}`, { topicName: `BillingPlanUpdatedSnsTopic_${id}` });
 
-      messageTranscoded: new SNS.Topic(this, `MessageTranscodedSnsTopic_${id}`, { topicName: `MessageTranscodedSnsTopic_${id}` }),
-      messageTranscribed: new SNS.Topic(this, `MessageTranscribedSnsTopic_${id}`, { topicName: `MessageTranscribedSnsTopic_${id}` }),
+    const createUserRequestSnsTopic = new SNS.Topic(this, `CreateUserRequestSnsTopic_${id}`, { topicName: `CreateUserRequestSnsTopic_${id}` });
 
-      billingPlanUpdated: new SNS.Topic(this, `BillingPlanUpdatedSnsTopic_${id}`, { topicName: `BillingPlanUpdatedSnsTopic_${id}` }),
+    // Secrets
+    const messageUploadTokenSecret = new SecretsManager.Secret(this, `MessageUploadTokenSecret_${id}`);
 
-      createUserRequest: new SNS.Topic(this, `CreateUserRequestSnsTopic_${id}`, { topicName: `CreateUserRequestSnsTopic_${id}` }),
-    };
+    // Domain Names
+    const domainName = new DomainName(this, `DomainName_${id}`, { environment, hostedZoneId, hostedZoneName, certificateArn });
 
-    this.secrets = { messageUploadToken: new SecretsManager.Secret(this, `MessageUploadTokenSecret_${id}`) };
-
+    // Exports
     const ExportNames = generateExportNames(environment);
 
-    // Stack Exports (to be imported by other stacks)
-    new CfnOutput(this, `CustomDomainNameExport_${id}`, {
-      exportName: ExportNames.CustomDomainName,
-      value: this.domainName.name,
-    });
+    this.exports = {
+      certificateArn: new CfnOutput(this, `CertificateArnExport_${id}`, { exportName: ExportNames.CertificateArn, value: certificateArn }).value as string,
+      secretArns: { messageUploadToken: new CfnOutput(this, `MessageUploadTokenSecretArn_${id}`, { exportName: ExportNames.MessageUploadTokenSecretArn, value: messageUploadTokenSecret.secretArn }).value as string },
+      domainNameAttributes: {
+        name: new CfnOutput(this, `DomainNameNameExport_${id}`, { exportName: ExportNames.DomainNameName, value: domainName.name }).value as string,
+        regionalDomainName: new CfnOutput(this, `DomainNameRegionalDomainNameExport_${id}`, { exportName: ExportNames.DomainNameRegionalDomainName, value: domainName.regionalDomainName }).value as string,
+        regionalHostedZoneId: new CfnOutput(this, `DomainNameRegionalHostedZoneIdExport_${id}`, { exportName: ExportNames.DomainNameRegionalHostedZoneId, value: domainName.regionalHostedZoneId }).value as string,
+      },
+      hostedZoneAttributes: {
+        id: new CfnOutput(this, `HostedZoneIdExport_${id}`, { exportName: ExportNames.HostedZoneId, value: hostedZoneId }).value as string,
+        name: new CfnOutput(this, `HostedZoneNameExport_${id}`, { exportName: ExportNames.HostedZoneName, value: hostedZoneName }).value as string,
 
-    new CfnOutput(this, `RegionalDomainNameExport_${id}`, {
-      exportName: ExportNames.RegionalDomainName,
-      value: this.domainName.regionalDomainName,
-    });
+      },
+      googleClient: {
+        id: new CfnOutput(this, `GoogleClientIdExport_${id}`, { exportName: ExportNames.GoogleClientId, value: googleClientId }).value as string,
+        secret: new CfnOutput(this, `GoogleClientSecretExport_${id}`, { exportName: ExportNames.GoogleClientSecret, value: googleClientSecret }).value as string,
+      },
+      slackClient: {
+        id: new CfnOutput(this, `SlackClientIdExport_${id}`, { exportName: ExportNames.SlackClientId, value: slackClientId }).value as string,
+        secret: new CfnOutput(this, `SlackClientSecretExport_${id}`, { exportName: ExportNames.SlackClientSecret, value: slackClientSecret }).value as string,
+      },
+      gcmServerKey: new CfnOutput(this, `GcmServerKeyExport_${id}`, { exportName: ExportNames.GcmServerKey, value: gcmServerKey }).value as string,
+      stripe: {
+        apiKey: new CfnOutput(this, `StripeApiKeyExport_${id}`, { exportName: ExportNames.StripeApiKey, value: stripeApiKey }).value as string,
+        freePlanProductId: new CfnOutput(this, `StripeFreePlanProductIdExport_${id}`, { exportName: ExportNames.StripeFreePlanProductId, value: stripeFreePlanProductId }).value as string,
+        paidPlanProductId: new CfnOutput(this, `StripePaidPlanProductIdExport_${id}`, { exportName: ExportNames.StripePaidPlanProductId, value: stripePaidPlanProductId }).value as string,
+        webhookSecret: new CfnOutput(this, `StripeWebhookSecretExport_${id}`, { exportName: ExportNames.StripeWebhookSecret, value: stripeWebhookSecret }).value as string,
+      },
+      audoAi: { apiKey: new CfnOutput(this, `AudoAiApiKeyExport_${id}`, { exportName: ExportNames.AudoAiApiKey, value: audoAiApiKey }).value as string },
+      s3BucketNames: {
+        rawMessage: new CfnOutput(this, `RawMessageS3BucketArnExport_${id}`, { exportName: ExportNames.RawMessageS3BucketArn, value: rawMessageS3Bucket.bucketArn }).value as string,
+        enhancedMessage: new CfnOutput(this, `EnhancedMessageS3BucketArnExport_${id}`, { exportName: ExportNames.EnhancedMessageS3BucketArn, value: enhancedMessageS3Bucket.bucketArn }).value as string,
+      },
+      snsTopicArns: {
+        userCreated: new CfnOutput(this, `UserCreatedSnsTopicExport_${id}`, { exportName: ExportNames.UserCreatedSnsTopicArn, value: userCreatedSnsTopic.topicArn }).value as string,
+        organizationCreated: new CfnOutput(this, `OrganizationCreatedSnsTopicArnExport_${id}`, { exportName: ExportNames.OrganizationCreatedSnsTopicArn, value: organizationCreatedSnsTopic.topicArn }).value as string,
+        teamCreated: new CfnOutput(this, `TeamCreatedSnsTopicArnExport_${id}`, { exportName: ExportNames.TeamCreatedSnsTopicArn, value: teamCreatedSnsTopic.topicArn }).value as string,
+        meetingCreated: new CfnOutput(this, `MeetingCreatedSnsTopicArnExport_${id}`, { exportName: ExportNames.MeetingCreatedSnsTopicArn, value: meetingCreatedSnsTopic.topicArn }).value as string,
+        groupCreated: new CfnOutput(this, `GroupCreatedSnsTopicArnExport_${id}`, { exportName: ExportNames.GroupCreatedSnsTopicArn, value: groupCreatedSnsTopic.topicArn }).value as string,
 
-    new CfnOutput(this, `RegionalHostedZoneIdExport_${id}`, {
-      exportName: ExportNames.RegionalHostedZoneId,
-      value: this.domainName.regionalHostedZoneId,
-    });
+        userAddedToOrganization: new CfnOutput(this, `UserAddedToOrganizationSnsTopicExport_${id}`, { exportName: ExportNames.UserAddedToOrganizationSnsTopicArn, value: userAddedToOrganizationSnsTopic.topicArn }).value as string,
+        userAddedToTeam: new CfnOutput(this, `UserAddedToTeamSnsTopicExport_${id}`, { exportName: ExportNames.UserAddedToTeamSnsTopicArn, value: userAddedToTeamSnsTopic.topicArn }).value as string,
+        userAddedToGroup: new CfnOutput(this, `UserAddedToGroupSnsTopicExport_${id}`, { exportName: ExportNames.UserAddedToGroupSnsTopicArn, value: userAddedToGroupSnsTopic.topicArn }).value as string,
+        userAddedToMeeting: new CfnOutput(this, `UserAddedToMeetingSnsTopicExport_${id}`, { exportName: ExportNames.UserAddedToMeetingSnsTopicArn, value: userAddedToMeetingSnsTopic.topicArn }).value as string,
+        userAddedAsFriend: new CfnOutput(this, `UserAddedAsFriendSnsTopicExport_${id}`, { exportName: ExportNames.UserAddedAsFriendSnsTopicArn, value: userAddedAsFriendSnsTopic.topicArn }).value as string,
 
-    new CfnOutput(this, `UserCreatedSnsTopicExport_${id}`, {
-      exportName: ExportNames.UserCreatedSnsTopicArn,
-      value: this.snsTopics.userCreated.topicArn,
-    });
+        userRemovedFromOrganization: new CfnOutput(this, `UserRemovedFromOrganizationSnsTopicExport_${id}`, { exportName: ExportNames.UserRemovedFromOrganizationSnsTopicArn, value: userRemovedFromOrganizationSnsTopic.topicArn }).value as string,
+        userRemovedFromTeam: new CfnOutput(this, `UserRemovedFromTeamSnsTopicExport_${id}`, { exportName: ExportNames.UserRemovedFromTeamSnsTopicArn, value: userRemovedFromTeamSnsTopic.topicArn }).value as string,
+        userRemovedFromGroup: new CfnOutput(this, `UserRemovedFromGroupSnsTopicExport_${id}`, { exportName: ExportNames.UserRemovedFromGroupSnsTopicArn, value: userRemovedFromGroupSnsTopic.topicArn }).value as string,
+        userRemovedFromMeeting: new CfnOutput(this, `UserRemovedFromMeetingSnsTopicExport_${id}`, { exportName: ExportNames.UserRemovedFromMeetingSnsTopicArn, value: userRemovedFromMeetingSnsTopic.topicArn }).value as string,
+        userRemovedAsFriend: new CfnOutput(this, `UserRemovedAsFriendSnsTopicExport_${id}`, { exportName: ExportNames.UserRemovedAsFriendSnsTopicArn, value: userRemovedAsFriendSnsTopic.topicArn }).value as string,
 
-    new CfnOutput(this, `OrganizationCreatedSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.OrganizationCreatedSnsTopicArn,
-      value: this.snsTopics.organizationCreated.topicArn,
-    });
+        messageCreated: new CfnOutput(this, `MessageCreatedSnsTopicArnExport_${id}`, { exportName: ExportNames.MessageCreatedSnsTopicArn, value: messageCreatedSnsTopic.topicArn }).value as string,
+        messageUpdated: new CfnOutput(this, `MessageUpdatedSnsTopicArnExport_${id}`, { exportName: ExportNames.MessageUpdatedSnsTopicArn, value: messageUpdatedSnsTopic.topicArn }).value as string,
+        messageTranscoded: new CfnOutput(this, `MessageTranscodedSnsTopicArnExport_${id}`, { exportName: ExportNames.MessageTranscodedSnsTopicArn, value: messageTranscodedSnsTopic.topicArn }).value as string,
+        messageTranscribed: new CfnOutput(this, `MessageTranscribedSnsTopicArnExport_${id}`, { exportName: ExportNames.MessageTranscribedSnsTopicArn, value: messageTranscribedSnsTopic.topicArn }).value as string,
 
-    new CfnOutput(this, `TeamCreatedSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.TeamCreatedSnsTopicArn,
-      value: this.snsTopics.teamCreated.topicArn,
-    });
+        billingPlanUpdated: new CfnOutput(this, `BillingPlanUpdatedSnsTopicArnExport_${id}`, { exportName: ExportNames.BillingPlanUpdatedSnsTopicArn, value: billingPlanUpdatedSnsTopic.topicArn }).value as string,
 
-    new CfnOutput(this, `MeetingCreatedSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.MeetingCreatedSnsTopicArn,
-      value: this.snsTopics.meetingCreated.topicArn,
-    });
-
-    new CfnOutput(this, `GroupCreatedSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.GroupCreatedSnsTopicArn,
-      value: this.snsTopics.groupCreated.topicArn,
-    });
-
-    new CfnOutput(this, `UserAddedToOrganizationSnsTopicExport_${id}`, {
-      exportName: ExportNames.UserAddedToOrganizationSnsTopicArn,
-      value: this.snsTopics.userAddedToOrganization.topicArn,
-    });
-
-    new CfnOutput(this, `UserAddedToTeamSnsTopicExport_${id}`, {
-      exportName: ExportNames.UserAddedToTeamSnsTopicArn,
-      value: this.snsTopics.userAddedToTeam.topicArn,
-    });
-
-    new CfnOutput(this, `UserAddedToGroupSnsTopicExport_${id}`, {
-      exportName: ExportNames.UserAddedToGroupSnsTopicArn,
-      value: this.snsTopics.userAddedToGroup.topicArn,
-    });
-
-    new CfnOutput(this, `UserAddedToMeetingSnsTopicExport_${id}`, {
-      exportName: ExportNames.UserAddedToMeetingSnsTopicArn,
-      value: this.snsTopics.userAddedToMeeting.topicArn,
-    });
-
-    new CfnOutput(this, `UserAddedAsFriendSnsTopicExport_${id}`, {
-      exportName: ExportNames.UserAddedAsFriendSnsTopicArn,
-      value: this.snsTopics.userAddedAsFriend.topicArn,
-    });
-
-    new CfnOutput(this, `UserRemovedFromOrganizationSnsTopicExport_${id}`, {
-      exportName: ExportNames.UserRemovedFromOrganizationSnsTopicArn,
-      value: this.snsTopics.userRemovedFromOrganization.topicArn,
-    });
-
-    new CfnOutput(this, `UserRemovedFromTeamSnsTopicExport_${id}`, {
-      exportName: ExportNames.UserRemovedFromTeamSnsTopicArn,
-      value: this.snsTopics.userRemovedFromTeam.topicArn,
-    });
-
-    new CfnOutput(this, `UserRemovedFromGroupSnsTopicExport_${id}`, {
-      exportName: ExportNames.UserRemovedFromGroupSnsTopicArn,
-      value: this.snsTopics.userRemovedFromGroup.topicArn,
-    });
-
-    new CfnOutput(this, `UserRemovedFromMeetingSnsTopicExport_${id}`, {
-      exportName: ExportNames.UserRemovedFromMeetingSnsTopicArn,
-      value: this.snsTopics.userRemovedFromMeeting.topicArn,
-    });
-
-    new CfnOutput(this, `UserRemovedAsFriendSnsTopicExport_${id}`, {
-      exportName: ExportNames.UserRemovedAsFriendSnsTopicArn,
-      value: this.snsTopics.userRemovedAsFriend.topicArn,
-    });
-
-    new CfnOutput(this, `MessageCreatedSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.MessageCreatedSnsTopicArn,
-      value: this.snsTopics.messageCreated.topicArn,
-    });
-
-    new CfnOutput(this, `MessageUpdatedSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.MessageUpdatedSnsTopicArn,
-      value: this.snsTopics.messageUpdated.topicArn,
-    });
-
-    new CfnOutput(this, `MessageTranscodedSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.MessageTranscodedSnsTopicArn,
-      value: this.snsTopics.messageTranscoded.topicArn,
-    });
-
-    new CfnOutput(this, `MessageTranscribedSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.MessageTranscribedSnsTopicArn,
-      value: this.snsTopics.messageTranscribed.topicArn,
-    });
-
-    new CfnOutput(this, `CreateUserRequestSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.CreateUserRequestSnsTopicArn,
-      value: this.snsTopics.createUserRequest.topicArn,
-    });
-
-    new CfnOutput(this, `BillingPlanUpdatedSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.BillingPlanUpdatedSnsTopicArn,
-      value: this.snsTopics.billingPlanUpdated.topicArn,
-    });
-
-    new CfnOutput(this, `RawMessageS3BucketArnExport_${id}`, {
-      exportName: ExportNames.RawMessageS3BucketArn,
-      value: this.s3Buckets.rawMessage.bucketArn,
-    });
-
-    new CfnOutput(this, `EnhancedMessageS3BucketArnExport_${id}`, {
-      exportName: ExportNames.EnhancedMessageS3BucketArn,
-      value: this.s3Buckets.enhancedMessage.bucketArn,
-    });
-
-    new CfnOutput(this, `MessageUploadTokenSecretArn_${id}`, {
-      exportName: ExportNames.MessageUploadTokenSecretArn,
-      value: this.secrets.messageUploadToken.secretArn,
-    });
+        createUserRequest: new CfnOutput(this, `CreateUserRequestSnsTopicArnExport_${id}`, { exportName: ExportNames.CreateUserRequestSnsTopicArn, value: createUserRequestSnsTopic.topicArn }).value as string,
+      },
+    };
   }
 }
 
@@ -279,51 +161,84 @@ export interface YacUtilServiceProps extends StackProps {
   environment: string;
 }
 
-export interface YacUtilServiceSnsTopics {
-  userCreated: SNS.Topic;
-  organizationCreated: SNS.Topic;
-  teamCreated: SNS.Topic;
-  meetingCreated: SNS.Topic;
-  groupCreated: SNS.Topic;
-
-  userAddedToOrganization: SNS.Topic;
-  userAddedToTeam: SNS.Topic;
-  userAddedToGroup: SNS.Topic;
-  userAddedToMeeting: SNS.Topic;
-  userAddedAsFriend: SNS.Topic;
-
-  userRemovedFromOrganization: SNS.Topic;
-  userRemovedFromTeam: SNS.Topic;
-  userRemovedFromGroup: SNS.Topic;
-  userRemovedFromMeeting: SNS.Topic;
-  userRemovedAsFriend: SNS.Topic;
-
-  messageCreated: SNS.Topic;
-  messageUpdated: SNS.Topic;
-
-  messageTranscoded: SNS.Topic;
-  messageTranscribed: SNS.Topic;
-
-  billingPlanUpdated: SNS.Topic;
-
-  createUserRequest: SNS.Topic;
+export interface YacUtilServiceExports {
+  snsTopicArns: YacUtilServiceSnsTopicArnExports;
+  s3BucketNames: YacUtilServiceS3BucketNameExports;
+  secretArns: YacUtilServiceSecretArnExports;
+  domainNameAttributes: YacUtilServiceDomainNameExports;
+  hostedZoneAttributes: YacUtilServiceHostedZoneExports;
+  certificateArn: string;
+  slackClient: YacUtilServiceSlackClientExports;
+  googleClient: YacUtilServiceGoogleClientExports;
+  gcmServerKey: string;
+  stripe: YacUtilServiceStripeExports;
+  audoAi: YacUtilServiceAudoAiExports;
 }
 
-export interface YacUtilServiceS3Buckets {
-  rawMessage: S3.Bucket;
-  enhancedMessage: S3.Bucket;
+export interface YacUtilServiceSnsTopicArnExports {
+  userCreated: string;
+  organizationCreated: string;
+  teamCreated: string;
+  meetingCreated: string;
+  groupCreated: string;
+
+  userAddedToOrganization: string;
+  userAddedToTeam: string;
+  userAddedToGroup: string;
+  userAddedToMeeting: string;
+  userAddedAsFriend: string;
+
+  userRemovedFromOrganization: string;
+  userRemovedFromTeam: string;
+  userRemovedFromGroup: string;
+  userRemovedFromMeeting: string;
+  userRemovedAsFriend: string;
+
+  messageCreated: string;
+  messageUpdated: string;
+
+  messageTranscoded: string;
+  messageTranscribed: string;
+
+  billingPlanUpdated: string;
+
+  createUserRequest: string;
 }
 
-export interface YacUtilServiceSecrets {
-  messageUploadToken: SecretsManager.Secret;
+export interface YacUtilServiceS3BucketNameExports {
+  rawMessage: string;
+  enhancedMessage: string;
 }
 
-export interface OAuth2ClientData {
+export interface YacUtilServiceSecretArnExports {
+  messageUploadToken: string;
+}
+
+export interface YacUtilServiceDomainNameExports {
+  name: string;
+  regionalDomainName: string;
+  regionalHostedZoneId: string;
+}
+
+export interface YacUtilServiceHostedZoneExports {
   id: string;
-  secret: string;
+  name: string;
+}
+export interface YacUtilServiceGoogleClientExports {
+  id: string;
+  secret: string
 }
 
-export interface StripeData {
+export interface YacUtilServiceSlackClientExports {
+  id: string;
+  secret: string
+}
+
+export interface YacUtilServiceAudoAiExports {
+  apiKey: string;
+}
+
+export interface YacUtilServiceStripeExports {
   apiKey: string;
   freePlanProductId: string;
   paidPlanProductId: string;

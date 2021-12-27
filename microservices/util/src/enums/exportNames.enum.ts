@@ -1,7 +1,25 @@
 const ExportNames = {
-  CustomDomainName: "customDomainName",
-  RegionalDomainName: "regionalDomainName",
-  RegionalHostedZoneId: "regionalHostedZoneId",
+  DomainNameName: "domainNameName",
+  DomainNameRegionalDomainName: "domainNameRegionalDomainName",
+  DomainNameRegionalHostedZoneId: "domainNameRegionalHostedZoneId",
+
+  HostedZoneId: "hostedZoneId",
+  HostedZoneName: "hostedZoneName",
+  CertificateArn: "certificateArn",
+
+  GoogleClientId: "googleClientId",
+  GoogleClientSecret: "googleClientSecret",
+  GcmServerKey: "gcmServerKey",
+
+  SlackClientId: "slackClientId",
+  SlackClientSecret: "slackClientSecret",
+
+  StripeApiKey: "stripeApiKey",
+  StripeFreePlanProductId: "stripeFreePlanProductId",
+  StripePaidPlanProductId: "stripePaidPlanProductId",
+  StripeWebhookSecret: "stripeWebhookSecret",
+
+  AudoAiApiKey: "audoAiApiKey",
 
   UserCreatedSnsTopicArn: "userCreatedSnsTopicArn",
   OrganizationCreatedSnsTopicArn: "organizationCreatedSnsTopicArn",
@@ -23,19 +41,10 @@ const ExportNames = {
 
   MessageCreatedSnsTopicArn: "MessageCreatedSnsTopicArn",
   MessageUpdatedSnsTopicArn: "MessageUpdatedSnsTopicArn",
-
-  FriendMessageCreatedSnsTopicArn: "friendMessageCreatedSnsTopicArn",
-  GroupMessageCreatedSnsTopicArn: "groupMessageCreatedSnsTopicArn",
-  MeetingMessageCreatedSnsTopicArn: "meetingMessageCreatedSnsTopicArn",
-
-  GroupMessageUpdatedSnsTopicArn: "groupMessageUpdatedSnsTopicArn",
-  MeetingMessageUpdatedSnsTopicArn: "meetingMessageUpdatedSnsTopicArn",
-  FriendMessageUpdatedSnsTopicArn: "friendMessageUpdatedSnsTopicArn",
-
-  PushNotificationFailedSnsTopicArn: "pushNotificationFailedSnsTopicArn",
-
   MessageTranscodedSnsTopicArn: "messageTranscodedSnsTopicArn",
   MessageTranscribedSnsTopicArn: "messageTranscribedSnsTopicArn",
+
+  PushNotificationFailedSnsTopicArn: "pushNotificationFailedSnsTopicArn",
 
   CreateUserRequestSnsTopicArn: "createUserRequestSnsTopicArn",
 

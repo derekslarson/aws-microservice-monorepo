@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-new */
 import { Stage } from "aws-cdk-lib";
 import { Construct } from "constructs";
@@ -33,12 +34,12 @@ export class YacStage extends Stage {
     const authService = new YacAuthServiceStack(this, "YacAuthService", {
       stackName: `${environment}-YacAuthService`,
       environment,
-      domainName: utilService.domainName,
-      snsTopics: utilService.snsTopics,
-      googleClient: utilService.googleClient,
-      slackClient: utilService.slackClient,
-      hostedZone: utilService.hostedZone,
-      certificate: utilService.certificate,
+      snsTopicArns: utilService.exports.snsTopicArns,
+      googleClient: utilService.exports.googleClient,
+      slackClient: utilService.exports.slackClient,
+      domainNameAttributes: utilService.exports.domainNameAttributes,
+      hostedZoneAttributes: utilService.exports.hostedZoneAttributes,
+      certificateArn: utilService.exports.certificateArn,
     });
 
     new YacCoreServiceStack(this, "YacCoreService", {

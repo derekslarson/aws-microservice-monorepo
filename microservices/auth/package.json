@@ -17,7 +17,7 @@
     "synth:dev": "yarn build:dev && cdk synth --context environment=dev",
     "synth:stage": "yarn build:stage && cdk synth --context environment=stage",
     "synth:prod": "yarn build:prod && cdk synth --context environment=prod",
-    "deploy:local": "yarn build:local && cdk deploy --context environment=test",
+    "deploy:local": "cdk deploy --context environment=test",
     "deploy:dev": "yarn build:dev && cdk deploy --context environment=dev",
     "deploy:stage": "yarn build:stage && cdk deploy --context environment=stage",
     "deploy:prod": "yarn build:prod && cdk deploy --context environment=prod",

@@ -30,7 +30,6 @@ import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { HttpApi, ProxyRouteProps, RouteProps } from "@yac/util/infra/constructs/http.api";
-import { OAuth2ClientData } from "@yac/util/infra/stacks/yac.util.service.stack";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacAuthServiceStack extends Stack {
@@ -39,11 +38,14 @@ export class YacAuthServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacAuthServiceStackProps) {
     super(scope, id, props);
 
-    const { environment, domainName, snsTopics, hostedZone, certificate, googleClient, slackClient } = props;
+    const { environment, domainNameAttributes, snsTopicArns, certificateArn, hostedZoneAttributes, googleClient, slackClient } = props;
+
+    // SNS Topics
+    const createUserRequestSnsTopic = SNS.Topic.fromTopicArn(this, `CreateUserRequestSnsTopic_${id}`, snsTopicArns.createUserRequest);
 
     // SQS Queues
     const snsEventSqsQueue = new SQS.Queue(this, `SnsEventSqsQueue_${id}`);
-    snsTopics.createUserRequest.addSubscription(new SnsSubscriptions.SqsSubscription(snsEventSqsQueue));
+    createUserRequestSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(snsEventSqsQueue));
 
     // Tables
     const authTable = new DynamoDB.Table(this, `AuthTable_${id}`, {
@@ -84,13 +86,13 @@ export class YacAuthServiceStack extends Stack {
         origin: new CloudFrontOrigins.S3Origin(websiteBucket),
         originRequestPolicy: { originRequestPolicyId: distributionOriginRequestPolicy.originRequestPolicyId },
       },
-      certificate,
-      domainNames: [ `${recordName}-assets.${hostedZone.zoneName}` ],
+      certificate: ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn),
+      domainNames: [ `${recordName}-assets.${hostedZoneAttributes.name}` ],
     });
 
     const authUiCnameRecord = new Route53.CnameRecord(this, `CnameRecord_${id}`, {
       domainName: websiteDistribution.distributionDomainName,
-      zone: hostedZone,
+      zone: Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, { hostedZoneId: hostedZoneAttributes.id, zoneName: hostedZoneAttributes.name }),
       recordName: `${recordName}-assets`,
     });
 
@@ -112,7 +114,7 @@ export class YacAuthServiceStack extends Stack {
 
     const userCreatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ snsTopics.userCreated.topicArn ],
+      resources: [ snsTopicArns.userCreated ],
     });
 
     // Because we can't reference a resource for a phone number to allow,
@@ -123,6 +125,8 @@ export class YacAuthServiceStack extends Stack {
     });
 
     const basePolicy: IAM.PolicyStatement[] = [];
+
+    const domainName = ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, { ...domainNameAttributes });
 
     const api = new HttpApi(this, `Api_${id}`, {
       serviceName: "auth",
@@ -137,8 +141,8 @@ export class YacAuthServiceStack extends Stack {
       API_URL: api.apiUrl,
       MAIL_SENDER: "no-reply@yac.com",
       YAC_AUTH_UI: `https://${authUiCnameRecord.domainName}`,
-      USER_CREATED_SNS_TOPIC_ARN: snsTopics.userCreated.topicArn,
-      CREATE_USER_REQUEST_SNS_TOPIC_ARN: snsTopics.createUserRequest.topicArn,
+      USER_CREATED_SNS_TOPIC_ARN: snsTopicArns.userCreated,
+      CREATE_USER_REQUEST_SNS_TOPIC_ARN: snsTopicArns.createUserRequest,
       AUTH_TABLE_NAME: authTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
       GOOGLE_CLIENT_ID: googleClient.id,
@@ -438,7 +442,7 @@ export class YacAuthServiceStack extends Stack {
     });
 
     new CfnOutput(this, `AuthTableNameExport_${id}`, {
-      exportName: ExportNames.AuthorizerHandlerFunctionArn,
+      exportName: ExportNames.AuthTableName,
       value: authTable.tableName,
     });
   }
@@ -446,13 +450,26 @@ export class YacAuthServiceStack extends Stack {
 
 export interface YacAuthServiceStackProps extends StackProps {
   environment: string;
-  domainName: ApiGatewayV2.IDomainName;
-  googleClient: OAuth2ClientData;
-  slackClient: OAuth2ClientData;
-  hostedZone: Route53.IHostedZone;
-  certificate: ACM.ICertificate;
-  snsTopics: {
-    createUserRequest: SNS.ITopic;
-    userCreated: SNS.ITopic;
+  domainNameAttributes: {
+    name: string;
+    regionalDomainName: string;
+    regionalHostedZoneId: string;
+  };
+  hostedZoneAttributes: {
+    id: string;
+    name: string;
+  };
+  certificateArn: string;
+  googleClient: {
+    id: string;
+    secret: string;
+  };
+  slackClient: {
+    id: string;
+    secret: string;
+  };
+  snsTopicArns: {
+    createUserRequest: string;
+    userCreated: string;
   };
 }
