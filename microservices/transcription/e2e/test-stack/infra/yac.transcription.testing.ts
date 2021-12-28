@@ -4,10 +4,10 @@ import { YacTranscriptionTestingStack } from "./stacks/yac.transcription.testing
 
 const app = new App();
 
-const environment = app.node.tryGetContext("environment") as string;
+const environment = process.env.BUILD_ENV;
 
 if (!environment) {
-  throw new Error("'environment' context param required.");
+  throw new Error("'BUILD_ENV' environment variable required.");
 }
 
 const ExportNames = generateExportNames(environment);

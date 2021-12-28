@@ -3,18 +3,15 @@ import {
   App,
   Fn,
 } from "aws-cdk-lib";
-import yargs from "yargs/yargs";
-import { hideBin } from "yargs/helpers";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { YacAuthServiceStack } from "./stacks/yac.auth.service.stack";
-const { argv } = yargs(hideBin(process.argv));
 
-const { environment } = argv as { environment?: string; };
+const environment = process.env.BUILD_ENV;
 
 const app = new App();
 
 if (!environment) {
-  throw new Error("'environment' context param required.");
+  throw new Error("'BUILD_ENV' environment variable required.");
 }
 
 const ExportNames = generateExportNames(environment);

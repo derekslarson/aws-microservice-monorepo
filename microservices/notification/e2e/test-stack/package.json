@@ -2,15 +2,16 @@
   "name": "@yac/notification-testing",
   "version": "0.1.0",
   "scripts": {
-    "build:local": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
-    "build:dev": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
+    "build": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --config ../../../../config/webpack/webpack.config.ts",
+    "build:local": "BUILD_ENV=$(whoami) yarn build",
+    "build:dev": "BUILD_ENV=dev yarn build",
     "clean": "rm -rf ./dist && rm -rf ./cdk.out",
-    "synth:local": "cdk synth --context environment=$(whoami)",
-    "synth:dev": "cdk synth --context environment=dev",
-    "deploy:local": "yarn workspace @yac/util build:library && yarn build:local && cdk deploy --context environment=$(whoami)",
-    "deploy:dev": "yarn workspace @yac/util build:library && yarn build:dev && cdk deploy --context environment=dev",
-  
-    "destroy:local": "cdk destroy --context environment=$(whoami)"
+    "synth": "yarn build && cdk synth",
+    "synth:local": "yarn build:local && cdk synth",
+    "synth:dev": "yarn build:dev && cdk synth",
+    "deploy": "yarn build && cdk deploy",
+    "deploy:local": "yarn build:local && cdk deploy",
+    "deploy:dev": "yarn build:dev && cdk deploy"
   },
   "devDependencies": {
     "@yac/util": "0.1.0",

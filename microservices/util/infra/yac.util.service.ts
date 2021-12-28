@@ -4,10 +4,10 @@ import { YacUtilServiceStack } from "./stacks/yac.util.service.stack";
 
 const app = new App();
 
-const environment = app.node.tryGetContext("environment") as string;
+const environment = process.env.BUILD_ENV;
 
 if (!environment) {
-  throw new Error("'environment' context param required.");
+  throw new Error("'BUILD_ENV' environment variable required.");
 }
 
 new YacUtilServiceStack(app, `${environment}-YacUtilService`, { environment });
