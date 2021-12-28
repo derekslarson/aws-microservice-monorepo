@@ -8,15 +8,15 @@
     "build:prod": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
     
     "clean": "rm -rf ./dist && rm -rf ./cdk.out",
-    "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",
+    "synth:local": "cdk synth --context environment=$(whoami)",
     "synth:dev": "cdk synth --context environment=dev",
     "synth:stage": "cdk synth --context environment=stage",
     "synth:prod": "cdk synth --context environment=prod",
-    "deploy:local": "yarn workspace @yac/util build:library && yarn build:local && cdk deploy --context environment=local --context developer=$(whoami)",
+    "deploy:local": "yarn workspace @yac/util build:library && yarn build:local && cdk deploy --context environment=$(whoami)",
     "deploy:dev": "yarn workspace @yac/util build:library && yarn build:dev && cdk deploy --context environment=dev",
     "deploy:stage": "yarn workspace @yac/util build:library && yarn build:stage && cdk deploy --context environment=stage",
     "deploy:prod": "yarn workspace @yac/util build:library && yarn build:prod && cdk deploy --context environment=prod",
-    "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)"
+    "destroy:local": "cdk destroy --context environment=$(whoami)"
   },
   "devDependencies": {
     "@yac/util": "0.1.0",

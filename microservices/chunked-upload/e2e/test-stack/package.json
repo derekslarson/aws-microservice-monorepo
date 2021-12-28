@@ -2,15 +2,14 @@
   "name": "@yac/chunked-upload-testing",
   "version": "0.1.0",
   "scripts": {
-    "predeploy:local": "source ../../../../.env",
     "build:local": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
     "build:dev": "yarn clean && webpack --bail --config ../../../../config/webpack/webpack.config.ts",
     "clean": "rm -rf ./dist && rm -rf ./cdk.out",
-    "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",
+    "synth:local": "cdk synth --context environment=$(whoami)",
     "synth:dev": "cdk synth --context environment=dev",
     "deploy:local": "yarn build:local && cdk deploy --context environment=alpha",
     "deploy:dev": "yarn build:dev && cdk deploy --context environment=dev",
-    "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)"
+    "destroy:local": "cdk destroy --context environment=$(whoami)"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.85",

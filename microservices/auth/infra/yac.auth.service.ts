@@ -3,12 +3,15 @@ import {
   App,
   Fn,
 } from "aws-cdk-lib";
+import yargs from "yargs/yargs";
+import { hideBin } from "yargs/helpers";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { YacAuthServiceStack } from "./stacks/yac.auth.service.stack";
+const { argv } = yargs(hideBin(process.argv));
+
+const { environment } = argv as { environment?: string; };
 
 const app = new App();
-
-const environment = app.node.tryGetContext("environment") as string;
 
 if (!environment) {
   throw new Error("'environment' context param required.");
