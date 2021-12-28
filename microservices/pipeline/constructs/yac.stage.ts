@@ -97,16 +97,14 @@ export class YacStage extends Stage {
     });
 
     if (environment !== Environment.Prod) {
-      new YacCoreTestingStack(this, "YacCoreTesting", {
-        stackName: `${environment}-YacCoreTesting`,
+      new YacCoreTestingStack(this, `${environment}-YacCoreTesting`, {
         environment,
-        snsTopics: utilService.snsTopics,
+        snsTopicArns: utilService.exports.snsTopicArns,
       });
 
-      new YacNotificationTestingStack(this, "YacNotificationTesting", {
-        stackName: `${environment}-YacNotificationTesting`,
+      new YacNotificationTestingStack(this, `${environment}-YacNotificationTesting`, {
         environment,
-        snsTopics: { pushNotificationFailed: notificationService.pushNotificationFailedSnsTopic },
+        snsTopicArns: notificationService.exports.snsTopicArns,
       });
 
       new YacChunkedUploadTestingStack(this, `${environment}-YacChunkedUploadTesting`, {
@@ -115,17 +113,15 @@ export class YacStage extends Stage {
         fileSystemAttributes: chunkedUploadService.exports.fileSystemAttributes,
       });
 
-      new YacTranscodingTestingStack(this, "YacTranscodingTesting", {
-        stackName: `${environment}-YacTranscodingTesting`,
+      new YacTranscodingTestingStack(this, `${environment}-YacTranscodingTesting`, {
         environment,
-        domainName: utilService.domainName,
-        snsTopics: utilService.snsTopics,
+        domainNameAttributes: utilService.exports.domainNameAttributes,
+        snsTopicArns: utilService.exports.snsTopicArns,
       });
 
-      new YacTranscriptionTestingStack(this, "YacTranscriptionTesting", {
-        stackName: `${environment}-YacTranscriptionTesting`,
+      new YacTranscriptionTestingStack(this, `${environment}-YacTranscriptionTesting`, {
         environment,
-        snsTopics: utilService.snsTopics,
+        snsTopicArns: utilService.exports.snsTopicArns,
       });
     }
   }

@@ -18,9 +18,9 @@ import { HttpApi } from "@yac/util/infra/constructs/http.api";
 
 export class YacTranscodingTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacTranscodingTestingStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
-    const { environment, domainName, snsTopics } = props;
+    const { environment, domainNameAttributes, snsTopicArns } = props;
 
     // Databases
     const testingTable = new DynamoDB.Table(this, `TestingTable_${id}`, {
@@ -51,7 +51,7 @@ export class YacTranscodingTestingStack extends Stack {
       initialPolicy: [ ...basePolicy, testingTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
       events: [
-        new LambdaEventSources.SnsEventSource(snsTopics.messageTranscoded),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MessageTranscodedSnsTopic_${id}`, snsTopicArns.messageTranscoded)),
       ],
     });
 
@@ -68,7 +68,7 @@ export class YacTranscodingTestingStack extends Stack {
 
     new HttpApi(this, `TestingApi_${id}`, {
       serviceName: "transcoding-testing",
-      domainName,
+      domainName: ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, domainNameAttributes),
       defaultIntegration: new ApiGatewayV2Integrations.HttpLambdaIntegration(`DefaultIntegration_${id}`, httpEventHandler),
     })
     
@@ -82,8 +82,8 @@ export class YacTranscodingTestingStack extends Stack {
 
 export interface YacTranscodingTestingStackProps extends StackProps {
   environment: string;
-  domainName: ApiGatewayV2.IDomainName;
-  snsTopics: {
-    messageTranscoded: SNS.ITopic;
+  domainNameAttributes: ApiGatewayV2.DomainNameAttributes;
+  snsTopicArns: {
+    messageTranscoded: string;
   }
 }

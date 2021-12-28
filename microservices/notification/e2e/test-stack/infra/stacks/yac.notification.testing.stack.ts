@@ -1,5 +1,4 @@
 /* eslint-disable no-new */
-/* eslint-disable no-new */
 import {
   RemovalPolicy,
   Duration,
@@ -16,9 +15,9 @@ import { Construct } from "constructs";
 
 export class YacNotificationTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacNotificationTestingStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
-    const { environment, snsTopics } = props;
+    const { environment, snsTopicArns } = props;
 
     // Databases
     const snsEventTable = new DynamoDB.Table(this, `SnsEventTable_${id}`, {
@@ -49,7 +48,7 @@ export class YacNotificationTestingStack extends Stack {
       initialPolicy: [ ...basePolicy, snsEventTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
       events: [
-        new LambdaEventSources.SnsEventSource(snsTopics.pushNotificationFailed),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `PushNotificationFailedSnsTopic_${id}`, snsTopicArns.pushNotificationFailed)),
       ],
     });
 
@@ -63,7 +62,7 @@ export class YacNotificationTestingStack extends Stack {
 
 export interface YacNotificationTestingStackProps extends StackProps {
   environment: string;
-  snsTopics: {
-    pushNotificationFailed: SNS.ITopic;
+  snsTopicArns: {
+    pushNotificationFailed: string;
   }
 }

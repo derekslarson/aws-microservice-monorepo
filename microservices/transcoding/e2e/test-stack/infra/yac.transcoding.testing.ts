@@ -1,19 +1,26 @@
-// import * as CDK from "@aws-cdk/core";
-// import { Environment } from "@yac/util";
-// import { YacTranscodingTestingStack } from "./stacks/yac.transcoding.testing.stack";
+import { App, Fn } from "aws-cdk-lib";
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { YacTranscodingTestingStack } from "./stacks/yac.transcoding.testing.stack";
 
-// const app = new CDK.App();
+const app = new App();
 
-// const environment = app.node.tryGetContext("environment") as string;
-// const developer = app.node.tryGetContext("developer") as string;
+const environment = app.node.tryGetContext("environment") as string;
 
-// if (!environment) {
-//   throw new Error("'environment' context param required.");
-// } else if (environment === Environment.Local && !developer) {
-//   throw new Error("'developer' context param required when 'environment' === 'local'.");
-// }
+if (!environment) {
+  throw new Error("'environment' context param required.");
+}
 
-// const stackPrefix = environment === Environment.Local ? developer : environment;
+const ExportNames = generateExportNames(environment);
 
-// // eslint-disable-next-line no-new
-// new YacTranscodingTestingStack(app, `${stackPrefix}-YacTranscodingTesting`);
+// eslint-disable-next-line no-new
+new YacTranscodingTestingStack(app, `${environment}-YacTranscodingTesting`, {
+  environment,
+  domainNameAttributes: {
+    name: Fn.importValue(ExportNames.DomainNameName),
+    regionalDomainName: Fn.importValue(ExportNames.DomainNameRegionalDomainName),
+    regionalHostedZoneId: Fn.importValue(ExportNames.DomainNameRegionalHostedZoneId),
+  },
+  snsTopicArns: {
+    messageTranscoded: Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn),
+  },
+});

@@ -14,9 +14,9 @@ import {
 import { Construct } from "constructs";
 export class YacTranscriptionTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacTranscriptionTestingStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
-    const { environment, snsTopics } = props;
+    const { environment, snsTopicArns } = props;
         
     // Databases
     const testingTable = new DynamoDB.Table(this, `TestingTable_${id}`, {
@@ -47,7 +47,7 @@ export class YacTranscriptionTestingStack extends Stack {
       initialPolicy: [ ...basePolicy, testingTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
       events: [
-        new LambdaEventSources.SnsEventSource(snsTopics.messageTranscribed),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MessageTranscribedSnsTopic_${id}`, snsTopicArns.messageTranscribed)),
       ],
     });
 
@@ -61,7 +61,7 @@ export class YacTranscriptionTestingStack extends Stack {
 
 export interface YacTranscriptionTestingStackProps extends StackProps {
   environment: string;
-  snsTopics: {
-    messageTranscribed: SNS.ITopic
+  snsTopicArns: {
+    messageTranscribed: string;
   }
 }

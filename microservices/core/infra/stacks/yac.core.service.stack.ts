@@ -34,7 +34,7 @@ import { YacConversationServiceNestedStack } from "./yac.conversation.service.ne
 
 export class YacCoreServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacCoreServiceStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
     const { environment, domainNameAttributes, authorizerHandlerFunctionArn, snsTopicArns, s3BucketArns, secretArns } = props;
 

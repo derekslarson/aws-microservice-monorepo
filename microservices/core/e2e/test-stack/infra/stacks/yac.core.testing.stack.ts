@@ -15,9 +15,9 @@ import { Construct } from "constructs";
 
 export class YacCoreTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacCoreTestingStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
-    const { environment, snsTopics } = props;
+    const { environment, snsTopicArns } = props;
  
     // Databases
     const snsEventTable = new DynamoDB.Table(this, `SnsEventTable_${id}`, {
@@ -48,19 +48,19 @@ export class YacCoreTestingStack extends Stack {
       initialPolicy: [ ...basePolicy, snsEventTableFullAccessPolicyStatement ],
       timeout: Duration.seconds(15),
       events: [
-        new LambdaEventSources.SnsEventSource(snsTopics.userAddedToTeam),
-        new LambdaEventSources.SnsEventSource(snsTopics.userRemovedFromTeam),
-        new LambdaEventSources.SnsEventSource(snsTopics.userAddedToGroup),
-        new LambdaEventSources.SnsEventSource(snsTopics.userRemovedFromGroup),
-        new LambdaEventSources.SnsEventSource(snsTopics.userAddedToMeeting),
-        new LambdaEventSources.SnsEventSource(snsTopics.userRemovedFromMeeting),
-        new LambdaEventSources.SnsEventSource(snsTopics.userAddedAsFriend),
-        new LambdaEventSources.SnsEventSource(snsTopics.userRemovedAsFriend),
-        new LambdaEventSources.SnsEventSource(snsTopics.teamCreated),
-        new LambdaEventSources.SnsEventSource(snsTopics.meetingCreated),
-        new LambdaEventSources.SnsEventSource(snsTopics.groupCreated),
-        new LambdaEventSources.SnsEventSource(snsTopics.messageCreated),
-        new LambdaEventSources.SnsEventSource(snsTopics.messageUpdated),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, snsTopicArns.userAddedToTeam)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromTeamSnsTopic_${id}`, snsTopicArns.userRemovedFromTeam)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToGroupSnsTopic_${id}`, snsTopicArns.userAddedToGroup)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromGroupSnsTopic_${id}`, snsTopicArns.userRemovedFromGroup)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedToMeetingSnsTopic_${id}`, snsTopicArns.userAddedToMeeting)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedFromMeetingSnsTopic_${id}`, snsTopicArns.userRemovedFromMeeting)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserAddedAsFriendSnsTopic_${id}`, snsTopicArns.userAddedAsFriend)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `UserRemovedAsFriendSnsTopic_${id}`, snsTopicArns.userRemovedAsFriend)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `TeamCreatedSnsTopic_${id}`, snsTopicArns.teamCreated)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MeetingCreatedSnsTopic_${id}`, snsTopicArns.meetingCreated)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `GroupCreatedSnsTopic_${id}`, snsTopicArns.groupCreated)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MessageCreatedSnsTopic_${id}`, snsTopicArns.messageCreated)),
+        new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MessageUpdatedSnsTopic_${id}`, snsTopicArns.messageUpdated)),
       ],
     });
 
@@ -74,26 +74,26 @@ export class YacCoreTestingStack extends Stack {
 
 export interface YacCoreTestingStackProps extends StackProps {
   environment: string;
-  snsTopics: {
-    userCreated: SNS.Topic;
-    organizationCreated: SNS.Topic;
-    teamCreated: SNS.Topic;
-    meetingCreated: SNS.Topic;
-    groupCreated: SNS.Topic;
+  snsTopicArns: {
+    userCreated: string;
+    organizationCreated: string;
+    teamCreated: string;
+    meetingCreated: string;
+    groupCreated: string;
 
-    userAddedToOrganization: SNS.Topic;
-    userAddedToTeam: SNS.Topic;
-    userAddedToGroup: SNS.Topic;
-    userAddedToMeeting: SNS.Topic;
-    userAddedAsFriend: SNS.Topic;
+    userAddedToOrganization: string;
+    userAddedToTeam: string;
+    userAddedToGroup: string;
+    userAddedToMeeting: string;
+    userAddedAsFriend: string;
 
-    userRemovedFromOrganization: SNS.Topic;
-    userRemovedFromTeam: SNS.Topic;
-    userRemovedFromGroup: SNS.Topic;
-    userRemovedFromMeeting: SNS.Topic;
-    userRemovedAsFriend: SNS.Topic;
+    userRemovedFromOrganization: string;
+    userRemovedFromTeam: string;
+    userRemovedFromGroup: string;
+    userRemovedFromMeeting: string;
+    userRemovedAsFriend: string;
 
-    messageCreated: SNS.Topic;
-    messageUpdated: SNS.Topic;
+    messageCreated: string;
+    messageUpdated: string;
   }
 }
