@@ -19,6 +19,7 @@ export class HttpApi extends ApiGatewayV2.HttpApi {
     const { domainName, serviceName, authorizerHandler } = props;
 
     super(scope, id, {
+      apiName: id,
       ...props,
       defaultDomainMapping: {
         domainName,
