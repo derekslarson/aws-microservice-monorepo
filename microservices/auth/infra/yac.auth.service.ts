@@ -16,10 +16,7 @@ if (!environment) {
 
 const ExportNames = generateExportNames(environment);
 
-const stackName = `${environment}-YacAuthService`;
-
-new YacAuthServiceStack(app, "YacAuthService", {
-  stackName,
+new YacAuthServiceStack(app, `${environment}-YacAuthService`, {
   environment,
   certificateArn: Fn.importValue(ExportNames.CertificateArn),
   domainNameAttributes: {
@@ -28,8 +25,8 @@ new YacAuthServiceStack(app, "YacAuthService", {
     regionalHostedZoneId: Fn.importValue(ExportNames.DomainNameRegionalHostedZoneId),
   },
   hostedZoneAttributes: {
-    id: Fn.importValue(ExportNames.HostedZoneId),
-    name: Fn.importValue(ExportNames.HostedZoneName),
+    hostedZoneId: Fn.importValue(ExportNames.HostedZoneId),
+    zoneName: Fn.importValue(ExportNames.HostedZoneName),
   },
   googleClient: {
     id: Fn.importValue(ExportNames.GoogleClientId),

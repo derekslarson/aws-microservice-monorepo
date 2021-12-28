@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-new */
 import { Stage } from "aws-cdk-lib";
 import { Construct } from "constructs";
@@ -26,13 +25,9 @@ export class YacStage extends Stage {
 
     const { environment } = props;
 
-    const utilService = new YacUtilServiceStack(this, "YacUtilService", {
-      stackName: `${environment}-YacUtilService`,
-      environment,
-    });
+    const utilService = new YacUtilServiceStack(this, `${environment}-YacUtilService`, { environment });
 
-    const authService = new YacAuthServiceStack(this, "YacAuthService", {
-      stackName: `${environment}-YacAuthService`,
+    const authService = new YacAuthServiceStack(this, `${environment}-YacAuthService`, {
       environment,
       snsTopicArns: utilService.exports.snsTopicArns,
       googleClient: utilService.exports.googleClient,
@@ -42,18 +37,16 @@ export class YacStage extends Stage {
       certificateArn: utilService.exports.certificateArn,
     });
 
-    new YacCoreServiceStack(this, "YacCoreService", {
-      stackName: `${environment}-YacCoreService`,
+    new YacCoreServiceStack(this, `${environment}-YacCoreService`, {
       environment,
-      authorizerHandler: authService.authorizerHandler,
-      domainName: utilService.domainName,
-      snsTopics: utilService.snsTopics,
-      s3Buckets: utilService.s3Buckets,
-      secrets: utilService.secrets,
+      authorizerHandlerFunctionArn: authService.exports.functionArns.authorizerHandler,
+      domainNameAttributes: utilService.exports.domainNameAttributes,
+      snsTopicArns: utilService.exports.snsTopicArns,
+      s3BucketArns: utilService.exports.s3BucketArns,
+      secretArns: utilService.exports.secretArns,
     });
 
-    const notificationService = new YacNotificationServiceStack(this, "YacNotificationService", {
-      stackName: `${environment}-YacNotificationService`,
+    const notificationService = new YacNotificationServiceStack(this, `${environment}-YacNotificationService`, {
       environment,
       authorizerHandler: authService.authorizerHandler,
       domainName: utilService.domainName,

@@ -34,7 +34,7 @@ export class YacNotificationServiceStack extends Stack {
   public pushNotificationFailedSnsTopic: SNS.ITopic;
 
   constructor(scope: Construct, id: string, props: YacNotificationServiceStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
     const { environment, domainName, hostedZone, certificate, gcmServerKey, authorizerHandler, snsTopics } = props;
 

@@ -1,5 +1,4 @@
 /* eslint-disable no-nested-ternary */
-/* eslint-disable max-len */
 /* eslint-disable no-new */
 import {
   RemovalPolicy,
@@ -33,10 +32,10 @@ import { HttpApi, ProxyRouteProps, RouteProps } from "@yac/util/infra/constructs
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacAuthServiceStack extends Stack {
-  public authorizerHandler: Lambda.Function;
+  public exports: YacAuthServiceExports;
 
   constructor(scope: Construct, id: string, props: YacAuthServiceStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
     const { environment, domainNameAttributes, snsTopicArns, certificateArn, hostedZoneAttributes, googleClient, slackClient } = props;
 
@@ -87,12 +86,12 @@ export class YacAuthServiceStack extends Stack {
         originRequestPolicy: { originRequestPolicyId: distributionOriginRequestPolicy.originRequestPolicyId },
       },
       certificate: ACM.Certificate.fromCertificateArn(this, `AcmCertificate_${id}`, certificateArn),
-      domainNames: [ `${recordName}-assets.${hostedZoneAttributes.name}` ],
+      domainNames: [ `${recordName}-assets.${hostedZoneAttributes.zoneName}` ],
     });
 
     const authUiCnameRecord = new Route53.CnameRecord(this, `CnameRecord_${id}`, {
       domainName: websiteDistribution.distributionDomainName,
-      zone: Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, { hostedZoneId: hostedZoneAttributes.id, zoneName: hostedZoneAttributes.name }),
+      zone: Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, hostedZoneAttributes),
       recordName: `${recordName}-assets`,
     });
 
@@ -126,7 +125,7 @@ export class YacAuthServiceStack extends Stack {
 
     const basePolicy: IAM.PolicyStatement[] = [];
 
-    const domainName = ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, { ...domainNameAttributes });
+    const domainName = ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, domainNameAttributes);
 
     const api = new HttpApi(this, `Api_${id}`, {
       serviceName: "auth",
@@ -182,7 +181,7 @@ export class YacAuthServiceStack extends Stack {
       ],
     });
 
-    this.authorizerHandler = new Lambda.Function(this, `AuthorizerHandler_${id}`, {
+    const authorizerHandler = new Lambda.Function(this, `AuthorizerHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
       code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/authorizer`),
       handler: "authorizer.handler",
@@ -194,7 +193,7 @@ export class YacAuthServiceStack extends Stack {
     });
 
     // Since the authorizer couldn't be added during the http api creation (authorizerHandler didn't exist yet) we need to add it here
-    api.addAuthorizer(this, id, { authorizerHandler: this.authorizerHandler });
+    api.addAuthorizer(this, id, { authorizerHandler });
 
     const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
       runtime: Lambda.Runtime.NODEJS_14_X,
@@ -424,7 +423,7 @@ export class YacAuthServiceStack extends Stack {
     const otpFlowApi = new HttpApi(this, `OtpFlowApi_${id}`, {
       serviceName: "auth-otp",
       domainName,
-      authorizerHandler: this.authorizerHandler,
+      authorizerHandler,
       corsPreflight: {
         allowCredentials: true,
         allowMethods: [ ApiGatewayV2.CorsHttpMethod.POST ],
@@ -436,29 +435,17 @@ export class YacAuthServiceStack extends Stack {
 
     const ExportNames = generateExportNames(environment);
 
-    new CfnOutput(this, `AuthorizerHandlerFunctionArnExport_${id}`, {
-      exportName: ExportNames.AuthorizerHandlerFunctionArn,
-      value: this.authorizerHandler.functionArn,
-    });
-
-    new CfnOutput(this, `AuthTableNameExport_${id}`, {
-      exportName: ExportNames.AuthTableName,
-      value: authTable.tableName,
-    });
+    this.exports = {
+      functionArns: { authorizerHandler: new CfnOutput(this, `AuthorizerHandlerFunctionArnExport_${id}`, { exportName: ExportNames.AuthorizerHandlerFunctionArn, value: authorizerHandler.functionArn }).value as string },
+      tableNames: { auth: new CfnOutput(this, `AuthTableNameExport_${id}`, { exportName: ExportNames.AuthTableName, value: authTable.tableName }).value as string },
+    };
   }
 }
 
 export interface YacAuthServiceStackProps extends StackProps {
   environment: string;
-  domainNameAttributes: {
-    name: string;
-    regionalDomainName: string;
-    regionalHostedZoneId: string;
-  };
-  hostedZoneAttributes: {
-    id: string;
-    name: string;
-  };
+  domainNameAttributes: ApiGatewayV2.DomainNameAttributes;
+  hostedZoneAttributes: Route53.HostedZoneAttributes;
   certificateArn: string;
   googleClient: {
     id: string;
@@ -472,4 +459,13 @@ export interface YacAuthServiceStackProps extends StackProps {
     createUserRequest: string;
     userCreated: string;
   };
+}
+
+export interface YacAuthServiceExports {
+  functionArns: {
+    authorizerHandler: string;
+  };
+  tableNames: {
+    auth: string;
+  }
 }

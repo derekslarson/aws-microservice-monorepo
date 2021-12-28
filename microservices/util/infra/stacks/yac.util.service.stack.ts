@@ -8,8 +8,10 @@ import {
   aws_sns as SNS,
   aws_s3 as S3,
   aws_secretsmanager as SecretsManager,
+  aws_route53 as Route53,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
+import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { generateExportNames } from "../../src/enums/exportNames.enum";
 import { Environment } from "../../src/enums/environment.enum";
 import { DomainName } from "../constructs/domainName";
@@ -18,7 +20,7 @@ export class YacUtilServiceStack extends Stack {
   public exports: YacUtilServiceExports;
 
   constructor(scope: Construct, id: string, props: YacUtilServiceProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
     const { environment } = props;
 
@@ -94,17 +96,17 @@ export class YacUtilServiceStack extends Stack {
 
     this.exports = {
       certificateArn: new CfnOutput(this, `CertificateArnExport_${id}`, { exportName: ExportNames.CertificateArn, value: certificateArn }).value as string,
-      secretArns: { messageUploadToken: new CfnOutput(this, `MessageUploadTokenSecretArn_${id}`, { exportName: ExportNames.MessageUploadTokenSecretArn, value: messageUploadTokenSecret.secretArn }).value as string },
+      gcmServerKey: new CfnOutput(this, `GcmServerKeyExport_${id}`, { exportName: ExportNames.GcmServerKey, value: gcmServerKey }).value as string,
       domainNameAttributes: {
         name: new CfnOutput(this, `DomainNameNameExport_${id}`, { exportName: ExportNames.DomainNameName, value: domainName.name }).value as string,
         regionalDomainName: new CfnOutput(this, `DomainNameRegionalDomainNameExport_${id}`, { exportName: ExportNames.DomainNameRegionalDomainName, value: domainName.regionalDomainName }).value as string,
         regionalHostedZoneId: new CfnOutput(this, `DomainNameRegionalHostedZoneIdExport_${id}`, { exportName: ExportNames.DomainNameRegionalHostedZoneId, value: domainName.regionalHostedZoneId }).value as string,
       },
       hostedZoneAttributes: {
-        id: new CfnOutput(this, `HostedZoneIdExport_${id}`, { exportName: ExportNames.HostedZoneId, value: hostedZoneId }).value as string,
-        name: new CfnOutput(this, `HostedZoneNameExport_${id}`, { exportName: ExportNames.HostedZoneName, value: hostedZoneName }).value as string,
-
+        hostedZoneId: new CfnOutput(this, `HostedZoneIdExport_${id}`, { exportName: ExportNames.HostedZoneId, value: hostedZoneId }).value as string,
+        zoneName: new CfnOutput(this, `HostedZoneNameExport_${id}`, { exportName: ExportNames.HostedZoneName, value: hostedZoneName }).value as string,
       },
+      secretArns: { messageUploadToken: new CfnOutput(this, `MessageUploadTokenSecretArn_${id}`, { exportName: ExportNames.MessageUploadTokenSecretArn, value: messageUploadTokenSecret.secretArn }).value as string },
       googleClient: {
         id: new CfnOutput(this, `GoogleClientIdExport_${id}`, { exportName: ExportNames.GoogleClientId, value: googleClientId }).value as string,
         secret: new CfnOutput(this, `GoogleClientSecretExport_${id}`, { exportName: ExportNames.GoogleClientSecret, value: googleClientSecret }).value as string,
@@ -113,7 +115,6 @@ export class YacUtilServiceStack extends Stack {
         id: new CfnOutput(this, `SlackClientIdExport_${id}`, { exportName: ExportNames.SlackClientId, value: slackClientId }).value as string,
         secret: new CfnOutput(this, `SlackClientSecretExport_${id}`, { exportName: ExportNames.SlackClientSecret, value: slackClientSecret }).value as string,
       },
-      gcmServerKey: new CfnOutput(this, `GcmServerKeyExport_${id}`, { exportName: ExportNames.GcmServerKey, value: gcmServerKey }).value as string,
       stripe: {
         apiKey: new CfnOutput(this, `StripeApiKeyExport_${id}`, { exportName: ExportNames.StripeApiKey, value: stripeApiKey }).value as string,
         freePlanProductId: new CfnOutput(this, `StripeFreePlanProductIdExport_${id}`, { exportName: ExportNames.StripeFreePlanProductId, value: stripeFreePlanProductId }).value as string,
@@ -121,7 +122,7 @@ export class YacUtilServiceStack extends Stack {
         webhookSecret: new CfnOutput(this, `StripeWebhookSecretExport_${id}`, { exportName: ExportNames.StripeWebhookSecret, value: stripeWebhookSecret }).value as string,
       },
       audoAi: { apiKey: new CfnOutput(this, `AudoAiApiKeyExport_${id}`, { exportName: ExportNames.AudoAiApiKey, value: audoAiApiKey }).value as string },
-      s3BucketNames: {
+      s3BucketArns: {
         rawMessage: new CfnOutput(this, `RawMessageS3BucketArnExport_${id}`, { exportName: ExportNames.RawMessageS3BucketArn, value: rawMessageS3Bucket.bucketArn }).value as string,
         enhancedMessage: new CfnOutput(this, `EnhancedMessageS3BucketArnExport_${id}`, { exportName: ExportNames.EnhancedMessageS3BucketArn, value: enhancedMessageS3Bucket.bucketArn }).value as string,
       },
@@ -162,85 +163,60 @@ export interface YacUtilServiceProps extends StackProps {
 }
 
 export interface YacUtilServiceExports {
-  snsTopicArns: YacUtilServiceSnsTopicArnExports;
-  s3BucketNames: YacUtilServiceS3BucketNameExports;
-  secretArns: YacUtilServiceSecretArnExports;
-  domainNameAttributes: YacUtilServiceDomainNameExports;
-  hostedZoneAttributes: YacUtilServiceHostedZoneExports;
+  domainNameAttributes: ApiGatewayV2.DomainNameAttributes;
+  hostedZoneAttributes: Route53.HostedZoneAttributes;
   certificateArn: string;
-  slackClient: YacUtilServiceSlackClientExports;
-  googleClient: YacUtilServiceGoogleClientExports;
   gcmServerKey: string;
-  stripe: YacUtilServiceStripeExports;
-  audoAi: YacUtilServiceAudoAiExports;
-}
+  snsTopicArns: {
+    userCreated: string;
+    organizationCreated: string;
+    teamCreated: string;
+    meetingCreated: string;
+    groupCreated: string;
 
-export interface YacUtilServiceSnsTopicArnExports {
-  userCreated: string;
-  organizationCreated: string;
-  teamCreated: string;
-  meetingCreated: string;
-  groupCreated: string;
+    userAddedToOrganization: string;
+    userAddedToTeam: string;
+    userAddedToGroup: string;
+    userAddedToMeeting: string;
+    userAddedAsFriend: string;
 
-  userAddedToOrganization: string;
-  userAddedToTeam: string;
-  userAddedToGroup: string;
-  userAddedToMeeting: string;
-  userAddedAsFriend: string;
+    userRemovedFromOrganization: string;
+    userRemovedFromTeam: string;
+    userRemovedFromGroup: string;
+    userRemovedFromMeeting: string;
+    userRemovedAsFriend: string;
 
-  userRemovedFromOrganization: string;
-  userRemovedFromTeam: string;
-  userRemovedFromGroup: string;
-  userRemovedFromMeeting: string;
-  userRemovedAsFriend: string;
+    messageCreated: string;
+    messageUpdated: string;
+    messageTranscoded: string;
+    messageTranscribed: string;
 
-  messageCreated: string;
-  messageUpdated: string;
+    billingPlanUpdated: string;
 
-  messageTranscoded: string;
-  messageTranscribed: string;
-
-  billingPlanUpdated: string;
-
-  createUserRequest: string;
-}
-
-export interface YacUtilServiceS3BucketNameExports {
-  rawMessage: string;
-  enhancedMessage: string;
-}
-
-export interface YacUtilServiceSecretArnExports {
-  messageUploadToken: string;
-}
-
-export interface YacUtilServiceDomainNameExports {
-  name: string;
-  regionalDomainName: string;
-  regionalHostedZoneId: string;
-}
-
-export interface YacUtilServiceHostedZoneExports {
-  id: string;
-  name: string;
-}
-export interface YacUtilServiceGoogleClientExports {
-  id: string;
-  secret: string
-}
-
-export interface YacUtilServiceSlackClientExports {
-  id: string;
-  secret: string
-}
-
-export interface YacUtilServiceAudoAiExports {
-  apiKey: string;
-}
-
-export interface YacUtilServiceStripeExports {
-  apiKey: string;
-  freePlanProductId: string;
-  paidPlanProductId: string;
-  webhookSecret: string;
+    createUserRequest: string;
+  };
+  s3BucketArns: {
+    rawMessage: string;
+    enhancedMessage: string;
+  };
+  secretArns: {
+    messageUploadToken: string;
+  };
+  slackClient: {
+    id: string;
+    secret: string
+  };
+  googleClient: {
+    id: string;
+    secret: string
+  };
+  stripe: {
+    apiKey: string;
+    freePlanProductId: string;
+    paidPlanProductId: string;
+    webhookSecret: string;
+  };
+  audoAi: {
+    apiKey: string;
+  };
 }
