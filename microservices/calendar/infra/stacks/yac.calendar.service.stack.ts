@@ -14,13 +14,12 @@ import { Construct } from "constructs";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
-import { OAuth2ClientData } from "@yac/util/infra/stacks/yac.util.service.stack";
 
 export class YacCalendarServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacCalendarServiceStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
-    const { environment, domainName, authorizerHandler, googleClient } = props;
+    const { environment, domainNameAttributes, authorizerHandlerFunctionArn, googleClient } = props;
 
     // Databases
     const calendarTable = new DynamoDB.Table(this, `CalendarTable_${id}`, {
@@ -32,8 +31,8 @@ export class YacCalendarServiceStack extends Stack {
 
     const httpApi = new HttpApi(this, `Api_${id}`, {
       serviceName: "calendar",
-      domainName,
-      authorizerHandler,
+      domainName: ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, domainNameAttributes),
+      authorizerHandler: Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, authorizerHandlerFunctionArn),
     });
 
     // Policies
@@ -169,7 +168,10 @@ export class YacCalendarServiceStack extends Stack {
 
 export interface YacCalendarServiceStackProps extends StackProps {
   environment: string;
-  domainName: ApiGatewayV2.IDomainName;
-  googleClient: OAuth2ClientData;
-  authorizerHandler: Lambda.IFunction;
+  domainNameAttributes: ApiGatewayV2.DomainNameAttributes;
+  authorizerHandlerFunctionArn: string;
+  googleClient: {
+    id: string;
+    secret: string;
+  };
 }

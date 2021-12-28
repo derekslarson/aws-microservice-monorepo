@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /* eslint-disable no-new */
 import {
   RemovalPolicy,
@@ -5,68 +6,66 @@ import {
   aws_s3 as S3,
   aws_iam as IAM,
   aws_lambda as Lambda,
-  aws_secretsmanager as SecretsManager,
   aws_ec2 as EC2,
   aws_efs as EFS,
   StackProps,
   Stack,
+  CfnOutput,
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Construct } from "constructs";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 
 export class YacChunkedUploadServiceStack extends Stack {
-  public vpc: EC2.Vpc;
-
-  public fileSystem: {
-    id: string;
-    securityGroupId: string;
-    accessPointId: string;
-  };
+  public exports: YacChunkedUploadServiceStackExports;
 
   constructor(scope: Construct, id: string, props: YacChunkedUploadServiceStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
-    const { environment, domainName, s3Buckets, secrets } = props;
+    const { environment, domainNameAttributes, s3BucketArns, secretArns } = props;
 
     const mountedPath = "/mnt/messages";
 
     const getMessageUploadTokenSecretPolicyStatement = new IAM.PolicyStatement({
       actions: [ "secretsmanager:GetSecretValue" ],
-      resources: [ secrets.messageUploadToken.secretArn ],
+      resources: [ secretArns.messageUploadToken ],
     });
+
+    // S3 Buckets
+    const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `RawMessageS3Bucket_${id}`, s3BucketArns.rawMessage);
 
     // Environment Variables
     const environmentVariables: Record<string, string> = {
       ENVIRONMENT: environment,
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
-      RAW_MESSAGE_S3_BUCKET_NAME: s3Buckets.rawMessage.bucketName,
+      RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
       EFS_MOUNTED_PATH: mountedPath,
-      MESSAGE_UPLOAD_TOKEN_SECRET_ID: secrets.messageUploadToken.secretArn,
+      MESSAGE_UPLOAD_TOKEN_SECRET_ID: secretArns.messageUploadToken,
     };
 
     // vpc
-    this.vpc = new EC2.Vpc(this, `Vpc_${id}`, {
-      subnetConfiguration: [ { name: "main", subnetType: EC2.SubnetType.ISOLATED } ],
+    const vpc = new EC2.Vpc(this, `Vpc_${id}`, {
+      subnetConfiguration: [ { name: "main", subnetType: EC2.SubnetType.PRIVATE_ISOLATED } ],
       gatewayEndpoints: { [`S3GatewayEndpoint_${id}`]: { service: { name: `com.amazonaws.${this.region}.s3` } } },
     });
 
-    this.vpc.addInterfaceEndpoint(`SMInterfaceEndpoint_${id}`, { service: { port: 443, name: `com.amazonaws.${this.region}.secretsmanager` } });
+    vpc.addInterfaceEndpoint(`SMInterfaceEndpoint_${id}`, { service: { port: 443, name: `com.amazonaws.${this.region}.secretsmanager` } });
 
     new S3.CfnAccessPoint(this, `VpcMessageBucketAccessPoint_${id}`, {
-      bucket: s3Buckets.rawMessage.bucketName,
+      bucket: rawMessageS3Bucket.bucketName,
       name: `access-point-${id.toLowerCase().replace("_", "-")}`,
-      vpcConfiguration: { vpcId: this.vpc.vpcId },
+      vpcConfiguration: { vpcId: vpc.vpcId },
     });
 
     const efsFileSystemSecurityGroup = new EC2.SecurityGroup(this, `EFSSecurityGroup_${id}`, {
-      vpc: this.vpc,
+      vpc,
       allowAllOutbound: true,
     });
 
-    const efsFileSystem = new EFS.FileSystem(this, `MessageEFS_${id}`, { vpc: this.vpc, removalPolicy: RemovalPolicy.DESTROY, securityGroup: efsFileSystemSecurityGroup });
+    const efsFileSystem = new EFS.FileSystem(this, `MessageEFS_${id}`, { vpc, removalPolicy: RemovalPolicy.DESTROY, securityGroup: efsFileSystemSecurityGroup });
 
     // create a new access point from the filesystem
     const efsFileSystemAccessPoint = efsFileSystem.addAccessPoint(`AccessPoint_${id}`, {
@@ -94,7 +93,7 @@ export class YacChunkedUploadServiceStack extends Stack {
       environment: environmentVariables,
       timeout: Duration.minutes(2),
       memorySize: 1024, // 1gb
-      vpc: this.vpc,
+      vpc,
       filesystem: lambdaFileSystem,
       initialPolicy: [ getMessageUploadTokenSecretPolicyStatement ],
     });
@@ -106,12 +105,12 @@ export class YacChunkedUploadServiceStack extends Stack {
       environment: environmentVariables,
       timeout: Duration.minutes(5),
       memorySize: 1024 * 4, // 4gb
-      vpc: this.vpc,
+      vpc,
       filesystem: lambdaFileSystem,
       initialPolicy: [ getMessageUploadTokenSecretPolicyStatement ],
     });
 
-    s3Buckets.rawMessage.grantReadWrite(finishChunkUploadHandler);
+    rawMessageS3Bucket.grantReadWrite(finishChunkUploadHandler);
 
     // Lambda Routes
     const routes: RouteProps[] = [
@@ -128,68 +127,48 @@ export class YacChunkedUploadServiceStack extends Stack {
 
     const api = new HttpApi(this, `HttpApi_${id}`, {
       serviceName: "chunked-upload",
-      domainName,
+      domainName: ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, domainNameAttributes),
     });
 
     routes.forEach((route) => api.addRoute(route));
 
-    this.fileSystem = {
-      id: efsFileSystem.fileSystemId,
-      securityGroupId: efsFileSystemSecurityGroup.securityGroupId,
-      accessPointId: efsFileSystemAccessPoint.accessPointId,
+    const ExportNames = generateExportNames(environment);
+
+    this.exports = {
+      vpcAttributes: {
+        vpcId: new CfnOutput(this, `ChunkedUploadVpcIdExport_${id}`, { exportName: ExportNames.ChunkedUploadVpcId, value: vpc.vpcId }).value as string,
+        availabilityZones: (new CfnOutput(this, `ChunkedUploadVpcAvailabilityZonesExport_${id}`, { exportName: ExportNames.ChunkedUploadVpcAvailabilityZones, value: vpc.availabilityZones.join(",") }).value as string).split(","),
+        isolatedSubnetIds: (new CfnOutput(this, `ChunkedUploadVpcIsolatedSubnetIdsExport_${id}`, { exportName: ExportNames.ChunkedUploadVpcIsolatedSubnetIds, value: vpc.isolatedSubnets.map((subnet) => subnet.subnetId).join(",") }).value as string).split(","),
+      },
+      fileSystemAttributes: {
+        id: new CfnOutput(this, `ChunkedUploadFileSystemIdExport_${id}`, { exportName: ExportNames.ChunkedUploadFileSystemId, value: efsFileSystem.fileSystemId }).value as string,
+        accessPointId: new CfnOutput(this, `ChunkedUploadFileSystemAccessPointIdExport_${id}`, { exportName: ExportNames.ChunkedUploadFileSystemAccessPointId, value: efsFileSystemAccessPoint.accessPointId }).value as string,
+        securityGroupId: new CfnOutput(this, `ChunkedUploadFileSystemSecurityGroupIdExport_${id}`, { exportName: ExportNames.ChunkedUploadFileSystemSecurityGroupId, value: efsFileSystemSecurityGroup.securityGroupId }).value as string,
+      },
     };
-
-    // const ExportNames = generateExportNames(stackPrefix);
-
-    // new CfnOutput(this, `ChunkedUploadsFSIdExport_${id}`, {
-    //   exportName: ExportNames.ChunkedUploadsFSId,
-    //   value: this.fileSystem.fileSystemId,
-    // });
-
-    // new CfnOutput(this, `ChunkedUploadsFSAccessPointIdExport_${id}`, {
-    //   exportName: ExportNames.ChunkedUploadsFSAccessPointId,
-    //   value: accessPoint.accessPointId,
-    // });
-
-    // new CfnOutput(this, `ChunkedUploadsFSAccessPathExport_${id}`, {
-    //   exportName: ExportNames.ChunkedUploadsFSMountedPath,
-    //   value: mountedPath,
-    // });
-
-    // new CfnOutput(this, `ChunkedUploadsVPCIdExport_${id}`, {
-    //   exportName: ExportNames.ChunkedUploadsVPCId,
-    //   value: this.vpc.vpcId,
-    // });
-
-    // new CfnOutput(this, `ChunkedUploadsVPCAvailabilityZoneExport_${id}`, {
-    //   exportName: ExportNames.ChunkedUploadsVPCAvailabilityZone,
-    //   value: this.vpc.availabilityZones.join(","),
-    // });
-
-    // new SSM.StringParameter(this, `ChunkedUploadsLambdaSecurityGroupId_${id}`, {
-    //   parameterName: `/yac-api-v4/${stackPrefix}/chunked-uploads-lambda-security-group-id`,
-    //   stringValue: lambdaSecurityGroup.securityGroupId,
-    // });
-
-    // new SSM.StringParameter(this, `ChunkedUploadsFileSystemSecurityGroupId_${id}`, {
-    //   parameterName: `/yac-api-v4/${stackPrefix}/chunked-uploads-fs-security-group-id`,
-    //   stringValue: fileSystemSecurityGroup.securityGroupId,
-    // });
-
-    // new SSM.StringParameter(this, `ChunkedUploadsVPCId_${id}`, {
-    //   parameterName: `/yac-api-v4/${stackPrefix}/chunked-uploads-vpc-id`,
-    //   stringValue: this.vpc.vpcId,
-    // });
   }
 }
 
 export interface YacChunkedUploadServiceStackProps extends StackProps {
   environment: string;
-  domainName: ApiGatewayV2.IDomainName;
-  s3Buckets: {
-    rawMessage: S3.IBucket;
+  domainNameAttributes: ApiGatewayV2.DomainNameAttributes;
+  s3BucketArns: {
+    rawMessage: string;
   };
-  secrets: {
-    messageUploadToken: SecretsManager.Secret;
+  secretArns: {
+    messageUploadToken: string;
+  };
+}
+
+export interface YacChunkedUploadServiceStackExports {
+  vpcAttributes: {
+    vpcId: string;
+    availabilityZones: string[];
+    isolatedSubnetIds: string[];
+  };
+  fileSystemAttributes: {
+    id: string;
+    securityGroupId: string;
+    accessPointId: string;
   };
 }

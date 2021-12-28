@@ -55,16 +55,16 @@ const ExportNames = {
 
   MessageUploadTokenSecretArn: "messageUploadTokenSecretArn",
 
-  ChunkedUploadsFSId: "chunkedUploadsFSId",
-  ChunkedUploadsFSAccessPointId: "chunkedUploadsFsAccesPointId",
-  ChunkedUploadsFSMountedPath: "chunkedUploadsFSMountedPath",
-  ChunkedUploadsVPCId: "chunkedUploadsVPCId",
-  ChunkedUploadsVPCAvailabilityZone: "chunkedUploadsVPCAvailabilityZones",
-  ChunkedUploadsVPCSecurityGroupSSM: "chunkedUploadsVPCSecurityGroupSSM",
-
   AuthorizerHandlerFunctionArn: "authorizerHandlerFunctionArn",
 
   AuthTableName: "authTableName",
+
+  ChunkedUploadVpcId: "chunkedUploadVpcId",
+  ChunkedUploadVpcAvailabilityZones: "chunkedUploadVpcAvailabilityZones",
+  ChunkedUploadVpcIsolatedSubnetIds: "chunkedUploadVpcIsolatedSubnetIds",
+  ChunkedUploadFileSystemId: "chunkedUploadFileSystemId",
+  ChunkedUploadFileSystemAccessPointId: "chunkedUploadFileSystemAccessPointId",
+  ChunkedUploadFileSystemSecurityGroupId: "chunkedUploadFileSystemSecurityGroupId",
 };
 
 export function generateExportNames(environment: string): Readonly<typeof ExportNames> {

@@ -1,5 +1,5 @@
 {
-  "name": "@yac/message-testing",
+  "name": "@yac/chunked-upload-testing",
   "version": "0.1.0",
   "scripts": {
     "predeploy:local": "source ../../../../.env",
@@ -8,8 +8,8 @@
     "clean": "rm -rf ./dist && rm -rf ./cdk.out",
     "synth:local": "cdk synth --context environment=local --context developer=$(whoami)",
     "synth:dev": "cdk synth --context environment=dev",
-    "deploy:local": "yarn workspace @yac/util build:library && yarn build:local && cdk deploy --context environment=local --context developer=$(whoami)",
-    "deploy:dev": "yarn workspace @yac/util build:library && yarn build:dev && cdk deploy --context environment=dev",
+    "deploy:local": "yarn build:local && cdk deploy --context environment=alpha",
+    "deploy:dev": "yarn build:dev && cdk deploy --context environment=dev",
     "destroy:local": "cdk destroy --context environment=local --context developer=$(whoami)"
   },
   "devDependencies": {

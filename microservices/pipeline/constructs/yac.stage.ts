@@ -64,41 +64,36 @@ export class YacStage extends Stage {
       stripe: utilService.exports.stripe,
     });
 
-    new YacCalendarServiceStack(this, "YacCalendarService", {
-      stackName: `${environment}-YacCalendarService`,
+    new YacCalendarServiceStack(this, `${environment}-YacCalendarService`, {
       environment,
-      authorizerHandler: authService.authorizerHandler,
-      domainName: utilService.domainName,
-      googleClient: utilService.googleClient,
+      authorizerHandlerFunctionArn: authService.exports.functionArns.authorizerHandler,
+      domainNameAttributes: utilService.exports.domainNameAttributes,
+      googleClient: utilService.exports.googleClient,
     });
 
-    const chunkedUploadService = new YacChunkedUploadServiceStack(this, "YacChunkedUploadService", {
-      stackName: `${environment}-YacChunkedUploadService`,
+    const chunkedUploadService = new YacChunkedUploadServiceStack(this, `${environment}-YacChunkedUploadService`, {
       environment,
-      domainName: utilService.domainName,
-      secrets: utilService.secrets,
-      s3Buckets: utilService.s3Buckets,
+      domainNameAttributes: utilService.exports.domainNameAttributes,
+      secretArns: utilService.exports.secretArns,
+      s3BucketArns: utilService.exports.s3BucketArns,
     });
 
-    new YacImageGeneratorServiceStack(this, "YacImageGeneratorService", {
-      stackName: `${environment}-YacImageGeneratorService`,
+    new YacImageGeneratorServiceStack(this, `${environment}-YacImageGeneratorService`, {
       environment,
-      domainName: utilService.domainName,
+      domainNameAttributes: utilService.exports.domainNameAttributes,
     });
 
-    new YacTranscodingServiceStack(this, "YacTranscodingService", {
-      stackName: `${environment}-YacTranscodingService`,
+    new YacTranscodingServiceStack(this, `${environment}-YacTranscodingService`, {
       environment,
-      audoAiApiKey: utilService.audoAiApiKey,
-      s3Buckets: utilService.s3Buckets,
-      snsTopics: utilService.snsTopics,
+      audoAi: utilService.exports.audoAi,
+      s3BucketArns: utilService.exports.s3BucketArns,
+      snsTopicArns: utilService.exports.snsTopicArns,
     });
 
-    new YacTranscriptionServiceStack(this, "YacTranscriptionService", {
-      stackName: `${environment}-YacTranscriptionService`,
+    new YacTranscriptionServiceStack(this, `${environment}-YacTranscriptionService`, {
       environment,
-      s3Buckets: utilService.s3Buckets,
-      snsTopics: utilService.snsTopics,
+      s3BucketArns: utilService.exports.s3BucketArns,
+      snsTopicArns: utilService.exports.snsTopicArns,
     });
 
     if (environment !== Environment.Prod) {
@@ -114,11 +109,10 @@ export class YacStage extends Stage {
         snsTopics: { pushNotificationFailed: notificationService.pushNotificationFailedSnsTopic },
       });
 
-      new YacChunkedUploadTestingStack(this, "YacChunkedUploadTesting", {
-        stackName: `${environment}-YacChunkedUploadTesting`,
-        domainName: utilService.domainName,
-        vpc: chunkedUploadService.vpc,
-        fileSystem: chunkedUploadService.fileSystem,
+      new YacChunkedUploadTestingStack(this, `${environment}-YacChunkedUploadTesting`, {
+        domainNameAttributes: utilService.exports.domainNameAttributes,
+        vpcAttributes: chunkedUploadService.exports.vpcAttributes,
+        fileSystemAttributes: chunkedUploadService.exports.fileSystemAttributes,
       });
 
       new YacTranscodingTestingStack(this, "YacTranscodingTesting", {

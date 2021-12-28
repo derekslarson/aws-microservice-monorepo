@@ -15,9 +15,9 @@ import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
 
 export class YacImageGeneratorServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacImageGeneratorServiceStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
-    const { environment, domainName } = props;
+    const { environment, domainNameAttributes } = props;
 
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
@@ -30,7 +30,7 @@ export class YacImageGeneratorServiceStack extends Stack {
 
     const api = new HttpApi(this, `HttpApi_${id}`, {
       serviceName: "image-generator",
-      domainName,
+      domainName: ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, domainNameAttributes),
     });
 
     // Environment Variables
@@ -108,5 +108,5 @@ export class YacImageGeneratorServiceStack extends Stack {
 
 export interface YacImageGeneratorServiceStackProps extends StackProps {
   environment: string;
-  domainName: ApiGatewayV2.IDomainName;
+  domainNameAttributes: ApiGatewayV2.DomainNameAttributes;
 }

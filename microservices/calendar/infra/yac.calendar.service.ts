@@ -1,19 +1,28 @@
-// import { App } from "aws-cdk-lib";
-// import { Environment } from "@yac/util/src/enums/environment.enum";
-// import { YacCalendarServiceStack } from "./stacks/yac.calendar.service.stack";
+/* eslint-disable no-new */
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { App, Fn } from "aws-cdk-lib";
+import { YacCalendarServiceStack } from "./stacks/yac.calendar.service.stack";
 
-// const app = new App();
+const app = new App();
 
-// const environment = app.node.tryGetContext("environment") as string;
-// const developer = app.node.tryGetContext("developer") as string;
+const environment = app.node.tryGetContext("environment") as string;
 
-// if (!environment) {
-//   throw new Error("'environment' context param required.");
-// } else if (environment === Environment.Local && !developer) {
-//   throw new Error("'developer' context param required when 'environment' === 'local'.");
-// }
+if (!environment) {
+  throw new Error("'environment' context param required.");
+}
 
-// const stackPrefix = environment === Environment.Local ? developer : environment;
+const ExportNames = generateExportNames(environment);
 
-// // eslint-disable-next-line no-new
-// new YacCalendarServiceStack(app, `${stackPrefix}-YacCalendarService`, { serviceName: "calendar" });
+new YacCalendarServiceStack(app, `${environment}-YacCalendarService`, {
+  environment,
+  authorizerHandlerFunctionArn: Fn.importValue(ExportNames.AuthorizerHandlerFunctionArn),
+  domainNameAttributes: {
+    name: Fn.importValue(ExportNames.DomainNameName),
+    regionalDomainName: Fn.importValue(ExportNames.DomainNameRegionalDomainName),
+    regionalHostedZoneId: Fn.importValue(ExportNames.DomainNameRegionalHostedZoneId),
+  },
+  googleClient: {
+    id: Fn.importValue(ExportNames.GoogleClientId),
+    secret: Fn.importValue(ExportNames.GoogleClientSecret),
+  },
+});

@@ -80,6 +80,7 @@ export class YacCoreServiceStack extends Stack {
       : environment === Environment.Stage || environment === Environment.Dev ? "t3.medium.search" : "t3.small.search";
 
     const openSearchDomain = new OpenSearch.Domain(this, `OpenSearchDomain_${id}`, {
+      removalPolicy: environment === Environment.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
       version: OpenSearch.EngineVersion.OPENSEARCH_1_0,
       domainName: id.toLowerCase(),
       capacity: {

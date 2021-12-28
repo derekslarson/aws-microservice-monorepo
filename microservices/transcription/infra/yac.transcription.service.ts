@@ -1,19 +1,26 @@
-// import { App } from "aws-cdk-lib";
-// import { Environment } from "@yac/util/src/enums/environment.enum";
-// import { YacTranscriptionServiceStack } from "./stacks/yac.transcription.service.stack";
+/* eslint-disable no-new */
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { App, Fn } from "aws-cdk-lib";
+import { YacTranscriptionServiceStack } from "./stacks/yac.transcription.service.stack";
 
-// const app = new App();
+const app = new App();
 
-// const environment = app.node.tryGetContext("environment") as string;
-// const developer = app.node.tryGetContext("developer") as string;
+const environment = app.node.tryGetContext("environment") as string;
 
-// if (!environment) {
-//   throw new Error("'environment' context param required.");
-// } else if (environment === Environment.Local && !developer) {
-//   throw new Error("'developer' context param required when 'environment' === 'local'.");
-// }
+if (!environment) {
+  throw new Error("'environment' context param required.");
+}
 
-// const stackPrefix = environment === Environment.Local ? developer : environment;
+const ExportNames = generateExportNames(environment);
 
-// // eslint-disable-next-line no-new
-// new YacTranscriptionServiceStack(app, `${stackPrefix}-YacTranscriptionService`);
+new YacTranscriptionServiceStack(app, `${environment}-YacTranscriptionService`, {
+  environment,
+  s3BucketArns: {
+    rawMessage: Fn.importValue(ExportNames.RawMessageS3BucketArn),
+    enhancedMessage: Fn.importValue(ExportNames.EnhancedMessageS3BucketArn),
+  },
+  snsTopicArns: {
+    messageTranscoded: Fn.importValue(ExportNames.MessageTranscodedSnsTopicArn),
+    messageTranscribed: Fn.importValue(ExportNames.MessageTranscribedSnsTopicArn),
+  },
+});

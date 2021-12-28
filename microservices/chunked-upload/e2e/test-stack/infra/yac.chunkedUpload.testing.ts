@@ -1,22 +1,31 @@
-// import { App } from "aws-cdk-lib";
-// import { Environment } from "@yac/util/src/enums/environment.enum";
-// import { YacMessageTesting } from "./stacks/yac.message.testing.stack";
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { App, Fn, } from "aws-cdk-lib";
+import { YacChunkedUploadTestingStack } from "./stacks/yac.chunkedUpload.testing.stack";
 
-// const app = new App();
+const app = new App();
 
-// const environment = app.node.tryGetContext("environment") as string;
-// const developer = app.node.tryGetContext("developer") as string;
+const environment = app.node.tryGetContext("environment") as string;
 
-// if (!environment) {
-//   throw new Error("'environment' context param required.");
-// } else if (environment === Environment.Local && !developer) {
-//   throw new Error("'developer' context param required when 'environment' === 'local'.");
-// }
+if (!environment) {
+  throw new Error("'environment' context param required.");
+}
 
-// const stackPrefix = environment === Environment.Local ? developer : environment;
+const ExportNames = generateExportNames(environment);
 
-// // eslint-disable-next-line no-new
-// new YacMessageTesting(app, `${stackPrefix}-YacMessageTesting`, { serviceName: "message-testing", env:{
-//   region: process.env.CDK_DEFAULT_REGION,
-//   account: process.env.CDK_DEFAULT_ACCOUNT
-// } });
+new YacChunkedUploadTestingStack(app, `${environment}-YacChunkedUploadTesting`, { 
+  domainNameAttributes: {
+    name: Fn.importValue(ExportNames.DomainNameName),
+    regionalDomainName: Fn.importValue(ExportNames.DomainNameRegionalDomainName),
+    regionalHostedZoneId: Fn.importValue(ExportNames.DomainNameRegionalHostedZoneId),
+  },
+  vpcAttributes: {
+    vpcId: Fn.importValue(ExportNames.ChunkedUploadVpcId),
+    availabilityZones: Fn.split(",", Fn.importValue(ExportNames.ChunkedUploadVpcAvailabilityZones)),
+    isolatedSubnetIds: Fn.split(",", Fn.importValue(ExportNames.ChunkedUploadVpcIsolatedSubnetIds))
+  },
+  fileSystemAttributes: {
+    id: Fn.importValue(ExportNames.ChunkedUploadFileSystemId),
+    accessPointId: Fn.importValue(ExportNames.ChunkedUploadFileSystemAccessPointId),
+    securityGroupId: Fn.importValue(ExportNames.ChunkedUploadFileSystemSecurityGroupId)
+  }
+});

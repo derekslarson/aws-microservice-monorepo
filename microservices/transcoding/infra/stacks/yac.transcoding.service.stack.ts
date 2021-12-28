@@ -7,7 +7,6 @@ import {
   aws_lambda as Lambda,
   aws_s3 as S3,
   aws_s3_notifications as S3Notifications,
-  aws_sns as SNS,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { Environment } from "@yac/util/src/enums/environment.enum";
@@ -15,26 +14,30 @@ import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 
 export class YacTranscodingServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacTranscodingServiceStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
-    const { environment, s3Buckets, snsTopics, audoAiApiKey } = props;
+    const { environment, s3BucketArns, snsTopicArns, audoAi } = props;
 
     // Policies
     const basePolicy: IAM.PolicyStatement[] = [];
 
+    // S3 Buckets
+    const rawMessageS3Bucket = S3.Bucket.fromBucketArn(this, `RawMessageS3Bucket_${id}`, s3BucketArns.rawMessage);
+    const enhancedMessageS3Bucket = S3.Bucket.fromBucketArn(this, `EnhancedMessageS3Bucket_${id}`, s3BucketArns.enhancedMessage);
+
     const rawMessageS3BucketFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "s3:*" ],
-      resources: [ s3Buckets.rawMessage.bucketArn, `${s3Buckets.rawMessage.bucketArn}/*` ],
+      resources: [ s3BucketArns.rawMessage, `${s3BucketArns.rawMessage}/*` ],
     });
 
     const enhancedMessageS3BucketFullAccessPolicyStatement = new IAM.PolicyStatement({
       actions: [ "s3:*" ],
-      resources: [ s3Buckets.enhancedMessage.bucketArn, `${s3Buckets.enhancedMessage.bucketArn}/*` ],
+      resources: [ s3BucketArns.enhancedMessage, `${s3BucketArns.enhancedMessage}/*` ],
     });
 
     const messageTranscodedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ snsTopics.messageTranscoded.topicArn ],
+      resources: [ snsTopicArns.messageTranscoded ],
     });
 
     // const mockHttpIntegrationDomain = `https://${developer}.yacchat.com/transcoding-testing`;
@@ -43,10 +46,10 @@ export class YacTranscodingServiceStack extends Stack {
     const environmentVariables: Record<string, string> = {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       AUDO_AI_API_DOMAIN: "https://api.audo.ai",
-      AUDO_AI_API_KEY: audoAiApiKey,
-      RAW_MESSAGE_S3_BUCKET_NAME: s3Buckets.rawMessage.bucketName,
-      ENHANCED_MESSAGE_S3_BUCKET_NAME: s3Buckets.enhancedMessage.bucketName,
-      MESSAGE_TRANSCODED_SNS_TOPIC_ARN: snsTopics.messageTranscoded.topicArn,
+      AUDO_AI_API_KEY: audoAi.apiKey,
+      RAW_MESSAGE_S3_BUCKET_NAME: rawMessageS3Bucket.bucketName,
+      ENHANCED_MESSAGE_S3_BUCKET_NAME: enhancedMessageS3Bucket.bucketName,
+      MESSAGE_TRANSCODED_SNS_TOPIC_ARN: snsTopicArns.messageTranscoded,
 
     };
 
@@ -62,20 +65,21 @@ export class YacTranscodingServiceStack extends Stack {
       timeout: Duration.seconds(15),
     });
 
-    // Using `fromBucketArn` here instead of the bucket itself is necessary to prevent a circular dependency (seems like a cdk bug)
-    S3.Bucket.fromBucketArn(this, `RawMessageBucket_${id}`, s3Buckets.rawMessage.bucketArn).addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
-    S3.Bucket.fromBucketArn(this, `EnhancedMessageBucket_${id}`, s3Buckets.enhancedMessage.bucketArn).addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
+    rawMessageS3Bucket.addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
+    enhancedMessageS3Bucket.addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));
   }
 }
 
 export interface YacTranscodingServiceStackProps extends StackProps {
   environment: string;
-  audoAiApiKey: string;
-  s3Buckets: {
-    rawMessage: S3.IBucket;
-    enhancedMessage: S3.IBucket;
+  audoAi: {
+    apiKey: string;
+  }
+  s3BucketArns: {
+    rawMessage: string;
+    enhancedMessage: string;
   };
-  snsTopics: {
-    messageTranscoded: SNS.ITopic
+  snsTopicArns: {
+    messageTranscoded: string;
   }
 }

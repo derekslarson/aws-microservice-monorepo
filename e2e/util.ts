@@ -369,7 +369,7 @@ export async function createRandomAuthServiceUser(): Promise<CreateRandomAuthSer
 
 export async function generateMessageUploadToken(conversationId: string, messageId: string, mimeType: string): Promise<string> {
   try {
-    const { SecretString: secret } = await secretsManager.getSecretValue({ SecretId: process.env["message-upload-token-secret-id"] as string }).promise();
+    const { SecretString: secret } = await secretsManager.getSecretValue({ SecretId: "arn:aws:secretsmanager:us-east-1:644653163171:secret:MessageUploadTokenSecretalp-ZQietCk5R0Zp-n1ksFD" }).promise();
 
     if (!secret) {
       throw new Error("Error fetching secret");

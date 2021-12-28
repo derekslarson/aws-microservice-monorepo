@@ -14,15 +14,17 @@ import { HttpApi } from "@yac/util/infra/constructs/http.api";
 
 export class YacChunkedUploadTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacChunkedUploadTestingStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
-    const { domainName, vpc, fileSystem } = props;
+    const { domainNameAttributes, vpcAttributes, fileSystemAttributes } = props;
 
     // Environment Variables
     const environmentVariables: Record<string, string> = { FS_PATH: "/mnt/messages" };
     
-    const efsFileSystemSecurityGroup = EC2.SecurityGroup.fromSecurityGroupId(this, `FileSystemSecurityGroup_${id}`, fileSystem.securityGroupId);
+    const efsFileSystemSecurityGroup = EC2.SecurityGroup.fromSecurityGroupId(this, `FileSystemSecurityGroup_${id}`, fileSystemAttributes.securityGroupId);
 
+    const vpc = EC2.Vpc.fromVpcAttributes(this, `VPC_${id}`, vpcAttributes)
+   
     const lambdaSecurityGroup = new EC2.SecurityGroup(this, `LambdaSecurityGroup_${id}`, {
       vpc,
       allowAllOutbound: true,
@@ -33,12 +35,12 @@ export class YacChunkedUploadTestingStack extends Stack {
 
     
     const efsFileSystem = EFS.FileSystem.fromFileSystemAttributes(this, `EfsFileSystem_${id}`, {
-      fileSystemId: fileSystem.id,
+      fileSystemId: fileSystemAttributes.id,
       securityGroup: efsFileSystemSecurityGroup
     });
 
     const  efsFileSystemAccessPoint =  EFS.AccessPoint.fromAccessPointAttributes(this, `EfsAccessPoint_${id}`, {
-      accessPointId: fileSystem.accessPointId,
+      accessPointId: fileSystemAttributes.accessPointId,
       fileSystem: efsFileSystem
     });
         
@@ -71,7 +73,7 @@ export class YacChunkedUploadTestingStack extends Stack {
 
     const api = new HttpApi(this, `HttpApi_${id}`, {
       serviceName: "chunkedupload-testing",
-      domainName,
+      domainName: ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, domainNameAttributes),
     });
     
     api.addRoute({
@@ -90,11 +92,15 @@ export class YacChunkedUploadTestingStack extends Stack {
 
 
 export interface YacChunkedUploadTestingStackProps extends StackProps {
-  domainName: ApiGatewayV2.IDomainName;
-  vpc: EC2.Vpc;
-  fileSystem: {
+  domainNameAttributes: ApiGatewayV2.DomainNameAttributes;
+  vpcAttributes: {
+    vpcId: string;
+    availabilityZones: string[];
+    isolatedSubnetIds: string[];
+  };
+  fileSystemAttributes: {
     id: string;
     securityGroupId: string;
     accessPointId: string;
-  }
+  };
 }

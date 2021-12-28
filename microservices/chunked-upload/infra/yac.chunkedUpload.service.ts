@@ -1,19 +1,26 @@
-// import { App } from "aws-cdk-lib";
-// import { Environment } from "@yac/util/src/enums/environment.enum";
-// import { YacChunkedUploadServiceStack } from "./stacks/yac.chunkedUpload.service.stack";
+/* eslint-disable no-new */
+import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { App, Fn } from "aws-cdk-lib";
 
-// const app = new App();
+import { YacChunkedUploadServiceStack } from "./stacks/yac.chunkedUpload.service.stack";
 
-// const environment = app.node.tryGetContext("environment") as string;
-// const developer = app.node.tryGetContext("developer") as string;
+const app = new App();
 
-// if (!environment) {
-//   throw new Error("'environment' context param required.");
-// } else if (environment === Environment.Local && !developer) {
-//   throw new Error("'developer' context param required when 'environment' === 'local'.");
-// }
+const environment = app.node.tryGetContext("environment") as string;
 
-// const stackPrefix = environment === Environment.Local ? developer : environment;
+if (!environment) {
+  throw new Error("'environment' context param required.");
+}
 
-// // eslint-disable-next-line no-new
-// new YacChunkedUploadServiceStack(app, `${stackPrefix}-YacChunkedUploadService`, { serviceName: "chunked-upload" });
+const ExportNames = generateExportNames(environment);
+
+new YacChunkedUploadServiceStack(app, `${environment}-YacChunkedUploadService`, {
+  environment,
+  domainNameAttributes: {
+    name: Fn.importValue(ExportNames.DomainNameName),
+    regionalDomainName: Fn.importValue(ExportNames.DomainNameRegionalDomainName),
+    regionalHostedZoneId: Fn.importValue(ExportNames.DomainNameRegionalHostedZoneId),
+  },
+  secretArns: { messageUploadToken: Fn.importValue(ExportNames.MessageUploadTokenSecretArn) },
+  s3BucketArns: { rawMessage: Fn.importValue(ExportNames.RawMessageS3BucketArn) },
+});
