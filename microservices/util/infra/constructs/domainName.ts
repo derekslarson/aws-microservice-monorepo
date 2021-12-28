@@ -12,17 +12,17 @@ import { Environment } from "../../src/enums/environment.enum";
 
 export class DomainName extends ApiGatewayV2.DomainName {
   constructor(scope: Construct, id: string, props: DomainNameProps) {
-    const { environment, certificateArn, hostedZoneId, hostedZoneName, recordNameSuffix } = props;
+    const { environment, certificateArn, hostedZoneAttributes, recordNameSuffix } = props;
 
     const recordName = `${environment === Environment.Prod ? "api-v4" : environment === Environment.Dev ? "develop" : environment}${recordNameSuffix ? `-${recordNameSuffix}` : ""}`;
 
     super(scope, id, {
-      domainName: `${recordName}.${hostedZoneName}`,
+      domainName: `${recordName}.${hostedZoneAttributes.zoneName}`,
       certificate: ACM.Certificate.fromCertificateArn(scope, `AcmCertificate_${id}`, certificateArn),
     });
 
     new Route53.ARecord(this, `ARecord_${id}`, {
-      zone: Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, { zoneName: hostedZoneName, hostedZoneId }),
+      zone: Route53.HostedZone.fromHostedZoneAttributes(this, `HostedZone_${id}`, hostedZoneAttributes),
       recordName,
       target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2DomainProperties(this.regionalDomainName, this.regionalHostedZoneId)),
     });
@@ -32,7 +32,6 @@ export class DomainName extends ApiGatewayV2.DomainName {
 interface DomainNameProps {
   environment: string;
   certificateArn: string;
-  hostedZoneId: string;
-  hostedZoneName: string;
+  hostedZoneAttributes: Route53.HostedZoneAttributes;
   recordNameSuffix?: string;
 }

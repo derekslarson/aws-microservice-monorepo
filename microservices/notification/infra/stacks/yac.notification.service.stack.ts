@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable no-console */
 /* eslint-disable no-new */
@@ -15,9 +16,7 @@ import {
   aws_ssm as SSM,
   aws_sqs as SQS,
   aws_route53 as Route53,
-  aws_route53_targets as Route53Targets,
   StackProps,
-  aws_certificatemanager as ACM,
   Stack,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
@@ -28,17 +27,16 @@ import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
 import { WebSocketApi } from "@yac/util/infra/constructs/webSocket.api";
+import { DomainName } from "@yac/util/infra/constructs/domainName";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacNotificationServiceStack extends Stack {
-  public pushNotificationFailedSnsTopic: SNS.ITopic;
+  public exports: YacNotificationServiceExports;
 
   constructor(scope: Construct, id: string, props: YacNotificationServiceStackProps) {
     super(scope, id, { stackName: id, ...props });
 
-    const { environment, domainName, hostedZone, certificate, gcmServerKey, authorizerHandler, snsTopics } = props;
-
-    this.pushNotificationFailedSnsTopic = new SNS.Topic(this, `PushNotificationFailedSnsTopic_${id}`, { topicName: `PushNotificationFailedSnsTopic_${id}` });
+    const { environment, domainNameAttributes, hostedZoneAttributes, certificateArn, gcmServerKey, authorizerHandlerFunctionArn, snsTopicArns } = props;
 
     // Databases
     const listenerMappingTable = new DynamoDB.Table(this, `ListenerMappingTable_${id}`, {
@@ -53,6 +51,21 @@ export class YacNotificationServiceStack extends Stack {
       partitionKey: { name: "gsi1pk", type: DynamoDB.AttributeType.STRING },
       sortKey: { name: "gsi1sk", type: DynamoDB.AttributeType.STRING },
     });
+
+    // SNS Topics
+    const pushNotificationFailedSnsTopic = new SNS.Topic(this, `PushNotificationFailedSnsTopic_${id}`, { topicName: `PushNotificationFailedSnsTopic_${id}` });
+    const userAddedToTeamSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToTeamSnsTopic_${id}`, snsTopicArns.userAddedToTeam);
+    const userRemovedFromTeamSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedFromTeamSnsTopic_${id}`, snsTopicArns.userRemovedFromTeam);
+    const userAddedToGroupSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToGroupSnsTopic_${id}`, snsTopicArns.userAddedToGroup);
+    const userRemovedFromGroupSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedFromGroupSnsTopic_${id}`, snsTopicArns.userRemovedFromGroup);
+    const userAddedToMeetingSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToMeetingSnsTopic_${id}`, snsTopicArns.userAddedToMeeting);
+    const userRemovedFromMeetingSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedFromMeetingSnsTopic_${id}`, snsTopicArns.userRemovedFromMeeting);
+    const userAddedAsFriendSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedAsFriendSnsTopic_${id}`, snsTopicArns.userAddedAsFriend);
+    const userRemovedAsFriendSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedAsFriendSnsTopic_${id}`, snsTopicArns.userRemovedAsFriend);
+    const teamCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `TeamCreatedSnsTopic_${id}`, snsTopicArns.teamCreated);
+    const groupCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `GroupCreatedSnsTopic_${id}`, snsTopicArns.groupCreated);
+    const messageCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageCreatedSnsTopic_${id}`, snsTopicArns.messageCreated);
+    const messageUpdatedSnsTopic = SNS.Topic.fromTopicArn(this, `MessageUpdatedSnsTopic_${id}`, snsTopicArns.messageUpdated);
 
     // SNS Push Notification Platform Application
     const platformApplicationPlatform = "GCM";
@@ -71,7 +84,7 @@ export class YacNotificationServiceStack extends Stack {
           Platform: platformApplicationPlatform,
           Attributes: {
             PlatformCredential: gcmServerKey,
-            EventDeliveryFailure: this.pushNotificationFailedSnsTopic.topicArn,
+            EventDeliveryFailure: pushNotificationFailedSnsTopic.topicArn,
           },
         },
         physicalResourceId: CustomResources.PhysicalResourceId.of(platformApplicationName),
@@ -84,7 +97,7 @@ export class YacNotificationServiceStack extends Stack {
           PlatformApplicationArn: platformApplicationArn,
           Attributes: {
             PlatformCredential: gcmServerKey,
-            EventDeliveryFailure: this.pushNotificationFailedSnsTopic.topicArn,
+            EventDeliveryFailure: pushNotificationFailedSnsTopic.topicArn,
           },
         },
         physicalResourceId: CustomResources.PhysicalResourceId.of(platformApplicationName),
@@ -127,36 +140,36 @@ export class YacNotificationServiceStack extends Stack {
       LOG_LEVEL: environment === Environment.Local ? `${LogLevel.Trace}` : `${LogLevel.Error}`,
       NOTIFICATION_MAPPING_TABLE_NAME: listenerMappingTable.tableName,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
-      USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: snsTopics.userAddedToTeam.topicArn,
-      USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: snsTopics.userRemovedFromTeam.topicArn,
-      USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: snsTopics.userAddedToGroup.topicArn,
-      USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN: snsTopics.userRemovedFromGroup.topicArn,
-      USER_ADDED_TO_MEETING_SNS_TOPIC_ARN: snsTopics.userAddedToMeeting.topicArn,
-      USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN: snsTopics.userRemovedFromMeeting.topicArn,
-      USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN: snsTopics.userAddedAsFriend.topicArn,
-      USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN: snsTopics.userRemovedAsFriend.topicArn,
-      TEAM_CREATED_SNS_TOPIC_ARN: snsTopics.teamCreated.topicArn,
-      GROUP_CREATED_SNS_TOPIC_ARN: snsTopics.groupCreated.topicArn,
-      MESSAGE_CREATED_SNS_TOPIC_ARN: snsTopics.messageCreated.topicArn,
-      MESSAGE_UPDATED_SNS_TOPIC_ARN: snsTopics.messageUpdated.topicArn,
-      MEETING_CREATED_SNS_TOPIC_ARN: snsTopics.meetingCreated.topicArn,
+      USER_ADDED_TO_TEAM_SNS_TOPIC_ARN: snsTopicArns.userAddedToTeam,
+      USER_REMOVED_FROM_TEAM_SNS_TOPIC_ARN: snsTopicArns.userRemovedFromTeam,
+      USER_ADDED_TO_GROUP_SNS_TOPIC_ARN: snsTopicArns.userAddedToGroup,
+      USER_REMOVED_FROM_GROUP_SNS_TOPIC_ARN: snsTopicArns.userRemovedFromGroup,
+      USER_ADDED_TO_MEETING_SNS_TOPIC_ARN: snsTopicArns.userAddedToMeeting,
+      USER_REMOVED_FROM_MEETING_SNS_TOPIC_ARN: snsTopicArns.userRemovedFromMeeting,
+      USER_ADDED_AS_FRIEND_SNS_TOPIC_ARN: snsTopicArns.userAddedAsFriend,
+      USER_REMOVED_AS_FRIEND_SNS_TOPIC_ARN: snsTopicArns.userRemovedAsFriend,
+      TEAM_CREATED_SNS_TOPIC_ARN: snsTopicArns.teamCreated,
+      GROUP_CREATED_SNS_TOPIC_ARN: snsTopicArns.groupCreated,
+      MESSAGE_CREATED_SNS_TOPIC_ARN: snsTopicArns.messageCreated,
+      MESSAGE_UPDATED_SNS_TOPIC_ARN: snsTopicArns.messageUpdated,
+      MEETING_CREATED_SNS_TOPIC_ARN: snsTopicArns.meetingCreated,
       PLATFORM_APPLICATION_ARN: platformApplicationArn,
     };
 
     // SQS Queues
     const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`);
-    snsTopics.userAddedToTeam.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.userRemovedFromTeam.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.userAddedToGroup.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.userRemovedFromGroup.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.userAddedToMeeting.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.userRemovedFromMeeting.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.userAddedAsFriend.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.userRemovedAsFriend.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.teamCreated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.groupCreated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.messageCreated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.messageUpdated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedToTeamSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedFromTeamSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedToGroupSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedFromGroupSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedToMeetingSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedFromMeetingSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedAsFriendSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedAsFriendSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    teamCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    groupCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    messageCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    messageUpdatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // WebSocket Lambdas
     const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
@@ -181,16 +194,10 @@ export class YacNotificationServiceStack extends Stack {
       timeout: Duration.seconds(15),
     });
 
-    const webSocketRecordName = environment === Environment.Prod ? "api-v4-ws" : environment === Environment.Dev ? "develop-ws" : `${environment}-ws`;
+    const authorizerHandler = Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, authorizerHandlerFunctionArn);
 
     // WebSocket API
-    const webSocketDomainName = new ApiGatewayV2.DomainName(this, `WebSocketDomainName_${id}`, { domainName: `${webSocketRecordName}.${hostedZone.zoneName}`, certificate });
-
-    new Route53.ARecord(this, `ARecord_${id}`, {
-      zone: hostedZone,
-      recordName: webSocketRecordName,
-      target: Route53.RecordTarget.fromAlias(new Route53Targets.ApiGatewayv2DomainProperties(webSocketDomainName.regionalDomainName, webSocketDomainName.regionalHostedZoneId)),
-    });
+    const webSocketDomainName = new DomainName(this, `WebSocketDomainName_${id}`, { environment, certificateArn, hostedZoneAttributes, recordNameSuffix: "ws" });
 
     const webSocketApi = new WebSocketApi(this, `WebSocketApi_${id}`, {
       connectRouteOptions: { integration: new ApiGatewayV2Integrations.WebSocketLambdaIntegration(`WebSocketConnectRouteIntegration_${id}`, connectHandler) },
@@ -249,7 +256,7 @@ export class YacNotificationServiceStack extends Stack {
 
     const httpApi = new HttpApi(this, `HttpApi_${id}`, {
       serviceName: "notification",
-      domainName,
+      domainName: ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, domainNameAttributes),
       authorizerHandler,
     });
 
@@ -257,11 +264,7 @@ export class YacNotificationServiceStack extends Stack {
 
     const ExportNames = generateExportNames(environment);
 
-    // PushNotificationFailedSnsTopic ARN Export (to be imported by test stack)
-    new CfnOutput(this, `PushNotificationFailedSnsTopicArnExport_${id}`, {
-      exportName: ExportNames.PushNotificationFailedSnsTopicArn,
-      value: this.pushNotificationFailedSnsTopic.topicArn,
-    });
+    this.exports = { snsTopicArns: { pushNotificationFailed: new CfnOutput(this, `PushNotificationFailedSnsTopicArnExport_${id}`, { exportName: ExportNames.PushNotificationFailedSnsTopicArn, value: pushNotificationFailedSnsTopic.topicArn }).value as string } };
 
     // SSM Parameters (to be imported in e2e tests)
     new SSM.StringParameter(this, `ListenerMappingTableNameSsmParameter-${id}`, {
@@ -271,50 +274,47 @@ export class YacNotificationServiceStack extends Stack {
 
     new SSM.StringParameter(this, `PushNotificationFailedSnsTopicArnSsmParameter_-${id}`, {
       parameterName: `/yac-api-v4/${environment}/push-notification-failed-sns-topic-arn`,
-      stringValue: this.pushNotificationFailedSnsTopic.topicArn,
-    });
-
-    new SSM.StringParameter(this, `PlatformApplicationArnSsmParameter-${id}`, {
-      parameterName: `/yac-api-v4/${environment}/platform-application-arn`,
-      stringValue: platformApplicationArn,
+      stringValue: pushNotificationFailedSnsTopic.topicArn,
     });
   }
 }
 
 export interface YacNotificationServiceStackProps extends StackProps {
   environment: string;
-  domainName: ApiGatewayV2.IDomainName;
-  authorizerHandler: Lambda.Function;
-  hostedZone: Route53.IHostedZone;
-  certificate: ACM.ICertificate;
+  domainNameAttributes: ApiGatewayV2.DomainNameAttributes;
+  hostedZoneAttributes: Route53.HostedZoneAttributes;
+  authorizerHandlerFunctionArn: string;
+  certificateArn: string;
   gcmServerKey: string;
-  snsTopics: {
-    userCreated: SNS.Topic;
-    organizationCreated: SNS.Topic;
-    teamCreated: SNS.Topic;
-    meetingCreated: SNS.Topic;
-    groupCreated: SNS.Topic;
+  snsTopicArns: {
+    userCreated: string;
+    organizationCreated: string;
+    teamCreated: string;
+    meetingCreated: string;
+    groupCreated: string;
 
-    userAddedToOrganization: SNS.Topic;
-    userAddedToTeam: SNS.Topic;
-    userAddedToGroup: SNS.Topic;
-    userAddedToMeeting: SNS.Topic;
-    userAddedAsFriend: SNS.Topic;
+    userAddedToOrganization: string;
+    userAddedToTeam: string;
+    userAddedToGroup: string;
+    userAddedToMeeting: string;
+    userAddedAsFriend: string;
 
-    userRemovedFromOrganization: SNS.Topic;
-    userRemovedFromTeam: SNS.Topic;
-    userRemovedFromGroup: SNS.Topic;
-    userRemovedFromMeeting: SNS.Topic;
-    userRemovedAsFriend: SNS.Topic;
+    userRemovedFromOrganization: string;
+    userRemovedFromTeam: string;
+    userRemovedFromGroup: string;
+    userRemovedFromMeeting: string;
+    userRemovedAsFriend: string;
 
-    messageCreated: SNS.Topic;
-    messageUpdated: SNS.Topic;
+    messageCreated: string;
+    messageUpdated: string;
 
-    messageTranscoded: SNS.Topic;
-    messageTranscribed: SNS.Topic;
+    messageTranscoded: string;
+    messageTranscribed: string;
+  }
+}
 
-    billingPlanUpdated: SNS.Topic;
-
-    createUserRequest: SNS.Topic;
+export interface YacNotificationServiceExports {
+  snsTopicArns: {
+    pushNotificationFailed: string;
   }
 }

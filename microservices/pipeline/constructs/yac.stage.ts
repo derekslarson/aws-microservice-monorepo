@@ -48,21 +48,20 @@ export class YacStage extends Stage {
 
     const notificationService = new YacNotificationServiceStack(this, `${environment}-YacNotificationService`, {
       environment,
-      authorizerHandler: authService.authorizerHandler,
-      domainName: utilService.domainName,
-      snsTopics: utilService.snsTopics,
-      hostedZone: utilService.hostedZone,
-      certificate: utilService.certificate,
-      gcmServerKey: utilService.gcmServerKey,
+      authorizerHandlerFunctionArn: authService.exports.functionArns.authorizerHandler,
+      domainNameAttributes: utilService.exports.domainNameAttributes,
+      snsTopicArns: utilService.exports.snsTopicArns,
+      hostedZoneAttributes: utilService.exports.hostedZoneAttributes,
+      certificateArn: utilService.exports.certificateArn,
+      gcmServerKey: utilService.exports.gcmServerKey,
     });
 
-    new YacBillingServiceStack(this, "YacBillingService", {
-      stackName: `${environment}-YacBillingService`,
+    new YacBillingServiceStack(this, `${environment}-YacBillingService`, {
       environment,
-      authorizerHandler: authService.authorizerHandler,
-      domainName: utilService.domainName,
-      snsTopics: utilService.snsTopics,
-      stripe: utilService.stripe,
+      authorizerHandlerFunctionArn: authService.exports.functionArns.authorizerHandler,
+      domainNameAttributes: utilService.exports.domainNameAttributes,
+      snsTopicArns: utilService.exports.snsTopicArns,
+      stripe: utilService.exports.stripe,
     });
 
     new YacCalendarServiceStack(this, "YacCalendarService", {

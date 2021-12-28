@@ -89,7 +89,7 @@ export class YacUtilServiceStack extends Stack {
     const messageUploadTokenSecret = new SecretsManager.Secret(this, `MessageUploadTokenSecret_${id}`);
 
     // Domain Names
-    const domainName = new DomainName(this, `DomainName_${id}`, { environment, hostedZoneId, hostedZoneName, certificateArn });
+    const domainName = new DomainName(this, `DomainName_${id}`, { environment, certificateArn, hostedZoneAttributes: { zoneName: hostedZoneName, hostedZoneId } });
 
     // Exports
     const ExportNames = generateExportNames(environment);

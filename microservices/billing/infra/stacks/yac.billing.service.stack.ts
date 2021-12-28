@@ -24,9 +24,14 @@ import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum"
 
 export class YacBillingServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacBillingServiceStackProps) {
-    super(scope, id, props);
+    super(scope, id, { stackName: id, ...props });
 
-    const { environment, domainName, authorizerHandler, snsTopics, stripe } = props;
+    const { environment, domainNameAttributes, authorizerHandlerFunctionArn, snsTopicArns, stripe } = props;
+
+    // SNS Topics
+    const organizationCreatedSnsTopic = SNS.Topic.fromTopicArn(this, `OrganizationCreatedSnsTopic_${id}`, snsTopicArns.organizationCreated);
+    const userAddedToOrganizationSnsTopic = SNS.Topic.fromTopicArn(this, `UserAddedToOrganizationSnsTopic_${id}`, snsTopicArns.userAddedToOrganization);
+    const userRemovedFromOrganizationSnsTopic = SNS.Topic.fromTopicArn(this, `UserRemovedFromOrganizationSnsTopic_${id}`, snsTopicArns.userRemovedFromOrganization);
 
     // Databases
     const billingTable = new DynamoDB.Table(this, `BillingTable_${id}`, {
@@ -59,7 +64,7 @@ export class YacBillingServiceStack extends Stack {
 
     const billingPlanUpdatedSnsPublishPolicyStatement = new IAM.PolicyStatement({
       actions: [ "SNS:Publish" ],
-      resources: [ snsTopics.billingPlanUpdated.topicArn ],
+      resources: [ snsTopicArns.billingPlanUpdated ],
     });
 
     // Environment Variables
@@ -72,17 +77,17 @@ export class YacBillingServiceStack extends Stack {
       STRIPE_WEBHOOK_SECRET: stripe.webhookSecret,
       GSI_ONE_INDEX_NAME: GlobalSecondaryIndex.One,
       GSI_TWO_INDEX_NAME: GlobalSecondaryIndex.Two,
-      ORGANIZATION_CREATED_SNS_TOPIC_ARN: snsTopics.organizationCreated.topicArn,
-      USER_ADDED_TO_ORGANIZATION_SNS_TOPIC_ARN: snsTopics.userAddedToOrganization.topicArn,
-      USER_REMOVED_FROM_ORGANIZATION_SNS_TOPIC_ARN: snsTopics.userRemovedFromOrganization.topicArn,
-      BILLING_PLAN_UPDATED_SNS_TOPIC_ARN: snsTopics.billingPlanUpdated.topicArn,
+      ORGANIZATION_CREATED_SNS_TOPIC_ARN: snsTopicArns.organizationCreated,
+      USER_ADDED_TO_ORGANIZATION_SNS_TOPIC_ARN: snsTopicArns.userAddedToOrganization,
+      USER_REMOVED_FROM_ORGANIZATION_SNS_TOPIC_ARN: snsTopicArns.userRemovedFromOrganization,
+      BILLING_PLAN_UPDATED_SNS_TOPIC_ARN: snsTopicArns.billingPlanUpdated,
     };
 
     const sqsEventHandlerQueue = new SQS.Queue(this, `SqsEventHandlerQueue_${id}`, {});
 
-    snsTopics.organizationCreated.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.userAddedToOrganization.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
-    snsTopics.userRemovedFromOrganization.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    organizationCreatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userAddedToOrganizationSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
+    userRemovedFromOrganizationSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Dynamo Stream Handler
     new Lambda.Function(this, `BillingTableEventHandler_${id}`, {
@@ -165,8 +170,8 @@ export class YacBillingServiceStack extends Stack {
 
     const httpApi = new HttpApi(this, `HttpApi_${id}`, {
       serviceName: "billing",
-      domainName,
-      authorizerHandler,
+      domainName: ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, domainNameAttributes),
+      authorizerHandler: Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, authorizerHandlerFunctionArn),
     });
 
     routes.forEach((route) => httpApi.addRoute(route));
@@ -181,14 +186,14 @@ export class YacBillingServiceStack extends Stack {
 
 export interface YacBillingServiceStackProps extends StackProps {
   environment: string;
-  domainName: ApiGatewayV2.IDomainName;
-  authorizerHandler: Lambda.Function;
-  snsTopics: {
-    userCreated: SNS.Topic;
-    organizationCreated: SNS.Topic;
-    userAddedToOrganization: SNS.Topic;
-    userRemovedFromOrganization: SNS.Topic;
-    billingPlanUpdated: SNS.Topic;
+  domainNameAttributes: ApiGatewayV2.DomainNameAttributes;
+  authorizerHandlerFunctionArn: string;
+  snsTopicArns: {
+    userCreated: string;
+    organizationCreated: string;
+    userAddedToOrganization: string;
+    userRemovedFromOrganization: string;
+    billingPlanUpdated: string;
   };
   stripe: {
     apiKey: string;
