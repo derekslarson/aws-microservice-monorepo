@@ -2,7 +2,7 @@
   "name": "@yac/pipeline",
   "version": "0.1.0",
   "scripts": {
-    "build": "lerna run build --ignore @yac/pipeline",
+    "build": "lerna run build --parallel --ignore @yac/pipeline",
     "clean": "rm -rf ./dist && rm -rf ./cdk.out",
     "synth": "yarn build && cdk synth",
     "synth:local": "BUILD_ENV=$(whoami) yarn synth",
