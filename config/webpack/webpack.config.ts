@@ -47,19 +47,9 @@ const config: Configuration = {
       new TerserPlugin({
         parallel: true,
         extractComments: false,
-        // minify: TerserPlugin.swcMinify,
         terserOptions: {
           keep_classnames: true,
           keep_fnames: true,
-          // compress: {
-          //   unused: true,
-          //   keep_classnames: true,
-          //   keep_fnames: true,
-          // },
-          // mangle: {
-          //   keep_classnames: true,
-          //   keep_fnames: true,
-          // },
         },
       }),
     ],
