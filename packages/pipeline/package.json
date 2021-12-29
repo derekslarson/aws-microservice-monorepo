@@ -1,0 +1,33 @@
+{
+  "name": "@yac/pipeline",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "lerna run build --parallel --ignore @yac/pipeline",
+    "clean": "rm -rf ./dist && rm -rf ./cdk.out",
+    "synth": "yarn build && cdk synth",
+    "deploy": "yarn build && cdk deploy",
+    "deploy:local": "BUILD_ENV=$(whoami) yarn deploy"
+  },
+  "devDependencies": {
+    "@aws-cdk/aws-apigatewayv2-alpha": "^2.2.0-alpha.0",
+    "@aws-cdk/aws-apigatewayv2-integrations-alpha": "^2.2.0-alpha.0",
+    "@types/aws-lambda": "^8.10.85",
+    "@types/node": "10.17.27",
+    "@types/node-jose": "^1.1.8",
+    "aws-cdk": "2.2.0",
+    "aws-cdk-lib": "~2.2.0",
+    "constructs": "^10.0.13"
+  },
+  "dependencies": {
+    "@yac/util": "0.1.0",
+    "@yac/auth": "0.1.0",
+    "@yac/core": "0.1.0",
+    "@yac/billing": "0.1.0",
+    "@yac/notification": "0.1.0",
+    "@yac/transcoding": "0.1.0",
+    "@yac/transcription": "0.1.0",
+    "@yac/chunked-upload": "0.1.0",
+    "@yac/calendar": "0.1.0",
+    "@yac/image-generator": "0.1.0"
+  }
+}

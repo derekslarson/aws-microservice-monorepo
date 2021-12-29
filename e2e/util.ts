@@ -12,8 +12,8 @@ import { MakeRequired } from "@yac/util/src/types/makeRequired.type";
 import { UserId } from "@yac/util/src/types/userId.type";
 import { RawUser } from "@yac/auth/src/repositories/user.dynamo.repository";
 import { RawSession } from "@yac/auth/src/repositories/session.dynamo.repository";
-import { EntityType } from "../microservices/auth/src/enums/entityType.enum";
-import { AccessTokenPayload } from "../microservices/auth/src/services/tier-1/token.service";
+import { EntityType } from "@yac/auth/src/enums/entityType.enum";
+import { AccessTokenPayload } from "@yac/auth/src/services/tier-1/token.service";
 
 const cloudFormation = new CloudFormation({ region: "us-east-1" });
 

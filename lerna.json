@@ -1,8 +1,8 @@
 {
   "packages": [
-    "microservices/*",
-    "microservices/auth/ui",
-    "microservices/*/e2e/test-stack"
+    "packages/*",
+    "packages/auth/ui",
+    "packages/*/e2e/test-stack"
   ],
   "version": "independent",
   "npmClient": "yarn",

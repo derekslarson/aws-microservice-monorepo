@@ -1,0 +1,37 @@
+{
+  "name": "@yac/util",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "yarn clean && NODE_OPTIONS=--max-old-space-size=8192 webpack --config ../../config/webpack/webpack.config.ts",
+    "build:unit-tests": "yarn clean:unit-tests && tsc --project tsconfig.test.json",
+    "clean": "rm -rf ./dist",
+    "clean:unit-tests": "rm -rf ./.nyc_output && rm -rf ./coverage && rm -rf ./compiled_tests",
+    "synth": "yarn build && cdk synth",
+    "deploy": "yarn build && cdk deploy",
+    "deploy:local": "BUILD_ENV=$(whoami) yarn deploy",
+    "test:unit": "yarn clean:unit-tests && yarn build:unit-tests && nyc node ../../config/jasmine/jasmine.runner.js"
+  },
+  "devDependencies": {
+    "@aws-cdk/aws-apigatewayv2-alpha": "^2.2.0-alpha.0",
+    "@aws-cdk/aws-apigatewayv2-authorizers-alpha": "^2.2.0-alpha.0",
+    "@aws-cdk/aws-apigatewayv2-integrations-alpha": "^2.2.0-alpha.0",
+    "@types/jsonwebtoken": "^8.5.6",
+    "@types/rmfr": "^2.0.1",
+    "aws-cdk": "2.2.0",
+    "aws-cdk-lib": "~2.2.0",
+    "constructs": "^10.0.13"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.783.0",
+    "axios": "^0.21.1",
+    "crypto-secure-random-digit": "^1.0.9",
+    "google-auth-library": "^7.11.0",
+    "inversify": "^5.0.1",
+    "jsonwebtoken": "^8.5.1",
+    "ksuid": "^2.0.0",
+    "reflect-metadata": "^0.1.13",
+    "rmfr": "^2.0.0",
+    "runtypes": "^6.3.1",
+    "serialize-error": "^7.0.1"
+  }
+}
