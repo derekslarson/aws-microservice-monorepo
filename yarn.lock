@@ -144,7 +144,7 @@
     "@aws-cdk/custom-resources" "1.114.0"
     constructs "^3.3.69"
 
-"@aws-cdk/aws-ec2@1.114.0", "@aws-cdk/aws-ec2@~1.114.0":
+"@aws-cdk/aws-ec2@1.114.0":
   version "1.114.0"
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-ec2/-/aws-ec2-1.114.0.tgz#97c2254c26d1b2ef401c23dd03c50f873c2695ff"
   integrity sha512-w0LH2/i7+MEB/7CMpQDmSfS1M8kiedjll13pjXaQMgdpaX9t1/Mmbfu2VAffDn89lTy0jB+W2JKPapBoZUI6lQ==
@@ -186,7 +186,7 @@
     "@aws-cdk/core" "1.114.0"
     constructs "^3.3.69"
 
-"@aws-cdk/aws-efs@1.114.0", "@aws-cdk/aws-efs@~1.114.0":
+"@aws-cdk/aws-efs@1.114.0":
   version "1.114.0"
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-efs/-/aws-efs-1.114.0.tgz#1d741e5a3c4bb019c4e456571ed378910ff07b38"
   integrity sha512-2ByRCNtj9GB3Sh6gxRFFze7SEizsa/96LlWhKS+hKWKBUBR0gV2yv9G7W914oFLOtNasaVcIapkigImmOtvgmA==
@@ -2818,6 +2818,18 @@
     call-me-maybe "^1.0.1"
     glob-to-regexp "^0.3.0"
 
+"@napi-rs/triples@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@napi-rs/triples/-/triples-1.1.0.tgz#88c35b72e79a20b79bb4c9b3e2817241a1c9f4f9"
+  integrity sha512-XQr74QaLeMiqhStEhLn1im9EOMnkypp7MZOwQhGzqp2Weu5eQJbpPxWxixxlYRKWPOmJjsk6qYfYH9kq43yc2w==
+
+"@node-rs/helper@^1.0.0":
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/@node-rs/helper/-/helper-1.3.0.tgz#9326c6c25db045ab827ca9a43ef2f9935d4a9353"
+  integrity sha512-KPS0EBA1bXtf96IL7wr5bFHxhL2KCZ6kI/hkyLG7nzEq2cDq8pJhOhcJDOLXIPh5J2LEJ5eXyjDTWDFg5eRypw==
+  dependencies:
+    "@napi-rs/triples" "^1.1.0"
+
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
   resolved "https://registry.yarnpkg.com/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz#7619c2eb21b25483f6d167548b4cfd5a7488c3d5"
@@ -3145,6 +3157,92 @@
     "@svgr/plugin-svgo" "^4.3.1"
     loader-utils "^1.2.3"
 
+"@swc/core-android-arm-eabi@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-android-arm-eabi/-/core-android-arm-eabi-1.2.123.tgz#6092e86c1b1ce584025e0d5e115d1b4fcd9c7fb3"
+  integrity sha512-iVdlxoB2s0AOmJ9VYiYGX8XD9VJYCFxv3uIt4c6YONNpEGxlC/fvzt5GF9t2sT7mtuLgb2Bjfp76KtwWEQqE/A==
+
+"@swc/core-android-arm64@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-android-arm64/-/core-android-arm64-1.2.123.tgz#72d0b72242fc8259927de85a05d83eeea2d25de3"
+  integrity sha512-8yyevpoaDbLAr3zGVipDedi2Zk3GIh3cCLc77dLgm6Ax8VCZxTYVPaKJQPkfFXTTO6e5L7a/bX8p+6qjQT0/eg==
+
+"@swc/core-darwin-arm64@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-darwin-arm64/-/core-darwin-arm64-1.2.123.tgz#a0ef477309654e014b393c8d6063ceb26aa7da12"
+  integrity sha512-i+EundNtcz+/IkNvgDtjSrkGyb66HaOOPvzAvXXkkS6WH3zfTsHphRmBGI9BqXyeEu9EbffMXv86ZOPW2fRZuQ==
+
+"@swc/core-darwin-x64@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-darwin-x64/-/core-darwin-x64-1.2.123.tgz#3906315674d8372c91e928ecc239e947d9a0ef53"
+  integrity sha512-cq9Cy8O1nHfa/fE3eiZlUNSCN6Sf9YQpJuv8fX/zLYWEhipQqZ1/HAFrgulzf5pkIia0Ok43zqHvpX4v4unU+A==
+
+"@swc/core-freebsd-x64@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-freebsd-x64/-/core-freebsd-x64-1.2.123.tgz#d26fe3e48df29c7830acafe3be4997d35a554fc6"
+  integrity sha512-e6VsGQAhgvwxwNiiJn3GP8fd5r4LXan6UzKGjyYzhDS44viaU41hf+NL8tHHyl7GgGZZUYQg2SYVpMBewa5iaA==
+
+"@swc/core-linux-arm-gnueabihf@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-linux-arm-gnueabihf/-/core-linux-arm-gnueabihf-1.2.123.tgz#bbfb28af19fb5365b649d37ac28e55f41d2852bb"
+  integrity sha512-TfzTb19V+U2yHwVBzJwsD+w1uQlRlYRDc46CBd1yiYd72h6Idkajct2gXEM52HPdMh5y2iGDMEAuOapcw/ObtA==
+
+"@swc/core-linux-arm64-gnu@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-linux-arm64-gnu/-/core-linux-arm64-gnu-1.2.123.tgz#760739b9891adca9221b078f8d95808d8ed2b80e"
+  integrity sha512-hoLUUcM5alexiCKhz1s+6XDWIwZkA4Y1UKb3+qMCRNMbM5TkPXPxbSJzOZB66V2x/q8/fgz2PAeJjv7QmcK2ug==
+
+"@swc/core-linux-arm64-musl@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-linux-arm64-musl/-/core-linux-arm64-musl-1.2.123.tgz#9362a00c0e834d7b017e44d9088d5cdf2db75c18"
+  integrity sha512-gB5u7uS1VPoSOjHdEvA/ksUTCJmXeMYv0g3yE4TFkfpcQA321w3lvcNzUqncSucVBuOflxfM3zjUfIfnkhFV+A==
+
+"@swc/core-linux-x64-gnu@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-linux-x64-gnu/-/core-linux-x64-gnu-1.2.123.tgz#4a4def63b6013b970a8254bf439f5622396e0cd7"
+  integrity sha512-VvzPm+XDto1J95r+uP9bD1ITu6VBVwEcj7twbxF71S3FRh87IE4W9p3i+i/+m4rqPJBJJqCebhro74rRGbmeWg==
+
+"@swc/core-linux-x64-musl@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-linux-x64-musl/-/core-linux-x64-musl-1.2.123.tgz#2fabf045c050d7d865d914deb3c4dfe4dc2562e9"
+  integrity sha512-VKkp3xAdckoqF2BnuN4BRVbnHiBX5D2Sewjjp7ZItBheFlIE1b3PDOJMwxzKx7cfjKuvJPTKe0iYf5cEb+m54Q==
+
+"@swc/core-win32-arm64-msvc@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-win32-arm64-msvc/-/core-win32-arm64-msvc-1.2.123.tgz#f9d46d543a33a099d2e564395dae240aa1da21c1"
+  integrity sha512-exOKOvtRxftKAOExff0X6gxaLSkB7q5oZRXhPvMq2oZhm6yqQ+FFdzijTAd2ThA7MxKirYeN3lR67ZeLR7Nv2A==
+
+"@swc/core-win32-ia32-msvc@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-win32-ia32-msvc/-/core-win32-ia32-msvc-1.2.123.tgz#724dfc6df03554fc84a153482149f98fa7b3b1f1"
+  integrity sha512-42qQqN+7yOnsat9N57qgdyu0ue/JZqfrj32iDTeWEymSL7eb1efFh21jnvg98M6bZ4rW+0uoDyQs3tIhfU0WBw==
+
+"@swc/core-win32-x64-msvc@1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core-win32-x64-msvc/-/core-win32-x64-msvc-1.2.123.tgz#65abb57400847e38d57fbc3cd8e5285c45d3ea8a"
+  integrity sha512-rF7dLDGj/aSGTMBYdowqTC7+sztoDa5fma90lagYpqlneDRX73hePg8dbpCK8fZSsV3njIWFPNqMzO0T1enxdA==
+
+"@swc/core@^1.2.123":
+  version "1.2.123"
+  resolved "https://registry.yarnpkg.com/@swc/core/-/core-1.2.123.tgz#e90c3bf73a90b11bf724ac75513352f78339055e"
+  integrity sha512-/gvVyVBeoZmhAp9dHysPDcAfmRZKzmA75XD0T9Yp/0wv0kgP3lwOP52nhWjrxevA7prchqeKx1U+wkFM6zxpVg==
+  dependencies:
+    "@node-rs/helper" "^1.0.0"
+  optionalDependencies:
+    "@swc/core-android-arm-eabi" "1.2.123"
+    "@swc/core-android-arm64" "1.2.123"
+    "@swc/core-darwin-arm64" "1.2.123"
+    "@swc/core-darwin-x64" "1.2.123"
+    "@swc/core-freebsd-x64" "1.2.123"
+    "@swc/core-linux-arm-gnueabihf" "1.2.123"
+    "@swc/core-linux-arm64-gnu" "1.2.123"
+    "@swc/core-linux-arm64-musl" "1.2.123"
+    "@swc/core-linux-x64-gnu" "1.2.123"
+    "@swc/core-linux-x64-musl" "1.2.123"
+    "@swc/core-win32-arm64-msvc" "1.2.123"
+    "@swc/core-win32-ia32-msvc" "1.2.123"
+    "@swc/core-win32-x64-msvc" "1.2.123"
+
 "@testing-library/dom@*":
   version "8.1.0"
   resolved "https://registry.yarnpkg.com/@testing-library/dom/-/dom-8.1.0.tgz#f8358b1883844ea569ba76b7e94582168df5370d"
@@ -3260,11 +3358,6 @@
   integrity sha512-1bk/krfgJ2bVPUusnmvWHg8Xwr/4I29yFxvZBFi5FZOshQzfcZ7XdutFHpYMs1w5RD319pjJbDk7J2ibWSW6QQ==
   dependencies:
     "@types/webpack" "^4"
-
-"@types/crypto-js@^4.0.2":
-  version "4.0.2"
-  resolved "https://registry.yarnpkg.com/@types/crypto-js/-/crypto-js-4.0.2.tgz#4524325a175bf819fec6e42560c389ce1fb92c97"
-  integrity sha512-sCVniU+h3GcGqxOmng11BRvf9TfN9yIs8KKjB8C8d75W69cpTfZG80gau9yTx5SxF3gvHGbJhdESzzvnjtf3Og==
 
 "@types/elasticsearch@^5.0.37":
   version "5.0.38"
@@ -4729,6 +4822,21 @@ aws-cdk@~1.114.0:
     wrap-ansi "^7.0.0"
     yaml "1.10.2"
     yargs "^16.2.0"
+
+aws-sdk@^2.1048.0:
+  version "2.1048.0"
+  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.1048.0.tgz#02f2f35e0f51dd4510462e05c7a48fd4649d33f8"
+  integrity sha512-mVwWo+Udiuc/yEZ/DgJQGqOEtfiQjgUdtshx/t6ISe3+jW3TF9hUACwADwx2Sr/fuJyyJ3QD5JYLt5Cw35wQpA==
+  dependencies:
+    buffer "4.9.2"
+    events "1.1.1"
+    ieee754 "1.1.13"
+    jmespath "0.15.0"
+    querystring "0.2.0"
+    sax "1.2.1"
+    url "0.10.3"
+    uuid "3.3.2"
+    xml2js "0.4.19"
 
 aws-sdk@^2.783.0, aws-sdk@^2.848.0:
   version "2.947.0"
@@ -6349,11 +6457,6 @@ crypto-browserify@^3.11.0:
     public-encrypt "^4.0.0"
     randombytes "^2.0.0"
     randomfill "^1.0.3"
-
-crypto-js@^4.1.1:
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/crypto-js/-/crypto-js-4.1.1.tgz#9e485bcf03521041bd85844786b83fb7619736cf"
-  integrity sha512-o2JlM7ydqd3Qk9CA0L4NL6mTzU2sdx96a+oOfPu8Mkl/PK51vSyoi8/rQ8NknZtk44vq15lmhAj9CIAGwgeWKw==
 
 crypto-secure-random-digit@^1.0.9:
   version "1.0.9"

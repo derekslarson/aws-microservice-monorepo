@@ -5,7 +5,15 @@ import CaseSensitivePathsPlugin from "case-sensitive-paths-webpack-plugin";
 import TerserPlugin from "terser-webpack-plugin";
 import { Configuration, Entry } from "webpack";
 
-const handlerFileNames = fs.readdirSync("./src/handlers");
+function safeReaddirSync(dirPath: string): string[] {
+  try {
+    return fs.readdirSync(dirPath);
+  } catch (error) {
+    return [];
+  }
+}
+
+const handlerFileNames = safeReaddirSync("./src/handlers");
 
 const entryObject: Entry = {};
 handlerFileNames.forEach((fileName) => entryObject[fileName.split(".")[0]] = `./src/handlers/${fileName}`);
@@ -37,6 +45,8 @@ const config: Configuration = {
     minimize: true,
     minimizer: [
       new TerserPlugin({
+        parallel: true,
+        extractComments: false,
         terserOptions: {
           keep_classnames: true,
           keep_fnames: true,
