@@ -29,7 +29,6 @@ import { MessageFileRepositoryInterface } from "../repositories/base.message.s3.
 import { MessageUploadTokenService, MessageUploadTokenServiceInterface } from "../services/messageUploadToken.service";
 import { fsFactory, FsFactory } from "../factories/fs.factory";
 import { pathFactory, PathFactory } from "../factories/path.factory";
-import { googleOAuth2ClientFactory, GoogleOAuth2ClientFactory } from "../factories/google.oAuth2ClientFactory";
 
 const utilContainerModule = new ContainerModule((bind) => {
   try {
@@ -52,7 +51,6 @@ const utilContainerModule = new ContainerModule((bind) => {
     bind<CryptoFactory>(TYPES.CryptoFactory).toFactory(() => cryptoFactory);
     bind<DocumentClientFactory>(TYPES.DocumentClientFactory).toFactory(() => documentClientFactory);
     bind<ErrorSerializerFactory>(TYPES.ErrorSerializerFactory).toFactory(() => errorSerializerFactory);
-    bind<GoogleOAuth2ClientFactory>(TYPES.GoogleOAuth2ClientFactory).toFactory(() => googleOAuth2ClientFactory);
     bind<FsFactory>(TYPES.FsFactory).toFactory(() => fsFactory);
     bind<LogWriterFactory>(TYPES.LogWriterFactory).toFactory(() => logWriterFactory);
     bind<JwtFactory>(TYPES.JwtFactory).toFactory(() => jwtFactory);

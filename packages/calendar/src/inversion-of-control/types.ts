@@ -18,6 +18,7 @@ const TYPES = {
 
   // Factories
   GoogleCalendarFactory: Symbol.for("GoogleCalendarFactory"),
+  GoogleOAuth2ClientFactory: Symbol.for("GoogleOAuth2ClientFactory"),
 };
 
 export { TYPES };

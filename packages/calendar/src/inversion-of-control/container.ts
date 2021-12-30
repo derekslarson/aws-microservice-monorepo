@@ -3,6 +3,7 @@ import { utilContainerModule } from "@yac/util/src/inversion-of-control/containe
 import { SnsProcessorServiceInterface } from "@yac/util/src/services/interfaces/sns.processor.service.interface";
 import { S3ProcessorServiceInterface } from "@yac/util/src/services/interfaces/s3.processor.service.interface";
 import { DynamoProcessorServiceInterface } from "@yac/util/src/services/interfaces/dynamo.processor.service.interface";
+import { googleOAuth2ClientFactory, GoogleOAuth2ClientFactory } from "@yac/util/src/factories/google.oAuth2ClientFactory";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { TYPES } from "./types";
 import { CalendarController, CalendarControllerInterface } from "../controllers/calendar.controller";
@@ -37,6 +38,7 @@ try {
 
   // Factories
   container.bind<GoogleCalendarFactory>(TYPES.GoogleCalendarFactory).toFactory(() => googleCalendarFactory);
+  container.bind<GoogleOAuth2ClientFactory>(TYPES.GoogleOAuth2ClientFactory).toFactory(() => googleOAuth2ClientFactory);
 
   // Processor Services Arrays (need to be below all other bindings for container.get to function correctly)
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([]);

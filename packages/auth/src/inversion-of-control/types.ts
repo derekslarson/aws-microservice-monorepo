@@ -30,6 +30,7 @@ const TYPES = {
   JoseFactory: Symbol.for("JoseFactory"),
   PkceChallengeFactory: Symbol.for("PkceChallengeFactory"),
   SesFactory: Symbol.for("SesFactory"),
+  GoogleOAuth2ClientFactory: Symbol.for("GoogleOAuth2ClientFactory"),
   SlackOAuth2ClientFactory: Symbol.for("SlackOAuth2ClientFactory"),
 };
 

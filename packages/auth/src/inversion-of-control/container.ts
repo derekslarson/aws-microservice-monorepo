@@ -2,6 +2,7 @@ import { Container } from "inversify";
 import { utilContainerModule } from "@yac/util/src/inversion-of-control/container";
 import { DynamoProcessorServiceInterface } from "@yac/util/src/services/interfaces/dynamo.processor.service.interface";
 import { SnsProcessorServiceInterface } from "@yac/util/src/services/interfaces/sns.processor.service.interface";
+import { googleOAuth2ClientFactory, GoogleOAuth2ClientFactory } from "@yac/util/src/factories/google.oAuth2ClientFactory";
 import { TYPES } from "./types";
 import { envConfig, EnvConfigInterface } from "../config/env.config";
 import { MailService, MailServiceInterface } from "../services/tier-1/mail.service";
@@ -68,6 +69,7 @@ try {
   container.bind<PkceChallengeFactory>(TYPES.PkceChallengeFactory).toFactory(() => pkceChallengeFactory);
   container.bind<SesFactory>(TYPES.SesFactory).toFactory(() => sesFactory);
   container.bind<SlackOAuth2ClientFactory>(TYPES.SlackOAuth2ClientFactory).toFactory(() => slackOAuth2ClientFactory);
+  container.bind<GoogleOAuth2ClientFactory>(TYPES.GoogleOAuth2ClientFactory).toFactory(() => googleOAuth2ClientFactory);
 
   container.bind<SnsProcessorServiceInterface[]>(TYPES.SnsProcessorServicesInterface).toConstantValue([
     container.get(TYPES.CreateUserRequestSnsProcessorServiceInterface),

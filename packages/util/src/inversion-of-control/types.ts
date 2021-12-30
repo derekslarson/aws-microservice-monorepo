@@ -26,7 +26,6 @@ const TYPES = {
   CryptoFactory: Symbol.for("CryptoFactory"),
   DocumentClientFactory: Symbol.for("DocumentClientFactory"),
   ErrorSerializerFactory: Symbol.for("ErrorSerializerFactory"),
-  GoogleOAuth2ClientFactory: Symbol.for("GoogleOAuth2ClientFactory"),
   JwtFactory: Symbol.for("JwtFactory"),
   FsFactory: Symbol.for("FsFactory"),
   KsuidFactory: Symbol.for("KsuidFactory"),
