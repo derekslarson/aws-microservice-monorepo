@@ -29,6 +29,7 @@ import { Environment } from "@yac/util/src/enums/environment.enum";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { HttpApi, ProxyRouteProps, RouteProps } from "@yac/util/infra/constructs/http.api";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacAuthServiceStack extends Stack {
@@ -153,167 +154,97 @@ export class YacAuthServiceStack extends Stack {
     };
 
     // Handlers
-    new Lambda.Function(this, `AuthTableEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/authTableEvent`),
-      handler: "authTableEvent.handler",
+    new Function(this, `AuthTableEventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/authTableEvent`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement, userCreatedSnsPublishPolicyStatement ],
-      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.DynamoEventSource(authTable, { startingPosition: Lambda.StartingPosition.LATEST }),
       ],
     });
 
-    new Lambda.Function(this, `SqsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sqsEvent`),
-      handler: "sqsEvent.handler",
+    new Function(this, `SqsEventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/sqsEvent`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(snsEventSqsQueue),
       ],
     });
 
-    const authorizerHandler = new Lambda.Function(this, `AuthorizerHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/authorizer`),
-      handler: "authorizer.handler",
+    const authorizerHandler = new Function(this, `AuthorizerHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/authorizer`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     // Since the authorizer couldn't be added during the http api creation (authorizerHandler didn't exist yet) we need to add it here
     api.addAuthorizer(this, id, { authorizerHandler });
 
-    const loginHandler = new Lambda.Function(this, `LoginHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/login`),
-      handler: "login.handler",
+    const loginHandler = new Function(this, `LoginHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/login`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, sendEmailPolicyStatement, sendTextPolicyStatement, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const loginViaExternalProviderHandler = new Lambda.Function(this, `LoginViaExternalProviderHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/loginViaExternalProvider`),
-      handler: "loginViaExternalProvider.handler",
+    const loginViaExternalProviderHandler = new Function(this, `LoginViaExternalProviderHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/loginViaExternalProvider`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const confirmHandler = new Lambda.Function(this, `ConfirmHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/confirm`),
-      handler: "confirm.handler",
+    const confirmHandler = new Function(this, `ConfirmHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/confirm`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const createClientHandler = new Lambda.Function(this, `CreateClientHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/createClient`),
-      handler: "createClient.handler",
+    const createClientHandler = new Function(this, `CreateClientHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/createClient`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const oauth2AuthorizeHandler = new Lambda.Function(this, `Oauth2AuthorizeHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/oauth2Authorize`),
-      handler: "oauth2Authorize.handler",
+    const oauth2AuthorizeHandler = new Function(this, `Oauth2AuthorizeHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/oauth2Authorize`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const oauth2TokenHandler = new Lambda.Function(this, `Oauth2TokenHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/oauth2Token`),
-      handler: "oauth2Token.handler",
+    const oauth2TokenHandler = new Function(this, `Oauth2TokenHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/oauth2Token`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const oauth2RevokeHandler = new Lambda.Function(this, `Oauth2RevokeHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/oauth2Revoke`),
-      handler: "oauth2Revoke.handler",
+    const oauth2RevokeHandler = new Function(this, `Oauth2RevokeHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/oauth2Revoke`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const oauth2UserInfoHandler = new Lambda.Function(this, `Oauth2UserInfoHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/oauth2UserInfo`),
-      handler: "oauth2UserInfo.handler",
+    const oauth2UserInfoHandler = new Function(this, `Oauth2UserInfoHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/oauth2UserInfo`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const oauth2IdpResponseHandler = new Lambda.Function(this, `Oauth2IdpResponseHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/oauth2IdpResponse`),
-      handler: "oauth2IdpResponse.handler",
+    const oauth2IdpResponseHandler = new Function(this, `Oauth2IdpResponseHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/oauth2IdpResponse`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getPublicJwksHandler = new Lambda.Function(this, `GetPublicJwksHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getPublicJwks`),
-      handler: "getPublicJwks.handler",
+    const getPublicJwksHandler = new Function(this, `GetPublicJwksHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getPublicJwks`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const rotateJwksHandler = new Lambda.Function(this, `RotateJwksHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/rotateJwks`),
-      handler: "rotateJwks.handler",
+    const rotateJwksHandler = new Function(this, `RotateJwksHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/rotateJwks`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, authTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     const rule = new Events.Rule(this, `RotateJwksChronRule_${id}`, { schedule: Events.Schedule.rate(Duration.minutes(20)) });
