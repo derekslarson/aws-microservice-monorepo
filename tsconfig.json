@@ -6,6 +6,7 @@
       "es2018"
     ],
     "strict": true,
+    "noImplicitOverride": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noImplicitThis": true,
@@ -24,11 +25,8 @@
     "skipLibCheck": true,
     "baseUrl": "/",
     "paths": {
-      "@yac-assets/*": [
-        "assets/build/"
-      ],
       "@yac/*": [
-        "micro-services/*"
+        "packages/*"
       ]
     }
   },
