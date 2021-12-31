@@ -1,9 +1,7 @@
 /* eslint-disable no-new */
 import {
-  Duration,
   aws_dynamodb as DynamoDB,
   aws_iam as IAM,
-  aws_lambda as Lambda,
   StackProps,
   Stack,
 } from "aws-cdk-lib";
@@ -12,6 +10,7 @@ import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 
 export class YacImageGeneratorServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacImageGeneratorServiceStackProps) {
@@ -46,37 +45,22 @@ export class YacImageGeneratorServiceStack extends Stack {
     };
 
     // Handlers
-    const mediaRetrieveHandler = new Lambda.Function(this, `MediaRetrieve_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/mediaRetrieve`),
-      handler: "mediaRetrieve.handler",
+    const mediaRetrieveHandler = new Function(this, `MediaRetrieve_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/mediaRetrieve`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy ],
-      timeout: Duration.seconds(15),
     });
 
-    const mediaPushTaskHandler = new Lambda.Function(this, `MediaPush_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/mediaPush`),
-      handler: "mediaPush.handler",
+    const mediaPushTaskHandler = new Function(this, `MediaPush_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/mediaPush`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy ],
-      timeout: Duration.seconds(15),
     });
 
-    const callbackHandler = new Lambda.Function(this, `Callback_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/callback`),
-      handler: "callback.handler",
+    const callbackHandler = new Function(this, `Callback_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/callback`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy ],
-      timeout: Duration.seconds(15),
     });
 
     // permissions for the handler

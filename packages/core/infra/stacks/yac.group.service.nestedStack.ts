@@ -1,11 +1,10 @@
 import {
-  Duration,
   Stack,
   NestedStack,
-  aws_lambda as Lambda,
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
 export class YacGroupServiceNestedStack extends NestedStack {
@@ -20,103 +19,58 @@ export class YacGroupServiceNestedStack extends NestedStack {
       imageS3BucketFullAccessPolicyStatement,
     } = props;
 
-    const createGroupHandler = new Lambda.Function(this, `CreateGroup_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/createGroup`),
-      handler: "createGroup.handler",
+    const createGroupHandler = new Function(this, `CreateGroup_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/createGroup`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const updateGroupHandler = new Lambda.Function(this, `UpdateGroup_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/updateGroup`),
-      handler: "updateGroup.handler",
+    const updateGroupHandler = new Function(this, `UpdateGroup_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/updateGroup`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getGroupHandler = new Lambda.Function(this, `GetGroup_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getGroup`),
-      handler: "getGroup.handler",
+    const getGroupHandler = new Function(this, `GetGroup_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getGroup`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const addUsersToGroupHandler = new Lambda.Function(this, `AddUsersToGroup_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/addUsersToGroup`),
-      handler: "addUsersToGroup.handler",
+    const addUsersToGroupHandler = new Function(this, `AddUsersToGroup_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/addUsersToGroup`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const removeUserFromGroupHandler = new Lambda.Function(this, `RemoveUserFromGroup_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/removeUserFromGroup`),
-      handler: "removeUserFromGroup.handler",
+    const removeUserFromGroupHandler = new Function(this, `RemoveUserFromGroup_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/removeUserFromGroup`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getGroupsByUserIdHandler = new Lambda.Function(this, `GetGroupsByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getGroupsByUserId`),
-      handler: "getGroupsByUserId.handler",
+    const getGroupsByUserIdHandler = new Function(this, `GetGroupsByUserId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getGroupsByUserId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getGroupsByTeamIdHandler = new Lambda.Function(this, `GetGroupsByTeamId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getGroupsByTeamId`),
-      handler: "getGroupsByTeamId.handler",
+    const getGroupsByTeamIdHandler = new Function(this, `GetGroupsByTeamId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getGroupsByTeamId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getGroupsByOrganizationIdHandler = new Lambda.Function(this, `GetGroupsByOrganizationId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getGroupsByOrganizationId`),
-      handler: "getGroupsByOrganizationId.handler",
+    const getGroupsByOrganizationIdHandler = new Function(this, `GetGroupsByOrganizationId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getGroupsByOrganizationId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getGroupImageUploadUrlHandler = new Lambda.Function(this, `GetGroupImageUploadUrl_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getGroupImageUploadUrl`),
-      handler: "getGroupImageUploadUrl.handler",
+    const getGroupImageUploadUrlHandler = new Function(this, `GetGroupImageUploadUrl_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getGroupImageUploadUrl`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [

@@ -18,6 +18,7 @@ import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
 import { generateExportNames } from "@yac/util/src/enums/exportNames.enum";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 
 export class YacChunkedUploadServiceStack extends Stack {
   public exports: YacChunkedUploadServiceStackExports;
@@ -86,22 +87,17 @@ export class YacChunkedUploadServiceStack extends Stack {
 
     const lambdaFileSystem = Lambda.FileSystem.fromEfsAccessPoint(efsFileSystemAccessPoint, mountedPath);
 
-    const uploadMessageChunkFileHandler = new Lambda.Function(this, `UploadMessageChunkHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/chunkUpload`),
-      handler: "chunkUpload.handler",
+    const uploadMessageChunkFileHandler = new Function(this, `UploadMessageChunkHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/chunkUpload`,
       environment: environmentVariables,
       timeout: Duration.minutes(2),
-      memorySize: 1024, // 1gb
       vpc,
       filesystem: lambdaFileSystem,
       initialPolicy: [ getMessageUploadTokenSecretPolicyStatement ],
     });
 
-    const finishChunkUploadHandler = new Lambda.Function(this, `FinishChunkUploadHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/finishChunkUpload`),
-      handler: "finishChunkUpload.handler",
+    const finishChunkUploadHandler = new Function(this, `FinishChunkUploadHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/finishChunkUpload`,
       environment: environmentVariables,
       timeout: Duration.minutes(5),
       memorySize: 1024 * 4, // 4gb

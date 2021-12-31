@@ -1,17 +1,16 @@
 /* eslint-disable no-new */
 import {
   RemovalPolicy,
-  Duration,
   Stack,
   StackProps,
   aws_ssm as SSM,
   aws_sns as SNS,
   aws_dynamodb as DynamoDB,
   aws_iam as IAM,
-  aws_lambda as Lambda,
   aws_lambda_event_sources as LambdaEventSources,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 
 export class YacNotificationTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacNotificationTestingStackProps) {
@@ -39,14 +38,10 @@ export class YacNotificationTestingStack extends Stack {
     const environmentVariables: Record<string, string> = { SNS_EVENT_TABLE_NAME: snsEventTable.tableName };
 
     // SNS Event Lambda Handler
-    new Lambda.Function(this, `SnsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/snsEvent`),
-      handler: "snsEvent.handler",
+    new Function(this, `SnsEventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/snsEvent`,
       environment: environmentVariables,
-      memorySize: 2048,
       initialPolicy: [ ...basePolicy, snsEventTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `PushNotificationFailedSnsTopic_${id}`, snsTopicArns.pushNotificationFailed)),
       ],

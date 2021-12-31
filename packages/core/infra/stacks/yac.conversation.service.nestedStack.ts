@@ -1,12 +1,11 @@
 import {
-  Duration,
   Stack,
   NestedStack,
-  aws_lambda as Lambda,
   aws_iam as IAM,
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
 export class YacConversationServiceNestedStack extends NestedStack {
@@ -23,15 +22,10 @@ export class YacConversationServiceNestedStack extends NestedStack {
       openSearchFullAccessPolicyStatement,
     } = props;
 
-    const getOneOnOnesAndGroupsByUserIdHandler = new Lambda.Function(this, `GetOneOnOnesAndGroupsByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getOneOnOnesAndGroupsByUserId`),
-      handler: "getOneOnOnesAndGroupsByUserId.handler",
+    const getOneOnOnesAndGroupsByUserIdHandler = new Function(this, `GetOneOnOnesAndGroupsByUserId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getOneOnOnesAndGroupsByUserId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [

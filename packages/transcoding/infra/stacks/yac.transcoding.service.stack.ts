@@ -1,16 +1,15 @@
 /* eslint-disable no-new */
 import {
-  Duration,
   Stack,
   StackProps,
   aws_iam as IAM,
-  aws_lambda as Lambda,
   aws_s3 as S3,
   aws_s3_notifications as S3Notifications,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 
 export class YacTranscodingServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacTranscodingServiceStackProps) {
@@ -54,15 +53,10 @@ export class YacTranscodingServiceStack extends Stack {
     };
 
     // Lambdas
-    const s3EventHandler = new Lambda.Function(this, `S3EventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/s3Event`),
-      handler: "s3Event.handler",
+    const s3EventHandler = new Function(this, `S3EventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/s3Event`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, rawMessageS3BucketFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, messageTranscodedSnsPublishPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     rawMessageS3Bucket.addObjectCreatedNotification(new S3Notifications.LambdaDestination(s3EventHandler));

@@ -2,7 +2,6 @@
 import {
   Stack,
   StackProps,
-  Duration,
   aws_lambda as Lambda,
   aws_ec2 as EC2,
   aws_efs as EFS,
@@ -11,6 +10,7 @@ import { Construct } from "constructs";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import {HttpMethod } from "@aws-cdk/aws-apigatewayv2-alpha";
 import { HttpApi } from "@yac/util/infra/constructs/http.api";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 
 export class YacChunkedUploadTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacChunkedUploadTestingStackProps) {
@@ -47,27 +47,19 @@ export class YacChunkedUploadTestingStack extends Stack {
     const lambdaFileSystem = Lambda.FileSystem.fromEfsAccessPoint(efsFileSystemAccessPoint, "/mnt/messages");
 
     // SNS Event Lambda Handler
-    const checkEFSLambda = new Lambda.Function(this, `CheckEfsHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/checkEFS`),
-      handler: "checkEFS.handler",
+    const checkEFSLambda = new Function(this, `CheckEfsHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/checkEFS`,
       securityGroups: [ lambdaSecurityGroup ],
       vpc,
       environment: environmentVariables,
-      memorySize: 512,
-      timeout: Duration.seconds(15),
       filesystem: lambdaFileSystem
     });
 
-    const deleteFromEFSLambda = new Lambda.Function(this, `DeleteFromEfsHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/deleteFromEFS`),
-      handler: "deleteFromEFS.handler",
+    const deleteFromEFSLambda = new Function(this, `DeleteFromEfsHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/deleteFromEFS`,
       securityGroups: [ lambdaSecurityGroup ],
       vpc,
       environment: environmentVariables,
-      memorySize: 512,
-      timeout: Duration.seconds(15),
       filesystem: lambdaFileSystem
     });
 

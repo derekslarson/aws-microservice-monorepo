@@ -1,7 +1,6 @@
 /* eslint-disable no-new */
 import {
   RemovalPolicy,
-  Duration,
   Stack,
   aws_ssm as SSM,
   aws_dynamodb as DynamoDB,
@@ -14,6 +13,7 @@ import { Construct } from "constructs";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 
 export class YacCalendarServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacCalendarServiceStackProps) {
@@ -52,70 +52,40 @@ export class YacCalendarServiceStack extends Stack {
       GOOGLE_CLIENT_REDIRECT_URI: `${httpApi.apiUrl}/google/callback`,
     };
 
-    const initiateGoogleAccessFlowHandler = new Lambda.Function(this, `InitiateGoogleAccessFlowHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/initiateGoogleAccessFlow`),
-      handler: "initiateGoogleAccessFlow.handler",
+    const initiateGoogleAccessFlowHandler = new Function(this, `InitiateGoogleAccessFlowHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/initiateGoogleAccessFlow`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const completeGoogleAccessFlowHandler = new Lambda.Function(this, `CompleteGoogleAccessFlowHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/completeGoogleAccessFlow`),
-      handler: "completeGoogleAccessFlow.handler",
+    const completeGoogleAccessFlowHandler = new Function(this, `CompleteGoogleAccessFlowHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/completeGoogleAccessFlow`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getGoogleEventsHandler = new Lambda.Function(this, `GetGoogleEventsHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getGoogleEvents`),
-      handler: "getGoogleEvents.handler",
+    const getGoogleEventsHandler = new Function(this, `GetGoogleEventsHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getGoogleEvents`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getGoogleAccountsHandler = new Lambda.Function(this, `GetGoogleAccountsHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getGoogleAccounts`),
-      handler: "getGoogleAccounts.handler",
+    const getGoogleAccountsHandler = new Function(this, `GetGoogleAccountsHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getGoogleAccounts`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getGoogleSettingsHandler = new Lambda.Function(this, `GetGoogleSettingsHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getGoogleSettings`),
-      handler: "getGoogleSettings.handler",
+    const getGoogleSettingsHandler = new Function(this, `GetGoogleSettingsHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getGoogleSettings`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const updateGoogleSettingsHandler = new Lambda.Function(this, `UpdateGoogleSettingsHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/updateGoogleSettings`),
-      handler: "updateGoogleSettings.handler",
+    const updateGoogleSettingsHandler = new Function(this, `UpdateGoogleSettingsHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/updateGoogleSettings`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, calendarTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [

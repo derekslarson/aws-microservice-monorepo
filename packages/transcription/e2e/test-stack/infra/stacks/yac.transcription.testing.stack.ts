@@ -1,17 +1,17 @@
 /* eslint-disable no-new */
 import {
-  Duration,
   Stack,
   StackProps,
   RemovalPolicy,
   aws_iam as IAM,
-  aws_lambda as Lambda,
   aws_lambda_event_sources as LambdaEventSources,
   aws_sns as SNS,
   aws_dynamodb as DynamoDB,
   aws_ssm as SSM,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
+
 export class YacTranscriptionTestingStack extends Stack {
   constructor(scope: Construct, id: string, props: YacTranscriptionTestingStackProps) {
     super(scope, id, { stackName: id, ...props });
@@ -38,14 +38,10 @@ export class YacTranscriptionTestingStack extends Stack {
     const environmentVariables: Record<string, string> = { TESTING_TABLE_NAME: testingTable.tableName };
 
     // SNS Event Lambda 
-    new Lambda.Function(this, `SnsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_12_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/snsEvent`),
-      handler: "snsEvent.handler",
+    new Function(this, `SnsEventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/snsEvent`,
       environment: environmentVariables,
-      memorySize: 2048,
       initialPolicy: [ ...basePolicy, testingTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SnsEventSource(SNS.Topic.fromTopicArn(this, `MessageTranscribedSnsTopic_${id}`, snsTopicArns.messageTranscribed)),
       ],

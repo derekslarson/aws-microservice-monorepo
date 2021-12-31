@@ -2,7 +2,6 @@
 /* eslint-disable no-new */
 import {
   RemovalPolicy,
-  Duration,
   Stack,
   StackProps,
   aws_ssm as SSM,
@@ -22,6 +21,7 @@ import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { HttpApi } from "@yac/util/infra/constructs/http.api";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 import { YacUserServiceNestedStack } from "./yac.user.service.nestedStack";
 import { YacOrganizationServiceNestedStack } from "./yac.organization.service.nestedStack";
@@ -271,13 +271,9 @@ export class YacCoreServiceStack extends Stack {
     billingPlanUpdatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Dynamo Stream Handler
-    new Lambda.Function(this, `CoreTableEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/coreTableEvent`),
-      handler: "coreTableEvent.handler",
+    new Function(this, `CoreTableEventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/coreTableEvent`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [
         ...basePolicy,
         coreTableFullAccessPolicyStatement,
@@ -301,37 +297,26 @@ export class YacCoreServiceStack extends Stack {
         createUserRequestSnsPublishPolicyStatement,
         openSearchFullAccessPolicyStatement,
       ],
-      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.DynamoEventSource(coreTable, { startingPosition: Lambda.StartingPosition.LATEST }),
       ],
     });
 
     // S3 Event Handler
-    new Lambda.Function(this, `S3EventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/s3Event`),
-      handler: "s3Event.handler",
+    new Function(this, `S3EventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/s3Event`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.S3EventSource(imageS3Bucket, { events: [ S3.EventType.OBJECT_CREATED ] }),
       ],
     });
 
     // SQS Event Handler
-    new Lambda.Function(this, `SqsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sqsEvent`),
-      handler: "sqsEvent.handler",
+    new Function(this, `SqsEventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/sqsEvent`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
-      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
       ],

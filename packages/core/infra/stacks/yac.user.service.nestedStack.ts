@@ -1,11 +1,10 @@
 import {
-  Duration,
   Stack,
   NestedStack,
-  aws_lambda as Lambda,
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
 export class YacUserServiceNestedStack extends NestedStack {
@@ -20,81 +19,46 @@ export class YacUserServiceNestedStack extends NestedStack {
       imageS3BucketFullAccessPolicyStatement,
     } = props;
 
-    const updateUserHandler = new Lambda.Function(this, `UpdateUser${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/updateUser`),
-      handler: "updateUser.handler",
+    const updateUserHandler = new Function(this, `UpdateUser${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/updateUser`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getUserHandler = new Lambda.Function(this, `GetUser_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUser`),
-      handler: "getUser.handler",
+    const getUserHandler = new Function(this, `GetUser_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getUser`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getUsersByOrganizationIdHandler = new Lambda.Function(this, `GetUsersByOrganizationId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUsersByOrganizationId`),
-      handler: "getUsersByOrganizationId.handler",
+    const getUsersByOrganizationIdHandler = new Function(this, `GetUsersByOrganizationId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getUsersByOrganizationId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getUsersByTeamIdHandler = new Lambda.Function(this, `GetUsersByTeamId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUsersByTeamId`),
-      handler: "getUsersByTeamId.handler",
+    const getUsersByTeamIdHandler = new Function(this, `GetUsersByTeamId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getUsersByTeamId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getUsersByGroupIdHandler = new Lambda.Function(this, `GetUsersByGroupId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUsersByGroupId`),
-      handler: "getUsersByGroupId.handler",
+    const getUsersByGroupIdHandler = new Function(this, `GetUsersByGroupId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getUsersByGroupId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getUsersByMeetingIdHandler = new Lambda.Function(this, `GetUsersByMeetingId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUsersByMeetingId`),
-      handler: "getUsersByMeetingId.handler",
+    const getUsersByMeetingIdHandler = new Function(this, `GetUsersByMeetingId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getUsersByMeetingId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getUserImageUploadUrlHandler = new Lambda.Function(this, `GetUserImageUploadUrl_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getUserImageUploadUrl`),
-      handler: "getUserImageUploadUrl.handler",
+    const getUserImageUploadUrlHandler = new Function(this, `GetUserImageUploadUrl_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getUserImageUploadUrl`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [

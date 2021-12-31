@@ -3,7 +3,6 @@
 /* eslint-disable no-console */
 /* eslint-disable no-new */
 import {
-  Duration,
   RemovalPolicy,
   CfnOutput,
   custom_resources as CustomResources,
@@ -28,6 +27,7 @@ import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
 import { WebSocketApi } from "@yac/util/infra/constructs/webSocket.api";
 import { DomainName } from "@yac/util/infra/constructs/domainName";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacNotificationServiceStack extends Stack {
@@ -172,26 +172,16 @@ export class YacNotificationServiceStack extends Stack {
     messageUpdatedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // WebSocket Lambdas
-    const connectHandler = new Lambda.Function(this, `ConnectHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/connect`),
-      handler: "connect.handler",
+    const connectHandler = new Function(this, `ConnectHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/connect`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const disconnectHandler = new Lambda.Function(this, `DisconnectHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/disconnect`),
-      handler: "disconnect.handler",
+    const disconnectHandler = new Function(this, `DisconnectHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/disconnect`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     const authorizerHandler = Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, authorizerHandlerFunctionArn);
@@ -219,30 +209,20 @@ export class YacNotificationServiceStack extends Stack {
     });
 
     // SQS Event Lambda Handler
-    new Lambda.Function(this, `SqsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sqsEvent`),
-      handler: "sqsEvent.handler",
+    new Function(this, `SqsEventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/sqsEvent`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, executeWebSocketApiPolicyStatement, sendPushNotificationPolicyStatement ],
-      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
       ],
     });
 
     // HTTP Lambdas
-    const registerDeviceHandler = new Lambda.Function(this, `RegisterDeviceHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/registerDevice`),
-      handler: "registerDevice.handler",
+    const registerDeviceHandler = new Function(this, `RegisterDeviceHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/registerDevice`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, listenerMappingTableFullAccessPolicyStatement, createPlatformEndpointPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [

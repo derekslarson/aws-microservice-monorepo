@@ -20,6 +20,7 @@ import { Construct } from "constructs";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
 import { HttpApi, RouteProps } from "@yac/util/infra/constructs/http.api";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 import { GlobalSecondaryIndex } from "../../src/enums/globalSecondaryIndex.enum";
 
 export class YacBillingServiceStack extends Stack {
@@ -90,68 +91,43 @@ export class YacBillingServiceStack extends Stack {
     userRemovedFromOrganizationSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Dynamo Stream Handler
-    new Lambda.Function(this, `BillingTableEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/billingTableEvent`),
-      handler: "billingTableEvent.handler",
+    new Function(this, `BillingTableEventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/billingTableEvent`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement, billingPlanUpdatedSnsPublishPolicyStatement ],
-      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.DynamoEventSource(billingTable, { startingPosition: Lambda.StartingPosition.LATEST }),
       ],
     });
 
-    new Lambda.Function(this, `SqsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sqsEvent`),
-      handler: "sqsEvent.handler",
+    new Function(this, `SqsEventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/sqsEvent`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
       ],
     });
 
-    const sendPendingQuantityUpdatesToStripeHandler = new Lambda.Function(this, `SendPendingQuantityUpdatesToStripeHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sendPendingQuantityUpdatesToStripe`),
-      handler: "sendPendingQuantityUpdatesToStripe.handler",
+    const sendPendingQuantityUpdatesToStripeHandler = new Function(this, `SendPendingQuantityUpdatesToStripeHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/sendPendingQuantityUpdatesToStripe`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     const rule = new Events.Rule(this, `SendPendingQuantityUpdatesToStripeChronRule_${id}`, { schedule: Events.Schedule.rate(Duration.minutes(1)) });
     rule.addTarget(new EventsTargets.LambdaFunction(sendPendingQuantityUpdatesToStripeHandler));
 
-    const getBillingPortalUrlHandler = new Lambda.Function(this, `GetBillingPortalUrlHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getBillingPortalUrl`),
-      handler: "getBillingPortalUrl.handler",
+    const getBillingPortalUrlHandler = new Function(this, `GetBillingPortalUrlHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getBillingPortalUrl`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const stripeWebhookHandler = new Lambda.Function(this, `StripeWebhookHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/stripeWebhook`),
-      handler: "stripeWebhook.handler",
+    const stripeWebhookHandler = new Function(this, `StripeWebhookHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/stripeWebhook`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, billingTableFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [
@@ -171,7 +147,7 @@ export class YacBillingServiceStack extends Stack {
     const httpApi = new HttpApi(this, `HttpApi_${id}`, {
       serviceName: "billing",
       domainName: ApiGatewayV2.DomainName.fromDomainNameAttributes(this, `DomainName_${id}`, domainNameAttributes),
-      authorizerHandler: Lambda.Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, authorizerHandlerFunctionArn),
+      authorizerHandler: Function.fromFunctionArn(this, `AuthorizerHandler_${id}`, authorizerHandlerFunctionArn),
     });
 
     routes.forEach((route) => httpApi.addRoute(route));

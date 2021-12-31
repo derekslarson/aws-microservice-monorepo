@@ -1,12 +1,11 @@
 import {
-  Duration,
   Stack,
   NestedStack,
-  aws_lambda as Lambda,
   aws_iam as IAM,
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
 export class YacMessageServiceNestedStack extends NestedStack {
@@ -25,114 +24,64 @@ export class YacMessageServiceNestedStack extends NestedStack {
       openSearchFullAccessPolicyStatement,
     } = props;
 
-    const createOneOnOneMessageHandler = new Lambda.Function(this, `CreateOneOnOneMessage_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/createOneOnOneMessage`),
-      handler: "createOneOnOneMessage.handler",
+    const createOneOnOneMessageHandler = new Function(this, `CreateOneOnOneMessage_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/createOneOnOneMessage`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const createGroupMessageHandler = new Lambda.Function(this, `CreateGroupMessage_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/createGroupMessage`),
-      handler: "createGroupMessage.handler",
+    const createGroupMessageHandler = new Function(this, `CreateGroupMessage_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/createGroupMessage`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const createMeetingMessageHandler = new Lambda.Function(this, `CreateMeetingMessage_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/createMeetingMessage`),
-      handler: "createMeetingMessage.handler",
+    const createMeetingMessageHandler = new Function(this, `CreateMeetingMessage_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/createMeetingMessage`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, rawMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, getMessageUploadTokenSecretPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getMessageHandler = new Lambda.Function(this, `GetMessage_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getMessage`),
-      handler: "getMessage.handler",
+    const getMessageHandler = new Function(this, `GetMessage_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getMessage`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const updateMessageByUserIdHandler = new Lambda.Function(this, `UpdateMessageByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/updateMessageByUserId`),
-      handler: "updateMessageByUserId.handler",
+    const updateMessageByUserIdHandler = new Function(this, `UpdateMessageByUserId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/updateMessageByUserId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const updateMessageHandler = new Lambda.Function(this, `UpdateMessage${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/updateMessage`),
-      handler: "updateMessage.handler",
+    const updateMessageHandler = new Function(this, `UpdateMessage${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/updateMessage`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getMessagesByOneOnOneIdHandler = new Lambda.Function(this, `GetMessagesByOneOnOneId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getMessagesByOneOnOneId`),
-      handler: "getMessagesByOneOnOneId.handler",
+    const getMessagesByOneOnOneIdHandler = new Function(this, `GetMessagesByOneOnOneId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getMessagesByOneOnOneId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getMessagesByGroupIdHandler = new Lambda.Function(this, `GetMessagesByGroupId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getMessagesByGroupId`),
-      handler: "getMessagesByGroupId.handler",
+    const getMessagesByGroupIdHandler = new Function(this, `GetMessagesByGroupId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getMessagesByGroupId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getMessagesByMeetingIdHandler = new Lambda.Function(this, `GetMessagesByMeetingId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getMessagesByMeetingId`),
-      handler: "getMessagesByMeetingId.handler",
+    const getMessagesByMeetingIdHandler = new Function(this, `GetMessagesByMeetingId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getMessagesByMeetingId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getMessagesByUserIdAndSearchTermHandler = new Lambda.Function(this, `GetMessagesByUserIdAndSearchTerm_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getMessagesByUserIdAndSearchTerm`),
-      handler: "getMessagesByUserIdAndSearchTerm.handler",
+    const getMessagesByUserIdAndSearchTermHandler = new Function(this, `GetMessagesByUserIdAndSearchTerm_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getMessagesByUserIdAndSearchTerm`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, enhancedMessageS3BucketFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [

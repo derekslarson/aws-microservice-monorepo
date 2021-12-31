@@ -1,11 +1,9 @@
 /* eslint-disable no-new */
 import {
-  Duration,
   Stack,
   StackProps,
   RemovalPolicy,
   aws_iam as IAM,
-  aws_lambda as Lambda,
   aws_lambda_event_sources as LambdaEventSources,
   aws_s3 as S3,
   aws_sns as SNS,
@@ -17,6 +15,7 @@ import {
 import { Construct } from "constructs";
 import { Environment } from "@yac/util/src/enums/environment.enum";
 import { LogLevel } from "@yac/util/src/enums/logLevel.enum";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 
 export class YacTranscriptionServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: YacTranscriptionServiceStackProps) {
@@ -75,15 +74,10 @@ export class YacTranscriptionServiceStack extends Stack {
     transcriptionJobFailedSnsTopic.addSubscription(new SnsSubscriptions.SqsSubscription(sqsEventHandlerQueue));
 
     // Lambdas
-    new Lambda.Function(this, `SqsEventHandler_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/sqsEvent`),
-      handler: "sqsEvent.handler",
+    new Function(this, `SqsEventHandler_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/sqsEvent`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, enhancedMessageS3BucketFullAccessPolicyStatement, transcriptionS3BucketFullAccessPolicyStatement, startTranscriptionJobPolicyStatement, messageTranscribedSnsPublishPolicyStatement ],
-      timeout: Duration.seconds(15),
       events: [
         new LambdaEventSources.SqsEventSource(sqsEventHandlerQueue),
       ],

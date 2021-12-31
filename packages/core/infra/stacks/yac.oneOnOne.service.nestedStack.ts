@@ -1,12 +1,11 @@
 import {
-  Duration,
   Stack,
   NestedStack,
-  aws_lambda as Lambda,
   aws_iam as IAM,
 } from "aws-cdk-lib";
 import * as ApiGatewayV2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { RouteProps } from "@yac/util/infra/constructs/http.api";
+import { Function } from "@yac/util/infra/constructs/lambda.function";
 import { YacNestedStackProps } from "./yacNestedStackProps.model";
 
 export class YacOneOnOneServiceNestedStack extends NestedStack {
@@ -22,37 +21,22 @@ export class YacOneOnOneServiceNestedStack extends NestedStack {
       openSearchFullAccessPolicyStatement,
     } = props;
 
-    const createOneOnOnesHandler = new Lambda.Function(this, `CreateOneOnOnes_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/createOneOnOnes`),
-      handler: "createOneOnOnes.handler",
+    const createOneOnOnesHandler = new Function(this, `CreateOneOnOnes_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/createOneOnOnes`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const deleteOneOnOneHandler = new Lambda.Function(this, `DeleteOneOnOne_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/deleteOneOnOne`),
-      handler: "deleteOneOnOne.handler",
+    const deleteOneOnOneHandler = new Function(this, `DeleteOneOnOne_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/deleteOneOnOne`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
-    const getOneOnOnesByUserIdHandler = new Lambda.Function(this, `GetOneOnOnesByUserId_${id}`, {
-      runtime: Lambda.Runtime.NODEJS_14_X,
-      code: Lambda.Code.fromAsset(`${__dirname}/../../dist/handlers/getOneOnOnesByUserId`),
-      handler: "getOneOnOnesByUserId.handler",
+    const getOneOnOnesByUserIdHandler = new Function(this, `GetOneOnOnesByUserId_${id}`, {
+      codePath: `${__dirname}/../../dist/handlers/getOneOnOnesByUserId`,
       environment: environmentVariables,
-      memorySize: 2048,
-      architecture: Lambda.Architecture.ARM_64,
       initialPolicy: [ ...basePolicy, coreTableFullAccessPolicyStatement, imageS3BucketFullAccessPolicyStatement, openSearchFullAccessPolicyStatement ],
-      timeout: Duration.seconds(15),
     });
 
     const routes: RouteProps[] = [
