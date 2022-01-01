@@ -14,7 +14,7 @@ export class DomainName extends ApiGatewayV2.DomainName {
   constructor(scope: Construct, id: string, props: DomainNameProps) {
     const { environment, certificateArn, hostedZoneAttributes, recordNameSuffix } = props;
 
-    const recordName = `${environment === Environment.Prod ? "api-v4" : environment === Environment.Dev ? "develop" : environment}${recordNameSuffix ? `-${recordNameSuffix}` : ""}`;
+    const recordName = `${environment === Environment.Prod ? "api-v4" : environment}${recordNameSuffix ? `-${recordNameSuffix}` : ""}`;
 
     super(scope, id, {
       domainName: `${recordName}.${hostedZoneAttributes.zoneName}`,
