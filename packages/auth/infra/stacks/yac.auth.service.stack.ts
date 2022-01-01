@@ -79,7 +79,7 @@ export class YacAuthServiceStack extends Stack {
       },
     });
 
-    const recordName = environment === Environment.Prod ? "api-v4" : environment === Environment.Dev ? "develop" : environment;
+    const recordName = environment === Environment.Prod ? "api-v4" : environment;
 
     const websiteDistribution = new CloudFront.Distribution(this, `IdYacComDistribution_${id}`, {
       defaultBehavior: {

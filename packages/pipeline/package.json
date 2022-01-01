@@ -27,7 +27,6 @@
     "@yac/transcoding": "0.1.0",
     "@yac/transcription": "0.1.0",
     "@yac/chunked-upload": "0.1.0",
-    "@yac/calendar": "0.1.0",
-    "@yac/image-generator": "0.1.0"
+    "@yac/calendar": "0.1.0"
   }
 }

@@ -11,7 +11,6 @@ import { YacBillingServiceStack } from "@yac/billing/infra/stacks/yac.billing.se
 import { YacCalendarServiceStack } from "@yac/calendar/infra/stacks/yac.calendar.service.stack";
 import { YacChunkedUploadServiceStack } from "@yac/chunked-upload/infra/stacks/yac.chunkedUpload.service.stack";
 import { YacChunkedUploadTestingStack } from "@yac/chunked-upload/e2e/test-stack/infra/stacks/yac.chunkedUpload.testing.stack";
-import { YacImageGeneratorServiceStack } from "@yac/image-generator/infra/stacks/yac.image-generator.service.stack";
 import { YacTranscodingServiceStack } from "@yac/transcoding/infra/stacks/yac.transcoding.service.stack";
 import { YacTranscriptionServiceStack } from "@yac/transcription/infra/stacks/yac.transcription.service.stack";
 import { YacNotificationTestingStack } from "@yac/notification/e2e/test-stack/infra/stacks/yac.notification.testing.stack";
@@ -76,11 +75,6 @@ export class YacStage extends Stage {
       domainNameAttributes: utilService.exports.domainNameAttributes,
       secretArns: utilService.exports.secretArns,
       s3BucketArns: utilService.exports.s3BucketArns,
-    });
-
-    new YacImageGeneratorServiceStack(this, `${environment}-YacImageGeneratorService`, {
-      environment,
-      domainNameAttributes: utilService.exports.domainNameAttributes,
     });
 
     new YacTranscodingServiceStack(this, `${environment}-YacTranscodingService`, {
