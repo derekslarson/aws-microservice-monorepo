@@ -10,7 +10,7 @@ import { Construct } from "constructs";
 export class Function extends Lambda.Function {
   constructor(scope: Construct, id: string, props: FunctionProps) {
     super(scope, id, {
-      functionName: id,
+      functionName: id.length <= 64 ? id : id.slice(0, 64),
       runtime: Lambda.Runtime.NODEJS_14_X,
       memorySize: 1024,
       architecture: Lambda.Architecture.ARM_64,
