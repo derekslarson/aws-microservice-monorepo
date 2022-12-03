@@ -6,6 +6,11 @@
       "es2018"
     ],
     "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
     "noImplicitOverride": true,
     "noImplicitAny": true,
     "strictNullChecks": true,

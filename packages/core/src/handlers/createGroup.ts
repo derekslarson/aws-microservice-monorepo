@@ -6,10 +6,10 @@ import { container } from "../inversion-of-control/container";
 import { TYPES } from "../inversion-of-control/types";
 import { GroupControllerInterface } from "../controllers/group.controller";
 
-const groupController = container.get<GroupControllerInterface>(TYPES.GroupControllerInterface);
 const loggerService = container.get<LoggerServiceInterface>(TYPES.LoggerServiceInterface);
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
+  const groupController = container.get<GroupControllerInterface>(TYPES.GroupControllerInterface);
   try {
     loggerService.trace("createGroup called", { event }, "createGroup handler");
 

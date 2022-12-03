@@ -94,7 +94,7 @@ export interface Client {
   scopes: string[];
   name: string;
   createdAt: string;
-  secret?: string;
+  secret?: string
 }
 
 export interface RawClient extends Client {
